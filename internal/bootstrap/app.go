@@ -12,7 +12,6 @@ import (
 	"github.com/PapilioVPN/node/internal/modules/core"
 	"github.com/PapilioVPN/node/internal/modules/engines"
 	"github.com/PapilioVPN/node/internal/modules/system"
-	rpc "github.com/PapilioVPN/node/internal/platform/grpcserver"
 	"github.com/PapilioVPN/node/internal/settings"
 )
 
@@ -20,17 +19,15 @@ import (
 // Options use native Fx extension points, including composition test consumers.
 // Run owns final cleanup when an expired Fx context prevents lifecycle hooks.
 func New(cfg settings.Config, version string, options ...fx.Option) *fx.App {
-	modules := []fx.Option{
-		fx.Supply(cfg.Node, cfg.Communications.GRPC, cfg.Communications.GRPC.Permissions, cfg.Instances),
+	return fx.New(
+		fx.Supply(cfg.Node, cfg.Instances),
 		system.Module(version, cfg.Communications.GRPC.Enabled), core.Module(cfg.Communications.GRPC.Enabled),
 		engines.Module(cfg.Communications.GRPC.Enabled),
+		communications(cfg.Communications),
 		fx.StartTimeout(cfg.Runtime.StartupTimeout), fx.StopTimeout(cfg.Runtime.ShutdownTimeout),
 		fx.WithLogger(func() fxevent.Logger { return &fxevent.SlogLogger{Logger: slog.Default()} }),
-	}
-	if cfg.Communications.GRPC.Enabled {
-		modules = append(modules, grpcModule)
-	}
-	return fx.New(append(modules, options...)...)
+		fx.Options(options...),
+	)
 }
 
 // Run starts the process and stops it on caller cancellation or native Fx shutdown.
@@ -38,11 +35,10 @@ func Run(ctx context.Context, cfg settings.Config, version string, options ...fx
 	if !cfg.Communications.GRPC.Enabled {
 		return errors.New("no implemented communication transport is enabled")
 	}
-	var server *rpc.Server
 	var resources moduleResources
-	application := New(cfg, version, append(options, fx.Populate(&server, &resources))...)
+	application := New(cfg, version, append(options, fx.Populate(&resources))...)
 	defer func() {
-		if server != nil {
+		for _, server := range resources.Transports {
 			result = errors.Join(result, server.Close())
 		}
 		for _, resource := range resources.Closers {
@@ -73,5 +69,6 @@ func Run(ctx context.Context, cfg settings.Config, version string, options ...fx
 // Module resources are independent owners; each preserves its internal close order.
 type moduleResources struct {
 	fx.In
-	Closers []io.Closer `group:"module_resources"`
+	Transports []transport `group:"transports"`
+	Closers    []io.Closer `group:"module_resources"`
 }
