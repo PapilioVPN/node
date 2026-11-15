@@ -122,6 +122,58 @@ func (InstanceFailureCode) EnumDescriptor() ([]byte, []int) {
 	return file_internal_modules_instances_grpcapi_proto_v1_instances_proto_rawDescGZIP(), []int{1}
 }
 
+type ConfigFormat int32
+
+const (
+	ConfigFormat_CONFIG_FORMAT_UNSPECIFIED ConfigFormat = 0
+	ConfigFormat_CONFIG_FORMAT_JSON        ConfigFormat = 1
+	ConfigFormat_CONFIG_FORMAT_YAML        ConfigFormat = 2
+	ConfigFormat_CONFIG_FORMAT_TOML        ConfigFormat = 3
+)
+
+// Enum value maps for ConfigFormat.
+var (
+	ConfigFormat_name = map[int32]string{
+		0: "CONFIG_FORMAT_UNSPECIFIED",
+		1: "CONFIG_FORMAT_JSON",
+		2: "CONFIG_FORMAT_YAML",
+		3: "CONFIG_FORMAT_TOML",
+	}
+	ConfigFormat_value = map[string]int32{
+		"CONFIG_FORMAT_UNSPECIFIED": 0,
+		"CONFIG_FORMAT_JSON":        1,
+		"CONFIG_FORMAT_YAML":        2,
+		"CONFIG_FORMAT_TOML":        3,
+	}
+)
+
+func (x ConfigFormat) Enum() *ConfigFormat {
+	p := new(ConfigFormat)
+	*p = x
+	return p
+}
+
+func (x ConfigFormat) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ConfigFormat) Descriptor() protoreflect.EnumDescriptor {
+	return file_internal_modules_instances_grpcapi_proto_v1_instances_proto_enumTypes[2].Descriptor()
+}
+
+func (ConfigFormat) Type() protoreflect.EnumType {
+	return &file_internal_modules_instances_grpcapi_proto_v1_instances_proto_enumTypes[2]
+}
+
+func (x ConfigFormat) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ConfigFormat.Descriptor instead.
+func (ConfigFormat) EnumDescriptor() ([]byte, []int) {
+	return file_internal_modules_instances_grpcapi_proto_v1_instances_proto_rawDescGZIP(), []int{2}
+}
+
 type GetInstanceStatusRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	InstanceId    string                 `protobuf:"bytes,1,opt,name=instance_id,json=instanceId,proto3" json:"instance_id,omitempty"`
@@ -557,6 +609,115 @@ func (x *ListInstanceStatusesResponse) GetNextAfterInstanceId() string {
 	return ""
 }
 
+type ValidateInstanceConfigRequest struct {
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	InstanceId string                 `protobuf:"bytes,1,opt,name=instance_id,json=instanceId,proto3" json:"instance_id,omitempty"`
+	Format     ConfigFormat           `protobuf:"varint,2,opt,name=format,proto3,enum=papilio.node.v1.ConfigFormat" json:"format,omitempty"`
+	// Native configuration bytes, bounded by the selected instance's settings.
+	Content       []byte `protobuf:"bytes,3,opt,name=content,proto3" json:"content,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ValidateInstanceConfigRequest) Reset() {
+	*x = ValidateInstanceConfigRequest{}
+	mi := &file_internal_modules_instances_grpcapi_proto_v1_instances_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ValidateInstanceConfigRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ValidateInstanceConfigRequest) ProtoMessage() {}
+
+func (x *ValidateInstanceConfigRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_modules_instances_grpcapi_proto_v1_instances_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ValidateInstanceConfigRequest.ProtoReflect.Descriptor instead.
+func (*ValidateInstanceConfigRequest) Descriptor() ([]byte, []int) {
+	return file_internal_modules_instances_grpcapi_proto_v1_instances_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *ValidateInstanceConfigRequest) GetInstanceId() string {
+	if x != nil {
+		return x.InstanceId
+	}
+	return ""
+}
+
+func (x *ValidateInstanceConfigRequest) GetFormat() ConfigFormat {
+	if x != nil {
+		return x.Format
+	}
+	return ConfigFormat_CONFIG_FORMAT_UNSPECIFIED
+}
+
+func (x *ValidateInstanceConfigRequest) GetContent() []byte {
+	if x != nil {
+		return x.Content
+	}
+	return nil
+}
+
+type ValidateInstanceConfigResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// True only when the native configuration builder accepts the candidate.
+	// This does not construct an engine, test listeners or establish readiness.
+	// A rejected candidate returns false; execution/transport failures are RPC errors.
+	// No native diagnostics or candidate contents are returned.
+	Valid         bool `protobuf:"varint,1,opt,name=valid,proto3" json:"valid,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ValidateInstanceConfigResponse) Reset() {
+	*x = ValidateInstanceConfigResponse{}
+	mi := &file_internal_modules_instances_grpcapi_proto_v1_instances_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ValidateInstanceConfigResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ValidateInstanceConfigResponse) ProtoMessage() {}
+
+func (x *ValidateInstanceConfigResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_modules_instances_grpcapi_proto_v1_instances_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ValidateInstanceConfigResponse.ProtoReflect.Descriptor instead.
+func (*ValidateInstanceConfigResponse) Descriptor() ([]byte, []int) {
+	return file_internal_modules_instances_grpcapi_proto_v1_instances_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *ValidateInstanceConfigResponse) GetValid() bool {
+	if x != nil {
+		return x.Valid
+	}
+	return false
+}
+
 var File_internal_modules_instances_grpcapi_proto_v1_instances_proto protoreflect.FileDescriptor
 
 const file_internal_modules_instances_grpcapi_proto_v1_instances_proto_rawDesc = "" +
@@ -593,7 +754,14 @@ const file_internal_modules_instances_grpcapi_proto_v1_instances_proto_rawDesc =
 	"\x11after_instance_id\x18\x02 \x01(\tR\x0fafterInstanceId\"\x8a\x01\n" +
 	"\x1cListInstanceStatusesResponse\x125\n" +
 	"\x05items\x18\x01 \x03(\v2\x1f.papilio.node.v1.InstanceStatusR\x05items\x123\n" +
-	"\x16next_after_instance_id\x18\x02 \x01(\tR\x13nextAfterInstanceId*\x9f\x01\n" +
+	"\x16next_after_instance_id\x18\x02 \x01(\tR\x13nextAfterInstanceId\"\x91\x01\n" +
+	"\x1dValidateInstanceConfigRequest\x12\x1f\n" +
+	"\vinstance_id\x18\x01 \x01(\tR\n" +
+	"instanceId\x125\n" +
+	"\x06format\x18\x02 \x01(\x0e2\x1d.papilio.node.v1.ConfigFormatR\x06format\x12\x18\n" +
+	"\acontent\x18\x03 \x01(\fR\acontent\"6\n" +
+	"\x1eValidateInstanceConfigResponse\x12\x14\n" +
+	"\x05valid\x18\x01 \x01(\bR\x05valid*\x9f\x01\n" +
 	"\rInstanceState\x12\x1e\n" +
 	"\x1aINSTANCE_STATE_UNSPECIFIED\x10\x00\x12\x1a\n" +
 	"\x16INSTANCE_STATE_STOPPED\x10\x01\x12\x1a\n" +
@@ -602,12 +770,18 @@ const file_internal_modules_instances_grpcapi_proto_v1_instances_proto_rawDesc =
 	"\x15INSTANCE_STATE_EXITED\x10\x04*h\n" +
 	"\x13InstanceFailureCode\x12%\n" +
 	"!INSTANCE_FAILURE_CODE_UNSPECIFIED\x10\x00\x12*\n" +
-	"&INSTANCE_FAILURE_CODE_EXECUTION_FAILED\x10\x012\xa2\x03\n" +
+	"&INSTANCE_FAILURE_CODE_EXECUTION_FAILED\x10\x01*u\n" +
+	"\fConfigFormat\x12\x1d\n" +
+	"\x19CONFIG_FORMAT_UNSPECIFIED\x10\x00\x12\x16\n" +
+	"\x12CONFIG_FORMAT_JSON\x10\x01\x12\x16\n" +
+	"\x12CONFIG_FORMAT_YAML\x10\x02\x12\x16\n" +
+	"\x12CONFIG_FORMAT_TOML\x10\x032\x9d\x04\n" +
 	"\x0fInstanceService\x12j\n" +
 	"\x11GetInstanceStatus\x12).papilio.node.v1.GetInstanceStatusRequest\x1a*.papilio.node.v1.GetInstanceStatusResponse\x12s\n" +
 	"\x14ListInstanceStatuses\x12,.papilio.node.v1.ListInstanceStatusesRequest\x1a-.papilio.node.v1.ListInstanceStatusesResponse\x12W\n" +
 	"\rStartInstance\x12%.papilio.node.v1.StartInstanceRequest\x1a\x1f.papilio.node.v1.InstanceStatus\x12U\n" +
-	"\fStopInstance\x12$.papilio.node.v1.StopInstanceRequest\x1a\x1f.papilio.node.v1.InstanceStatusBTZRgithub.com/PapilioVPN/node/internal/modules/instances/grpcapi/proto/v1;instancesv1b\x06proto3"
+	"\fStopInstance\x12$.papilio.node.v1.StopInstanceRequest\x1a\x1f.papilio.node.v1.InstanceStatus\x12y\n" +
+	"\x16ValidateInstanceConfig\x12..papilio.node.v1.ValidateInstanceConfigRequest\x1a/.papilio.node.v1.ValidateInstanceConfigResponseBTZRgithub.com/PapilioVPN/node/internal/modules/instances/grpcapi/proto/v1;instancesv1b\x06proto3"
 
 var (
 	file_internal_modules_instances_grpcapi_proto_v1_instances_proto_rawDescOnce sync.Once
@@ -621,40 +795,46 @@ func file_internal_modules_instances_grpcapi_proto_v1_instances_proto_rawDescGZI
 	return file_internal_modules_instances_grpcapi_proto_v1_instances_proto_rawDescData
 }
 
-var file_internal_modules_instances_grpcapi_proto_v1_instances_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_internal_modules_instances_grpcapi_proto_v1_instances_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_internal_modules_instances_grpcapi_proto_v1_instances_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
+var file_internal_modules_instances_grpcapi_proto_v1_instances_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_internal_modules_instances_grpcapi_proto_v1_instances_proto_goTypes = []any{
-	(InstanceState)(0),                   // 0: papilio.node.v1.InstanceState
-	(InstanceFailureCode)(0),             // 1: papilio.node.v1.InstanceFailureCode
-	(*GetInstanceStatusRequest)(nil),     // 2: papilio.node.v1.GetInstanceStatusRequest
-	(*GetInstanceStatusResponse)(nil),    // 3: papilio.node.v1.GetInstanceStatusResponse
-	(*InstanceFailure)(nil),              // 4: papilio.node.v1.InstanceFailure
-	(*StartInstanceRequest)(nil),         // 5: papilio.node.v1.StartInstanceRequest
-	(*StopInstanceRequest)(nil),          // 6: papilio.node.v1.StopInstanceRequest
-	(*InstanceStatus)(nil),               // 7: papilio.node.v1.InstanceStatus
-	(*ListInstanceStatusesRequest)(nil),  // 8: papilio.node.v1.ListInstanceStatusesRequest
-	(*ListInstanceStatusesResponse)(nil), // 9: papilio.node.v1.ListInstanceStatusesResponse
+	(InstanceState)(0),                     // 0: papilio.node.v1.InstanceState
+	(InstanceFailureCode)(0),               // 1: papilio.node.v1.InstanceFailureCode
+	(ConfigFormat)(0),                      // 2: papilio.node.v1.ConfigFormat
+	(*GetInstanceStatusRequest)(nil),       // 3: papilio.node.v1.GetInstanceStatusRequest
+	(*GetInstanceStatusResponse)(nil),      // 4: papilio.node.v1.GetInstanceStatusResponse
+	(*InstanceFailure)(nil),                // 5: papilio.node.v1.InstanceFailure
+	(*StartInstanceRequest)(nil),           // 6: papilio.node.v1.StartInstanceRequest
+	(*StopInstanceRequest)(nil),            // 7: papilio.node.v1.StopInstanceRequest
+	(*InstanceStatus)(nil),                 // 8: papilio.node.v1.InstanceStatus
+	(*ListInstanceStatusesRequest)(nil),    // 9: papilio.node.v1.ListInstanceStatusesRequest
+	(*ListInstanceStatusesResponse)(nil),   // 10: papilio.node.v1.ListInstanceStatusesResponse
+	(*ValidateInstanceConfigRequest)(nil),  // 11: papilio.node.v1.ValidateInstanceConfigRequest
+	(*ValidateInstanceConfigResponse)(nil), // 12: papilio.node.v1.ValidateInstanceConfigResponse
 }
 var file_internal_modules_instances_grpcapi_proto_v1_instances_proto_depIdxs = []int32{
 	0,  // 0: papilio.node.v1.GetInstanceStatusResponse.state:type_name -> papilio.node.v1.InstanceState
-	4,  // 1: papilio.node.v1.GetInstanceStatusResponse.failure:type_name -> papilio.node.v1.InstanceFailure
+	5,  // 1: papilio.node.v1.GetInstanceStatusResponse.failure:type_name -> papilio.node.v1.InstanceFailure
 	1,  // 2: papilio.node.v1.InstanceFailure.code:type_name -> papilio.node.v1.InstanceFailureCode
 	0,  // 3: papilio.node.v1.InstanceStatus.state:type_name -> papilio.node.v1.InstanceState
-	4,  // 4: papilio.node.v1.InstanceStatus.failure:type_name -> papilio.node.v1.InstanceFailure
-	7,  // 5: papilio.node.v1.ListInstanceStatusesResponse.items:type_name -> papilio.node.v1.InstanceStatus
-	2,  // 6: papilio.node.v1.InstanceService.GetInstanceStatus:input_type -> papilio.node.v1.GetInstanceStatusRequest
-	8,  // 7: papilio.node.v1.InstanceService.ListInstanceStatuses:input_type -> papilio.node.v1.ListInstanceStatusesRequest
-	5,  // 8: papilio.node.v1.InstanceService.StartInstance:input_type -> papilio.node.v1.StartInstanceRequest
-	6,  // 9: papilio.node.v1.InstanceService.StopInstance:input_type -> papilio.node.v1.StopInstanceRequest
-	3,  // 10: papilio.node.v1.InstanceService.GetInstanceStatus:output_type -> papilio.node.v1.GetInstanceStatusResponse
-	9,  // 11: papilio.node.v1.InstanceService.ListInstanceStatuses:output_type -> papilio.node.v1.ListInstanceStatusesResponse
-	7,  // 12: papilio.node.v1.InstanceService.StartInstance:output_type -> papilio.node.v1.InstanceStatus
-	7,  // 13: papilio.node.v1.InstanceService.StopInstance:output_type -> papilio.node.v1.InstanceStatus
-	10, // [10:14] is the sub-list for method output_type
-	6,  // [6:10] is the sub-list for method input_type
-	6,  // [6:6] is the sub-list for extension type_name
-	6,  // [6:6] is the sub-list for extension extendee
-	0,  // [0:6] is the sub-list for field type_name
+	5,  // 4: papilio.node.v1.InstanceStatus.failure:type_name -> papilio.node.v1.InstanceFailure
+	8,  // 5: papilio.node.v1.ListInstanceStatusesResponse.items:type_name -> papilio.node.v1.InstanceStatus
+	2,  // 6: papilio.node.v1.ValidateInstanceConfigRequest.format:type_name -> papilio.node.v1.ConfigFormat
+	3,  // 7: papilio.node.v1.InstanceService.GetInstanceStatus:input_type -> papilio.node.v1.GetInstanceStatusRequest
+	9,  // 8: papilio.node.v1.InstanceService.ListInstanceStatuses:input_type -> papilio.node.v1.ListInstanceStatusesRequest
+	6,  // 9: papilio.node.v1.InstanceService.StartInstance:input_type -> papilio.node.v1.StartInstanceRequest
+	7,  // 10: papilio.node.v1.InstanceService.StopInstance:input_type -> papilio.node.v1.StopInstanceRequest
+	11, // 11: papilio.node.v1.InstanceService.ValidateInstanceConfig:input_type -> papilio.node.v1.ValidateInstanceConfigRequest
+	4,  // 12: papilio.node.v1.InstanceService.GetInstanceStatus:output_type -> papilio.node.v1.GetInstanceStatusResponse
+	10, // 13: papilio.node.v1.InstanceService.ListInstanceStatuses:output_type -> papilio.node.v1.ListInstanceStatusesResponse
+	8,  // 14: papilio.node.v1.InstanceService.StartInstance:output_type -> papilio.node.v1.InstanceStatus
+	8,  // 15: papilio.node.v1.InstanceService.StopInstance:output_type -> papilio.node.v1.InstanceStatus
+	12, // 16: papilio.node.v1.InstanceService.ValidateInstanceConfig:output_type -> papilio.node.v1.ValidateInstanceConfigResponse
+	12, // [12:17] is the sub-list for method output_type
+	7,  // [7:12] is the sub-list for method input_type
+	7,  // [7:7] is the sub-list for extension type_name
+	7,  // [7:7] is the sub-list for extension extendee
+	0,  // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_internal_modules_instances_grpcapi_proto_v1_instances_proto_init() }
@@ -668,8 +848,8 @@ func file_internal_modules_instances_grpcapi_proto_v1_instances_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_internal_modules_instances_grpcapi_proto_v1_instances_proto_rawDesc), len(file_internal_modules_instances_grpcapi_proto_v1_instances_proto_rawDesc)),
-			NumEnums:      2,
-			NumMessages:   8,
+			NumEnums:      3,
+			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

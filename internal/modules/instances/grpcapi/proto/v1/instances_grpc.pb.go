@@ -19,10 +19,11 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	InstanceService_GetInstanceStatus_FullMethodName    = "/papilio.node.v1.InstanceService/GetInstanceStatus"
-	InstanceService_ListInstanceStatuses_FullMethodName = "/papilio.node.v1.InstanceService/ListInstanceStatuses"
-	InstanceService_StartInstance_FullMethodName        = "/papilio.node.v1.InstanceService/StartInstance"
-	InstanceService_StopInstance_FullMethodName         = "/papilio.node.v1.InstanceService/StopInstance"
+	InstanceService_GetInstanceStatus_FullMethodName      = "/papilio.node.v1.InstanceService/GetInstanceStatus"
+	InstanceService_ListInstanceStatuses_FullMethodName   = "/papilio.node.v1.InstanceService/ListInstanceStatuses"
+	InstanceService_StartInstance_FullMethodName          = "/papilio.node.v1.InstanceService/StartInstance"
+	InstanceService_StopInstance_FullMethodName           = "/papilio.node.v1.InstanceService/StopInstance"
+	InstanceService_ValidateInstanceConfig_FullMethodName = "/papilio.node.v1.InstanceService/ValidateInstanceConfig"
 )
 
 // InstanceServiceClient is the client API for InstanceService service.
@@ -35,6 +36,8 @@ type InstanceServiceClient interface {
 	StartInstance(ctx context.Context, in *StartInstanceRequest, opts ...grpc.CallOption) (*InstanceStatus, error)
 	// Joins the selected execution; cancellation can follow an applied stop.
 	StopInstance(ctx context.Context, in *StopInstanceRequest, opts ...grpc.CallOption) (*InstanceStatus, error)
+	// Native configuration building only; does not apply, start or probe readiness.
+	ValidateInstanceConfig(ctx context.Context, in *ValidateInstanceConfigRequest, opts ...grpc.CallOption) (*ValidateInstanceConfigResponse, error)
 }
 
 type instanceServiceClient struct {
@@ -85,6 +88,16 @@ func (c *instanceServiceClient) StopInstance(ctx context.Context, in *StopInstan
 	return out, nil
 }
 
+func (c *instanceServiceClient) ValidateInstanceConfig(ctx context.Context, in *ValidateInstanceConfigRequest, opts ...grpc.CallOption) (*ValidateInstanceConfigResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ValidateInstanceConfigResponse)
+	err := c.cc.Invoke(ctx, InstanceService_ValidateInstanceConfig_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // InstanceServiceServer is the server API for InstanceService service.
 // All implementations must embed UnimplementedInstanceServiceServer
 // for forward compatibility.
@@ -95,6 +108,8 @@ type InstanceServiceServer interface {
 	StartInstance(context.Context, *StartInstanceRequest) (*InstanceStatus, error)
 	// Joins the selected execution; cancellation can follow an applied stop.
 	StopInstance(context.Context, *StopInstanceRequest) (*InstanceStatus, error)
+	// Native configuration building only; does not apply, start or probe readiness.
+	ValidateInstanceConfig(context.Context, *ValidateInstanceConfigRequest) (*ValidateInstanceConfigResponse, error)
 	mustEmbedUnimplementedInstanceServiceServer()
 }
 
@@ -116,6 +131,9 @@ func (UnimplementedInstanceServiceServer) StartInstance(context.Context, *StartI
 }
 func (UnimplementedInstanceServiceServer) StopInstance(context.Context, *StopInstanceRequest) (*InstanceStatus, error) {
 	return nil, status.Error(codes.Unimplemented, "method StopInstance not implemented")
+}
+func (UnimplementedInstanceServiceServer) ValidateInstanceConfig(context.Context, *ValidateInstanceConfigRequest) (*ValidateInstanceConfigResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ValidateInstanceConfig not implemented")
 }
 func (UnimplementedInstanceServiceServer) mustEmbedUnimplementedInstanceServiceServer() {}
 func (UnimplementedInstanceServiceServer) testEmbeddedByValue()                         {}
@@ -210,6 +228,24 @@ func _InstanceService_StopInstance_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _InstanceService_ValidateInstanceConfig_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ValidateInstanceConfigRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(InstanceServiceServer).ValidateInstanceConfig(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: InstanceService_ValidateInstanceConfig_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(InstanceServiceServer).ValidateInstanceConfig(ctx, req.(*ValidateInstanceConfigRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // InstanceService_ServiceDesc is the grpc.ServiceDesc for InstanceService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -232,6 +268,10 @@ var InstanceService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "StopInstance",
 			Handler:    _InstanceService_StopInstance_Handler,
+		},
+		{
+			MethodName: "ValidateInstanceConfig",
+			Handler:    _InstanceService_ValidateInstanceConfig_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
