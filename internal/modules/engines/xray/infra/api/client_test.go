@@ -25,6 +25,10 @@ func TestAPIConstructionAndCanceledAdmissionCreateNoNativeChannel(t *testing.T) 
 	if client.connection != nil {
 		t.Fatal("construction/canceled admission allocated native workers")
 	}
+	addition := domain.InboundUserAddition{InboundTag: "in", User: domain.InboundUser{Email: "user", Account: domain.UserAccount{Protocol: domain.VLESS, VLESS: &domain.VLESSAccount{ID: "test-only"}}}}
+	if _, err := client.AddInboundUser(ctx, addition); !errors.Is(err, context.Canceled) || errors.Is(err, domain.ErrUserMutationUnknown) || client.connection != nil {
+		t.Fatalf("canceled addition created native effects/workers: %v", err)
+	}
 	selection := domain.TrafficSelection{Scope: domain.InboundTraffic, Name: "proxy", Direction: domain.Uplink}
 	if _, err := client.ReadTrafficCounter(ctx, selection); !errors.Is(err, context.Canceled) || client.connection != nil {
 		t.Fatalf("canceled traffic admission created a channel: %v", err)
@@ -37,6 +41,9 @@ func TestAPIConstructionAndCanceledAdmissionCreateNoNativeChannel(t *testing.T) 
 	}
 	if client.connection != nil {
 		t.Fatal("closed admission created native channel")
+	}
+	if _, err := client.AddInboundUser(t.Context(), addition); !errors.Is(err, grpc.ErrClientConnClosing) || errors.Is(err, domain.ErrUserMutationUnknown) || client.connection != nil {
+		t.Fatalf("closed addition created native effects/workers: %v", err)
 	}
 	if _, err := client.ReadTrafficCounter(t.Context(), selection); !errors.Is(err, grpc.ErrClientConnClosing) || client.connection != nil {
 		t.Fatalf("closed traffic admission created a channel: %v", err)
