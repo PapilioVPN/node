@@ -103,7 +103,7 @@ func TestXrayRoutingProbePreservesNativeFieldsProjectionAndEffects(t *testing.T)
 			}
 			bindings := make(map[instances.InstanceID]services.RoutingProber)
 			for _, instance := range cfg.Instances {
-				client := routingProbeAPIClient(t, instance)
+				client := nativeXrayAPIClient(t, instance)
 				bindings[instance.ID] = client
 				// Test-only readiness polling. Production probes themselves never retry.
 				ticker := time.NewTicker(20 * time.Millisecond)
@@ -255,7 +255,7 @@ func TestXrayRoutingProbePreservesNativeFieldsProjectionAndEffects(t *testing.T)
 	}
 }
 
-func routingProbeAPIClient(t *testing.T, instance settings.Instance) *xrayapi.Client {
+func nativeXrayAPIClient(t *testing.T, instance settings.Instance) *xrayapi.Client {
 	t.Helper()
 	api := instance.Xray.API
 	client, err := xrayapi.NewClient(xrayapi.Config{Network: api.Network, Address: api.Address, RequestTimeout: api.RequestTimeout, MaxReceiveBytes: api.MaxReceiveBytes, MaxConcurrent: api.MaxConcurrent})

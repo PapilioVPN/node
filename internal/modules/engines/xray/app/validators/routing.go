@@ -13,3 +13,10 @@ func BalancerTag(tag string) error {
 	}
 	return nil
 }
+
+func BalancerOverride(selection domain.BalancerOverride) error {
+	if BalancerTag(selection.BalancerTag) != nil || !utf8.ValidString(selection.Target) {
+		return domain.ErrInvalidBalancerOverride
+	}
+	return nil
+}

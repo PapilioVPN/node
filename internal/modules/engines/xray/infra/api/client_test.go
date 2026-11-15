@@ -34,6 +34,14 @@ func TestAPIConstructionAndCanceledAdmissionCreateNoNativeChannel(t *testing.T) 
 	if _, err := client.TestRoute(ctx, domain.RoutingProbe{}); !errors.Is(err, context.Canceled) || errors.Is(err, domain.ErrRoutingProbeUnknown) || client.connection != nil {
 		t.Fatalf("pre-canceled probe created native effects/workers: %v", err)
 	}
+	if _, err := client.OverrideBalancerTarget(ctx, domain.BalancerOverride{BalancerTag: "pool"}); !errors.Is(err, context.Canceled) || errors.Is(err, domain.ErrRoutingMutationUnknown) || client.connection != nil {
+		t.Fatalf("pre-canceled override created native effects/workers: %v", err)
+	}
+	for _, selection := range []domain.BalancerOverride{{BalancerTag: "\xff"}, {BalancerTag: "pool", Target: "\xff"}} {
+		if _, err := client.OverrideBalancerTarget(t.Context(), selection); !errors.Is(err, domain.ErrInvalidBalancerOverride) || errors.Is(err, domain.ErrRoutingMutationUnknown) || client.connection != nil {
+			t.Fatalf("invalid override allocated native workers/effects: %v", err)
+		}
+	}
 	addition := domain.InboundUserAddition{InboundTag: "in", User: domain.InboundUser{Email: "user", Account: domain.UserAccount{Protocol: domain.VLESS, VLESS: &domain.VLESSAccount{ID: "test-only"}}}}
 	if _, err := client.AddInboundUser(ctx, addition); !errors.Is(err, context.Canceled) || errors.Is(err, domain.ErrUserMutationUnknown) || client.connection != nil {
 		t.Fatalf("canceled addition created native effects/workers: %v", err)
@@ -68,6 +76,9 @@ func TestAPIConstructionAndCanceledAdmissionCreateNoNativeChannel(t *testing.T) 
 	}
 	if _, err := client.TestRoute(t.Context(), domain.RoutingProbe{}); !errors.Is(err, grpc.ErrClientConnClosing) || errors.Is(err, domain.ErrRoutingProbeUnknown) || client.connection != nil {
 		t.Fatalf("closed probe created native effects/workers: %v", err)
+	}
+	if _, err := client.OverrideBalancerTarget(t.Context(), domain.BalancerOverride{BalancerTag: "pool"}); !errors.Is(err, grpc.ErrClientConnClosing) || errors.Is(err, domain.ErrRoutingMutationUnknown) || client.connection != nil {
+		t.Fatalf("closed override created native effects/workers: %v", err)
 	}
 	if _, err := client.AddInboundUser(t.Context(), addition); !errors.Is(err, grpc.ErrClientConnClosing) || errors.Is(err, domain.ErrUserMutationUnknown) || client.connection != nil {
 		t.Fatalf("closed addition created native effects/workers: %v", err)

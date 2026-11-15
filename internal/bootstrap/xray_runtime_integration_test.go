@@ -80,8 +80,11 @@ func TestXrayRuntimeInfoOverMTLSAndNativeReconnect(t *testing.T) {
 			}
 			client := xrayClient(t, server, certificates)
 			response := awaitRuntimeInfo(t, ctx, client, "edge-a")
-			if result, err := routingProbeAPIClient(t, second).TestRoute(ctx, xraydomain.RoutingProbe{}); !errors.Is(err, xraydomain.ErrRoutingProbeUnsupported) || errors.Is(err, xraydomain.ErrRoutingProbeUnknown) || !result.AcknowledgedAt.IsZero() {
+			if result, err := nativeXrayAPIClient(t, second).TestRoute(ctx, xraydomain.RoutingProbe{}); !errors.Is(err, xraydomain.ErrRoutingProbeUnsupported) || errors.Is(err, xraydomain.ErrRoutingProbeUnknown) || !result.AcknowledgedAt.IsZero() {
 				t.Fatalf("absent native RoutingService accepted a probe or claimed effects: %+v %v", result, err)
+			}
+			if ack, err := nativeXrayAPIClient(t, second).OverrideBalancerTarget(ctx, xraydomain.BalancerOverride{BalancerTag: "pool"}); !errors.Is(err, xraydomain.ErrRoutingManagementUnsupported) || errors.Is(err, xraydomain.ErrRoutingMutationUnknown) || !ack.AcknowledgedAt.IsZero() {
+				t.Fatalf("absent native RoutingService accepted an override/claimed effects: %+v %v", ack, err)
 			}
 			_, probeError := client.TestRoute(ctx, &xrayv1.TestRouteRequest{InstanceId: "edge-b", Context: &xrayv1.RoutingContext{}})
 			assertRoutingProbeFailure(t, probeError, codes.FailedPrecondition, xrayv1.RoutingProbeOutcome_ROUTING_PROBE_OUTCOME_NOT_EXECUTED)
