@@ -1,6 +1,6 @@
 module github.com/PapilioVPN/node
 
-go 1.27.3
+go 1.27.4
 
 require (
 	github.com/xtls/xray-core v1.260327.1-0.20261109052709-676eaf66f8f0
