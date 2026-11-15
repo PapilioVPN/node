@@ -47,8 +47,9 @@ type GRPC struct {
 // GRPCPermissions grants only the declared operations to authenticated clients.
 // Zero values preserve the foundation's node-info/health-only access.
 type GRPCPermissions struct {
-	ReadInstanceStatus bool `yaml:"read_instance_status"`
-	ControlInstances   bool `yaml:"control_instances"`
+	ReadInstanceStatus     bool `yaml:"read_instance_status"`
+	ControlInstances       bool `yaml:"control_instances"`
+	ValidateInstanceConfig bool `yaml:"validate_instance_config"`
 }
 
 type TLS struct {
@@ -94,6 +95,9 @@ func Load(path string) (Config, error) {
 		xray := config.Instances[i].Xray
 		resolvePath(filepath.Dir(location), &xray.Binary)
 		resolvePath(filepath.Dir(location), &xray.ConfigFile)
+		if validation := config.Instances[i].Validation; validation != nil {
+			resolvePath(filepath.Dir(location), &validation.WorkDir)
+		}
 	}
 	return config, nil
 }

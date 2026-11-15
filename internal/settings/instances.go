@@ -10,9 +10,19 @@ import (
 
 // Instance declares one named engine execution started with Node.
 type Instance struct {
-	ID     domain.InstanceID `yaml:"id"`
-	Engine domain.EngineKind `yaml:"engine"`
-	Xray   *Xray             `yaml:"xray,omitempty"`
+	ID         domain.InstanceID `yaml:"id"`
+	Engine     domain.EngineKind `yaml:"engine"`
+	Xray       *Xray             `yaml:"xray,omitempty"`
+	Validation *ConfigValidation `yaml:"validation,omitempty"`
+}
+
+// ConfigValidation enables candidate building with explicit per-instance limits.
+// WorkDir is an existing writable directory; loading settings never creates it.
+type ConfigValidation struct {
+	WorkDir       string        `yaml:"work_dir"`
+	Timeout       time.Duration `yaml:"timeout"`
+	MaxBytes      int           `yaml:"max_bytes"`
+	MaxConcurrent int           `yaml:"max_concurrent"`
 }
 
 // Xray contains process settings; Xray itself parses ConfigFile.
@@ -38,6 +48,11 @@ func validateInstances(instances []Instance) error {
 		xray := instance.Xray
 		if strings.TrimSpace(xray.Binary) == "" || strings.TrimSpace(xray.ConfigFile) == "" || xray.StopTimeout <= 0 {
 			return fmt.Errorf("%w: instances[%d].xray requires binary, config_file and a positive stop_timeout", ErrInvalidConfig, i)
+		}
+		if validation := instance.Validation; validation != nil {
+			if strings.TrimSpace(validation.WorkDir) == "" || validation.Timeout <= 0 || validation.MaxBytes <= 0 || validation.MaxConcurrent <= 0 {
+				return fmt.Errorf("%w: instances[%d].validation requires work_dir and positive timeout, max_bytes and max_concurrent", ErrInvalidConfig, i)
+			}
 		}
 	}
 	return nil

@@ -13,6 +13,12 @@ instances: []
 #      binary: ""
 #      config_file: ""
 #      stop_timeout: 5s
+#    # Optional candidate building. Create/mount work_dir before enabling it.
+#    validation:
+#      work_dir: validation-work
+#      timeout: 3s
+#      max_bytes: 32768
+#      max_concurrent: 1
 communications:
   grpc:
     enabled: true
@@ -27,6 +33,8 @@ communications:
       read_instance_status: false
       # Opt in separately to Start/Stop of all configured instances.
       control_instances: false
+      # Separate opt-in to bounded candidate building; never applies a config.
+      validate_instance_config: false
     tls:
       certificate_file: ""
       private_key_file: ""

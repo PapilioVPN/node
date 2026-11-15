@@ -98,7 +98,7 @@ func TestLoadOptionalGRPC(t *testing.T) {
 	if err != nil {
 		t.Fatalf("an inactive transport must not require connection settings: %v", err)
 	}
-	if config.Communications.GRPC.Permissions.ReadInstanceStatus || config.Communications.GRPC.Permissions.ControlInstances {
+	if config.Communications.GRPC.Permissions.ReadInstanceStatus || config.Communications.GRPC.Permissions.ControlInstances || config.Communications.GRPC.Permissions.ValidateInstanceConfig {
 		t.Fatal("instance access must require explicit grants")
 	}
 }
@@ -150,7 +150,7 @@ func TestExistingReadGrantDoesNotEnableControl(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !cfg.Communications.GRPC.Permissions.ReadInstanceStatus || cfg.Communications.GRPC.Permissions.ControlInstances {
+	if !cfg.Communications.GRPC.Permissions.ReadInstanceStatus || cfg.Communications.GRPC.Permissions.ControlInstances || cfg.Communications.GRPC.Permissions.ValidateInstanceConfig {
 		t.Fatal("existing read configuration changed its authorization meaning")
 	}
 }

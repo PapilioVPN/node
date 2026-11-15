@@ -76,3 +76,51 @@ instances:
 		t.Fatalf("missing process-wide budgets accepted: %v", err)
 	}
 }
+
+func TestLoadOptionalConfigValidation(t *testing.T) {
+	path := writeConfig(t, `node: {id: west}
+runtime: {startup_timeout: 3s, shutdown_timeout: 3s}
+instances:
+  - id: edge-a
+    engine: xray
+    xray: {binary: bin/xray, config_file: engines/a.json, stop_timeout: 1s}
+    validation: {work_dir: private-work, timeout: 2s, max_bytes: 1024, max_concurrent: 2}
+communications:
+  grpc:
+    permissions: {validate_instance_config: true}
+`)
+	cfg, err := settings.Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	validation := cfg.Instances[0].Validation
+	if validation == nil || validation.WorkDir != filepath.Join(filepath.Dir(path), "private-work") || validation.Timeout != 2*time.Second || validation.MaxBytes != 1024 || validation.MaxConcurrent != 2 {
+		t.Fatalf("per-instance validation settings lost: %+v", validation)
+	}
+	permissions := cfg.Communications.GRPC.Permissions
+	if !permissions.ValidateInstanceConfig || permissions.ControlInstances || permissions.ReadInstanceStatus {
+		t.Fatalf("validation expanded existing grants: %+v", permissions)
+	}
+}
+
+func TestConfigValidationRequiresExplicitBounds(t *testing.T) {
+	for _, input := range []string{
+		"{}",
+		"{work_dir: ' ', timeout: 1s, max_bytes: 16, max_concurrent: 1}",
+		"{work_dir: work, timeout: 0s, max_bytes: 16, max_concurrent: 1}",
+		"{work_dir: work, timeout: 1s, max_bytes: -1, max_concurrent: 1}",
+		"{work_dir: work, timeout: 1s, max_bytes: 16, max_concurrent: 0}",
+		"{work_dir: work, timeout: 1s, max_bytes: 16, max_concurrent: 1, unknown: true}",
+	} {
+		_, err := settings.Load(writeConfig(t, `node: {id: west}
+runtime: {startup_timeout: 3s, shutdown_timeout: 3s}
+instances:
+  - id: edge
+    engine: xray
+    xray: {binary: xray, config_file: config.json, stop_timeout: 1s}
+    validation: `+input+"\n"))
+		if !errors.Is(err, settings.ErrInvalidConfig) {
+			t.Fatalf("invalid validation settings accepted: %v", err)
+		}
+	}
+}
