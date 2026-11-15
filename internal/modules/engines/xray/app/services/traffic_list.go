@@ -45,14 +45,16 @@ func (s *TrafficCountersService) ListTrafficCounters(ctx context.Context, id ins
 	if err != nil {
 		return domain.InstanceTrafficCounters{}, err
 	}
-	slices.SortStableFunc(counters.Items, func(a, b domain.TrafficCounterEntry) int {
-		if byName := cmp.Compare(a.Name, b.Name); byName != 0 {
-			return byName
-		}
-		return cmp.Compare(a.Direction, b.Direction)
-	})
+	slices.SortStableFunc(counters.Items, compareTrafficCounters)
 	if err := ctx.Err(); err != nil {
 		return domain.InstanceTrafficCounters{}, err
 	}
 	return domain.InstanceTrafficCounters{InstanceID: id, Scope: scope, Counters: counters}, nil
+}
+
+func compareTrafficCounters(a, b domain.TrafficCounterEntry) int {
+	if byName := cmp.Compare(a.Name, b.Name); byName != 0 {
+		return byName
+	}
+	return cmp.Compare(a.Direction, b.Direction)
 }
