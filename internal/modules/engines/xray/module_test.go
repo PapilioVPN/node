@@ -54,6 +54,9 @@ func TestModuleClosesAPIAdmissionAndExportsFinalCleanup(t *testing.T) {
 	if _, err := newTrafficCounterService(resources).GetTrafficCounter(t.Context(), "edge", domain.TrafficSelection{Scope: domain.InboundTraffic, Name: "proxy", Direction: domain.Uplink}); !errors.Is(err, grpc.ErrClientConnClosing) {
 		t.Fatalf("OnStop did not close traffic admission: %v", err)
 	}
+	if _, err := newTrafficCountersService(resources).ListTrafficCounters(t.Context(), "edge", domain.UserTraffic); !errors.Is(err, grpc.ErrClientConnClosing) {
+		t.Fatalf("OnStop did not close collection admission: %v", err)
+	}
 	if err := resources.Close(); err != nil {
 		t.Fatalf("final cleanup after OnStop: %v", err)
 	}

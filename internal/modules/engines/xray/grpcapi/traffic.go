@@ -30,15 +30,7 @@ func (h Handler) GetTrafficCounter(ctx context.Context, request *xrayv1.GetTraff
 	if strings.TrimSpace(request.GetInstanceId()) == "" {
 		return nil, status.Error(codes.InvalidArgument, "instance_id is required")
 	}
-	selection := domain.TrafficSelection{Name: request.GetName()}
-	switch request.GetScope() {
-	case xrayv1.TrafficScope_TRAFFIC_SCOPE_USER:
-		selection.Scope = domain.UserTraffic
-	case xrayv1.TrafficScope_TRAFFIC_SCOPE_INBOUND:
-		selection.Scope = domain.InboundTraffic
-	case xrayv1.TrafficScope_TRAFFIC_SCOPE_OUTBOUND:
-		selection.Scope = domain.OutboundTraffic
-	}
+	selection := domain.TrafficSelection{Name: request.GetName(), Scope: decodeTrafficScope(request.GetScope())}
 	switch request.GetDirection() {
 	case xrayv1.TrafficDirection_TRAFFIC_DIRECTION_UPLINK:
 		selection.Direction = domain.Uplink
@@ -70,4 +62,17 @@ func (h Handler) GetTrafficCounter(ctx context.Context, request *xrayv1.GetTraff
 		InstanceId: string(result.InstanceID), Scope: request.Scope, Name: result.Selection.Name,
 		Direction: request.Direction, Bytes: result.Counter.Bytes, ObservedAtUnixMs: result.Counter.ObservedAt.UnixMilli(),
 	}, nil
+}
+
+func decodeTrafficScope(scope xrayv1.TrafficScope) domain.TrafficScope {
+	switch scope {
+	case xrayv1.TrafficScope_TRAFFIC_SCOPE_USER:
+		return domain.UserTraffic
+	case xrayv1.TrafficScope_TRAFFIC_SCOPE_INBOUND:
+		return domain.InboundTraffic
+	case xrayv1.TrafficScope_TRAFFIC_SCOPE_OUTBOUND:
+		return domain.OutboundTraffic
+	default:
+		return ""
+	}
 }

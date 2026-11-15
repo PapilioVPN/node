@@ -12,6 +12,9 @@ service XrayService {
   rpc GetRuntimeInfo(GetRuntimeInfoRequest) returns (GetRuntimeInfoResponse);
   // Reads one exact native traffic counter without resetting it.
   rpc GetTrafficCounter(GetTrafficCounterRequest) returns (GetTrafficCounterResponse);
+  // Reads all existing traffic counters in one scope without resetting them.
+  // Complete response or resource-limit error; native Xray offers no pagination.
+  rpc ListTrafficCounters(ListTrafficCountersRequest) returns (ListTrafficCountersResponse);
 }
 
 enum TrafficScope {
@@ -87,4 +90,24 @@ message BinaryInfo {
   string operating_system = 4;
   string architecture = 5;
   int64 observed_at_unix_ms = 6;
+}
+
+message ListTrafficCountersRequest {
+  string instance_id = 1;
+  TrafficScope scope = 2;
+}
+
+message ListTrafficCountersResponse {
+  string instance_id = 1;
+  TrafficScope scope = 2;
+  // Ordered by exact name then lexical direction (downlink, uplink).
+  repeated TrafficCounterEntry items = 3;
+  // Completion of the observation, not an atomic snapshot time.
+  int64 observed_at_unix_ms = 4;
+}
+
+message TrafficCounterEntry {
+  string name = 1;
+  TrafficDirection direction = 2;
+  int64 bytes = 3;
 }

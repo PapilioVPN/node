@@ -112,6 +112,11 @@ func TestContainer(t *testing.T) {
 	}); status.Code(err) != codes.NotFound {
 		t.Fatalf("packaged Xray traffic grant/service failed: %v", err)
 	}
+	if _, err := xrayv1.NewXrayServiceClient(connection).ListTrafficCounters(request, &xrayv1.ListTrafficCountersRequest{
+		InstanceId: "unconfigured", Scope: xrayv1.TrafficScope_TRAFFIC_SCOPE_USER,
+	}); status.Code(err) != codes.NotFound {
+		t.Fatalf("packaged Xray traffic collection grant/service failed: %v", err)
+	}
 	if output, err := exec.CommandContext(ctx, "docker", "stop", "--time", "5", containerID).CombinedOutput(); err != nil {
 		t.Fatalf("stop runtime: %s, %v", output, err)
 	}

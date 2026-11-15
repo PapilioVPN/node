@@ -55,6 +55,12 @@ func TestTrafficCounterRPCRequiresIndependentGrant(t *testing.T) {
 			if status.Code(err) != expected {
 				t.Fatalf("independent stats grant: %v; want %v", err, expected)
 			}
+			_, err = client.ListTrafficCounters(t.Context(), &xrayv1.ListTrafficCountersRequest{
+				InstanceId: "missing", Scope: xrayv1.TrafficScope_TRAFFIC_SCOPE_INBOUND,
+			})
+			if status.Code(err) != expected {
+				t.Fatalf("independent collection grant: %v; want %v", err, expected)
+			}
 		})
 	}
 }
@@ -130,6 +136,10 @@ func TestTrafficCountersOverMTLSPreserveNativeUsageAndInstanceIsolation(t *testi
 			if result, err := client.GetTrafficCounter(ctx, request); result != nil || status.Code(err) != codes.NotFound {
 				t.Fatalf("absent user counter became zero: %v, %v", result, err)
 			}
+			emptyUsers, err := client.ListTrafficCounters(ctx, &xrayv1.ListTrafficCountersRequest{InstanceId: "edge-a", Scope: xrayv1.TrafficScope_TRAFFIC_SCOPE_USER})
+			if err != nil || len(emptyUsers.GetItems()) != 0 || emptyUsers.InstanceId != "edge-a" || emptyUsers.ObservedAtUnixMs == 0 {
+				t.Fatalf("absent users must be a successful empty collection: %v, %v", emptyUsers, err)
+			}
 			if err := xrayTraffic(ctx, url.UserPassword("reader@local", "test-password").String()+"@"+firstAddress); err != nil {
 				t.Fatal(err)
 			}
@@ -138,6 +148,49 @@ func TestTrafficCountersOverMTLSPreserveNativeUsageAndInstanceIsolation(t *testi
 				xrayv1.TrafficScope_TRAFFIC_SCOPE_INBOUND:  "proxy",
 				xrayv1.TrafficScope_TRAFFIC_SCOPE_OUTBOUND: "direct",
 			} {
+				collectionRequest := &xrayv1.ListTrafficCountersRequest{InstanceId: "edge-a", Scope: scope}
+				before := time.Now().UnixMilli()
+				collection, err := client.ListTrafficCounters(ctx, collectionRequest)
+				if err != nil || collection.InstanceId != "edge-a" || collection.Scope != scope || collection.ObservedAtUnixMs < before {
+					t.Fatalf("native collection metadata: %v, %v", collection, err)
+				}
+				for _, direction := range []xrayv1.TrafficDirection{xrayv1.TrafficDirection_TRAFFIC_DIRECTION_UPLINK, xrayv1.TrafficDirection_TRAFFIC_DIRECTION_DOWNLINK} {
+					found := false
+					for _, item := range collection.Items {
+						if item.Name == name && item.Direction == direction {
+							found = true
+							if item.Bytes <= 0 {
+								t.Fatalf("collection lost traffic: %v", item)
+							}
+						}
+					}
+					if !found {
+						t.Fatalf("native collection omitted %s/%s: %v", name, direction, collection)
+					}
+				}
+				repeatedCollection, err := client.ListTrafficCounters(ctx, collectionRequest)
+				if err != nil || len(repeatedCollection.Items) != len(collection.Items) {
+					t.Fatalf("repeated native collection: %v, %v", repeatedCollection, err)
+				}
+				for i, item := range collection.Items {
+					repeated := repeatedCollection.Items[i]
+					if repeated.Name != item.Name || repeated.Direction != item.Direction || repeated.Bytes < item.Bytes {
+						t.Fatalf("collection reset/reordered counters: %v, %v", collection, repeatedCollection)
+					}
+				}
+				collectionRequest.InstanceId = "edge-b"
+				untouched, err := client.ListTrafficCounters(ctx, collectionRequest)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if scope == xrayv1.TrafficScope_TRAFFIC_SCOPE_USER && len(untouched.Items) != 0 {
+					t.Fatalf("other users affected: %v", untouched)
+				}
+				for _, item := range untouched.Items {
+					if item.Name == name && item.Bytes != 0 {
+						t.Fatalf("collection crossed instance isolation: %v", untouched)
+					}
+				}
 				for _, direction := range []xrayv1.TrafficDirection{xrayv1.TrafficDirection_TRAFFIC_DIRECTION_UPLINK, xrayv1.TrafficDirection_TRAFFIC_DIRECTION_DOWNLINK} {
 					request.Scope, request.Name, request.Direction, request.InstanceId = scope, name, direction, "edge-a"
 					before := time.Now().UnixMilli()

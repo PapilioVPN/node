@@ -19,9 +19,10 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	XrayService_GetBinaryInfo_FullMethodName     = "/papilio.node.xray.v1.XrayService/GetBinaryInfo"
-	XrayService_GetRuntimeInfo_FullMethodName    = "/papilio.node.xray.v1.XrayService/GetRuntimeInfo"
-	XrayService_GetTrafficCounter_FullMethodName = "/papilio.node.xray.v1.XrayService/GetTrafficCounter"
+	XrayService_GetBinaryInfo_FullMethodName       = "/papilio.node.xray.v1.XrayService/GetBinaryInfo"
+	XrayService_GetRuntimeInfo_FullMethodName      = "/papilio.node.xray.v1.XrayService/GetRuntimeInfo"
+	XrayService_GetTrafficCounter_FullMethodName   = "/papilio.node.xray.v1.XrayService/GetTrafficCounter"
+	XrayService_ListTrafficCounters_FullMethodName = "/papilio.node.xray.v1.XrayService/ListTrafficCounters"
 )
 
 // XrayServiceClient is the client API for XrayService service.
@@ -35,6 +36,9 @@ type XrayServiceClient interface {
 	GetRuntimeInfo(ctx context.Context, in *GetRuntimeInfoRequest, opts ...grpc.CallOption) (*GetRuntimeInfoResponse, error)
 	// Reads one exact native traffic counter without resetting it.
 	GetTrafficCounter(ctx context.Context, in *GetTrafficCounterRequest, opts ...grpc.CallOption) (*GetTrafficCounterResponse, error)
+	// Reads all existing traffic counters in one scope without resetting them.
+	// Complete response or resource-limit error; native Xray offers no pagination.
+	ListTrafficCounters(ctx context.Context, in *ListTrafficCountersRequest, opts ...grpc.CallOption) (*ListTrafficCountersResponse, error)
 }
 
 type xrayServiceClient struct {
@@ -75,6 +79,16 @@ func (c *xrayServiceClient) GetTrafficCounter(ctx context.Context, in *GetTraffi
 	return out, nil
 }
 
+func (c *xrayServiceClient) ListTrafficCounters(ctx context.Context, in *ListTrafficCountersRequest, opts ...grpc.CallOption) (*ListTrafficCountersResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListTrafficCountersResponse)
+	err := c.cc.Invoke(ctx, XrayService_ListTrafficCounters_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // XrayServiceServer is the server API for XrayService service.
 // All implementations must embed UnimplementedXrayServiceServer
 // for forward compatibility.
@@ -86,6 +100,9 @@ type XrayServiceServer interface {
 	GetRuntimeInfo(context.Context, *GetRuntimeInfoRequest) (*GetRuntimeInfoResponse, error)
 	// Reads one exact native traffic counter without resetting it.
 	GetTrafficCounter(context.Context, *GetTrafficCounterRequest) (*GetTrafficCounterResponse, error)
+	// Reads all existing traffic counters in one scope without resetting them.
+	// Complete response or resource-limit error; native Xray offers no pagination.
+	ListTrafficCounters(context.Context, *ListTrafficCountersRequest) (*ListTrafficCountersResponse, error)
 	mustEmbedUnimplementedXrayServiceServer()
 }
 
@@ -104,6 +121,9 @@ func (UnimplementedXrayServiceServer) GetRuntimeInfo(context.Context, *GetRuntim
 }
 func (UnimplementedXrayServiceServer) GetTrafficCounter(context.Context, *GetTrafficCounterRequest) (*GetTrafficCounterResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetTrafficCounter not implemented")
+}
+func (UnimplementedXrayServiceServer) ListTrafficCounters(context.Context, *ListTrafficCountersRequest) (*ListTrafficCountersResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListTrafficCounters not implemented")
 }
 func (UnimplementedXrayServiceServer) mustEmbedUnimplementedXrayServiceServer() {}
 func (UnimplementedXrayServiceServer) testEmbeddedByValue()                     {}
@@ -180,6 +200,24 @@ func _XrayService_GetTrafficCounter_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _XrayService_ListTrafficCounters_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListTrafficCountersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(XrayServiceServer).ListTrafficCounters(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: XrayService_ListTrafficCounters_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(XrayServiceServer).ListTrafficCounters(ctx, req.(*ListTrafficCountersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // XrayService_ServiceDesc is the grpc.ServiceDesc for XrayService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -198,6 +236,10 @@ var XrayService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetTrafficCounter",
 			Handler:    _XrayService_GetTrafficCounter_Handler,
+		},
+		{
+			MethodName: "ListTrafficCounters",
+			Handler:    _XrayService_ListTrafficCounters_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
