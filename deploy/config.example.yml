@@ -1,0 +1,18 @@
+# Set this Node's identity and supply your own server certificate/key and client CA.
+node:
+  id: ""
+runtime:
+  startup_timeout: 10s
+  shutdown_timeout: 10s
+communications:
+  grpc:
+    enabled: true
+    listen: "0.0.0.0:9443"
+    request_timeout: 5s
+    connection_timeout: 5s
+    max_receive_bytes: 65536
+    max_concurrent_streams: 64 # Per HTTP/2 connection.
+    tls:
+      certificate_file: ""
+      private_key_file: ""
+      client_ca_file: ""

@@ -1,0 +1,39 @@
+package grpc_test
+
+import (
+	"context"
+	"errors"
+	"strings"
+	"testing"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
+	"github.com/PapilioVPN/node/internal/apps/system/domain"
+	rpc "github.com/PapilioVPN/node/internal/entrypoints/grpc"
+	nodev1 "github.com/PapilioVPN/node/internal/entrypoints/grpc/proto/v1"
+)
+
+type infoReader func(context.Context) (domain.NodeInfo, error)
+
+func (f infoReader) GetNodeInfo(ctx context.Context) (domain.NodeInfo, error) { return f(ctx) }
+
+func TestHandlerErrorMapping(t *testing.T) {
+	for _, item := range []struct {
+		name string
+		err  error
+		code codes.Code
+	}{
+		{"canceled", context.Canceled, codes.Canceled},
+		{"deadline", context.DeadlineExceeded, codes.DeadlineExceeded},
+		{"internal", errors.New("private implementation detail"), codes.Internal},
+	} {
+		t.Run(item.name, func(t *testing.T) {
+			handler := rpc.Handler{Info: infoReader(func(context.Context) (domain.NodeInfo, error) { return domain.NodeInfo{}, item.err })}
+			_, err := handler.GetNodeInfo(context.Background(), &nodev1.GetNodeInfoRequest{})
+			if status.Code(err) != item.code || (item.code == codes.Internal && strings.Contains(err.Error(), item.err.Error())) {
+				t.Fatalf("incorrect error mapping: %v", err)
+			}
+		})
+	}
+}

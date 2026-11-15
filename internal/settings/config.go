@@ -6,8 +6,10 @@ import (
 	"io"
 	"net"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"go.yaml.in/yaml/v3"
 )
@@ -18,6 +20,7 @@ var ErrInvalidConfig = errors.New("invalid configuration")
 type Config struct {
 	Node           Node           `yaml:"node"`
 	Communications Communications `yaml:"communications"`
+	Runtime        Runtime        `yaml:"runtime"`
 }
 
 type Node struct {
@@ -31,6 +34,23 @@ type Communications struct {
 type GRPC struct {
 	Enabled bool   `yaml:"enabled"`
 	Listen  string `yaml:"listen"`
+	// RequestTimeout bounds unary RPCs; native health streams live until canceled.
+	RequestTimeout       time.Duration `yaml:"request_timeout"`
+	ConnectionTimeout    time.Duration `yaml:"connection_timeout"`
+	MaxReceiveBytes      int           `yaml:"max_receive_bytes"`
+	MaxConcurrentStreams uint32        `yaml:"max_concurrent_streams"`
+	TLS                  TLS           `yaml:"tls"`
+}
+
+type TLS struct {
+	CertificateFile string `yaml:"certificate_file"`
+	PrivateKeyFile  string `yaml:"private_key_file"`
+	ClientCAFile    string `yaml:"client_ca_file"`
+}
+
+type Runtime struct {
+	StartupTimeout  time.Duration `yaml:"startup_timeout"`
+	ShutdownTimeout time.Duration `yaml:"shutdown_timeout"`
 }
 
 // Load reads Node settings without consulting environment variables.
@@ -54,6 +74,15 @@ func Load(path string) (Config, error) {
 	if err := config.Validate(); err != nil {
 		return Config{}, err
 	}
+	location, err := filepath.Abs(path)
+	if err != nil {
+		return Config{}, fmt.Errorf("resolve configuration location: %w", err)
+	}
+	for _, value := range []*string{&config.Communications.GRPC.TLS.CertificateFile, &config.Communications.GRPC.TLS.PrivateKeyFile, &config.Communications.GRPC.TLS.ClientCAFile} {
+		if *value != "" && !filepath.IsAbs(*value) {
+			*value = filepath.Join(filepath.Dir(location), *value)
+		}
+	}
 	return config, nil
 }
 
@@ -70,6 +99,16 @@ func (c Config) Validate() error {
 		number, err := strconv.Atoi(port)
 		if err != nil || number < 0 || number > 65535 {
 			return fmt.Errorf("%w: communications.grpc.listen requires a port from 0 to 65535", ErrInvalidConfig)
+		}
+		grpc := c.Communications.GRPC
+		if grpc.RequestTimeout <= 0 || grpc.ConnectionTimeout <= 0 || grpc.MaxReceiveBytes <= 0 || grpc.MaxConcurrentStreams == 0 {
+			return fmt.Errorf("%w: positive gRPC timeouts and message/concurrency limits are required", ErrInvalidConfig)
+		}
+		if strings.TrimSpace(grpc.TLS.CertificateFile) == "" || strings.TrimSpace(grpc.TLS.PrivateKeyFile) == "" || strings.TrimSpace(grpc.TLS.ClientCAFile) == "" {
+			return fmt.Errorf("%w: gRPC server certificate, private key and client CA files are required", ErrInvalidConfig)
+		}
+		if c.Runtime.StartupTimeout <= 0 || c.Runtime.ShutdownTimeout <= 0 {
+			return fmt.Errorf("%w: positive runtime startup/shutdown timeouts are required", ErrInvalidConfig)
 		}
 	}
 	return nil
