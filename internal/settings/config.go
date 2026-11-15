@@ -58,6 +58,7 @@ type GRPCPermissions struct {
 	ManageEngineUsers      bool `yaml:"manage_engine_users"`
 	ReadEngineUsers        bool `yaml:"read_engine_users"`
 	ReadEngineOnline       bool `yaml:"read_engine_online"`
+	ReadEngineRouting      bool `yaml:"read_engine_routing"`
 }
 
 type TLS struct {

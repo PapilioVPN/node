@@ -44,6 +44,7 @@ func TestXrayRuntimeInfoOverMTLSAndNativeReconnect(t *testing.T) {
 			cfg.Communications.GRPC.Permissions.ReadEngineInfo = true
 			cfg.Communications.GRPC.Permissions.ReadEngineStats = true
 			cfg.Communications.GRPC.Permissions.ReadEngineUsers = true
+			cfg.Communications.GRPC.Permissions.ReadEngineRouting = true
 			cfg.Communications.GRPC.Permissions.ControlInstances = true
 			if err := cfg.Validate(); err != nil {
 				t.Fatal(err)
@@ -76,6 +77,12 @@ func TestXrayRuntimeInfoOverMTLSAndNativeReconnect(t *testing.T) {
 			}
 			client := xrayClient(t, server, certificates)
 			response := awaitRuntimeInfo(t, ctx, client, "edge-a")
+			if result, err := client.ListRoutingRules(ctx, &xrayv1.ListRoutingRulesRequest{InstanceId: "edge-b"}); result != nil || status.Code(err) != codes.FailedPrecondition {
+				t.Fatalf("absent native RoutingService became successful rules: %v %v", result, err)
+			}
+			if result, err := client.GetBalancerInfo(ctx, &xrayv1.GetBalancerInfoRequest{InstanceId: "edge-b", BalancerTag: "pool"}); result != nil || status.Code(err) != codes.FailedPrecondition {
+				t.Fatalf("absent native RoutingService became successful balancer: %v %v", result, err)
+			}
 			if result, err := client.GetInboundUserCount(ctx, &xrayv1.GetInboundUserCountRequest{InstanceId: "edge-b", InboundTag: "in"}); result != nil || status.Code(err) != codes.FailedPrecondition {
 				t.Fatalf("absent native HandlerService became successful count: %v %v", result, err)
 			}

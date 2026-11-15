@@ -39,6 +39,10 @@ service XrayService {
   rpc ListOnlineUsers(ListOnlineUsersRequest) returns (ListOnlineUsersResponse);
   // Native membership count only, not online users or a user-list snapshot.
   rpc GetInboundUserCount(GetInboundUserCountRequest) returns (GetInboundUserCountResponse);
+  // Ordered references only; the native API does not return rule conditions.
+  rpc ListRoutingRules(ListRoutingRulesRequest) returns (ListRoutingRulesResponse);
+  // Native field presence is retained; this does not probe or override routing.
+  rpc GetBalancerInfo(GetBalancerInfoRequest) returns (GetBalancerInfoResponse);
 }
 
 enum TrafficScope {
@@ -394,4 +398,32 @@ message GetInboundUserCountResponse {
   // Preserve the full nonnegative native int64 range. Zero is a valid count.
   int64 count = 3;
   int64 observed_at_unix_ms = 4;
+}
+
+message ListRoutingRulesRequest { string instance_id = 1; }
+message RoutingRuleReference {
+  string outbound_tag = 1;
+  string rule_tag = 2;
+}
+message ListRoutingRulesResponse {
+  string instance_id = 1;
+  // Native priority order, retaining duplicate/empty tags. Not a config snapshot.
+  repeated RoutingRuleReference rules = 2;
+  int64 observed_at_unix_ms = 3;
+}
+
+message GetBalancerInfoRequest {
+  string instance_id = 1;
+  string balancer_tag = 2;
+}
+message BalancerPrincipalTargets { repeated string tags = 1; }
+message GetBalancerInfoResponse {
+  string instance_id = 1;
+  string balancer_tag = 2;
+  // Absent is unavailable; present empty means no override was reported.
+  optional string override_target = 3;
+  // Absent may reflect an internally suppressed native lookup error. Present
+  // empty is a reported empty result. Targets are strategy-dependent observations.
+  BalancerPrincipalTargets principal_targets = 4;
+  int64 observed_at_unix_ms = 5;
 }

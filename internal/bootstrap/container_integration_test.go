@@ -55,6 +55,7 @@ func TestContainer(t *testing.T) {
 	cfg.Communications.GRPC.Permissions.ManageEngineUsers = true
 	cfg.Communications.GRPC.Permissions.ReadEngineUsers = true
 	cfg.Communications.GRPC.Permissions.ReadEngineOnline = true
+	cfg.Communications.GRPC.Permissions.ReadEngineRouting = true
 	contents, err := yaml.Marshal(cfg)
 	if err != nil {
 		t.Fatal(err)
@@ -159,6 +160,12 @@ func TestContainer(t *testing.T) {
 	}
 	if _, err := xrayv1.NewXrayServiceClient(connection).GetInboundUserCount(request, &xrayv1.GetInboundUserCountRequest{InstanceId: "unconfigured", InboundTag: "in"}); status.Code(err) != codes.NotFound {
 		t.Fatalf("packaged user count not wired: %v", err)
+	}
+	if _, err := xrayv1.NewXrayServiceClient(connection).ListRoutingRules(request, &xrayv1.ListRoutingRulesRequest{InstanceId: "unconfigured"}); status.Code(err) != codes.NotFound {
+		t.Fatalf("packaged routing list not wired: %v", err)
+	}
+	if _, err := xrayv1.NewXrayServiceClient(connection).GetBalancerInfo(request, &xrayv1.GetBalancerInfoRequest{InstanceId: "unconfigured", BalancerTag: "pool"}); status.Code(err) != codes.NotFound {
+		t.Fatalf("packaged balancer read not wired: %v", err)
 	}
 	if _, err := xrayv1.NewXrayServiceClient(connection).AddInboundUser(request, &xrayv1.AddInboundUserRequest{InstanceId: "unconfigured", InboundTag: "in", User: &xrayv1.InboundUser{Email: "user", Account: &xrayv1.InboundUser_Vless{Vless: &xrayv1.VLESSAccount{Id: "test-only"}}}}); status.Code(err) != codes.NotFound {
 		t.Fatalf("packaged user addition not wired: %v", err)

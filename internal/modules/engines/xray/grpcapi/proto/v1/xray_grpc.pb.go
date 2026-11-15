@@ -33,6 +33,8 @@ const (
 	XrayService_ListUserOnlineIPs_FullMethodName    = "/papilio.node.xray.v1.XrayService/ListUserOnlineIPs"
 	XrayService_ListOnlineUsers_FullMethodName      = "/papilio.node.xray.v1.XrayService/ListOnlineUsers"
 	XrayService_GetInboundUserCount_FullMethodName  = "/papilio.node.xray.v1.XrayService/GetInboundUserCount"
+	XrayService_ListRoutingRules_FullMethodName     = "/papilio.node.xray.v1.XrayService/ListRoutingRules"
+	XrayService_GetBalancerInfo_FullMethodName      = "/papilio.node.xray.v1.XrayService/GetBalancerInfo"
 )
 
 // XrayServiceClient is the client API for XrayService service.
@@ -73,6 +75,10 @@ type XrayServiceClient interface {
 	ListOnlineUsers(ctx context.Context, in *ListOnlineUsersRequest, opts ...grpc.CallOption) (*ListOnlineUsersResponse, error)
 	// Native membership count only, not online users or a user-list snapshot.
 	GetInboundUserCount(ctx context.Context, in *GetInboundUserCountRequest, opts ...grpc.CallOption) (*GetInboundUserCountResponse, error)
+	// Ordered references only; the native API does not return rule conditions.
+	ListRoutingRules(ctx context.Context, in *ListRoutingRulesRequest, opts ...grpc.CallOption) (*ListRoutingRulesResponse, error)
+	// Native field presence is retained; this does not probe or override routing.
+	GetBalancerInfo(ctx context.Context, in *GetBalancerInfoRequest, opts ...grpc.CallOption) (*GetBalancerInfoResponse, error)
 }
 
 type xrayServiceClient struct {
@@ -223,6 +229,26 @@ func (c *xrayServiceClient) GetInboundUserCount(ctx context.Context, in *GetInbo
 	return out, nil
 }
 
+func (c *xrayServiceClient) ListRoutingRules(ctx context.Context, in *ListRoutingRulesRequest, opts ...grpc.CallOption) (*ListRoutingRulesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListRoutingRulesResponse)
+	err := c.cc.Invoke(ctx, XrayService_ListRoutingRules_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *xrayServiceClient) GetBalancerInfo(ctx context.Context, in *GetBalancerInfoRequest, opts ...grpc.CallOption) (*GetBalancerInfoResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetBalancerInfoResponse)
+	err := c.cc.Invoke(ctx, XrayService_GetBalancerInfo_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // XrayServiceServer is the server API for XrayService service.
 // All implementations must embed UnimplementedXrayServiceServer
 // for forward compatibility.
@@ -261,6 +287,10 @@ type XrayServiceServer interface {
 	ListOnlineUsers(context.Context, *ListOnlineUsersRequest) (*ListOnlineUsersResponse, error)
 	// Native membership count only, not online users or a user-list snapshot.
 	GetInboundUserCount(context.Context, *GetInboundUserCountRequest) (*GetInboundUserCountResponse, error)
+	// Ordered references only; the native API does not return rule conditions.
+	ListRoutingRules(context.Context, *ListRoutingRulesRequest) (*ListRoutingRulesResponse, error)
+	// Native field presence is retained; this does not probe or override routing.
+	GetBalancerInfo(context.Context, *GetBalancerInfoRequest) (*GetBalancerInfoResponse, error)
 	mustEmbedUnimplementedXrayServiceServer()
 }
 
@@ -312,6 +342,12 @@ func (UnimplementedXrayServiceServer) ListOnlineUsers(context.Context, *ListOnli
 }
 func (UnimplementedXrayServiceServer) GetInboundUserCount(context.Context, *GetInboundUserCountRequest) (*GetInboundUserCountResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetInboundUserCount not implemented")
+}
+func (UnimplementedXrayServiceServer) ListRoutingRules(context.Context, *ListRoutingRulesRequest) (*ListRoutingRulesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListRoutingRules not implemented")
+}
+func (UnimplementedXrayServiceServer) GetBalancerInfo(context.Context, *GetBalancerInfoRequest) (*GetBalancerInfoResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetBalancerInfo not implemented")
 }
 func (UnimplementedXrayServiceServer) mustEmbedUnimplementedXrayServiceServer() {}
 func (UnimplementedXrayServiceServer) testEmbeddedByValue()                     {}
@@ -586,6 +622,42 @@ func _XrayService_GetInboundUserCount_Handler(srv interface{}, ctx context.Conte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _XrayService_ListRoutingRules_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListRoutingRulesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(XrayServiceServer).ListRoutingRules(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: XrayService_ListRoutingRules_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(XrayServiceServer).ListRoutingRules(ctx, req.(*ListRoutingRulesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _XrayService_GetBalancerInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetBalancerInfoRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(XrayServiceServer).GetBalancerInfo(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: XrayService_GetBalancerInfo_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(XrayServiceServer).GetBalancerInfo(ctx, req.(*GetBalancerInfoRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // XrayService_ServiceDesc is the grpc.ServiceDesc for XrayService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -648,6 +720,14 @@ var XrayService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetInboundUserCount",
 			Handler:    _XrayService_GetInboundUserCount_Handler,
+		},
+		{
+			MethodName: "ListRoutingRules",
+			Handler:    _XrayService_ListRoutingRules_Handler,
+		},
+		{
+			MethodName: "GetBalancerInfo",
+			Handler:    _XrayService_GetBalancerInfo_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

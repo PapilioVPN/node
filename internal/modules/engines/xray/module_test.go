@@ -92,4 +92,10 @@ func TestModuleClosesAPIAdmissionAndExportsFinalCleanup(t *testing.T) {
 	if _, err := newUserCountService(resources).GetInboundUserCount(t.Context(), "edge", "in"); !errors.Is(err, grpc.ErrClientConnClosing) {
 		t.Fatalf("closed native API admitted user count: %v", err)
 	}
+	if _, err := newRoutingService(resources).ListRoutingRules(t.Context(), "edge"); !errors.Is(err, grpc.ErrClientConnClosing) {
+		t.Fatalf("closed native API admitted routing list: %v", err)
+	}
+	if _, err := newRoutingService(resources).GetBalancerInfo(t.Context(), "edge", "pool"); !errors.Is(err, grpc.ErrClientConnClosing) {
+		t.Fatalf("closed native API admitted balancer read: %v", err)
+	}
 }

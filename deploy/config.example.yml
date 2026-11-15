@@ -60,6 +60,8 @@ communications:
       read_engine_users: false
       # Online user identities, distinct-IP counts and IP lists; independent of traffic.
       read_engine_online: false
+      # Ordered rule references and balancer observations; no probes or changes.
+      read_engine_routing: false
     tls:
       certificate_file: ""
       private_key_file: ""
