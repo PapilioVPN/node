@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	handlernative "github.com/xtls/xray-core/app/proxyman/command"
 	native "github.com/xtls/xray-core/app/stats/command"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -37,6 +38,7 @@ type Client struct {
 	maxReceiveBytes int
 	connection      *grpc.ClientConn
 	stats           native.StatsServiceClient
+	handlers        handlernative.HandlerServiceClient
 	timeout         time.Duration
 	slots           chan struct{}
 	closeOnce       sync.Once
@@ -69,13 +71,18 @@ func NewClient(config Config) (*Client, error) {
 }
 
 func (c *Client) statsClient() (native.StatsServiceClient, error) {
+	stats, _, err := c.nativeClients()
+	return stats, err
+}
+
+func (c *Client) nativeClients() (native.StatsServiceClient, handlernative.HandlerServiceClient, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if c.closed {
-		return nil, grpc.ErrClientConnClosing
+		return nil, nil, grpc.ErrClientConnClosing
 	}
 	if c.stats != nil {
-		return c.stats, nil
+		return c.stats, c.handlers, nil
 	}
 	connection, err := grpc.NewClient(c.target,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
@@ -83,11 +90,12 @@ func (c *Client) statsClient() (native.StatsServiceClient, error) {
 		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(c.maxReceiveBytes)),
 	)
 	if err != nil {
-		return nil, fmt.Errorf("construct Xray API channel: %w", err)
+		return nil, nil, fmt.Errorf("construct Xray API channel: %w", err)
 	}
 	c.connection = connection
 	c.stats = native.NewStatsServiceClient(connection)
-	return c.stats, nil
+	c.handlers = handlernative.NewHandlerServiceClient(connection)
+	return c.stats, c.handlers, nil
 }
 
 // ReadRuntimeInfo performs one bounded GetSysStats call with no application retry.
