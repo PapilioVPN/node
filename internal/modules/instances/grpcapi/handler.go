@@ -20,11 +20,13 @@ type InstanceStatusReader interface {
 
 type Handler struct {
 	instancesv1.UnimplementedInstanceServiceServer
-	Status          InstanceStatusReader
-	Statuses        InstanceStatusesReader
-	Control         InstanceController
-	AllowStatusRead bool
-	AllowControl    bool
+	Status                InstanceStatusReader
+	Statuses              InstanceStatusesReader
+	Control               InstanceController
+	AllowStatusRead       bool
+	AllowControl          bool
+	Configs               InstanceConfigValidator
+	AllowConfigValidation bool
 }
 
 func (h Handler) GetInstanceStatus(ctx context.Context, request *instancesv1.GetInstanceStatusRequest) (*instancesv1.GetInstanceStatusResponse, error) {

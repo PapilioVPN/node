@@ -28,6 +28,8 @@ func TestInstalledModuleCapabilities(t *testing.T) {
 				// No engine or listener is needed to install the lifecycle capabilities.
 				options = append(options, fx.Supply([]settings.Instance{}), instances.Module(false))
 				want = append(want, domain.Capability(instancedomain.StartInstance), domain.Capability(instancedomain.ListStatuses), domain.Capability(instancedomain.ReadStatus), domain.Capability(instancedomain.StopInstance))
+				want = append(want, domain.Capability(instancedomain.ValidateConfig))
+				slices.Sort(want[1:])
 			}
 			application := fx.New(options...)
 			if err := application.Start(context.Background()); err != nil {

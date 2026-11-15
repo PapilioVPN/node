@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"path/filepath"
 
 	"go.uber.org/fx"
 	"google.golang.org/grpc"
@@ -21,17 +22,18 @@ import (
 
 // Module composes instance operations, native adapters and capability registration.
 func Module(grpcEnabled bool) fx.Option {
-	options := []fx.Option{fx.Provide(newResources, newLifecycleService, capability), fx.Invoke(registerLifecycle)}
+	options := []fx.Option{fx.Provide(newResources, newLifecycleService, newConfigService, capability), fx.Invoke(registerLifecycle)}
 	if grpcEnabled {
 		options = append(options, fx.Invoke(registerGRPC))
 	}
 	return fx.Module("instances", options...)
 }
 
-func registerGRPC(registrar grpc.ServiceRegistrar, service *app.LifecycleService, cfg settings.GRPCPermissions) {
+func registerGRPC(registrar grpc.ServiceRegistrar, service *app.LifecycleService, configs *app.ConfigService, cfg settings.GRPCPermissions) {
 	instancesv1.RegisterInstanceServiceServer(registrar, grpcapi.Handler{
 		Status: service, Statuses: service, Control: service,
 		AllowStatusRead: cfg.ReadInstanceStatus, AllowControl: cfg.ControlInstances,
+		Configs: configs, AllowConfigValidation: cfg.ValidateInstanceConfig,
 	})
 }
 
@@ -45,6 +47,7 @@ type ownedInstance struct {
 	id        domain.InstanceID
 	lifecycle *app.Lifecycle
 	closer    io.Closer
+	validator app.ConfigValidator
 }
 
 func newResources(config []settings.Instance) (resourceResult, error) {
@@ -60,7 +63,19 @@ func newResources(config []settings.Instance) (resourceResult, error) {
 				return resourceResult{}, fmt.Errorf("construct instance %q: %w", instance.ID, err)
 			}
 			service := app.NewLifecycle(domain.Instance{ID: instance.ID, Kind: instance.Engine}, process)
-			resources.instances = append(resources.instances, ownedInstance{id: instance.ID, lifecycle: service, closer: process})
+			owned := ownedInstance{id: instance.ID, lifecycle: service, closer: process}
+			if validation := instance.Validation; validation != nil {
+				validator, err := xray.NewValidator(xray.ValidationConfig{
+					Binary: instance.Xray.Binary, Directory: filepath.Dir(instance.Xray.ConfigFile),
+					WorkDir: validation.WorkDir, Timeout: validation.Timeout,
+					MaxBytes: validation.MaxBytes, MaxConcurrent: validation.MaxConcurrent,
+				})
+				if err != nil {
+					return resourceResult{}, fmt.Errorf("construct instance %q validator: %w", instance.ID, err)
+				}
+				owned.validator = validator
+			}
+			resources.instances = append(resources.instances, owned)
 		default:
 			return resourceResult{}, fmt.Errorf("%w: unsupported instance engine", settings.ErrInvalidConfig)
 		}
@@ -97,6 +112,14 @@ func newLifecycleService(resources *Resources) *app.LifecycleService {
 	return app.NewLifecycleService(bindings)
 }
 
+func newConfigService(resources *Resources) *app.ConfigService {
+	bindings := make(map[domain.InstanceID]app.ConfigValidator, len(resources.instances))
+	for _, instance := range resources.instances {
+		bindings[instance.id] = instance.validator
+	}
+	return app.NewConfigService(bindings)
+}
+
 // Close permanently stops every owned instance in reverse construction order.
 // It also covers instances whose OnStop hook Fx skipped after cancellation.
 // Joining cleanup can outlive Fx's budget, bounded by each process's stop timeout.
@@ -119,6 +142,7 @@ type capabilityResult struct {
 func capability() capabilityResult {
 	return capabilityResult{Values: []systemdomain.Capability{
 		domain.ReadStatus, domain.ListStatuses, domain.StartInstance, domain.StopInstance,
+		domain.ValidateConfig,
 	}}
 }
 

@@ -2,6 +2,8 @@ package domain
 
 import "errors"
 
+const ValidateConfig = "instance.config.validate"
+
 var ErrValidationDisabled = errors.New("instance configuration validation is not enabled")
 var ErrValidationBusy = errors.New("instance configuration validation is busy")
 var ErrConfigTooLarge = errors.New("candidate configuration exceeds the byte limit")
