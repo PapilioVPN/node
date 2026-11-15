@@ -39,6 +39,7 @@ func TestContainer(t *testing.T) {
 	cfg.Communications.GRPC.TLS.ClientCAFile = "ca.pem"
 	cfg.Communications.GRPC.Permissions.ReadInstanceStatus = true
 	cfg.Communications.GRPC.Permissions.ControlInstances = true
+	cfg.Communications.GRPC.Permissions.ValidateInstanceConfig = true
 	contents, err := yaml.Marshal(cfg)
 	if err != nil {
 		t.Fatal(err)
@@ -92,6 +93,9 @@ func TestContainer(t *testing.T) {
 	}
 	if _, err := nodev1.NewInstanceServiceClient(connection).StopInstance(request, &nodev1.StopInstanceRequest{InstanceId: "unconfigured"}); status.Code(err) != codes.NotFound {
 		t.Fatalf("packaged stop grant/service failed: %v", err)
+	}
+	if _, err := nodev1.NewInstanceServiceClient(connection).ValidateInstanceConfig(request, &nodev1.ValidateInstanceConfigRequest{InstanceId: "unconfigured", Format: nodev1.ConfigFormat_CONFIG_FORMAT_JSON, Content: []byte("{}")}); status.Code(err) != codes.NotFound {
+		t.Fatalf("packaged validation grant/service failed: %v", err)
 	}
 	if output, err := exec.CommandContext(ctx, "docker", "stop", "--time", "5", containerID).CombinedOutput(); err != nil {
 		t.Fatalf("stop runtime: %s, %v", output, err)
