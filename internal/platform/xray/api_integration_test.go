@@ -158,6 +158,14 @@ func TestAPIAdmissionCancellationDeadlineAndClose(t *testing.T) {
 			if mode == "cancel" && !errors.Is(callError, context.Canceled) || mode == "timeout" && !errors.Is(callError, context.DeadlineExceeded) {
 				t.Fatalf("interruption cause changed: %v", callError)
 			}
+			if mode != "close" {
+				next, stop := context.WithTimeout(t.Context(), 100*time.Millisecond)
+				_, err := client.ReadRuntimeInfo(next)
+				stop()
+				if !errors.Is(err, context.DeadlineExceeded) {
+					t.Fatalf("capacity was not released or shorter caller deadline lost: %v", err)
+				}
+			}
 			canceled, stop := context.WithCancel(t.Context())
 			stop()
 			if _, err := client.ReadRuntimeInfo(canceled); !errors.Is(err, context.Canceled) {
