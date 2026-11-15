@@ -33,3 +33,13 @@ func Server(certificateFile, keyFile, caFile string) (*tls.Config, error) {
 	}
 	return &tls.Config{Certificates: []tls.Certificate{certificate}, ClientAuth: tls.RequireAndVerifyClientCert, ClientCAs: roots}, nil
 }
+
+// Client presents its certificate and verifies the broker using explicit roots.
+// The native NATS client supplies the server name from the configured URL.
+func Client(certificateFile, keyFile, caFile string) (*tls.Config, error) {
+	certificate, roots, err := certificateAndRoots(certificateFile, keyFile, caFile)
+	if err != nil {
+		return nil, err
+	}
+	return &tls.Config{Certificates: []tls.Certificate{certificate}, RootCAs: roots}, nil
+}

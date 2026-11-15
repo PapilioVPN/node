@@ -75,3 +75,23 @@ communications:
       certificate_file: ""
       private_key_file: ""
       client_ca_file: ""
+
+  # Core request/reply. Provision broker mTLS and restrictive per-node subject ACLs.
+  # Node does not see the original publisher certificate across the broker.
+  nats:
+    enabled: false
+    url: "" # tls://broker-host:port; no URL credentials or plaintext fallback.
+    subject_prefix: "" # Unique to this Node, e.g. papilio.edge_a.v1.
+    queue_group: "" # One logical responder group for this Node's subjects.
+    request_timeout: 5s
+    connect_timeout: 5s
+    drain_timeout: 10s
+    max_request_bytes: 65536
+    max_response_bytes: 1048576
+    max_pending_messages: 64 # Per operation; overflow can cause request timeouts.
+    max_pending_bytes: 4194304
+    # Set broker max_payload as well: client limits do not cap broker allocation.
+    tls:
+      certificate_file: ""
+      private_key_file: ""
+      ca_file: ""

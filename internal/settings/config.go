@@ -31,6 +31,7 @@ type Node struct {
 type Communications struct {
 	GRPC GRPC `yaml:"grpc"`
 	HTTP HTTP `yaml:"http"`
+	NATS NATS `yaml:"nats"`
 }
 
 type GRPC struct {
@@ -97,6 +98,9 @@ func Load(path string) (Config, error) {
 			resolvePath(filepath.Dir(location), value)
 		}
 	}
+	for _, value := range []*string{&config.Communications.NATS.TLS.CertificateFile, &config.Communications.NATS.TLS.PrivateKeyFile, &config.Communications.NATS.TLS.CAFile} {
+		resolvePath(filepath.Dir(location), value)
+	}
 	for i := range config.Instances {
 		xray := config.Instances[i].Xray
 		resolvePath(filepath.Dir(location), &xray.Binary)
@@ -142,7 +146,10 @@ func (c Config) Validate() error {
 	if err := c.Communications.HTTP.validate(); err != nil {
 		return err
 	}
-	if c.Communications.GRPC.Enabled || c.Communications.HTTP.Enabled || len(c.Instances) > 0 {
+	if err := c.Communications.NATS.validate(); err != nil {
+		return err
+	}
+	if c.Communications.GRPC.Enabled || c.Communications.HTTP.Enabled || c.Communications.NATS.Enabled || len(c.Instances) > 0 {
 		if c.Runtime.StartupTimeout <= 0 || c.Runtime.ShutdownTimeout <= 0 {
 			return fmt.Errorf("%w: positive runtime startup/shutdown timeouts are required", ErrInvalidConfig)
 		}

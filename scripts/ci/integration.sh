@@ -16,4 +16,6 @@ printf '%s  %s\n' \
   "$work/xray.zip" | sha256sum --check --status
 unzip -p "$work/xray.zip" xray > "$work/xray"
 chmod 700 "$work/xray"
-XRAY_TEST_BINARY="$work/xray" go test -race -tags=integration -count=1 -timeout=90s ./...
+# Broker is a test-only executable; it is not linked into or shipped with Node.
+GOBIN="$work" go install github.com/nats-io/nats-server/v2@v2.15.3
+NATS_TEST_BINARY="$work/nats-server" XRAY_TEST_BINARY="$work/xray" go test -race -tags=integration -count=1 -timeout=90s ./...

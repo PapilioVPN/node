@@ -69,7 +69,7 @@ func TestLoadRejectsInvalidConfiguration(t *testing.T) {
 		"invalid listener":          "node: {id: west}\ncommunications: {grpc: {enabled: true, listen: localhost}}\n",
 		"named port":                "node: {id: west}\ncommunications: {grpc: {enabled: true, listen: 'localhost:https'}}\n",
 		"out of range port":         "node: {id: west}\ncommunications: {grpc: {enabled: true, listen: 'localhost:70000'}}\n",
-		"unsupported transport":     "node: {id: west}\ncommunications: {nats: {enabled: true}}\n",
+		"missing NATS settings":     "node: {id: west}\ncommunications: {nats: {enabled: true}}\n",
 		"invalid type":              "node: {id: west}\ncommunications: {grpc: {enabled: 'not-a-boolean'}}\n",
 		"invalid permission":        "node: {id: west}\ncommunications: {grpc: {permissions: {read_instance_status: 'not-a-boolean'}}}\n",
 		"invalid control grant":     "node: {id: west}\ncommunications: {grpc: {permissions: {control_instances: 'not-a-boolean'}}}\n",

@@ -4,6 +4,7 @@ go 1.27.4
 
 require (
 	github.com/gofiber/fiber/v3 v3.7.0
+	github.com/nats-io/nats.go v1.55.0
 	github.com/valyala/fasthttp v1.78.0
 	github.com/xtls/xray-core v1.260327.1-0.20261109052709-676eaf66f8f0
 	go.uber.org/fx v1.24.0
@@ -21,6 +22,8 @@ require (
 	github.com/mattn/go-colorable v0.1.16 // indirect
 	github.com/mattn/go-isatty v0.0.24 // indirect
 	github.com/molecule-man/go-brrr v1.3.1 // indirect
+	github.com/nats-io/nkeys v0.4.16 // indirect
+	github.com/nats-io/nuid v1.0.1 // indirect
 	github.com/philhofer/fwd v1.2.1 // indirect
 	github.com/pires/go-proxyproto v0.16.0 // indirect
 	github.com/tinylib/msgp v1.6.5 // indirect

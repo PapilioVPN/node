@@ -19,7 +19,10 @@ import (
 	"github.com/PapilioVPN/node/internal/settings"
 )
 
+type CertificatePair struct{ Certificate, Key string }
+
 type Certificates struct {
+	Clients           map[string]CertificatePair
 	Directory         string
 	CA                string
 	ServerCertificate string
@@ -28,7 +31,7 @@ type Certificates struct {
 	ClientKey         string
 }
 
-func NewCertificates(t testing.TB) Certificates {
+func NewCertificates(t testing.TB, clientNames ...string) Certificates {
 	t.Helper()
 	directory := t.TempDir()
 	newKey := func() *ecdsa.PrivateKey {
@@ -75,10 +78,15 @@ func NewCertificates(t testing.TB) Certificates {
 	}
 	server, serverKey := issue("server", 2, x509.ExtKeyUsageServerAuth)
 	client, clientKey := issue("client", 3, x509.ExtKeyUsageClientAuth)
-	return Certificates{Directory: directory, CA: write("ca.pem", "CERTIFICATE", caDER), ServerCertificate: server, ServerKey: serverKey, ClientCertificate: client, ClientKey: clientKey}
+	clients := make(map[string]CertificatePair, len(clientNames))
+	for i, name := range clientNames {
+		certificate, key := issue(name, int64(i+4), x509.ExtKeyUsageClientAuth)
+		clients[name] = CertificatePair{certificate, key}
+	}
+	return Certificates{Clients: clients, Directory: directory, CA: write("ca.pem", "CERTIFICATE", caDER), ServerCertificate: server, ServerKey: serverKey, ClientCertificate: client, ClientKey: clientKey}
 }
 
-func (c Certificates) ClientTLS(t testing.TB) *tls.Config {
+func (c Certificates) ClientTLS(t testing.TB, identity ...string) *tls.Config {
 	t.Helper()
 	ca, err := os.ReadFile(c.CA)
 	if err != nil {
@@ -88,7 +96,15 @@ func (c Certificates) ClientTLS(t testing.TB) *tls.Config {
 	if !roots.AppendCertsFromPEM(ca) {
 		t.Fatal("invalid test CA")
 	}
-	client, err := tls.LoadX509KeyPair(c.ClientCertificate, c.ClientKey)
+	certificate, key := c.ClientCertificate, c.ClientKey
+	if len(identity) > 0 {
+		pair, ok := c.Clients[identity[0]]
+		if !ok {
+			t.Fatal("unknown test client identity")
+		}
+		certificate, key = pair.Certificate, pair.Key
+	}
+	client, err := tls.LoadX509KeyPair(certificate, key)
 	if err != nil {
 		t.Fatal(err)
 	}
