@@ -1,6 +1,6 @@
 //go:build integration
 
-package xray_test
+package api_test
 
 import (
 	"context"

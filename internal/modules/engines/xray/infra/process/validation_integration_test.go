@@ -1,6 +1,6 @@
 //go:build integration && linux
 
-package xray_test
+package process_test
 
 import (
 	"context"
@@ -16,7 +16,7 @@ import (
 	"time"
 
 	"github.com/PapilioVPN/node/internal/modules/core/instances/domain"
-	"github.com/PapilioVPN/node/internal/platform/xray"
+	xrayprocess "github.com/PapilioVPN/node/internal/modules/engines/xray/infra/process"
 )
 
 func TestNativeConfigBuildingWithoutRuntimeOrFileMutation(t *testing.T) {
@@ -36,7 +36,7 @@ func TestNativeConfigBuildingWithoutRuntimeOrFileMutation(t *testing.T) {
 	if err := os.WriteFile(protected, []byte(original), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	validator := newValidator(t, xray.ValidationConfig{
+	validator := newValidator(t, xrayprocess.ValidationConfig{
 		Binary: xrayBinary(t), Directory: directory, WorkDir: work,
 		Timeout: 2 * time.Second, MaxBytes: 8192, MaxConcurrent: 1,
 	})
@@ -85,7 +85,7 @@ func TestNativeConfigBuildingWithoutRuntimeOrFileMutation(t *testing.T) {
 
 func TestValidationBoundsAndExecutionFailure(t *testing.T) {
 	directory, work := t.TempDir(), t.TempDir()
-	validator := newValidator(t, xray.ValidationConfig{
+	validator := newValidator(t, xrayprocess.ValidationConfig{
 		Binary: filepath.Join(directory, "missing"), Directory: directory, WorkDir: work,
 		Timeout: time.Second, MaxBytes: 2, MaxConcurrent: 1,
 	})
@@ -124,7 +124,7 @@ func TestValidationImmediateSaturationAndCancellationJoin(t *testing.T) {
 			if deadline {
 				timeout = 200 * time.Millisecond
 			}
-			validator := newValidator(t, xray.ValidationConfig{
+			validator := newValidator(t, xrayprocess.ValidationConfig{
 				Binary: binary, Directory: directory, WorkDir: work,
 				Timeout: timeout, MaxBytes: 2, MaxConcurrent: 1,
 			})
@@ -175,7 +175,7 @@ func TestValidationImmediateSaturationAndCancellationJoin(t *testing.T) {
 func TestValidationDoesNotInheritHostOverrides(t *testing.T) {
 	t.Setenv("XRAY_LOCATION_CONFDIR", "/a/private/invalid/host/path")
 	t.Setenv("XRAY_JSON_STRICT", "true")
-	validator := newValidator(t, xray.ValidationConfig{
+	validator := newValidator(t, xrayprocess.ValidationConfig{
 		Binary: xrayBinary(t), Directory: t.TempDir(), WorkDir: t.TempDir(),
 		Timeout: time.Second, MaxBytes: 128, MaxConcurrent: 1,
 	})
@@ -185,9 +185,9 @@ func TestValidationDoesNotInheritHostOverrides(t *testing.T) {
 	}
 }
 
-func newValidator(t *testing.T, config xray.ValidationConfig) *xray.Validator {
+func newValidator(t *testing.T, config xrayprocess.ValidationConfig) *xrayprocess.Validator {
 	t.Helper()
-	validator, err := xray.NewValidator(config)
+	validator, err := xrayprocess.NewValidator(config)
 	if err != nil {
 		t.Fatal(err)
 	}

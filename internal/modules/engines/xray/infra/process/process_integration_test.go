@@ -1,6 +1,6 @@
 //go:build integration && linux
 
-package xray_test
+package process_test
 
 import (
 	"context"
@@ -22,7 +22,7 @@ import (
 
 	"github.com/PapilioVPN/node/internal/modules/core/instances/app/services"
 	"github.com/PapilioVPN/node/internal/modules/core/instances/domain"
-	"github.com/PapilioVPN/node/internal/platform/xray"
+	xrayprocess "github.com/PapilioVPN/node/internal/modules/engines/xray/infra/process"
 )
 
 func TestIndependentXrayInstances(t *testing.T) {
@@ -87,7 +87,7 @@ func TestXrayConfigurationFailureIsObserved(t *testing.T) {
 	if err := os.WriteFile(configFile, []byte(`{"inbounds":`), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	process := ownedProcess(t, xray.Config{Binary: binary, ConfigFile: configFile, StopTimeout: time.Second})
+	process := ownedProcess(t, xrayprocess.Config{Binary: binary, ConfigFile: configFile, StopTimeout: time.Second})
 	if err := process.Start(t.Context()); err != nil {
 		t.Fatal(err)
 	}
@@ -104,7 +104,7 @@ func TestXrayConfigurationFailureIsObserved(t *testing.T) {
 
 func TestXrayAdmissionAndMissingExecutable(t *testing.T) {
 	directory := t.TempDir()
-	process := ownedProcess(t, xray.Config{
+	process := ownedProcess(t, xrayprocess.Config{
 		Binary:     filepath.Join(directory, "missing-xray"),
 		ConfigFile: filepath.Join(directory, "xray.json"), StopTimeout: time.Second,
 	})
@@ -126,7 +126,7 @@ func TestStopDeadlineKillsAndJoinsUncooperativeChild(t *testing.T) {
 	if err := os.WriteFile(binary, []byte(script), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	process := ownedProcess(t, xray.Config{Binary: binary, ConfigFile: config, StopTimeout: 2 * time.Second})
+	process := ownedProcess(t, xrayprocess.Config{Binary: binary, ConfigFile: config, StopTimeout: 2 * time.Second})
 	if err := process.Start(t.Context()); err != nil {
 		t.Fatal(err)
 	}
@@ -169,9 +169,9 @@ func xrayBinary(t *testing.T) string {
 	return binary
 }
 
-func ownedProcess(t *testing.T, config xray.Config) *xray.Process {
+func ownedProcess(t *testing.T, config xrayprocess.Config) *xrayprocess.Process {
 	t.Helper()
-	process, err := xray.New(config)
+	process, err := xrayprocess.New(config)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -181,7 +181,7 @@ func ownedProcess(t *testing.T, config xray.Config) *xray.Process {
 	return process
 }
 
-func realXray(t *testing.T) (*xray.Process, string) {
+func realXray(t *testing.T) (*xrayprocess.Process, string) {
 	t.Helper()
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
@@ -197,7 +197,7 @@ func realXray(t *testing.T) (*xray.Process, string) {
 	if err := os.WriteFile(path, []byte(config), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	return ownedProcess(t, xray.Config{Binary: xrayBinary(t), ConfigFile: path, StopTimeout: 2 * time.Second}), address
+	return ownedProcess(t, xrayprocess.Config{Binary: xrayBinary(t), ConfigFile: path, StopTimeout: 2 * time.Second}), address
 }
 
 func proxyClient(t *testing.T, address string) *http.Client {
@@ -248,7 +248,7 @@ func await(t *testing.T, ready func() bool) {
 	}
 }
 
-func processState(process *xray.Process) domain.State {
+func processState(process *xrayprocess.Process) domain.State {
 	state, _ := process.Observe()
 	return state
 }

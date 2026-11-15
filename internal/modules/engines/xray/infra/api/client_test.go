@@ -1,4 +1,4 @@
-package xray
+package api
 
 import (
 	"context"
@@ -12,7 +12,7 @@ import (
 )
 
 func TestAPIConstructionAndCanceledAdmissionCreateNoNativeChannel(t *testing.T) {
-	client, err := NewAPIClient(APIConfig{Network: "unix", Address: "/unused/api.sock", RequestTimeout: time.Second, MaxReceiveBytes: 4096, MaxConcurrent: 1})
+	client, err := NewClient(Config{Network: "unix", Address: "/unused/api.sock", RequestTimeout: time.Second, MaxReceiveBytes: 4096, MaxConcurrent: 1})
 	if err != nil {
 		t.Fatal(err)
 	}

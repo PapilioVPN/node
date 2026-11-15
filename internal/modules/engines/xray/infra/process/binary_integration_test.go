@@ -1,6 +1,6 @@
 //go:build integration && linux
 
-package xray_test
+package process_test
 
 import (
 	"context"
@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"github.com/PapilioVPN/node/internal/modules/engines/xray/domain"
-	"github.com/PapilioVPN/node/internal/platform/xray"
+	xrayprocess "github.com/PapilioVPN/node/internal/modules/engines/xray/infra/process"
 )
 
 func TestBinaryInspectorReadsOfficialXray(t *testing.T) {
@@ -124,9 +124,9 @@ printf 'Xray 26.11.9 (test fixture) fixture (go1.27.3 linux/amd64)\n'`)
 	}
 }
 
-func binaryInspector(t *testing.T, binary string, timeout time.Duration, limit int) *xray.BinaryInspector {
+func binaryInspector(t *testing.T, binary string, timeout time.Duration, limit int) *xrayprocess.BinaryInspector {
 	t.Helper()
-	reader, err := xray.NewBinaryInspector(xray.BinaryInspectionConfig{Binary: binary, Timeout: timeout, MaxOutputBytes: limit, MaxConcurrent: 1})
+	reader, err := xrayprocess.NewBinaryInspector(xrayprocess.BinaryInspectionConfig{Binary: binary, Timeout: timeout, MaxOutputBytes: limit, MaxConcurrent: 1})
 	if err != nil {
 		t.Fatal(err)
 	}

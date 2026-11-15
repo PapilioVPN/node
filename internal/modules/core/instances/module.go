@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"path/filepath"
 
 	"go.uber.org/fx"
 	"google.golang.org/grpc"
@@ -16,7 +15,6 @@ import (
 	"github.com/PapilioVPN/node/internal/modules/core/instances/grpcapi"
 	instancesv1 "github.com/PapilioVPN/node/internal/modules/core/instances/grpcapi/proto/v1"
 	systemdomain "github.com/PapilioVPN/node/internal/modules/system/info/domain"
-	"github.com/PapilioVPN/node/internal/platform/xray"
 	"github.com/PapilioVPN/node/internal/settings"
 )
 
@@ -50,35 +48,42 @@ type ownedInstance struct {
 	validator services.ConfigValidator
 }
 
-func newResources(config []settings.Instance) (resourceResult, error) {
-	resources := &Resources{}
-	for _, instance := range config {
-		switch instance.Engine {
-		case domain.Xray:
-			process, err := xray.New(xray.Config{
-				Binary: instance.Xray.Binary, ConfigFile: instance.Xray.ConfigFile,
-				StopTimeout: instance.Xray.StopTimeout,
-			})
-			if err != nil {
-				return resourceResult{}, fmt.Errorf("construct instance %q: %w", instance.ID, err)
-			}
-			service := services.NewLifecycle(domain.Instance{ID: instance.ID, Kind: instance.Engine}, process)
-			owned := ownedInstance{id: instance.ID, lifecycle: service, closer: process}
-			if validation := instance.Validation; validation != nil {
-				validator, err := xray.NewValidator(xray.ValidationConfig{
-					Binary: instance.Xray.Binary, Directory: filepath.Dir(instance.Xray.ConfigFile),
-					WorkDir: validation.WorkDir, Timeout: validation.Timeout,
-					MaxBytes: validation.MaxBytes, MaxConcurrent: validation.MaxConcurrent,
-				})
-				if err != nil {
-					return resourceResult{}, fmt.Errorf("construct instance %q validator: %w", instance.ID, err)
-				}
-				owned.validator = validator
-			}
-			resources.instances = append(resources.instances, owned)
-		default:
-			return resourceResult{}, fmt.Errorf("%w: unsupported instance engine", settings.ErrInvalidConfig)
+// RuntimeBinding contributes an effect-free engine adapter to instance ownership.
+// Core controls startup/stop order and final Close; Validator may be absent.
+type RuntimeBinding struct {
+	Instance  domain.Instance
+	Runtime   services.Runtime
+	Closer    io.Closer
+	Validator services.ConfigValidator
+}
+
+type runtimeBindings struct {
+	fx.In
+	Values []RuntimeBinding `group:"engine_runtimes"`
+}
+
+func newResources(config []settings.Instance, bindings runtimeBindings) (resourceResult, error) {
+	if len(config) != len(bindings.Values) {
+		return resourceResult{}, errors.New("configured instances and engine runtime bindings differ")
+	}
+	byID := make(map[domain.InstanceID]RuntimeBinding, len(bindings.Values))
+	for _, binding := range bindings.Values {
+		if _, duplicate := byID[binding.Instance.ID]; duplicate || binding.Runtime == nil || binding.Closer == nil {
+			return resourceResult{}, fmt.Errorf("invalid runtime binding for instance %q", binding.Instance.ID)
 		}
+		byID[binding.Instance.ID] = binding
+	}
+	resources := &Resources{}
+	// Fx groups have no ordering guarantee; the configured order remains authoritative.
+	for _, instance := range config {
+		binding, exists := byID[instance.ID]
+		if !exists || binding.Instance.Kind != instance.Engine {
+			return resourceResult{}, fmt.Errorf("missing matching runtime binding for instance %q", instance.ID)
+		}
+		resources.instances = append(resources.instances, ownedInstance{
+			id: instance.ID, lifecycle: services.NewLifecycle(binding.Instance, binding.Runtime),
+			closer: binding.Closer, validator: binding.Validator,
+		})
 	}
 	return resourceResult{Resources: resources, Cleanup: resources}, nil
 }

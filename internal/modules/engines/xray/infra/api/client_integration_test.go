@@ -1,6 +1,6 @@
 //go:build integration
 
-package xray_test
+package api_test
 
 import (
 	"context"
@@ -18,7 +18,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/PapilioVPN/node/internal/modules/engines/xray/domain"
-	"github.com/PapilioVPN/node/internal/platform/xray"
+	xrayapi "github.com/PapilioVPN/node/internal/modules/engines/xray/infra/api"
 )
 
 // Controlled SDK servers exercise native channel contracts, not Xray behavior.
@@ -61,9 +61,9 @@ func apiServer(t *testing.T, service native.StatsServiceServer) (string, *connec
 	return listener.Addr().String(), counts
 }
 
-func apiClient(t *testing.T, address string, timeout time.Duration, limit int) *xray.APIClient {
+func apiClient(t *testing.T, address string, timeout time.Duration, limit int) *xrayapi.Client {
 	t.Helper()
-	client, err := xray.NewAPIClient(xray.APIConfig{Network: "tcp", Address: address, RequestTimeout: timeout, MaxReceiveBytes: limit, MaxConcurrent: 1})
+	client, err := xrayapi.NewClient(xrayapi.Config{Network: "tcp", Address: address, RequestTimeout: timeout, MaxReceiveBytes: limit, MaxConcurrent: 1})
 	if err != nil {
 		t.Fatal(err)
 	}

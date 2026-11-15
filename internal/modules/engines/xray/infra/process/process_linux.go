@@ -1,5 +1,5 @@
-// Package xray implements the native Xray process boundary on Linux.
-package xray
+// Package process owns Xray runtimes and bounded native commands on Linux.
+package process
 
 import (
 	"context"

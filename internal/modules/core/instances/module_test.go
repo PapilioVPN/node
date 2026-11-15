@@ -8,8 +8,8 @@ import (
 
 	"go.uber.org/fx"
 
-	"github.com/PapilioVPN/node/internal/modules/core/instances/app/services"
 	"github.com/PapilioVPN/node/internal/modules/core/instances/domain"
+	"github.com/PapilioVPN/node/internal/settings"
 )
 
 // runtimeMock records ownership transitions without native engine execution.
@@ -39,16 +39,22 @@ func (m *runtimeMock) Close() error {
 func TestResourceOwnershipWithIndependentRuntimes(t *testing.T) {
 	var events []string
 	closeErr := errors.New("controlled close failure")
-	resources := &Resources{}
+	var configuration []settings.Instance
+	var bindings []RuntimeBinding
 	for _, id := range []domain.InstanceID{"first", "second"} {
 		runtime := &runtimeMock{id: id, events: &events, state: domain.Stopped}
 		if id == "second" {
 			runtime.closeErr = closeErr
 		}
-		service := services.NewLifecycle(domain.Instance{ID: id, Kind: "controlled"}, runtime)
-		resources.instances = append(resources.instances, ownedInstance{id: id, lifecycle: service, closer: runtime})
+		configuration = append(configuration, settings.Instance{ID: id, Engine: "controlled"})
+		bindings = append(bindings, RuntimeBinding{Instance: domain.Instance{ID: id, Kind: "controlled"}, Runtime: runtime, Closer: runtime})
 	}
-	application := fx.New(fx.NopLogger, fx.Supply(resources), fx.Invoke(registerLifecycle))
+	// Group contributions are deliberately reversed; configuration owns ordering.
+	slices.Reverse(bindings)
+	var resources *Resources
+	application := fx.New(fx.NopLogger, fx.Supply(configuration), Module(false), fx.Populate(&resources),
+		fx.Provide(fx.Annotate(func() []RuntimeBinding { return bindings }, fx.ResultTags(`group:"engine_runtimes,flatten"`))),
+	)
 	if err := application.Start(context.Background()); err != nil {
 		t.Fatal(err)
 	}
@@ -66,5 +72,32 @@ func TestResourceOwnershipWithIndependentRuntimes(t *testing.T) {
 	want := []string{"start first", "start second", "stop second", "stop first", "close second", "close first"}
 	if !slices.Equal(events, want) {
 		t.Fatalf("ownership ordering: %v; want %v", events, want)
+	}
+}
+
+func TestInvalidRuntimeContributionsFailBeforeExecution(t *testing.T) {
+	var events []string
+	runtime := &runtimeMock{id: "first", events: &events}
+	first := RuntimeBinding{Instance: domain.Instance{ID: "first", Kind: "controlled"}, Runtime: runtime, Closer: runtime}
+	second := first
+	second.Instance.ID = "second"
+	wrongKind := second
+	wrongKind.Instance.Kind = "another"
+	missingRuntime := second
+	missingRuntime.Runtime = nil
+	missingCloser := second
+	missingCloser.Closer = nil
+	unknown := second
+	unknown.Instance.ID = "unknown"
+	configuration := []settings.Instance{{ID: "first", Engine: "controlled"}, {ID: "second", Engine: "controlled"}}
+	for _, values := range [][]RuntimeBinding{
+		{first}, {first, first}, {first, wrongKind}, {first, missingRuntime}, {first, missingCloser}, {first, unknown},
+	} {
+		if _, err := newResources(configuration, runtimeBindings{Values: values}); err == nil {
+			t.Fatal("invalid runtime contributions accepted")
+		}
+	}
+	if len(events) != 0 {
+		t.Fatalf("invalid composition executed a runtime: %v", events)
 	}
 }

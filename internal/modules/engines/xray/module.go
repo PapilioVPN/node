@@ -6,17 +6,20 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"path/filepath"
 
 	"go.uber.org/fx"
 	"google.golang.org/grpc"
 
+	instanceowner "github.com/PapilioVPN/node/internal/modules/core/instances"
 	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
 	"github.com/PapilioVPN/node/internal/modules/engines/xray/app/services"
 	"github.com/PapilioVPN/node/internal/modules/engines/xray/domain"
 	"github.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi"
 	xrayv1 "github.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi/proto/v1"
+	xrayapi "github.com/PapilioVPN/node/internal/modules/engines/xray/infra/api"
+	xrayprocess "github.com/PapilioVPN/node/internal/modules/engines/xray/infra/process"
 	system "github.com/PapilioVPN/node/internal/modules/system/info/domain"
-	native "github.com/PapilioVPN/node/internal/platform/xray"
 	"github.com/PapilioVPN/node/internal/settings"
 )
 
@@ -24,12 +27,50 @@ import (
 func Module(grpcEnabled bool) fx.Option {
 	options := []fx.Option{
 		fx.Provide(newBinaryInfoService, newAPIResources, newRuntimeInfoService, newTrafficCounterService, fx.Private),
-		fx.Provide(capability, apiCleanup), fx.Invoke(registerAPILifecycle),
+		fx.Provide(capability, apiCleanup, newRuntimeBindings), fx.Invoke(registerAPILifecycle),
 	}
 	if grpcEnabled {
 		options = append(options, fx.Invoke(registerGRPC))
 	}
 	return fx.Module("xray", options...)
+}
+
+type runtimeBindingsResult struct {
+	fx.Out
+	Values []instanceowner.RuntimeBinding `group:"engine_runtimes,flatten"`
+}
+
+func newRuntimeBindings(config []settings.Instance) (runtimeBindingsResult, error) {
+	var result runtimeBindingsResult
+	for _, instance := range config {
+		if instance.Engine != instances.Xray {
+			continue
+		}
+		runtime, err := xrayprocess.New(xrayprocess.Config{
+			Binary: instance.Xray.Binary, ConfigFile: instance.Xray.ConfigFile,
+			StopTimeout: instance.Xray.StopTimeout,
+		})
+		if err != nil {
+			return runtimeBindingsResult{}, fmt.Errorf("construct instance %q: %w", instance.ID, err)
+		}
+		binding := instanceowner.RuntimeBinding{
+			Instance: instances.Instance{ID: instance.ID, Kind: instance.Engine},
+			Runtime:  runtime, Closer: runtime,
+		}
+		if validation := instance.Validation; validation != nil {
+			validator, err := xrayprocess.NewValidator(xrayprocess.ValidationConfig{
+				Binary: instance.Xray.Binary, Directory: filepath.Dir(instance.Xray.ConfigFile),
+				WorkDir: validation.WorkDir, Timeout: validation.Timeout,
+				MaxBytes: validation.MaxBytes, MaxConcurrent: validation.MaxConcurrent,
+			})
+			if err != nil {
+				return runtimeBindingsResult{}, fmt.Errorf("construct instance %q validator: %w", instance.ID, err)
+			}
+			binding.Validator = validator
+		}
+		result.Values = append(result.Values, binding)
+	}
+	return result, nil
 }
 
 func newBinaryInfoService(config []settings.Instance) (*services.BinaryInfoService, error) {
@@ -40,7 +81,7 @@ func newBinaryInfoService(config []settings.Instance) (*services.BinaryInfoServi
 		}
 		readers[instance.ID] = nil
 		if inspection := instance.Xray.Inspection; inspection != nil {
-			reader, err := native.NewBinaryInspector(native.BinaryInspectionConfig{
+			reader, err := xrayprocess.NewBinaryInspector(xrayprocess.BinaryInspectionConfig{
 				Binary: instance.Xray.Binary, Timeout: inspection.Timeout,
 				MaxOutputBytes: inspection.MaxOutputBytes, MaxConcurrent: inspection.MaxConcurrent,
 			})
@@ -56,7 +97,7 @@ func newBinaryInfoService(config []settings.Instance) (*services.BinaryInfoServi
 type apiResources struct {
 	runtimeReaders map[instances.InstanceID]services.RuntimeInfoReader
 	trafficReaders map[instances.InstanceID]services.TrafficCounterReader
-	clients        []*native.APIClient
+	clients        []*xrayapi.Client
 }
 
 func newAPIResources(config []settings.Instance) (*apiResources, error) {
@@ -71,7 +112,7 @@ func newAPIResources(config []settings.Instance) (*apiResources, error) {
 		resources.runtimeReaders[instance.ID] = nil
 		resources.trafficReaders[instance.ID] = nil
 		if api := instance.Xray.API; api != nil {
-			client, err := native.NewAPIClient(native.APIConfig{
+			client, err := xrayapi.NewClient(xrayapi.Config{
 				Network: api.Network, Address: api.Address, RequestTimeout: api.RequestTimeout,
 				MaxReceiveBytes: api.MaxReceiveBytes, MaxConcurrent: api.MaxConcurrent,
 			})

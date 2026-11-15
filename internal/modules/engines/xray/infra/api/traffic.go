@@ -1,4 +1,4 @@
-package xray
+package api
 
 import (
 	"context"
@@ -15,7 +15,7 @@ import (
 
 // ReadTrafficCounter makes one exact GetStats read, sharing runtime API capacity.
 // Selection is already validated by the caller's input boundary. Reset stays false.
-func (c *APIClient) ReadTrafficCounter(ctx context.Context, selection domain.TrafficSelection) (domain.TrafficCounter, error) {
+func (c *Client) ReadTrafficCounter(ctx context.Context, selection domain.TrafficSelection) (domain.TrafficCounter, error) {
 	if err := ctx.Err(); err != nil {
 		return domain.TrafficCounter{}, err
 	}

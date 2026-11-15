@@ -1,4 +1,4 @@
-package xray
+package api
 
 import (
 	"context"
@@ -19,9 +19,9 @@ import (
 	"github.com/PapilioVPN/node/internal/modules/engines/xray/domain"
 )
 
-var ErrInvalidAPISettings = errors.New("invalid Xray API settings")
+var ErrInvalidSettings = errors.New("invalid Xray API settings")
 
-type APIConfig struct {
+type Config struct {
 	Network         string
 	Address         string
 	RequestTimeout  time.Duration
@@ -29,8 +29,8 @@ type APIConfig struct {
 	MaxConcurrent   int
 }
 
-// APIClient owns one reusable local native channel, not an engine execution.
-type APIClient struct {
+// Client owns one reusable local native channel, not an engine execution.
+type Client struct {
 	mu              sync.Mutex
 	closed          bool
 	target          string
@@ -43,32 +43,32 @@ type APIClient struct {
 	closeError      error
 }
 
-// NewAPIClient has no native effects. A channel is created on its first read,
+// NewClient has no native effects. A channel is created on its first read,
 // avoiding native workers during composition or before a failed Fx startup.
-func NewAPIClient(config APIConfig) (*APIClient, error) {
+func NewClient(config Config) (*Client, error) {
 	if config.RequestTimeout <= 0 || config.MaxReceiveBytes <= 0 || config.MaxConcurrent <= 0 {
-		return nil, ErrInvalidAPISettings
+		return nil, ErrInvalidSettings
 	}
 	var target string
 	switch config.Network {
 	case "unix":
 		if !filepath.IsAbs(config.Address) {
-			return nil, ErrInvalidAPISettings
+			return nil, ErrInvalidSettings
 		}
 		target = (&url.URL{Scheme: "unix", Path: config.Address}).String()
 	case "tcp":
 		address, err := netip.ParseAddrPort(config.Address)
 		if err != nil || !address.Addr().IsLoopback() || address.Port() == 0 {
-			return nil, ErrInvalidAPISettings
+			return nil, ErrInvalidSettings
 		}
 		target = "passthrough:///" + config.Address
 	default:
-		return nil, ErrInvalidAPISettings
+		return nil, ErrInvalidSettings
 	}
-	return &APIClient{target: target, maxReceiveBytes: config.MaxReceiveBytes, timeout: config.RequestTimeout, slots: make(chan struct{}, config.MaxConcurrent)}, nil
+	return &Client{target: target, maxReceiveBytes: config.MaxReceiveBytes, timeout: config.RequestTimeout, slots: make(chan struct{}, config.MaxConcurrent)}, nil
 }
 
-func (c *APIClient) statsClient() (native.StatsServiceClient, error) {
+func (c *Client) statsClient() (native.StatsServiceClient, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if c.closed {
@@ -91,7 +91,7 @@ func (c *APIClient) statsClient() (native.StatsServiceClient, error) {
 }
 
 // ReadRuntimeInfo performs one bounded GetSysStats call with no application retry.
-func (c *APIClient) ReadRuntimeInfo(ctx context.Context) (domain.RuntimeInfo, error) {
+func (c *Client) ReadRuntimeInfo(ctx context.Context) (domain.RuntimeInfo, error) {
 	if err := ctx.Err(); err != nil {
 		return domain.RuntimeInfo{}, err
 	}
@@ -132,7 +132,7 @@ func (c *APIClient) ReadRuntimeInfo(ctx context.Context) (domain.RuntimeInfo, er
 
 // Close terminates the channel and interrupts active native calls. Request owners
 // join their callers; the management server is drained before final module cleanup.
-func (c *APIClient) Close() error {
+func (c *Client) Close() error {
 	c.closeOnce.Do(func() {
 		c.mu.Lock()
 		c.closed = true
