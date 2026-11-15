@@ -22,9 +22,11 @@ type BinaryInfoReader interface {
 
 type Handler struct {
 	xrayv1.UnimplementedXrayServiceServer
-	Info          BinaryInfoReader
-	Runtime       RuntimeInfoReader
-	AllowInfoRead bool
+	Info           BinaryInfoReader
+	Runtime        RuntimeInfoReader
+	Traffic        TrafficCounterReader
+	AllowInfoRead  bool
+	AllowStatsRead bool
 }
 
 func (h Handler) GetBinaryInfo(ctx context.Context, request *xrayv1.GetBinaryInfoRequest) (*xrayv1.GetBinaryInfoResponse, error) {

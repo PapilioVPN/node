@@ -21,6 +21,261 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type TrafficScope int32
+
+const (
+	TrafficScope_TRAFFIC_SCOPE_UNSPECIFIED TrafficScope = 0
+	TrafficScope_TRAFFIC_SCOPE_USER        TrafficScope = 1
+	TrafficScope_TRAFFIC_SCOPE_INBOUND     TrafficScope = 2
+	TrafficScope_TRAFFIC_SCOPE_OUTBOUND    TrafficScope = 3
+)
+
+// Enum value maps for TrafficScope.
+var (
+	TrafficScope_name = map[int32]string{
+		0: "TRAFFIC_SCOPE_UNSPECIFIED",
+		1: "TRAFFIC_SCOPE_USER",
+		2: "TRAFFIC_SCOPE_INBOUND",
+		3: "TRAFFIC_SCOPE_OUTBOUND",
+	}
+	TrafficScope_value = map[string]int32{
+		"TRAFFIC_SCOPE_UNSPECIFIED": 0,
+		"TRAFFIC_SCOPE_USER":        1,
+		"TRAFFIC_SCOPE_INBOUND":     2,
+		"TRAFFIC_SCOPE_OUTBOUND":    3,
+	}
+)
+
+func (x TrafficScope) Enum() *TrafficScope {
+	p := new(TrafficScope)
+	*p = x
+	return p
+}
+
+func (x TrafficScope) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (TrafficScope) Descriptor() protoreflect.EnumDescriptor {
+	return file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_enumTypes[0].Descriptor()
+}
+
+func (TrafficScope) Type() protoreflect.EnumType {
+	return &file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_enumTypes[0]
+}
+
+func (x TrafficScope) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use TrafficScope.Descriptor instead.
+func (TrafficScope) EnumDescriptor() ([]byte, []int) {
+	return file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_rawDescGZIP(), []int{0}
+}
+
+type TrafficDirection int32
+
+const (
+	TrafficDirection_TRAFFIC_DIRECTION_UNSPECIFIED TrafficDirection = 0
+	TrafficDirection_TRAFFIC_DIRECTION_UPLINK      TrafficDirection = 1
+	TrafficDirection_TRAFFIC_DIRECTION_DOWNLINK    TrafficDirection = 2
+)
+
+// Enum value maps for TrafficDirection.
+var (
+	TrafficDirection_name = map[int32]string{
+		0: "TRAFFIC_DIRECTION_UNSPECIFIED",
+		1: "TRAFFIC_DIRECTION_UPLINK",
+		2: "TRAFFIC_DIRECTION_DOWNLINK",
+	}
+	TrafficDirection_value = map[string]int32{
+		"TRAFFIC_DIRECTION_UNSPECIFIED": 0,
+		"TRAFFIC_DIRECTION_UPLINK":      1,
+		"TRAFFIC_DIRECTION_DOWNLINK":    2,
+	}
+)
+
+func (x TrafficDirection) Enum() *TrafficDirection {
+	p := new(TrafficDirection)
+	*p = x
+	return p
+}
+
+func (x TrafficDirection) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (TrafficDirection) Descriptor() protoreflect.EnumDescriptor {
+	return file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_enumTypes[1].Descriptor()
+}
+
+func (TrafficDirection) Type() protoreflect.EnumType {
+	return &file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_enumTypes[1]
+}
+
+func (x TrafficDirection) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use TrafficDirection.Descriptor instead.
+func (TrafficDirection) EnumDescriptor() ([]byte, []int) {
+	return file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_rawDescGZIP(), []int{1}
+}
+
+type GetTrafficCounterRequest struct {
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	InstanceId string                 `protobuf:"bytes,1,opt,name=instance_id,json=instanceId,proto3" json:"instance_id,omitempty"`
+	Scope      TrafficScope           `protobuf:"varint,2,opt,name=scope,proto3,enum=papilio.node.xray.v1.TrafficScope" json:"scope,omitempty"`
+	// Exact native user email or inbound/outbound tag; never trimmed or normalized.
+	Name          string           `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	Direction     TrafficDirection `protobuf:"varint,4,opt,name=direction,proto3,enum=papilio.node.xray.v1.TrafficDirection" json:"direction,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetTrafficCounterRequest) Reset() {
+	*x = GetTrafficCounterRequest{}
+	mi := &file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetTrafficCounterRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetTrafficCounterRequest) ProtoMessage() {}
+
+func (x *GetTrafficCounterRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetTrafficCounterRequest.ProtoReflect.Descriptor instead.
+func (*GetTrafficCounterRequest) Descriptor() ([]byte, []int) {
+	return file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *GetTrafficCounterRequest) GetInstanceId() string {
+	if x != nil {
+		return x.InstanceId
+	}
+	return ""
+}
+
+func (x *GetTrafficCounterRequest) GetScope() TrafficScope {
+	if x != nil {
+		return x.Scope
+	}
+	return TrafficScope_TRAFFIC_SCOPE_UNSPECIFIED
+}
+
+func (x *GetTrafficCounterRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *GetTrafficCounterRequest) GetDirection() TrafficDirection {
+	if x != nil {
+		return x.Direction
+	}
+	return TrafficDirection_TRAFFIC_DIRECTION_UNSPECIFIED
+}
+
+type GetTrafficCounterResponse struct {
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	InstanceId string                 `protobuf:"bytes,1,opt,name=instance_id,json=instanceId,proto3" json:"instance_id,omitempty"`
+	Scope      TrafficScope           `protobuf:"varint,2,opt,name=scope,proto3,enum=papilio.node.xray.v1.TrafficScope" json:"scope,omitempty"`
+	Name       string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	Direction  TrafficDirection       `protobuf:"varint,4,opt,name=direction,proto3,enum=papilio.node.xray.v1.TrafficDirection" json:"direction,omitempty"`
+	// Native signed int64 bytes, preserving overflow/reset semantics.
+	Bytes            int64 `protobuf:"varint,5,opt,name=bytes,proto3" json:"bytes,omitempty"`
+	ObservedAtUnixMs int64 `protobuf:"varint,6,opt,name=observed_at_unix_ms,json=observedAtUnixMs,proto3" json:"observed_at_unix_ms,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *GetTrafficCounterResponse) Reset() {
+	*x = GetTrafficCounterResponse{}
+	mi := &file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetTrafficCounterResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetTrafficCounterResponse) ProtoMessage() {}
+
+func (x *GetTrafficCounterResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetTrafficCounterResponse.ProtoReflect.Descriptor instead.
+func (*GetTrafficCounterResponse) Descriptor() ([]byte, []int) {
+	return file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *GetTrafficCounterResponse) GetInstanceId() string {
+	if x != nil {
+		return x.InstanceId
+	}
+	return ""
+}
+
+func (x *GetTrafficCounterResponse) GetScope() TrafficScope {
+	if x != nil {
+		return x.Scope
+	}
+	return TrafficScope_TRAFFIC_SCOPE_UNSPECIFIED
+}
+
+func (x *GetTrafficCounterResponse) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *GetTrafficCounterResponse) GetDirection() TrafficDirection {
+	if x != nil {
+		return x.Direction
+	}
+	return TrafficDirection_TRAFFIC_DIRECTION_UNSPECIFIED
+}
+
+func (x *GetTrafficCounterResponse) GetBytes() int64 {
+	if x != nil {
+		return x.Bytes
+	}
+	return 0
+}
+
+func (x *GetTrafficCounterResponse) GetObservedAtUnixMs() int64 {
+	if x != nil {
+		return x.ObservedAtUnixMs
+	}
+	return 0
+}
+
 type GetRuntimeInfoRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	InstanceId    string                 `protobuf:"bytes,1,opt,name=instance_id,json=instanceId,proto3" json:"instance_id,omitempty"`
@@ -30,7 +285,7 @@ type GetRuntimeInfoRequest struct {
 
 func (x *GetRuntimeInfoRequest) Reset() {
 	*x = GetRuntimeInfoRequest{}
-	mi := &file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes[0]
+	mi := &file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -42,7 +297,7 @@ func (x *GetRuntimeInfoRequest) String() string {
 func (*GetRuntimeInfoRequest) ProtoMessage() {}
 
 func (x *GetRuntimeInfoRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes[0]
+	mi := &file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -55,7 +310,7 @@ func (x *GetRuntimeInfoRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetRuntimeInfoRequest.ProtoReflect.Descriptor instead.
 func (*GetRuntimeInfoRequest) Descriptor() ([]byte, []int) {
-	return file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_rawDescGZIP(), []int{0}
+	return file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *GetRuntimeInfoRequest) GetInstanceId() string {
@@ -75,7 +330,7 @@ type GetRuntimeInfoResponse struct {
 
 func (x *GetRuntimeInfoResponse) Reset() {
 	*x = GetRuntimeInfoResponse{}
-	mi := &file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes[1]
+	mi := &file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -87,7 +342,7 @@ func (x *GetRuntimeInfoResponse) String() string {
 func (*GetRuntimeInfoResponse) ProtoMessage() {}
 
 func (x *GetRuntimeInfoResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes[1]
+	mi := &file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -100,7 +355,7 @@ func (x *GetRuntimeInfoResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetRuntimeInfoResponse.ProtoReflect.Descriptor instead.
 func (*GetRuntimeInfoResponse) Descriptor() ([]byte, []int) {
-	return file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_rawDescGZIP(), []int{1}
+	return file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *GetRuntimeInfoResponse) GetInstanceId() string {
@@ -138,7 +393,7 @@ type RuntimeInfo struct {
 
 func (x *RuntimeInfo) Reset() {
 	*x = RuntimeInfo{}
-	mi := &file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes[2]
+	mi := &file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -150,7 +405,7 @@ func (x *RuntimeInfo) String() string {
 func (*RuntimeInfo) ProtoMessage() {}
 
 func (x *RuntimeInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes[2]
+	mi := &file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -163,7 +418,7 @@ func (x *RuntimeInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RuntimeInfo.ProtoReflect.Descriptor instead.
 func (*RuntimeInfo) Descriptor() ([]byte, []int) {
-	return file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_rawDescGZIP(), []int{2}
+	return file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *RuntimeInfo) GetGoroutines() uint32 {
@@ -252,7 +507,7 @@ type GetBinaryInfoRequest struct {
 
 func (x *GetBinaryInfoRequest) Reset() {
 	*x = GetBinaryInfoRequest{}
-	mi := &file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes[3]
+	mi := &file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -264,7 +519,7 @@ func (x *GetBinaryInfoRequest) String() string {
 func (*GetBinaryInfoRequest) ProtoMessage() {}
 
 func (x *GetBinaryInfoRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes[3]
+	mi := &file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -277,7 +532,7 @@ func (x *GetBinaryInfoRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetBinaryInfoRequest.ProtoReflect.Descriptor instead.
 func (*GetBinaryInfoRequest) Descriptor() ([]byte, []int) {
-	return file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_rawDescGZIP(), []int{3}
+	return file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *GetBinaryInfoRequest) GetInstanceId() string {
@@ -297,7 +552,7 @@ type GetBinaryInfoResponse struct {
 
 func (x *GetBinaryInfoResponse) Reset() {
 	*x = GetBinaryInfoResponse{}
-	mi := &file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes[4]
+	mi := &file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -309,7 +564,7 @@ func (x *GetBinaryInfoResponse) String() string {
 func (*GetBinaryInfoResponse) ProtoMessage() {}
 
 func (x *GetBinaryInfoResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes[4]
+	mi := &file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -322,7 +577,7 @@ func (x *GetBinaryInfoResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetBinaryInfoResponse.ProtoReflect.Descriptor instead.
 func (*GetBinaryInfoResponse) Descriptor() ([]byte, []int) {
-	return file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_rawDescGZIP(), []int{4}
+	return file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *GetBinaryInfoResponse) GetInstanceId() string {
@@ -354,7 +609,7 @@ type BinaryInfo struct {
 
 func (x *BinaryInfo) Reset() {
 	*x = BinaryInfo{}
-	mi := &file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes[5]
+	mi := &file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -366,7 +621,7 @@ func (x *BinaryInfo) String() string {
 func (*BinaryInfo) ProtoMessage() {}
 
 func (x *BinaryInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes[5]
+	mi := &file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -379,7 +634,7 @@ func (x *BinaryInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BinaryInfo.ProtoReflect.Descriptor instead.
 func (*BinaryInfo) Descriptor() ([]byte, []int) {
-	return file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_rawDescGZIP(), []int{5}
+	return file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *BinaryInfo) GetVersion() string {
@@ -428,7 +683,21 @@ var File_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto protoreflect.
 
 const file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_rawDesc = "" +
 	"\n" +
-	"9internal/modules/engines/xray/grpcapi/proto/v1/xray.proto\x12\x14papilio.node.xray.v1\"8\n" +
+	"9internal/modules/engines/xray/grpcapi/proto/v1/xray.proto\x12\x14papilio.node.xray.v1\"\xcf\x01\n" +
+	"\x18GetTrafficCounterRequest\x12\x1f\n" +
+	"\vinstance_id\x18\x01 \x01(\tR\n" +
+	"instanceId\x128\n" +
+	"\x05scope\x18\x02 \x01(\x0e2\".papilio.node.xray.v1.TrafficScopeR\x05scope\x12\x12\n" +
+	"\x04name\x18\x03 \x01(\tR\x04name\x12D\n" +
+	"\tdirection\x18\x04 \x01(\x0e2&.papilio.node.xray.v1.TrafficDirectionR\tdirection\"\x95\x02\n" +
+	"\x19GetTrafficCounterResponse\x12\x1f\n" +
+	"\vinstance_id\x18\x01 \x01(\tR\n" +
+	"instanceId\x128\n" +
+	"\x05scope\x18\x02 \x01(\x0e2\".papilio.node.xray.v1.TrafficScopeR\x05scope\x12\x12\n" +
+	"\x04name\x18\x03 \x01(\tR\x04name\x12D\n" +
+	"\tdirection\x18\x04 \x01(\x0e2&.papilio.node.xray.v1.TrafficDirectionR\tdirection\x12\x14\n" +
+	"\x05bytes\x18\x05 \x01(\x03R\x05bytes\x12-\n" +
+	"\x13observed_at_unix_ms\x18\x06 \x01(\x03R\x10observedAtUnixMs\"8\n" +
 	"\x15GetRuntimeInfoRequest\x12\x1f\n" +
 	"\vinstance_id\x18\x01 \x01(\tR\n" +
 	"instanceId\"v\n" +
@@ -466,10 +735,20 @@ const file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_rawDesc = "
 	"go_version\x18\x03 \x01(\tR\tgoVersion\x12)\n" +
 	"\x10operating_system\x18\x04 \x01(\tR\x0foperatingSystem\x12\"\n" +
 	"\farchitecture\x18\x05 \x01(\tR\farchitecture\x12-\n" +
-	"\x13observed_at_unix_ms\x18\x06 \x01(\x03R\x10observedAtUnixMs2\xe4\x01\n" +
+	"\x13observed_at_unix_ms\x18\x06 \x01(\x03R\x10observedAtUnixMs*|\n" +
+	"\fTrafficScope\x12\x1d\n" +
+	"\x19TRAFFIC_SCOPE_UNSPECIFIED\x10\x00\x12\x16\n" +
+	"\x12TRAFFIC_SCOPE_USER\x10\x01\x12\x19\n" +
+	"\x15TRAFFIC_SCOPE_INBOUND\x10\x02\x12\x1a\n" +
+	"\x16TRAFFIC_SCOPE_OUTBOUND\x10\x03*s\n" +
+	"\x10TrafficDirection\x12!\n" +
+	"\x1dTRAFFIC_DIRECTION_UNSPECIFIED\x10\x00\x12\x1c\n" +
+	"\x18TRAFFIC_DIRECTION_UPLINK\x10\x01\x12\x1e\n" +
+	"\x1aTRAFFIC_DIRECTION_DOWNLINK\x10\x022\xda\x02\n" +
 	"\vXrayService\x12h\n" +
 	"\rGetBinaryInfo\x12*.papilio.node.xray.v1.GetBinaryInfoRequest\x1a+.papilio.node.xray.v1.GetBinaryInfoResponse\x12k\n" +
-	"\x0eGetRuntimeInfo\x12+.papilio.node.xray.v1.GetRuntimeInfoRequest\x1a,.papilio.node.xray.v1.GetRuntimeInfoResponseBRZPgithub.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi/proto/v1;xrayv1b\x06proto3"
+	"\x0eGetRuntimeInfo\x12+.papilio.node.xray.v1.GetRuntimeInfoRequest\x1a,.papilio.node.xray.v1.GetRuntimeInfoResponse\x12t\n" +
+	"\x11GetTrafficCounter\x12..papilio.node.xray.v1.GetTrafficCounterRequest\x1a/.papilio.node.xray.v1.GetTrafficCounterResponseBRZPgithub.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi/proto/v1;xrayv1b\x06proto3"
 
 var (
 	file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_rawDescOnce sync.Once
@@ -483,27 +762,38 @@ func file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_rawDescGZIP(
 	return file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_rawDescData
 }
 
-var file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_goTypes = []any{
-	(*GetRuntimeInfoRequest)(nil),  // 0: papilio.node.xray.v1.GetRuntimeInfoRequest
-	(*GetRuntimeInfoResponse)(nil), // 1: papilio.node.xray.v1.GetRuntimeInfoResponse
-	(*RuntimeInfo)(nil),            // 2: papilio.node.xray.v1.RuntimeInfo
-	(*GetBinaryInfoRequest)(nil),   // 3: papilio.node.xray.v1.GetBinaryInfoRequest
-	(*GetBinaryInfoResponse)(nil),  // 4: papilio.node.xray.v1.GetBinaryInfoResponse
-	(*BinaryInfo)(nil),             // 5: papilio.node.xray.v1.BinaryInfo
+	(TrafficScope)(0),                 // 0: papilio.node.xray.v1.TrafficScope
+	(TrafficDirection)(0),             // 1: papilio.node.xray.v1.TrafficDirection
+	(*GetTrafficCounterRequest)(nil),  // 2: papilio.node.xray.v1.GetTrafficCounterRequest
+	(*GetTrafficCounterResponse)(nil), // 3: papilio.node.xray.v1.GetTrafficCounterResponse
+	(*GetRuntimeInfoRequest)(nil),     // 4: papilio.node.xray.v1.GetRuntimeInfoRequest
+	(*GetRuntimeInfoResponse)(nil),    // 5: papilio.node.xray.v1.GetRuntimeInfoResponse
+	(*RuntimeInfo)(nil),               // 6: papilio.node.xray.v1.RuntimeInfo
+	(*GetBinaryInfoRequest)(nil),      // 7: papilio.node.xray.v1.GetBinaryInfoRequest
+	(*GetBinaryInfoResponse)(nil),     // 8: papilio.node.xray.v1.GetBinaryInfoResponse
+	(*BinaryInfo)(nil),                // 9: papilio.node.xray.v1.BinaryInfo
 }
 var file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_depIdxs = []int32{
-	2, // 0: papilio.node.xray.v1.GetRuntimeInfoResponse.runtime:type_name -> papilio.node.xray.v1.RuntimeInfo
-	5, // 1: papilio.node.xray.v1.GetBinaryInfoResponse.binary:type_name -> papilio.node.xray.v1.BinaryInfo
-	3, // 2: papilio.node.xray.v1.XrayService.GetBinaryInfo:input_type -> papilio.node.xray.v1.GetBinaryInfoRequest
-	0, // 3: papilio.node.xray.v1.XrayService.GetRuntimeInfo:input_type -> papilio.node.xray.v1.GetRuntimeInfoRequest
-	4, // 4: papilio.node.xray.v1.XrayService.GetBinaryInfo:output_type -> papilio.node.xray.v1.GetBinaryInfoResponse
-	1, // 5: papilio.node.xray.v1.XrayService.GetRuntimeInfo:output_type -> papilio.node.xray.v1.GetRuntimeInfoResponse
-	4, // [4:6] is the sub-list for method output_type
-	2, // [2:4] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	0, // 0: papilio.node.xray.v1.GetTrafficCounterRequest.scope:type_name -> papilio.node.xray.v1.TrafficScope
+	1, // 1: papilio.node.xray.v1.GetTrafficCounterRequest.direction:type_name -> papilio.node.xray.v1.TrafficDirection
+	0, // 2: papilio.node.xray.v1.GetTrafficCounterResponse.scope:type_name -> papilio.node.xray.v1.TrafficScope
+	1, // 3: papilio.node.xray.v1.GetTrafficCounterResponse.direction:type_name -> papilio.node.xray.v1.TrafficDirection
+	6, // 4: papilio.node.xray.v1.GetRuntimeInfoResponse.runtime:type_name -> papilio.node.xray.v1.RuntimeInfo
+	9, // 5: papilio.node.xray.v1.GetBinaryInfoResponse.binary:type_name -> papilio.node.xray.v1.BinaryInfo
+	7, // 6: papilio.node.xray.v1.XrayService.GetBinaryInfo:input_type -> papilio.node.xray.v1.GetBinaryInfoRequest
+	4, // 7: papilio.node.xray.v1.XrayService.GetRuntimeInfo:input_type -> papilio.node.xray.v1.GetRuntimeInfoRequest
+	2, // 8: papilio.node.xray.v1.XrayService.GetTrafficCounter:input_type -> papilio.node.xray.v1.GetTrafficCounterRequest
+	8, // 9: papilio.node.xray.v1.XrayService.GetBinaryInfo:output_type -> papilio.node.xray.v1.GetBinaryInfoResponse
+	5, // 10: papilio.node.xray.v1.XrayService.GetRuntimeInfo:output_type -> papilio.node.xray.v1.GetRuntimeInfoResponse
+	3, // 11: papilio.node.xray.v1.XrayService.GetTrafficCounter:output_type -> papilio.node.xray.v1.GetTrafficCounterResponse
+	9, // [9:12] is the sub-list for method output_type
+	6, // [6:9] is the sub-list for method input_type
+	6, // [6:6] is the sub-list for extension type_name
+	6, // [6:6] is the sub-list for extension extendee
+	0, // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_init() }
@@ -516,13 +806,14 @@ func file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_rawDesc), len(file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_rawDesc)),
-			NumEnums:      0,
-			NumMessages:   6,
+			NumEnums:      2,
+			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
 		GoTypes:           file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_goTypes,
 		DependencyIndexes: file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_depIdxs,
+		EnumInfos:         file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_enumTypes,
 		MessageInfos:      file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes,
 	}.Build()
 	File_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto = out.File

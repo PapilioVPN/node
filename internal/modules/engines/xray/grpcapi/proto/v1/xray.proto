@@ -10,6 +10,39 @@ service XrayService {
   rpc GetBinaryInfo(GetBinaryInfoRequest) returns (GetBinaryInfoResponse);
   // Observes the configured local API's Go runtime, not host RSS or traffic health.
   rpc GetRuntimeInfo(GetRuntimeInfoRequest) returns (GetRuntimeInfoResponse);
+  // Reads one exact native traffic counter without resetting it.
+  rpc GetTrafficCounter(GetTrafficCounterRequest) returns (GetTrafficCounterResponse);
+}
+
+enum TrafficScope {
+  TRAFFIC_SCOPE_UNSPECIFIED = 0;
+  TRAFFIC_SCOPE_USER = 1;
+  TRAFFIC_SCOPE_INBOUND = 2;
+  TRAFFIC_SCOPE_OUTBOUND = 3;
+}
+
+enum TrafficDirection {
+  TRAFFIC_DIRECTION_UNSPECIFIED = 0;
+  TRAFFIC_DIRECTION_UPLINK = 1;
+  TRAFFIC_DIRECTION_DOWNLINK = 2;
+}
+
+message GetTrafficCounterRequest {
+  string instance_id = 1;
+  TrafficScope scope = 2;
+  // Exact native user email or inbound/outbound tag; never trimmed or normalized.
+  string name = 3;
+  TrafficDirection direction = 4;
+}
+
+message GetTrafficCounterResponse {
+  string instance_id = 1;
+  TrafficScope scope = 2;
+  string name = 3;
+  TrafficDirection direction = 4;
+  // Native signed int64 bytes, preserving overflow/reset semantics.
+  int64 bytes = 5;
+  int64 observed_at_unix_ms = 6;
 }
 
 message GetRuntimeInfoRequest {

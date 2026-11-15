@@ -23,7 +23,7 @@ import (
 // Module owns Xray observations and API clients independently of instance runtimes.
 func Module(grpcEnabled bool) fx.Option {
 	options := []fx.Option{
-		fx.Provide(newBinaryInfoService, newAPIResources, newRuntimeInfoService, fx.Private),
+		fx.Provide(newBinaryInfoService, newAPIResources, newRuntimeInfoService, newTrafficCounterService, fx.Private),
 		fx.Provide(capability, apiCleanup), fx.Invoke(registerAPILifecycle),
 	}
 	if grpcEnabled {
@@ -54,17 +54,22 @@ func newBinaryInfoService(config []settings.Instance) (*app.BinaryInfoService, e
 }
 
 type apiResources struct {
-	readers map[instances.InstanceID]app.RuntimeInfoReader
-	clients []*native.APIClient
+	runtimeReaders map[instances.InstanceID]app.RuntimeInfoReader
+	trafficReaders map[instances.InstanceID]app.TrafficCounterReader
+	clients        []*native.APIClient
 }
 
 func newAPIResources(config []settings.Instance) (*apiResources, error) {
-	resources := &apiResources{readers: make(map[instances.InstanceID]app.RuntimeInfoReader)}
+	resources := &apiResources{
+		runtimeReaders: make(map[instances.InstanceID]app.RuntimeInfoReader),
+		trafficReaders: make(map[instances.InstanceID]app.TrafficCounterReader),
+	}
 	for _, instance := range config {
 		if instance.Engine != instances.Xray {
 			continue
 		}
-		resources.readers[instance.ID] = nil
+		resources.runtimeReaders[instance.ID] = nil
+		resources.trafficReaders[instance.ID] = nil
 		if api := instance.Xray.API; api != nil {
 			client, err := native.NewAPIClient(native.APIConfig{
 				Network: api.Network, Address: api.Address, RequestTimeout: api.RequestTimeout,
@@ -73,7 +78,8 @@ func newAPIResources(config []settings.Instance) (*apiResources, error) {
 			if err != nil {
 				return nil, errors.Join(fmt.Errorf("construct instance %q API: %w", instance.ID, err), resources.Close())
 			}
-			resources.readers[instance.ID] = client
+			resources.runtimeReaders[instance.ID] = client
+			resources.trafficReaders[instance.ID] = client
 			resources.clients = append(resources.clients, client)
 		}
 	}
@@ -81,7 +87,11 @@ func newAPIResources(config []settings.Instance) (*apiResources, error) {
 }
 
 func newRuntimeInfoService(resources *apiResources) *app.RuntimeInfoService {
-	return app.NewRuntimeInfoService(resources.readers)
+	return app.NewRuntimeInfoService(resources.runtimeReaders)
+}
+
+func newTrafficCounterService(resources *apiResources) *app.TrafficCounterService {
+	return app.NewTrafficCounterService(resources.trafficReaders)
 }
 
 func registerAPILifecycle(lifecycle fx.Lifecycle, resources *apiResources) {
@@ -96,8 +106,11 @@ func (r *apiResources) Close() error {
 	return result
 }
 
-func registerGRPC(registrar grpc.ServiceRegistrar, info *app.BinaryInfoService, runtime *app.RuntimeInfoService, cfg settings.GRPCPermissions) {
-	xrayv1.RegisterXrayServiceServer(registrar, grpcapi.Handler{Info: info, Runtime: runtime, AllowInfoRead: cfg.ReadEngineInfo})
+func registerGRPC(registrar grpc.ServiceRegistrar, info *app.BinaryInfoService, runtime *app.RuntimeInfoService, traffic *app.TrafficCounterService, cfg settings.GRPCPermissions) {
+	xrayv1.RegisterXrayServiceServer(registrar, grpcapi.Handler{
+		Info: info, Runtime: runtime, Traffic: traffic,
+		AllowInfoRead: cfg.ReadEngineInfo, AllowStatsRead: cfg.ReadEngineStats,
+	})
 }
 
 type capabilityResult struct {
@@ -106,7 +119,7 @@ type capabilityResult struct {
 }
 
 func capability() capabilityResult {
-	return capabilityResult{Values: []system.Capability{domain.ReadBinaryInfo, domain.ReadRuntimeInfo}}
+	return capabilityResult{Values: []system.Capability{domain.ReadBinaryInfo, domain.ReadRuntimeInfo, domain.ReadTrafficCounter}}
 }
 
 type apiCleanupResult struct {

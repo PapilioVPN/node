@@ -50,6 +50,8 @@ communications:
       validate_instance_config: false
       # Separate opt-in to configured engine binary/runtime information.
       read_engine_info: false
+      # Exact traffic counters; independent of engine runtime/binary information.
+      read_engine_stats: false
     tls:
       certificate_file: ""
       private_key_file: ""

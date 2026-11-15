@@ -29,7 +29,7 @@ instances:
 	}
 	for i, name := range []string{"a.json", "b.json"} {
 		xray := config.Instances[i].Xray
-		if xray.Inspection != nil || config.Communications.GRPC.Permissions.ReadEngineInfo {
+		if xray.Inspection != nil || config.Communications.GRPC.Permissions.ReadEngineInfo || config.Communications.GRPC.Permissions.ReadEngineStats {
 			t.Fatal("binary inspection or its grant was implicitly enabled")
 		}
 		if xray.Binary != filepath.Join(filepath.Dir(path), "bin/xray") || xray.ConfigFile != filepath.Join(filepath.Dir(path), "engines", name) {
@@ -65,7 +65,7 @@ communications:
 		t.Fatalf("inspection limits lost: %+v", inspection)
 	}
 	permissions := cfg.Communications.GRPC.Permissions
-	if !permissions.ReadEngineInfo || permissions.ReadInstanceStatus || permissions.ControlInstances || permissions.ValidateInstanceConfig {
+	if !permissions.ReadEngineInfo || permissions.ReadEngineStats || permissions.ReadInstanceStatus || permissions.ControlInstances || permissions.ValidateInstanceConfig {
 		t.Fatalf("engine information expanded existing grants: %+v", permissions)
 	}
 }

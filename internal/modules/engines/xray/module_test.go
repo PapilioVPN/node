@@ -10,6 +10,7 @@ import (
 	"go.uber.org/fx"
 	"google.golang.org/grpc"
 
+	"github.com/PapilioVPN/node/internal/modules/engines/xray/domain"
 	instances "github.com/PapilioVPN/node/internal/modules/instances/domain"
 	"github.com/PapilioVPN/node/internal/settings"
 )
@@ -49,6 +50,9 @@ func TestModuleClosesAPIAdmissionAndExportsFinalCleanup(t *testing.T) {
 	}
 	if _, err := service.GetRuntimeInfo(t.Context(), "edge"); !errors.Is(err, grpc.ErrClientConnClosing) {
 		t.Fatalf("OnStop did not close API admission: %v", err)
+	}
+	if _, err := newTrafficCounterService(resources).GetTrafficCounter(t.Context(), "edge", domain.TrafficSelection{Scope: domain.InboundTraffic, Name: "proxy", Direction: domain.Uplink}); !errors.Is(err, grpc.ErrClientConnClosing) {
+		t.Fatalf("OnStop did not close traffic admission: %v", err)
 	}
 	if err := resources.Close(); err != nil {
 		t.Fatalf("final cleanup after OnStop: %v", err)
