@@ -75,7 +75,7 @@ func (c *Client) ReadTrafficCounters(ctx context.Context, scope domain.TrafficSc
 		default:
 			continue
 		}
-		if strings.TrimSpace(name) == "" {
+		if name == "" {
 			return domain.TrafficCounters{}, domain.ErrInvalidTrafficResponse
 		}
 		result.Items = append(result.Items, domain.TrafficCounterEntry{Name: name, Direction: direction, Bytes: stat.Value})

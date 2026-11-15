@@ -80,6 +80,7 @@ func TestTrafficCollectionPreservesOpaqueNamesSignedValuesAndDuplicates(t *testi
 					{Name: prefix + " Mixed>>>traffic>>>user>>>@Example >>>traffic>>>uplink", Value: math.MinInt64},
 					{Name: prefix + "same>>>traffic>>>downlink", Value: math.MaxInt64},
 					{Name: prefix + "same>>>traffic>>>downlink", Value: 0},
+					{Name: prefix + "   >>>traffic>>>uplink", Value: 7},
 					{Name: "other>>>" + prefix + "collision>>>traffic>>>uplink", Value: 99},
 					{Name: prefix + "same>>>online", Value: 99},
 					{Name: prefix + "same>>>traffic>>>unsupported", Value: 99},
@@ -90,6 +91,7 @@ func TestTrafficCollectionPreservesOpaqueNamesSignedValuesAndDuplicates(t *testi
 				{Name: " Mixed>>>traffic>>>user>>>@Example ", Direction: domain.Uplink, Bytes: math.MinInt64},
 				{Name: "same", Direction: domain.Downlink, Bytes: math.MaxInt64},
 				{Name: "same", Direction: domain.Downlink, Bytes: 0},
+				{Name: "   ", Direction: domain.Uplink, Bytes: 7},
 			}
 			if err != nil || !reflect.DeepEqual(result.Items, want) {
 				t.Fatalf("identity/values: %+v, %v", result, err)
