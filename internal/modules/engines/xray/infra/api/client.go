@@ -11,6 +11,7 @@ import (
 	"time"
 
 	handlernative "github.com/xtls/xray-core/app/proxyman/command"
+	routingnative "github.com/xtls/xray-core/app/router/command"
 	native "github.com/xtls/xray-core/app/stats/command"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -39,6 +40,7 @@ type Client struct {
 	connection      *grpc.ClientConn
 	stats           native.StatsServiceClient
 	handlers        handlernative.HandlerServiceClient
+	routing         routingnative.RoutingServiceClient
 	timeout         time.Duration
 	slots           chan struct{}
 	closeOnce       sync.Once
@@ -95,6 +97,7 @@ func (c *Client) nativeClients() (native.StatsServiceClient, handlernative.Handl
 	c.connection = connection
 	c.stats = native.NewStatsServiceClient(connection)
 	c.handlers = handlernative.NewHandlerServiceClient(connection)
+	c.routing = routingnative.NewRoutingServiceClient(connection)
 	return c.stats, c.handlers, nil
 }
 

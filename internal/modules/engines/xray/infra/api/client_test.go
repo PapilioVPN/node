@@ -25,6 +25,12 @@ func TestAPIConstructionAndCanceledAdmissionCreateNoNativeChannel(t *testing.T) 
 	if client.connection != nil {
 		t.Fatal("construction/canceled admission allocated native workers")
 	}
+	if _, err := client.ReadRoutingRules(ctx); !errors.Is(err, context.Canceled) || client.connection != nil {
+		t.Fatal("canceled routing read created native workers")
+	}
+	if _, err := client.ReadBalancerInfo(ctx, "pool"); !errors.Is(err, context.Canceled) || client.connection != nil {
+		t.Fatal("canceled balancer read created native workers")
+	}
 	addition := domain.InboundUserAddition{InboundTag: "in", User: domain.InboundUser{Email: "user", Account: domain.UserAccount{Protocol: domain.VLESS, VLESS: &domain.VLESSAccount{ID: "test-only"}}}}
 	if _, err := client.AddInboundUser(ctx, addition); !errors.Is(err, context.Canceled) || errors.Is(err, domain.ErrUserMutationUnknown) || client.connection != nil {
 		t.Fatalf("canceled addition created native effects/workers: %v", err)
@@ -50,6 +56,12 @@ func TestAPIConstructionAndCanceledAdmissionCreateNoNativeChannel(t *testing.T) 
 	}
 	if client.connection != nil {
 		t.Fatal("closed admission created native channel")
+	}
+	if _, err := client.ReadRoutingRules(t.Context()); !errors.Is(err, grpc.ErrClientConnClosing) || client.connection != nil {
+		t.Fatal("closed routing read created native workers")
+	}
+	if _, err := client.ReadBalancerInfo(t.Context(), "pool"); !errors.Is(err, grpc.ErrClientConnClosing) || client.connection != nil {
+		t.Fatal("closed balancer read created native workers")
 	}
 	if _, err := client.AddInboundUser(t.Context(), addition); !errors.Is(err, grpc.ErrClientConnClosing) || errors.Is(err, domain.ErrUserMutationUnknown) || client.connection != nil {
 		t.Fatalf("closed addition created native effects/workers: %v", err)
