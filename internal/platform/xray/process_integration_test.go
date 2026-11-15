@@ -20,8 +20,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PapilioVPN/node/internal/modules/instances/app"
-	"github.com/PapilioVPN/node/internal/modules/instances/domain"
+	"github.com/PapilioVPN/node/internal/modules/core/instances/app/services"
+	"github.com/PapilioVPN/node/internal/modules/core/instances/domain"
 	"github.com/PapilioVPN/node/internal/platform/xray"
 )
 
@@ -32,8 +32,8 @@ func TestIndependentXrayInstances(t *testing.T) {
 	defer target.Close()
 	first, firstAddress := realXray(t)
 	second, secondAddress := realXray(t)
-	firstService := app.NewLifecycle(domain.Instance{ID: "edge-a", Kind: domain.Xray}, first)
-	secondService := app.NewLifecycle(domain.Instance{ID: "edge-b", Kind: domain.Xray}, second)
+	firstService := services.NewLifecycle(domain.Instance{ID: "edge-a", Kind: domain.Xray}, first)
+	secondService := services.NewLifecycle(domain.Instance{ID: "edge-b", Kind: domain.Xray}, second)
 	startContext, cancelStart := context.WithCancel(t.Context())
 	if _, err := firstService.Start(startContext); err != nil {
 		t.Fatal(err)

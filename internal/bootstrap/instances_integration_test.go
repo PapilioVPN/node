@@ -20,8 +20,8 @@ import (
 	"go.yaml.in/yaml/v3"
 
 	"github.com/PapilioVPN/node/internal/bootstrap"
-	"github.com/PapilioVPN/node/internal/modules/instances"
-	"github.com/PapilioVPN/node/internal/modules/instances/domain"
+	"github.com/PapilioVPN/node/internal/modules/core/instances"
+	"github.com/PapilioVPN/node/internal/modules/core/instances/domain"
 	rpc "github.com/PapilioVPN/node/internal/platform/grpcserver"
 	"github.com/PapilioVPN/node/internal/settings"
 	"github.com/PapilioVPN/node/internal/shared/testutil"

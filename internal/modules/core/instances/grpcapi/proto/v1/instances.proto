@@ -1,0 +1,103 @@
+syntax = "proto3";
+
+package papilio.node.v1;
+
+option go_package = "github.com/PapilioVPN/node/internal/modules/core/instances/grpcapi/proto/v1;instancesv1";
+
+service InstanceService {
+  rpc GetInstanceStatus(GetInstanceStatusRequest) returns (GetInstanceStatusResponse);
+  rpc ListInstanceStatuses(ListInstanceStatusesRequest) returns (ListInstanceStatusesResponse);
+  // Admission/spawn only, not readiness. Execution outlives the request.
+  rpc StartInstance(StartInstanceRequest) returns (InstanceStatus);
+  // Joins the selected execution; cancellation can follow an applied stop.
+  rpc StopInstance(StopInstanceRequest) returns (InstanceStatus);
+  // Native configuration building only; does not apply, start or probe readiness.
+  rpc ValidateInstanceConfig(ValidateInstanceConfigRequest) returns (ValidateInstanceConfigResponse);
+}
+
+message GetInstanceStatusRequest {
+  string instance_id = 1;
+}
+
+message GetInstanceStatusResponse {
+  string instance_id = 1;
+  string engine = 2;
+  // Lifecycle observation only; RUNNING does not imply readiness or traffic health.
+  InstanceState state = 3;
+  // Absent when there is no completed execution failure. Raw errors are private.
+  InstanceFailure failure = 4;
+}
+
+enum InstanceState {
+  INSTANCE_STATE_UNSPECIFIED = 0;
+  INSTANCE_STATE_STOPPED = 1;
+  INSTANCE_STATE_RUNNING = 2;
+  INSTANCE_STATE_STOPPING = 3;
+  INSTANCE_STATE_EXITED = 4;
+}
+
+message InstanceFailure {
+  InstanceFailureCode code = 1;
+  // Present only when a nonnegative native exit code is known, including zero.
+  optional int32 exit_code = 2;
+}
+
+enum InstanceFailureCode {
+  INSTANCE_FAILURE_CODE_UNSPECIFIED = 0;
+  INSTANCE_FAILURE_CODE_EXECUTION_FAILED = 1;
+}
+
+message StartInstanceRequest {
+  string instance_id = 1;
+}
+
+message StopInstanceRequest {
+  string instance_id = 1;
+}
+
+// Lifecycle observation used by collection/control results and native error details.
+// For control RPCs, a failure or lost response does not establish that no effect occurred.
+// Keep GetInstanceStatusResponse's existing flat wire contract unchanged.
+message InstanceStatus {
+  string instance_id = 1;
+  string engine = 2;
+  InstanceState state = 3;
+  InstanceFailure failure = 4;
+}
+
+message ListInstanceStatusesRequest {
+  // Required positive size; allocation/observations also stop at configured count.
+  int32 page_size = 1;
+  // Exclusive lexicographic position. Empty starts at the first configured ID.
+  string after_instance_id = 2;
+}
+
+message ListInstanceStatusesResponse {
+  // IDs are ordered; states are independently sampled, not an atomic snapshot.
+  repeated InstanceStatus items = 1;
+  // Last emitted ID when more configured IDs remain, otherwise empty.
+  // Membership can change across Node runs; this is a position, not a snapshot token.
+  string next_after_instance_id = 2;
+}
+
+message ValidateInstanceConfigRequest {
+  string instance_id = 1;
+  ConfigFormat format = 2;
+  // Native configuration bytes, bounded by the selected instance's settings.
+  bytes content = 3;
+}
+
+enum ConfigFormat {
+  CONFIG_FORMAT_UNSPECIFIED = 0;
+  CONFIG_FORMAT_JSON = 1;
+  CONFIG_FORMAT_YAML = 2;
+  CONFIG_FORMAT_TOML = 3;
+}
+
+message ValidateInstanceConfigResponse {
+  // True only when the native configuration builder accepts the candidate.
+  // This does not construct an engine, test listeners or establish readiness.
+  // A rejected candidate returns false; execution/transport failures are RPC errors.
+  // No native diagnostics or candidate contents are returned.
+  bool valid = 1;
+}

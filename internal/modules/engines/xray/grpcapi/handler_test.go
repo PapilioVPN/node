@@ -15,10 +15,10 @@ import (
 	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/status"
 
+	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
 	"github.com/PapilioVPN/node/internal/modules/engines/xray/domain"
 	"github.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi"
 	xrayv1 "github.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi/proto/v1"
-	instances "github.com/PapilioVPN/node/internal/modules/instances/domain"
 )
 
 type binaryReader func(context.Context, instances.InstanceID) (domain.InstanceBinaryInfo, error)

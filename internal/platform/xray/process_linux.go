@@ -13,7 +13,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/PapilioVPN/node/internal/modules/instances/domain"
+	"github.com/PapilioVPN/node/internal/modules/core/instances/domain"
 )
 
 var ErrInvalidConfig = errors.New("invalid Xray process settings")

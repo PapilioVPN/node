@@ -7,11 +7,11 @@ import (
 
 	"go.uber.org/fx"
 
-	"github.com/PapilioVPN/node/internal/modules/instances"
-	instancedomain "github.com/PapilioVPN/node/internal/modules/instances/domain"
+	"github.com/PapilioVPN/node/internal/modules/core"
+	instancedomain "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
 	"github.com/PapilioVPN/node/internal/modules/system"
-	"github.com/PapilioVPN/node/internal/modules/system/app"
-	"github.com/PapilioVPN/node/internal/modules/system/domain"
+	"github.com/PapilioVPN/node/internal/modules/system/info/app/services"
+	"github.com/PapilioVPN/node/internal/modules/system/info/domain"
 	"github.com/PapilioVPN/node/internal/settings"
 )
 
@@ -21,12 +21,12 @@ func TestInstalledModuleCapabilities(t *testing.T) {
 		withInstances bool
 	}{{name: "system alone"}, {name: "with instances", withInstances: true}} {
 		t.Run(test.name, func(t *testing.T) {
-			var info *app.InfoService
+			var info *services.InfoService
 			options := []fx.Option{fx.NopLogger, fx.Supply(settings.Node{ID: "isolated-node"}), system.Module("test", false), fx.Populate(&info)}
 			want := []domain.Capability{domain.ReadNodeInfo}
 			if test.withInstances {
 				// No engine or listener is needed to install the lifecycle capabilities.
-				options = append(options, fx.Supply([]settings.Instance{}), instances.Module(false))
+				options = append(options, fx.Supply([]settings.Instance{}), core.Module(false))
 				want = append(want, domain.Capability(instancedomain.StartInstance), domain.Capability(instancedomain.ListStatuses), domain.Capability(instancedomain.ReadStatus), domain.Capability(instancedomain.StopInstance))
 				want = append(want, domain.Capability(instancedomain.ValidateConfig))
 				slices.Sort(want[1:])

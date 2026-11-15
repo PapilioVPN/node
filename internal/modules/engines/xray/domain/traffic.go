@@ -2,10 +2,9 @@ package domain
 
 import (
 	"errors"
-	"strings"
 	"time"
 
-	instances "github.com/PapilioVPN/node/internal/modules/instances/domain"
+	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
 )
 
 const ReadTrafficCounter = "xray.traffic.counter.read"
@@ -35,20 +34,6 @@ type TrafficSelection struct {
 	Scope     TrafficScope
 	Name      string
 	Direction TrafficDirection
-}
-
-// Validate checks boundary input without changing its identity.
-func (s TrafficSelection) Validate() error {
-	if strings.TrimSpace(s.Name) == "" {
-		return ErrInvalidTrafficSelection
-	}
-	if s.Scope != UserTraffic && s.Scope != InboundTraffic && s.Scope != OutboundTraffic {
-		return ErrInvalidTrafficSelection
-	}
-	if s.Direction != Uplink && s.Direction != Downlink {
-		return ErrInvalidTrafficSelection
-	}
-	return nil
 }
 
 // TrafficCounter preserves native signed bytes, including overflow/reset effects.

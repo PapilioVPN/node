@@ -28,6 +28,6 @@ GOBIN="$tool_dir" go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.6.
 PATH="$tool_dir:$PATH" "$tool_dir/protoc" \
   --go_out=. --go_opt=paths=source_relative \
   --go-grpc_out=. --go-grpc_opt=paths=source_relative \
-  internal/modules/system/grpcapi/proto/v1/node.proto \
-  internal/modules/instances/grpcapi/proto/v1/instances.proto \
+  internal/modules/system/info/grpcapi/proto/v1/node.proto \
+  internal/modules/core/instances/grpcapi/proto/v1/instances.proto \
   internal/modules/engines/xray/grpcapi/proto/v1/xray.proto

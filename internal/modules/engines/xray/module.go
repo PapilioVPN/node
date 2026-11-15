@@ -10,12 +10,12 @@ import (
 	"go.uber.org/fx"
 	"google.golang.org/grpc"
 
-	"github.com/PapilioVPN/node/internal/modules/engines/xray/app"
+	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
+	"github.com/PapilioVPN/node/internal/modules/engines/xray/app/services"
 	"github.com/PapilioVPN/node/internal/modules/engines/xray/domain"
 	"github.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi"
 	xrayv1 "github.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi/proto/v1"
-	instances "github.com/PapilioVPN/node/internal/modules/instances/domain"
-	system "github.com/PapilioVPN/node/internal/modules/system/domain"
+	system "github.com/PapilioVPN/node/internal/modules/system/info/domain"
 	native "github.com/PapilioVPN/node/internal/platform/xray"
 	"github.com/PapilioVPN/node/internal/settings"
 )
@@ -32,8 +32,8 @@ func Module(grpcEnabled bool) fx.Option {
 	return fx.Module("xray", options...)
 }
 
-func newBinaryInfoService(config []settings.Instance) (*app.BinaryInfoService, error) {
-	readers := make(map[instances.InstanceID]app.BinaryInfoReader)
+func newBinaryInfoService(config []settings.Instance) (*services.BinaryInfoService, error) {
+	readers := make(map[instances.InstanceID]services.BinaryInfoReader)
 	for _, instance := range config {
 		if instance.Engine != instances.Xray {
 			continue
@@ -50,19 +50,19 @@ func newBinaryInfoService(config []settings.Instance) (*app.BinaryInfoService, e
 			readers[instance.ID] = reader
 		}
 	}
-	return app.NewBinaryInfoService(readers), nil
+	return services.NewBinaryInfoService(readers), nil
 }
 
 type apiResources struct {
-	runtimeReaders map[instances.InstanceID]app.RuntimeInfoReader
-	trafficReaders map[instances.InstanceID]app.TrafficCounterReader
+	runtimeReaders map[instances.InstanceID]services.RuntimeInfoReader
+	trafficReaders map[instances.InstanceID]services.TrafficCounterReader
 	clients        []*native.APIClient
 }
 
 func newAPIResources(config []settings.Instance) (*apiResources, error) {
 	resources := &apiResources{
-		runtimeReaders: make(map[instances.InstanceID]app.RuntimeInfoReader),
-		trafficReaders: make(map[instances.InstanceID]app.TrafficCounterReader),
+		runtimeReaders: make(map[instances.InstanceID]services.RuntimeInfoReader),
+		trafficReaders: make(map[instances.InstanceID]services.TrafficCounterReader),
 	}
 	for _, instance := range config {
 		if instance.Engine != instances.Xray {
@@ -86,12 +86,12 @@ func newAPIResources(config []settings.Instance) (*apiResources, error) {
 	return resources, nil
 }
 
-func newRuntimeInfoService(resources *apiResources) *app.RuntimeInfoService {
-	return app.NewRuntimeInfoService(resources.runtimeReaders)
+func newRuntimeInfoService(resources *apiResources) *services.RuntimeInfoService {
+	return services.NewRuntimeInfoService(resources.runtimeReaders)
 }
 
-func newTrafficCounterService(resources *apiResources) *app.TrafficCounterService {
-	return app.NewTrafficCounterService(resources.trafficReaders)
+func newTrafficCounterService(resources *apiResources) *services.TrafficCounterService {
+	return services.NewTrafficCounterService(resources.trafficReaders)
 }
 
 func registerAPILifecycle(lifecycle fx.Lifecycle, resources *apiResources) {
@@ -106,7 +106,7 @@ func (r *apiResources) Close() error {
 	return result
 }
 
-func registerGRPC(registrar grpc.ServiceRegistrar, info *app.BinaryInfoService, runtime *app.RuntimeInfoService, traffic *app.TrafficCounterService, cfg settings.GRPCPermissions) {
+func registerGRPC(registrar grpc.ServiceRegistrar, info *services.BinaryInfoService, runtime *services.RuntimeInfoService, traffic *services.TrafficCounterService, cfg settings.GRPCPermissions) {
 	xrayv1.RegisterXrayServiceServer(registrar, grpcapi.Handler{
 		Info: info, Runtime: runtime, Traffic: traffic,
 		AllowInfoRead: cfg.ReadEngineInfo, AllowStatsRead: cfg.ReadEngineStats,

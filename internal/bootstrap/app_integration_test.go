@@ -16,7 +16,7 @@ import (
 	healthv1 "google.golang.org/grpc/health/grpc_health_v1"
 
 	"github.com/PapilioVPN/node/internal/bootstrap"
-	nodev1 "github.com/PapilioVPN/node/internal/modules/system/grpcapi/proto/v1"
+	nodev1 "github.com/PapilioVPN/node/internal/modules/system/info/grpcapi/proto/v1"
 	rpc "github.com/PapilioVPN/node/internal/platform/grpcserver"
 	"github.com/PapilioVPN/node/internal/shared/testutil"
 )

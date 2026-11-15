@@ -19,9 +19,9 @@ import (
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/status"
 
+	nodev1 "github.com/PapilioVPN/node/internal/modules/core/instances/grpcapi/proto/v1"
 	xrayv1 "github.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi/proto/v1"
-	nodev1 "github.com/PapilioVPN/node/internal/modules/instances/grpcapi/proto/v1"
-	systemv1 "github.com/PapilioVPN/node/internal/modules/system/grpcapi/proto/v1"
+	systemv1 "github.com/PapilioVPN/node/internal/modules/system/info/grpcapi/proto/v1"
 	"github.com/PapilioVPN/node/internal/shared/testutil"
 )
 

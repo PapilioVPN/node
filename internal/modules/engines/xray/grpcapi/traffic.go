@@ -8,9 +8,10 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
+	"github.com/PapilioVPN/node/internal/modules/engines/xray/app/validators"
 	"github.com/PapilioVPN/node/internal/modules/engines/xray/domain"
 	xrayv1 "github.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi/proto/v1"
-	instances "github.com/PapilioVPN/node/internal/modules/instances/domain"
 	"github.com/PapilioVPN/node/internal/shared/grpcidentity"
 	"github.com/PapilioVPN/node/internal/shared/grpcresponse"
 )
@@ -44,7 +45,7 @@ func (h Handler) GetTrafficCounter(ctx context.Context, request *xrayv1.GetTraff
 	case xrayv1.TrafficDirection_TRAFFIC_DIRECTION_DOWNLINK:
 		selection.Direction = domain.Downlink
 	}
-	if err := selection.Validate(); err != nil {
+	if err := validators.TrafficSelection(selection); err != nil {
 		return nil, status.Error(codes.InvalidArgument, "valid scope, name and direction are required")
 	}
 	result, err := h.Traffic.GetTrafficCounter(ctx, instances.InstanceID(request.GetInstanceId()), selection)

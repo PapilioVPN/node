@@ -4,7 +4,7 @@ import (
 	"errors"
 	"time"
 
-	instances "github.com/PapilioVPN/node/internal/modules/instances/domain"
+	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
 )
 
 const ReadRuntimeInfo = "xray.runtime.info.read"

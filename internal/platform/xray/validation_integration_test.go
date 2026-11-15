@@ -15,7 +15,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PapilioVPN/node/internal/modules/instances/domain"
+	"github.com/PapilioVPN/node/internal/modules/core/instances/domain"
 	"github.com/PapilioVPN/node/internal/platform/xray"
 )
 
