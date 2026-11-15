@@ -115,23 +115,27 @@ func TestTrafficCountersOverMTLSPreserveNativeUsageAndInstanceIsolation(t *testi
 			// Only this isolated test polls readiness. Production makes one RPC.
 			ticker := time.NewTicker(20 * time.Millisecond)
 			defer ticker.Stop()
-			for {
-				result, err := client.GetTrafficCounter(ctx, request)
-				if err == nil {
-					if result.Bytes != 0 {
-						t.Fatalf("fresh inbound has usage: %v", result)
+			for _, id := range []string{"edge-a", "edge-b"} {
+				request.InstanceId = id
+				for {
+					result, err := client.GetTrafficCounter(ctx, request)
+					if err == nil {
+						if result.Bytes != 0 {
+							t.Fatalf("fresh inbound has usage: %v", result)
+						}
+						break
 					}
-					break
-				}
-				if status.Code(err) != codes.Unavailable {
-					t.Fatal(err)
-				}
-				select {
-				case <-ctx.Done():
-					t.Fatal(ctx.Err())
-				case <-ticker.C:
+					if status.Code(err) != codes.Unavailable {
+						t.Fatal(err)
+					}
+					select {
+					case <-ctx.Done():
+						t.Fatal(ctx.Err())
+					case <-ticker.C:
+					}
 				}
 			}
+			request.InstanceId = "edge-a"
 			request.Scope, request.Name = xrayv1.TrafficScope_TRAFFIC_SCOPE_USER, "reader@local"
 			if result, err := client.GetTrafficCounter(ctx, request); result != nil || status.Code(err) != codes.NotFound {
 				t.Fatalf("absent user counter became zero: %v, %v", result, err)
