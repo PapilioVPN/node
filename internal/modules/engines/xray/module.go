@@ -26,7 +26,7 @@ import (
 // Module owns Xray operations and API clients independently of instance runtimes.
 func Module(grpcEnabled bool) fx.Option {
 	options := []fx.Option{
-		fx.Provide(newBinaryInfoService, newAPIResources, newRuntimeInfoService, newTrafficCounterService, newTrafficCounterResetService, newTrafficCountersResetService, newTrafficCountersService, newTrafficPairServices, newOnlineService, fx.Private),
+		fx.Provide(newBinaryInfoService, newAPIResources, newRuntimeInfoService, newTrafficCounterService, newTrafficCounterResetService, newTrafficCountersResetService, newTrafficCountersService, newTrafficPairServices, newUserRemovalService, newOnlineService, fx.Private),
 		fx.Provide(capability, apiCleanup, newRuntimeBindings), fx.Invoke(registerAPILifecycle),
 	}
 	if grpcEnabled {
@@ -100,6 +100,7 @@ type apiResources struct {
 	trafficResetters  map[instances.InstanceID]services.TrafficCounterResetter
 	collectionReaders map[instances.InstanceID]services.TrafficCountersReader
 	onlineReaders     map[instances.InstanceID]services.OnlineReader
+	userRemovers      map[instances.InstanceID]services.InboundUserRemover
 	clients           []*xrayapi.Client
 }
 
@@ -110,6 +111,7 @@ func newAPIResources(config []settings.Instance) (*apiResources, error) {
 		trafficResetters:  make(map[instances.InstanceID]services.TrafficCounterResetter),
 		collectionReaders: make(map[instances.InstanceID]services.TrafficCountersReader),
 		onlineReaders:     make(map[instances.InstanceID]services.OnlineReader),
+		userRemovers:      make(map[instances.InstanceID]services.InboundUserRemover),
 	}
 	for _, instance := range config {
 		if instance.Engine != instances.Xray {
@@ -120,6 +122,7 @@ func newAPIResources(config []settings.Instance) (*apiResources, error) {
 		resources.trafficResetters[instance.ID] = nil
 		resources.collectionReaders[instance.ID] = nil
 		resources.onlineReaders[instance.ID] = nil
+		resources.userRemovers[instance.ID] = nil
 		if api := instance.Xray.API; api != nil {
 			client, err := xrayapi.NewClient(xrayapi.Config{
 				Network: api.Network, Address: api.Address, RequestTimeout: api.RequestTimeout,
@@ -133,6 +136,7 @@ func newAPIResources(config []settings.Instance) (*apiResources, error) {
 			resources.trafficResetters[instance.ID] = client
 			resources.collectionReaders[instance.ID] = client
 			resources.onlineReaders[instance.ID] = client
+			resources.userRemovers[instance.ID] = client
 			resources.clients = append(resources.clients, client)
 		}
 	}
@@ -174,6 +178,10 @@ func newOnlineService(resources *apiResources) *services.OnlineService {
 	return services.NewOnlineService(resources.onlineReaders)
 }
 
+func newUserRemovalService(resources *apiResources) *services.UserRemovalService {
+	return services.NewUserRemovalService(resources.userRemovers)
+}
+
 func newTrafficPairServices(config []settings.Instance, resources *apiResources) (*services.TrafficPairService, *services.TrafficPairResetService) {
 	readers := make(map[instances.InstanceID]services.TrafficPairReadBinding)
 	resetters := make(map[instances.InstanceID]services.TrafficPairResetBinding)
@@ -213,6 +221,7 @@ type grpcServices struct {
 	ScopeResets *services.TrafficCountersResetService
 	Pairs       *services.TrafficPairService
 	PairResets  *services.TrafficPairResetService
+	UserRemoval *services.UserRemovalService
 	Counters    *services.TrafficCountersService
 	Online      *services.OnlineService
 	Permissions settings.GRPCPermissions
@@ -222,6 +231,7 @@ func registerGRPC(p grpcServices) {
 	xrayv1.RegisterXrayServiceServer(p.Registrar, grpcapi.Handler{
 		Info: p.Info, Runtime: p.Runtime, Traffic: p.Traffic, Resets: p.Resets, ScopeResets: p.ScopeResets,
 		Pairs: p.Pairs, PairResets: p.PairResets, TrafficCounters: p.Counters, Online: p.Online,
+		UserRemoval: p.UserRemoval, AllowUserManagement: p.Permissions.ManageEngineUsers,
 		AllowInfoRead: p.Permissions.ReadEngineInfo, AllowStatsRead: p.Permissions.ReadEngineStats,
 		AllowOnlineRead: p.Permissions.ReadEngineOnline, AllowStatsReset: p.Permissions.ResetEngineStats,
 	})
@@ -237,6 +247,7 @@ func capability() capabilityResult {
 		domain.ReadBinaryInfo, domain.ReadRuntimeInfo,
 		domain.ReadTrafficCounter, domain.ListTrafficCounters, domain.ResetTrafficCounter, domain.ResetTrafficCounters,
 		domain.ReadTrafficPair, domain.ResetTrafficPair,
+		domain.RemoveInboundUser,
 		domain.ReadUserOnlineStats, domain.ListUserOnlineIPs, domain.ListOnlineUsers,
 	}}
 }

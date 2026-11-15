@@ -52,6 +52,7 @@ func TestContainer(t *testing.T) {
 	cfg.Communications.GRPC.Permissions.ReadEngineInfo = true
 	cfg.Communications.GRPC.Permissions.ReadEngineStats = true
 	cfg.Communications.GRPC.Permissions.ResetEngineStats = true
+	cfg.Communications.GRPC.Permissions.ManageEngineUsers = true
 	cfg.Communications.GRPC.Permissions.ReadEngineOnline = true
 	contents, err := yaml.Marshal(cfg)
 	if err != nil {
@@ -154,6 +155,9 @@ func TestContainer(t *testing.T) {
 	}
 	if _, err := xrayv1.NewXrayServiceClient(connection).ResetTrafficPair(request, &xrayv1.ResetTrafficPairRequest{InstanceId: "unconfigured", Scope: xrayv1.TrafficScope_TRAFFIC_SCOPE_USER, Name: "user"}); status.Code(err) != codes.NotFound {
 		t.Fatalf("packaged pair reset failed: %v", err)
+	}
+	if _, err := xrayv1.NewXrayServiceClient(connection).RemoveInboundUser(request, &xrayv1.RemoveInboundUserRequest{InstanceId: "unconfigured", InboundTag: "in", Email: "user"}); status.Code(err) != codes.NotFound {
+		t.Fatalf("packaged user removal grant/service failed: %v", err)
 	}
 
 	if _, err := xrayv1.NewXrayServiceClient(connection).ListTrafficCounters(request, &xrayv1.ListTrafficCountersRequest{

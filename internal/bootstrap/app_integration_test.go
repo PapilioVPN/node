@@ -71,6 +71,9 @@ func TestRuntimeMTLSAndShutdown(t *testing.T) {
 	if !slices.Contains(result.GetCapabilities(), "xray.traffic.pair.read") || !slices.Contains(result.GetCapabilities(), "xray.traffic.pair.reset") {
 		t.Fatalf("traffic pair operations missing from installed capabilities: %v", result.GetCapabilities())
 	}
+	if !slices.Contains(result.GetCapabilities(), "xray.inbound.user.remove") {
+		t.Fatalf("user removal missing from installed capabilities: %v", result.GetCapabilities())
+	}
 	probe, err := healthv1.NewHealthClient(connection).Check(ctx, &healthv1.HealthCheckRequest{Service: nodev1.NodeService_ServiceDesc.ServiceName})
 	if err != nil || probe.GetStatus() != healthv1.HealthCheckResponse_SERVING {
 		t.Fatalf("runtime not ready: %v, %v", probe, err)

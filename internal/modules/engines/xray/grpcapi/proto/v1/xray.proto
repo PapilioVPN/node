@@ -5,6 +5,9 @@ package papilio.node.xray.v1;
 option go_package = "github.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi/proto/v1;xrayv1";
 
 service XrayService {
+  // One live native removal; no config persistence or established-session claim.
+  // Lost replies can hide an applied change. No application retry.
+  rpc RemoveInboundUser(RemoveInboundUserRequest) returns (RemoveInboundUserResponse);
   // Executes the selected configured binary's native version command only.
   // These facts may differ from a previously started process after file replacement.
   rpc GetBinaryInfo(GetBinaryInfoRequest) returns (GetBinaryInfoResponse);
@@ -281,4 +284,30 @@ message ResetTrafficPairResponse {
 // absent details can hide effects; a current read cannot recover previous bytes.
 message TrafficPairResetFailure {
   ResetTrafficPairResponse progress = 1;
+}
+
+message RemoveInboundUserRequest {
+  string instance_id = 1;
+  string inbound_tag = 2;
+  // Preserved as provided; native protocols own case matching semantics.
+  string email = 3;
+}
+
+message RemoveInboundUserResponse {
+  string instance_id = 1;
+  string inbound_tag = 2;
+  string email = 3;
+  // Native completion acknowledged, not proof of previous existence or persistence.
+  int64 acknowledged_at_unix_ms = 4;
+}
+
+enum UserMutationOutcome {
+  USER_MUTATION_OUTCOME_UNSPECIFIED = 0;
+  USER_MUTATION_OUTCOME_NOT_APPLIED = 1;
+  USER_MUTATION_OUTCOME_UNKNOWN = 2;
+}
+
+// Missing details or an undelivered reply never establish NOT_APPLIED.
+message UserMutationFailure {
+  UserMutationOutcome outcome = 1;
 }

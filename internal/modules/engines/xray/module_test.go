@@ -82,4 +82,7 @@ func TestModuleClosesAPIAdmissionAndExportsFinalCleanup(t *testing.T) {
 	if err := resources.Close(); err != nil {
 		t.Fatalf("final cleanup after OnStop: %v", err)
 	}
+	if _, err := newUserRemovalService(resources).RemoveInboundUser(t.Context(), "edge", domain.InboundUserSelection{InboundTag: "in", Email: "user"}); !errors.Is(err, grpc.ErrClientConnClosing) || errors.Is(err, domain.ErrUserMutationUnknown) {
+		t.Fatalf("closed native API admitted user removal: %v", err)
+	}
 }

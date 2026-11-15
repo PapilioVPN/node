@@ -61,6 +61,9 @@ func TestUserRemovalUsesOneExactOperationAndSharesStatsChannel(t *testing.T) {
 		return &handlers.AlterInboundResponse{}, nil
 	}})
 	client := apiClient(t, address, time.Second, 4096)
+	if _, err := client.RemoveInboundUser(t.Context(), domain.InboundUserSelection{InboundTag: "in", Email: "\xff"}); !errors.Is(err, domain.ErrInvalidUserSelection) || errors.Is(err, domain.ErrUserMutationUnknown) || calls.Load() != 0 || connections.opened.Load() != 0 {
+		t.Fatalf("failed encoding reached native or claimed effects: %v", err)
+	}
 	if _, err := client.ReadRuntimeInfo(t.Context()); err != nil {
 		t.Fatal(err)
 	}

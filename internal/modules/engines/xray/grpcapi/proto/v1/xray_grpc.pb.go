@@ -19,6 +19,7 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
+	XrayService_RemoveInboundUser_FullMethodName    = "/papilio.node.xray.v1.XrayService/RemoveInboundUser"
 	XrayService_GetBinaryInfo_FullMethodName        = "/papilio.node.xray.v1.XrayService/GetBinaryInfo"
 	XrayService_GetRuntimeInfo_FullMethodName       = "/papilio.node.xray.v1.XrayService/GetRuntimeInfo"
 	XrayService_GetTrafficCounter_FullMethodName    = "/papilio.node.xray.v1.XrayService/GetTrafficCounter"
@@ -36,6 +37,9 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type XrayServiceClient interface {
+	// One live native removal; no config persistence or established-session claim.
+	// Lost replies can hide an applied change. No application retry.
+	RemoveInboundUser(ctx context.Context, in *RemoveInboundUserRequest, opts ...grpc.CallOption) (*RemoveInboundUserResponse, error)
 	// Executes the selected configured binary's native version command only.
 	// These facts may differ from a previously started process after file replacement.
 	GetBinaryInfo(ctx context.Context, in *GetBinaryInfoRequest, opts ...grpc.CallOption) (*GetBinaryInfoResponse, error)
@@ -70,6 +74,16 @@ type xrayServiceClient struct {
 
 func NewXrayServiceClient(cc grpc.ClientConnInterface) XrayServiceClient {
 	return &xrayServiceClient{cc}
+}
+
+func (c *xrayServiceClient) RemoveInboundUser(ctx context.Context, in *RemoveInboundUserRequest, opts ...grpc.CallOption) (*RemoveInboundUserResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RemoveInboundUserResponse)
+	err := c.cc.Invoke(ctx, XrayService_RemoveInboundUser_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *xrayServiceClient) GetBinaryInfo(ctx context.Context, in *GetBinaryInfoRequest, opts ...grpc.CallOption) (*GetBinaryInfoResponse, error) {
@@ -186,6 +200,9 @@ func (c *xrayServiceClient) ListOnlineUsers(ctx context.Context, in *ListOnlineU
 // All implementations must embed UnimplementedXrayServiceServer
 // for forward compatibility.
 type XrayServiceServer interface {
+	// One live native removal; no config persistence or established-session claim.
+	// Lost replies can hide an applied change. No application retry.
+	RemoveInboundUser(context.Context, *RemoveInboundUserRequest) (*RemoveInboundUserResponse, error)
 	// Executes the selected configured binary's native version command only.
 	// These facts may differ from a previously started process after file replacement.
 	GetBinaryInfo(context.Context, *GetBinaryInfoRequest) (*GetBinaryInfoResponse, error)
@@ -222,6 +239,9 @@ type XrayServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedXrayServiceServer struct{}
 
+func (UnimplementedXrayServiceServer) RemoveInboundUser(context.Context, *RemoveInboundUserRequest) (*RemoveInboundUserResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RemoveInboundUser not implemented")
+}
 func (UnimplementedXrayServiceServer) GetBinaryInfo(context.Context, *GetBinaryInfoRequest) (*GetBinaryInfoResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetBinaryInfo not implemented")
 }
@@ -274,6 +294,24 @@ func RegisterXrayServiceServer(s grpc.ServiceRegistrar, srv XrayServiceServer) {
 		t.testEmbeddedByValue()
 	}
 	s.RegisterService(&XrayService_ServiceDesc, srv)
+}
+
+func _XrayService_RemoveInboundUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RemoveInboundUserRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(XrayServiceServer).RemoveInboundUser(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: XrayService_RemoveInboundUser_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(XrayServiceServer).RemoveInboundUser(ctx, req.(*RemoveInboundUserRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _XrayService_GetBinaryInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -481,6 +519,10 @@ var XrayService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "papilio.node.xray.v1.XrayService",
 	HandlerType: (*XrayServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "RemoveInboundUser",
+			Handler:    _XrayService_RemoveInboundUser_Handler,
+		},
 		{
 			MethodName: "GetBinaryInfo",
 			Handler:    _XrayService_GetBinaryInfo_Handler,

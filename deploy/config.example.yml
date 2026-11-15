@@ -54,6 +54,8 @@ communications:
       read_engine_stats: false
       # Single/pair/scope reset; a lost reply can hide partial or complete effects.
       reset_engine_stats: false
+      # Live inbound user changes; no config persistence or implicit read grants.
+      manage_engine_users: false
       # Online user identities, distinct-IP counts and IP lists; independent of traffic.
       read_engine_online: false
     tls:
