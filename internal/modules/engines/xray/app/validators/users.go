@@ -9,8 +9,15 @@ import (
 )
 
 func InboundUserSelection(selection domain.InboundUserSelection) error {
-	if strings.TrimSpace(selection.InboundTag) == "" || strings.TrimSpace(selection.Email) == "" || !utf8.ValidString(selection.InboundTag) || !utf8.ValidString(selection.Email) {
+	if InboundTag(selection.InboundTag) != nil || strings.TrimSpace(selection.Email) == "" || !utf8.ValidString(selection.Email) {
 		return domain.ErrInvalidUserSelection
+	}
+	return nil
+}
+
+func InboundTag(tag string) error {
+	if strings.TrimSpace(tag) == "" || !utf8.ValidString(tag) {
+		return domain.ErrInvalidInboundTag
 	}
 	return nil
 }
