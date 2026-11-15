@@ -16,7 +16,9 @@ import (
 
 	"go.uber.org/fx"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/status"
 
 	"github.com/PapilioVPN/node/internal/bootstrap"
 	xrayv1 "github.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi/proto/v1"
@@ -78,6 +80,7 @@ func TestLiveUserAdditionUpdatesEveryBaselineNativeUserManager(t *testing.T) {
 	if err := json.Unmarshal(content, &config); err != nil {
 		t.Fatal(err)
 	}
+	config["inbounds"].([]any)[0].(map[string]any)["tag"] = "proxy"
 	type boundListener struct{ network, address string }
 	var listeners []boundListener
 	for _, tc := range cases {
@@ -105,6 +108,7 @@ func TestLiveUserAdditionUpdatesEveryBaselineNativeUserManager(t *testing.T) {
 	cfg := certificates.Config()
 	cfg.Instances = []settings.Instance{instance}
 	cfg.Communications.GRPC.Permissions.ManageEngineUsers = true
+	cfg.Communications.GRPC.Permissions.ReadEngineUsers = true
 	var server *rpc.Server
 	var cleanup struct {
 		fx.In
@@ -152,15 +156,18 @@ func TestLiveUserAdditionUpdatesEveryBaselineNativeUserManager(t *testing.T) {
 	client := xrayClient(t, server, certificates)
 	for _, tc := range cases {
 		t.Run(tc.tag, func(t *testing.T) {
-			before, err := native.GetInboundUsersCount(ctx, &handlers.GetInboundUserRequest{Tag: tc.tag})
+			before, err := client.GetInboundUserCount(ctx, &xrayv1.GetInboundUserCountRequest{InstanceId: "edge", InboundTag: tc.tag})
 			if err != nil {
 				t.Fatal(err)
+			}
+			if before.InstanceId != "edge" || before.InboundTag != tc.tag || before.ObservedAtUnixMs <= 0 {
+				t.Fatal("count response lost native selection/observation time")
 			}
 			tc.user.Email, tc.user.Level = "added@local", 23
 			if _, err := client.AddInboundUser(ctx, &xrayv1.AddInboundUserRequest{InstanceId: "edge", InboundTag: tc.tag, User: tc.user}); err != nil {
 				t.Fatalf("real native addition rejected: %v", err)
 			}
-			after, err := native.GetInboundUsersCount(ctx, &handlers.GetInboundUserRequest{Tag: tc.tag})
+			after, err := client.GetInboundUserCount(ctx, &xrayv1.GetInboundUserCountRequest{InstanceId: "edge", InboundTag: tc.tag})
 			if err != nil || after.Count != before.Count+1 {
 				t.Fatalf("acknowledgement did not change real native membership: %v", err)
 			}
@@ -171,7 +178,7 @@ func TestLiveUserAdditionUpdatesEveryBaselineNativeUserManager(t *testing.T) {
 			if _, err := client.RemoveInboundUser(ctx, &xrayv1.RemoveInboundUserRequest{InstanceId: "edge", InboundTag: tc.tag, Email: "added@local"}); err != nil {
 				t.Fatal(err)
 			}
-			after, err = native.GetInboundUsersCount(ctx, &handlers.GetInboundUserRequest{Tag: tc.tag})
+			after, err = client.GetInboundUserCount(ctx, &xrayv1.GetInboundUserCountRequest{InstanceId: "edge", InboundTag: tc.tag})
 			if err != nil || after.Count != before.Count {
 				t.Fatalf("native removal did not restore original membership: %v", err)
 			}
@@ -180,5 +187,11 @@ func TestLiveUserAdditionUpdatesEveryBaselineNativeUserManager(t *testing.T) {
 	current, err := os.ReadFile(instance.Xray.ConfigFile)
 	if err != nil || !bytes.Equal(original, current) {
 		t.Fatal("live user mutations changed the persisted configuration")
+	}
+	for _, tag := range []string{"missing", "proxy"} {
+		response, err := client.GetInboundUserCount(ctx, &xrayv1.GetInboundUserCountRequest{InstanceId: "edge", InboundTag: tag})
+		if response != nil || status.Code(err) != codes.Unavailable {
+			t.Fatalf("generic native missing/non-user-manager error became a successful count: %v", err)
+		}
 	}
 }

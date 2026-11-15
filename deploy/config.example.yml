@@ -56,6 +56,8 @@ communications:
       reset_engine_stats: false
       # Live inbound user changes; no config persistence or implicit read grants.
       manage_engine_users: false
+      # Native inbound membership counts; independent of user changes and online reads.
+      read_engine_users: false
       # Online user identities, distinct-IP counts and IP lists; independent of traffic.
       read_engine_online: false
     tls:

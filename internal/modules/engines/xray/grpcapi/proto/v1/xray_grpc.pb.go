@@ -32,6 +32,7 @@ const (
 	XrayService_GetUserOnlineStats_FullMethodName   = "/papilio.node.xray.v1.XrayService/GetUserOnlineStats"
 	XrayService_ListUserOnlineIPs_FullMethodName    = "/papilio.node.xray.v1.XrayService/ListUserOnlineIPs"
 	XrayService_ListOnlineUsers_FullMethodName      = "/papilio.node.xray.v1.XrayService/ListOnlineUsers"
+	XrayService_GetInboundUserCount_FullMethodName  = "/papilio.node.xray.v1.XrayService/GetInboundUserCount"
 )
 
 // XrayServiceClient is the client API for XrayService service.
@@ -70,6 +71,8 @@ type XrayServiceClient interface {
 	GetUserOnlineStats(ctx context.Context, in *GetUserOnlineStatsRequest, opts ...grpc.CallOption) (*GetUserOnlineStatsResponse, error)
 	ListUserOnlineIPs(ctx context.Context, in *ListUserOnlineIPsRequest, opts ...grpc.CallOption) (*ListUserOnlineIPsResponse, error)
 	ListOnlineUsers(ctx context.Context, in *ListOnlineUsersRequest, opts ...grpc.CallOption) (*ListOnlineUsersResponse, error)
+	// Native membership count only, not online users or a user-list snapshot.
+	GetInboundUserCount(ctx context.Context, in *GetInboundUserCountRequest, opts ...grpc.CallOption) (*GetInboundUserCountResponse, error)
 }
 
 type xrayServiceClient struct {
@@ -210,6 +213,16 @@ func (c *xrayServiceClient) ListOnlineUsers(ctx context.Context, in *ListOnlineU
 	return out, nil
 }
 
+func (c *xrayServiceClient) GetInboundUserCount(ctx context.Context, in *GetInboundUserCountRequest, opts ...grpc.CallOption) (*GetInboundUserCountResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetInboundUserCountResponse)
+	err := c.cc.Invoke(ctx, XrayService_GetInboundUserCount_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // XrayServiceServer is the server API for XrayService service.
 // All implementations must embed UnimplementedXrayServiceServer
 // for forward compatibility.
@@ -246,6 +259,8 @@ type XrayServiceServer interface {
 	GetUserOnlineStats(context.Context, *GetUserOnlineStatsRequest) (*GetUserOnlineStatsResponse, error)
 	ListUserOnlineIPs(context.Context, *ListUserOnlineIPsRequest) (*ListUserOnlineIPsResponse, error)
 	ListOnlineUsers(context.Context, *ListOnlineUsersRequest) (*ListOnlineUsersResponse, error)
+	// Native membership count only, not online users or a user-list snapshot.
+	GetInboundUserCount(context.Context, *GetInboundUserCountRequest) (*GetInboundUserCountResponse, error)
 	mustEmbedUnimplementedXrayServiceServer()
 }
 
@@ -294,6 +309,9 @@ func (UnimplementedXrayServiceServer) ListUserOnlineIPs(context.Context, *ListUs
 }
 func (UnimplementedXrayServiceServer) ListOnlineUsers(context.Context, *ListOnlineUsersRequest) (*ListOnlineUsersResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListOnlineUsers not implemented")
+}
+func (UnimplementedXrayServiceServer) GetInboundUserCount(context.Context, *GetInboundUserCountRequest) (*GetInboundUserCountResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetInboundUserCount not implemented")
 }
 func (UnimplementedXrayServiceServer) mustEmbedUnimplementedXrayServiceServer() {}
 func (UnimplementedXrayServiceServer) testEmbeddedByValue()                     {}
@@ -550,6 +568,24 @@ func _XrayService_ListOnlineUsers_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _XrayService_GetInboundUserCount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetInboundUserCountRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(XrayServiceServer).GetInboundUserCount(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: XrayService_GetInboundUserCount_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(XrayServiceServer).GetInboundUserCount(ctx, req.(*GetInboundUserCountRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // XrayService_ServiceDesc is the grpc.ServiceDesc for XrayService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -608,6 +644,10 @@ var XrayService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListOnlineUsers",
 			Handler:    _XrayService_ListOnlineUsers_Handler,
+		},
+		{
+			MethodName: "GetInboundUserCount",
+			Handler:    _XrayService_GetInboundUserCount_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

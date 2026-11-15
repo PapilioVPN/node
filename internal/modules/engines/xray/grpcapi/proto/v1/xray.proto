@@ -37,6 +37,8 @@ service XrayService {
   rpc GetUserOnlineStats(GetUserOnlineStatsRequest) returns (GetUserOnlineStatsResponse);
   rpc ListUserOnlineIPs(ListUserOnlineIPsRequest) returns (ListUserOnlineIPsResponse);
   rpc ListOnlineUsers(ListOnlineUsersRequest) returns (ListOnlineUsersResponse);
+  // Native membership count only, not online users or a user-list snapshot.
+  rpc GetInboundUserCount(GetInboundUserCountRequest) returns (GetInboundUserCountResponse);
 }
 
 enum TrafficScope {
@@ -379,4 +381,17 @@ message AddInboundUserResponse {
   string email = 3;
   // Native completion, not durable config or a strict-create guarantee.
   int64 acknowledged_at_unix_ms = 4;
+}
+
+message GetInboundUserCountRequest {
+  string instance_id = 1;
+  string inbound_tag = 2;
+}
+
+message GetInboundUserCountResponse {
+  string instance_id = 1;
+  string inbound_tag = 2;
+  // Preserve the full nonnegative native int64 range. Zero is a valid count.
+  int64 count = 3;
+  int64 observed_at_unix_ms = 4;
 }

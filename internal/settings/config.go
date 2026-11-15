@@ -56,6 +56,7 @@ type GRPCPermissions struct {
 	ReadEngineStats        bool `yaml:"read_engine_stats"`
 	ResetEngineStats       bool `yaml:"reset_engine_stats"`
 	ManageEngineUsers      bool `yaml:"manage_engine_users"`
+	ReadEngineUsers        bool `yaml:"read_engine_users"`
 	ReadEngineOnline       bool `yaml:"read_engine_online"`
 }
 

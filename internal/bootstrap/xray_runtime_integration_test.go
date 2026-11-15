@@ -43,6 +43,7 @@ func TestXrayRuntimeInfoOverMTLSAndNativeReconnect(t *testing.T) {
 			cfg.Instances = []settings.Instance{first, second}
 			cfg.Communications.GRPC.Permissions.ReadEngineInfo = true
 			cfg.Communications.GRPC.Permissions.ReadEngineStats = true
+			cfg.Communications.GRPC.Permissions.ReadEngineUsers = true
 			cfg.Communications.GRPC.Permissions.ControlInstances = true
 			if err := cfg.Validate(); err != nil {
 				t.Fatal(err)
@@ -75,6 +76,9 @@ func TestXrayRuntimeInfoOverMTLSAndNativeReconnect(t *testing.T) {
 			}
 			client := xrayClient(t, server, certificates)
 			response := awaitRuntimeInfo(t, ctx, client, "edge-a")
+			if result, err := client.GetInboundUserCount(ctx, &xrayv1.GetInboundUserCountRequest{InstanceId: "edge-b", InboundTag: "in"}); result != nil || status.Code(err) != codes.FailedPrecondition {
+				t.Fatalf("absent native HandlerService became successful count: %v %v", result, err)
+			}
 			if result, err := client.GetTrafficCounter(ctx, &xrayv1.GetTrafficCounterRequest{
 				InstanceId: "edge-b", Scope: xrayv1.TrafficScope_TRAFFIC_SCOPE_INBOUND,
 				Name: "proxy", Direction: xrayv1.TrafficDirection_TRAFFIC_DIRECTION_UPLINK,

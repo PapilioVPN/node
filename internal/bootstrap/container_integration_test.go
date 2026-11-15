@@ -53,6 +53,7 @@ func TestContainer(t *testing.T) {
 	cfg.Communications.GRPC.Permissions.ReadEngineStats = true
 	cfg.Communications.GRPC.Permissions.ResetEngineStats = true
 	cfg.Communications.GRPC.Permissions.ManageEngineUsers = true
+	cfg.Communications.GRPC.Permissions.ReadEngineUsers = true
 	cfg.Communications.GRPC.Permissions.ReadEngineOnline = true
 	contents, err := yaml.Marshal(cfg)
 	if err != nil {
@@ -155,6 +156,9 @@ func TestContainer(t *testing.T) {
 	}
 	if _, err := xrayv1.NewXrayServiceClient(connection).ResetTrafficPair(request, &xrayv1.ResetTrafficPairRequest{InstanceId: "unconfigured", Scope: xrayv1.TrafficScope_TRAFFIC_SCOPE_USER, Name: "user"}); status.Code(err) != codes.NotFound {
 		t.Fatalf("packaged pair reset failed: %v", err)
+	}
+	if _, err := xrayv1.NewXrayServiceClient(connection).GetInboundUserCount(request, &xrayv1.GetInboundUserCountRequest{InstanceId: "unconfigured", InboundTag: "in"}); status.Code(err) != codes.NotFound {
+		t.Fatalf("packaged user count not wired: %v", err)
 	}
 	if _, err := xrayv1.NewXrayServiceClient(connection).AddInboundUser(request, &xrayv1.AddInboundUserRequest{InstanceId: "unconfigured", InboundTag: "in", User: &xrayv1.InboundUser{Email: "user", Account: &xrayv1.InboundUser_Vless{Vless: &xrayv1.VLESSAccount{Id: "test-only"}}}}); status.Code(err) != codes.NotFound {
 		t.Fatalf("packaged user addition not wired: %v", err)

@@ -89,4 +89,7 @@ func TestModuleClosesAPIAdmissionAndExportsFinalCleanup(t *testing.T) {
 	if _, err := newUserAdditionService(resources).AddInboundUser(t.Context(), "edge", addition); !errors.Is(err, grpc.ErrClientConnClosing) || errors.Is(err, domain.ErrUserMutationUnknown) {
 		t.Fatalf("closed native API admitted user addition: %v", err)
 	}
+	if _, err := newUserCountService(resources).GetInboundUserCount(t.Context(), "edge", "in"); !errors.Is(err, grpc.ErrClientConnClosing) {
+		t.Fatalf("closed native API admitted user count: %v", err)
+	}
 }

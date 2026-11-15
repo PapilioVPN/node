@@ -48,6 +48,7 @@ func TestLiveUserAdditionOverMTLSEnablesVLESSWithoutRemovingExistingUsers(t *tes
 			cfg := certificates.Config()
 			cfg.Instances = []settings.Instance{first, second}
 			cfg.Communications.GRPC.Permissions.ManageEngineUsers = true
+			cfg.Communications.GRPC.Permissions.ReadEngineUsers = true
 			var server *rpc.Server
 			var cleanup struct {
 				fx.In
@@ -95,6 +96,10 @@ func TestLiveUserAdditionOverMTLSEnablesVLESSWithoutRemovingExistingUsers(t *tes
 				t.Fatal("unprovisioned user authenticated before addition")
 			}
 			client := xrayClient(t, server, certificates)
+			before, err := client.GetInboundUserCount(ctx, &xrayv1.GetInboundUserCountRequest{InstanceId: "edge-a", InboundTag: "target"})
+			if err != nil || before.Count != 1 {
+				t.Fatalf("native initial membership count: %v %v", before, err)
+			}
 			request := &xrayv1.AddInboundUserRequest{InstanceId: "edge-a", InboundTag: "target", User: &xrayv1.InboundUser{Email: "selected@local", Account: &xrayv1.InboundUser_Trojan{Trojan: &xrayv1.PasswordAccount{Password: "test-only"}}}}
 			if _, err := client.AddInboundUser(ctx, request); status.Code(err) != codes.FailedPrecondition {
 				t.Fatalf("wrong account family reached native user manager: %v", err)
@@ -107,6 +112,12 @@ func TestLiveUserAdditionOverMTLSEnablesVLESSWithoutRemovingExistingUsers(t *tes
 			}
 			if err := xrayTraffic(ctx, proxies[0]); err != nil {
 				t.Fatalf("added user cannot authenticate: %v", err)
+			}
+			for _, selection := range []struct{ instance, tag string }{{"edge-a", "target"}, {"edge-a", "other"}, {"edge-b", "target"}} {
+				count, err := client.GetInboundUserCount(ctx, &xrayv1.GetInboundUserCountRequest{InstanceId: selection.instance, InboundTag: selection.tag})
+				if err != nil || count.InstanceId != selection.instance || count.InboundTag != selection.tag || count.Count != 2 {
+					t.Fatalf("count crossed instance/inbound membership: %v %v", count, err)
+				}
 			}
 			request.User.Account = &xrayv1.InboundUser_Vless{Vless: &xrayv1.VLESSAccount{Id: replacementID}}
 			_, err = client.AddInboundUser(ctx, request)

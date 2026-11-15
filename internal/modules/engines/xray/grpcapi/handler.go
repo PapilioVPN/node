@@ -31,6 +31,7 @@ type Handler struct {
 	PairResets          TrafficPairResetter
 	UserRemoval         InboundUserRemover
 	UserAddition        InboundUserAdder
+	UserCounts          InboundUserCountReader
 	TrafficCounters     TrafficCountersReader
 	Online              OnlineReader
 	AllowInfoRead       bool
@@ -38,6 +39,7 @@ type Handler struct {
 	AllowStatsReset     bool
 	AllowOnlineRead     bool
 	AllowUserManagement bool
+	AllowUsersRead      bool
 }
 
 func (h Handler) GetBinaryInfo(ctx context.Context, request *xrayv1.GetBinaryInfoRequest) (*xrayv1.GetBinaryInfoResponse, error) {

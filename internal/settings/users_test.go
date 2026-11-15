@@ -37,4 +37,23 @@ communications:
 	if !grants.ManageEngineUsers || grants.ControlInstances || grants.ValidateInstanceConfig || grants.ReadEngineInfo || grants.ReadEngineStats || grants.ReadEngineOnline || grants.ResetEngineStats || grants.ReadInstanceStatus {
 		t.Fatal("user management expanded other grants")
 	}
+	if grants.ReadEngineUsers {
+		t.Fatal("user management implicitly enabled user reads")
+	}
+}
+
+func TestEngineUserReadGrantIsIndependentAndOptIn(t *testing.T) {
+	config, err := settings.Load(writeConfig(t, `node: {id: west}
+communications:
+ grpc:
+  permissions:
+   read_engine_users: true
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	grants := config.Communications.GRPC.Permissions
+	if !grants.ReadEngineUsers || grants.ManageEngineUsers || grants.ControlInstances || grants.ValidateInstanceConfig || grants.ReadEngineInfo || grants.ReadEngineStats || grants.ReadEngineOnline || grants.ResetEngineStats || grants.ReadInstanceStatus {
+		t.Fatal("user read grant expanded other operations")
+	}
 }
