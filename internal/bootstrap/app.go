@@ -21,7 +21,7 @@ import (
 func New(cfg settings.Config, version string, options ...fx.Option) *fx.App {
 	return fx.New(
 		fx.Supply(cfg.Node, cfg.Instances),
-		system.Module(version, cfg.Communications.GRPC.Enabled), core.Module(cfg.Communications.GRPC.Enabled),
+		system.Module(version, cfg.Communications), core.Module(cfg.Communications.GRPC.Enabled),
 		engines.Module(cfg.Communications.GRPC.Enabled),
 		communications(cfg.Communications),
 		fx.StartTimeout(cfg.Runtime.StartupTimeout), fx.StopTimeout(cfg.Runtime.ShutdownTimeout),
@@ -32,7 +32,7 @@ func New(cfg settings.Config, version string, options ...fx.Option) *fx.App {
 
 // Run starts the process and stops it on caller cancellation or native Fx shutdown.
 func Run(ctx context.Context, cfg settings.Config, version string, options ...fx.Option) (result error) {
-	if !cfg.Communications.GRPC.Enabled {
+	if !cfg.Communications.GRPC.Enabled && !cfg.Communications.HTTP.Enabled {
 		return errors.New("no implemented communication transport is enabled")
 	}
 	var resources moduleResources

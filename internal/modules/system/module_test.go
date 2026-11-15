@@ -22,7 +22,7 @@ func TestInstalledModuleCapabilities(t *testing.T) {
 	}{{name: "system alone"}, {name: "with instances", withInstances: true}} {
 		t.Run(test.name, func(t *testing.T) {
 			var info *services.InfoService
-			options := []fx.Option{fx.NopLogger, fx.Supply(settings.Node{ID: "isolated-node"}), system.Module("test", false), fx.Populate(&info)}
+			options := []fx.Option{fx.NopLogger, fx.Supply(settings.Node{ID: "isolated-node"}), system.Module("test", settings.Communications{}), fx.Populate(&info)}
 			want := []domain.Capability{domain.ReadNodeInfo}
 			if test.withInstances {
 				// No engine or listener is needed to install the lifecycle capabilities.

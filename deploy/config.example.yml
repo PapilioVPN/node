@@ -58,3 +58,20 @@ communications:
       certificate_file: ""
       private_key_file: ""
       client_ca_file: ""
+
+  # Optional additional listener. Paths resolve against this YAML file.
+  http:
+    enabled: false
+    listen: "0.0.0.0:9444"
+    request_timeout: 5s
+    read_timeout: 10s
+    write_timeout: 10s
+    idle_timeout: 30s
+    max_body_bytes: 65536
+    max_header_bytes: 16384
+    max_concurrent: 64
+    max_connections: 256
+    tls:
+      certificate_file: ""
+      private_key_file: ""
+      client_ca_file: ""

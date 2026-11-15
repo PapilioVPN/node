@@ -2,12 +2,14 @@ package bootstrap
 
 import (
 	"context"
+	"github.com/gofiber/fiber/v3"
 	"io"
 
 	"go.uber.org/fx"
 	"google.golang.org/grpc"
 
 	rpc "github.com/PapilioVPN/node/internal/platform/grpcserver"
+	"github.com/PapilioVPN/node/internal/platform/httpserver"
 	"github.com/PapilioVPN/node/internal/settings"
 )
 
@@ -30,6 +32,9 @@ func communications(cfg settings.Communications) fx.Option {
 	if cfg.GRPC.Enabled {
 		options = append(options, fx.Supply(cfg.GRPC, cfg.GRPC.Permissions), fx.Provide(newGRPCServer))
 	}
+	if cfg.HTTP.Enabled {
+		options = append(options, fx.Supply(cfg.HTTP), fx.Provide(newHTTPServer))
+	}
 	return fx.Options(fx.Options(options...), fx.Invoke(registerTransports))
 }
 
@@ -49,4 +54,19 @@ func newGRPCServer(cfg settings.GRPC, shutdown fx.Shutdowner) (grpcResult, error
 		return grpcResult{}, err
 	}
 	return grpcResult{Server: server, Registrar: server.Registrar(), Transport: server}, nil
+}
+
+type httpResult struct {
+	fx.Out
+	Server    *httpserver.Server
+	Router    fiber.Router
+	Transport transport `group:"transports"`
+}
+
+func newHTTPServer(cfg settings.HTTP, shutdown fx.Shutdowner) (httpResult, error) {
+	server, err := httpserver.NewServer(cfg, func() { _ = shutdown.Shutdown(fx.ExitCode(1)) })
+	if err != nil {
+		return httpResult{}, err
+	}
+	return httpResult{Server: server, Router: server.Router(), Transport: server}, nil
 }

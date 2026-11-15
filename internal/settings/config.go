@@ -30,6 +30,7 @@ type Node struct {
 
 type Communications struct {
 	GRPC GRPC `yaml:"grpc"`
+	HTTP HTTP `yaml:"http"`
 }
 
 type GRPC struct {
@@ -91,8 +92,10 @@ func Load(path string) (Config, error) {
 	if err != nil {
 		return Config{}, fmt.Errorf("resolve configuration location: %w", err)
 	}
-	for _, value := range []*string{&config.Communications.GRPC.TLS.CertificateFile, &config.Communications.GRPC.TLS.PrivateKeyFile, &config.Communications.GRPC.TLS.ClientCAFile} {
-		resolvePath(filepath.Dir(location), value)
+	for _, tls := range []*TLS{&config.Communications.GRPC.TLS, &config.Communications.HTTP.TLS} {
+		for _, value := range []*string{&tls.CertificateFile, &tls.PrivateKeyFile, &tls.ClientCAFile} {
+			resolvePath(filepath.Dir(location), value)
+		}
 	}
 	for i := range config.Instances {
 		xray := config.Instances[i].Xray
@@ -136,10 +139,22 @@ func (c Config) Validate() error {
 			return fmt.Errorf("%w: gRPC server certificate, private key and client CA files are required", ErrInvalidConfig)
 		}
 	}
-	if c.Communications.GRPC.Enabled || len(c.Instances) > 0 {
+	if err := c.Communications.HTTP.validate(); err != nil {
+		return err
+	}
+	if c.Communications.GRPC.Enabled || c.Communications.HTTP.Enabled || len(c.Instances) > 0 {
 		if c.Runtime.StartupTimeout <= 0 || c.Runtime.ShutdownTimeout <= 0 {
 			return fmt.Errorf("%w: positive runtime startup/shutdown timeouts are required", ErrInvalidConfig)
 		}
 	}
 	return validateInstances(c.Instances)
+}
+
+func validListen(address string) bool {
+	_, port, err := net.SplitHostPort(address)
+	if err != nil {
+		return false
+	}
+	value, err := strconv.Atoi(port)
+	return err == nil && value >= 0 && value <= 65535
 }

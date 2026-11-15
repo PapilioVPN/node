@@ -3,12 +3,9 @@ package grpcserver
 
 import (
 	"context"
-	"crypto/tls"
-	"crypto/x509"
 	"errors"
 	"fmt"
 	"net"
-	"os"
 	"sync"
 
 	"google.golang.org/grpc"
@@ -16,6 +13,7 @@ import (
 	"google.golang.org/grpc/health"
 	healthv1 "google.golang.org/grpc/health/grpc_health_v1"
 
+	"github.com/PapilioVPN/node/internal/platform/tlsconfig"
 	"github.com/PapilioVPN/node/internal/settings"
 )
 
@@ -36,23 +34,12 @@ type Server struct {
 }
 
 func NewServer(cfg settings.GRPC, onFailure func()) (*Server, error) {
-	certificate, err := tls.LoadX509KeyPair(cfg.TLS.CertificateFile, cfg.TLS.PrivateKeyFile)
+	tls, err := tlsconfig.Server(cfg.TLS.CertificateFile, cfg.TLS.PrivateKeyFile, cfg.TLS.ClientCAFile)
 	if err != nil {
-		return nil, fmt.Errorf("load gRPC server certificate: %w", err)
-	}
-	ca, err := os.ReadFile(cfg.TLS.ClientCAFile)
-	if err != nil {
-		return nil, fmt.Errorf("read gRPC client CA: %w", err)
-	}
-	clients := x509.NewCertPool()
-	if !clients.AppendCertsFromPEM(ca) {
-		return nil, errors.New("gRPC client CA contains no valid certificates")
+		return nil, err
 	}
 	server := grpc.NewServer(
-		grpc.Creds(credentials.NewTLS(&tls.Config{
-			Certificates: []tls.Certificate{certificate},
-			ClientAuth:   tls.RequireAndVerifyClientCert, ClientCAs: clients,
-		})),
+		grpc.Creds(credentials.NewTLS(tls)),
 		grpc.MaxRecvMsgSize(cfg.MaxReceiveBytes),
 		grpc.MaxConcurrentStreams(cfg.MaxConcurrentStreams),
 		grpc.ConnectionTimeout(cfg.ConnectionTimeout),
