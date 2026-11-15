@@ -4,8 +4,10 @@ package bootstrap_test
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -22,6 +24,7 @@ import (
 	nodev1 "github.com/PapilioVPN/node/internal/modules/core/instances/grpcapi/proto/v1"
 	xrayv1 "github.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi/proto/v1"
 	systemv1 "github.com/PapilioVPN/node/internal/modules/system/info/grpcapi/proto/v1"
+	"github.com/PapilioVPN/node/internal/settings"
 	"github.com/PapilioVPN/node/internal/shared/testutil"
 )
 
@@ -38,6 +41,11 @@ func TestContainer(t *testing.T) {
 	cfg.Communications.GRPC.TLS.CertificateFile = "server.pem"
 	cfg.Communications.GRPC.TLS.PrivateKeyFile = "server-key.pem"
 	cfg.Communications.GRPC.TLS.ClientCAFile = "ca.pem"
+	cfg.Communications.HTTP = settings.HTTP{
+		Enabled: true, Listen: "0.0.0.0:9444", RequestTimeout: time.Second, ReadTimeout: 2 * time.Second,
+		WriteTimeout: 2 * time.Second, IdleTimeout: 2 * time.Second, MaxBodyBytes: 1024,
+		MaxHeaderBytes: 4096, MaxConcurrent: 4, MaxConnections: 8, TLS: cfg.Communications.GRPC.TLS,
+	}
 	cfg.Communications.GRPC.Permissions.ReadInstanceStatus = true
 	cfg.Communications.GRPC.Permissions.ControlInstances = true
 	cfg.Communications.GRPC.Permissions.ValidateInstanceConfig = true
@@ -55,7 +63,7 @@ func TestContainer(t *testing.T) {
 	defer cancel()
 	output, err := exec.CommandContext(ctx, "docker", "run", "--detach", "--read-only",
 		"--user", fmt.Sprintf("%d:%d", os.Getuid(), os.Getgid()),
-		"--publish", "127.0.0.1::9443", "--mount", "type=bind,src="+certificates.Directory+",dst=/app,readonly", *image).Output()
+		"--publish", "127.0.0.1::9443", "--publish", "127.0.0.1::9444", "--mount", "type=bind,src="+certificates.Directory+",dst=/app,readonly", *image).Output()
 	if err != nil {
 		t.Fatalf("start isolated runtime: %v", err)
 	}
@@ -82,6 +90,27 @@ func TestContainer(t *testing.T) {
 	if err != nil || info.GetNodeId() != "test-node" || info.GetVersion() == "" {
 		logs, _ := exec.CommandContext(ctx, "docker", "logs", containerID).CombinedOutput()
 		t.Fatalf("packaged operation failed: %v, %v; logs: %s", info, err, logs)
+	}
+	output, err = exec.CommandContext(ctx, "docker", "port", containerID, "9444/tcp").Output()
+	if err != nil {
+		t.Fatal(err)
+	}
+	transport := &http.Transport{TLSClientConfig: certificates.ClientTLS(t)}
+	defer transport.CloseIdleConnections()
+	client := &http.Client{Transport: transport, Timeout: time.Second}
+	response, err := client.Get("https://" + strings.TrimSpace(string(output)) + "/v1/node")
+	if err != nil {
+		t.Fatalf("packaged Fiber operation failed: %v", err)
+	}
+	var httpInfo struct {
+		NodeID  string `json:"node_id"`
+		Version string `json:"version"`
+	}
+	decodeErr := json.NewDecoder(response.Body).Decode(&httpInfo)
+	response.Body.Close()
+	transport.CloseIdleConnections()
+	if decodeErr != nil || response.StatusCode != http.StatusOK || httpInfo.NodeID != info.GetNodeId() || httpInfo.Version != info.GetVersion() {
+		t.Fatalf("packaged HTTP/gRPC results differ: %+v %v", httpInfo, decodeErr)
 	}
 	// The packaged binary must honor independent grants loaded from its YAML.
 	_, err = nodev1.NewInstanceServiceClient(connection).GetInstanceStatus(request, &nodev1.GetInstanceStatusRequest{InstanceId: "unconfigured"})

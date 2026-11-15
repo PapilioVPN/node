@@ -5,8 +5,9 @@ import (
 	"context"
 	"errors"
 
-	"github.com/PapilioVPN/node/internal/modules/system/info/domain"
 	"github.com/gofiber/fiber/v3"
+
+	"github.com/PapilioVPN/node/internal/modules/system/info/domain"
 )
 
 type InfoReader interface {
