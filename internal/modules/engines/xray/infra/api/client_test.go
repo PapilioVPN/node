@@ -31,6 +31,9 @@ func TestAPIConstructionAndCanceledAdmissionCreateNoNativeChannel(t *testing.T) 
 	if _, err := client.ReadBalancerInfo(ctx, "pool"); !errors.Is(err, context.Canceled) || client.connection != nil {
 		t.Fatal("canceled balancer read created native workers")
 	}
+	if _, err := client.TestRoute(ctx, domain.RoutingProbe{}); !errors.Is(err, context.Canceled) || errors.Is(err, domain.ErrRoutingProbeUnknown) || client.connection != nil {
+		t.Fatalf("pre-canceled probe created native effects/workers: %v", err)
+	}
 	addition := domain.InboundUserAddition{InboundTag: "in", User: domain.InboundUser{Email: "user", Account: domain.UserAccount{Protocol: domain.VLESS, VLESS: &domain.VLESSAccount{ID: "test-only"}}}}
 	if _, err := client.AddInboundUser(ctx, addition); !errors.Is(err, context.Canceled) || errors.Is(err, domain.ErrUserMutationUnknown) || client.connection != nil {
 		t.Fatalf("canceled addition created native effects/workers: %v", err)
@@ -62,6 +65,9 @@ func TestAPIConstructionAndCanceledAdmissionCreateNoNativeChannel(t *testing.T) 
 	}
 	if _, err := client.ReadBalancerInfo(t.Context(), "pool"); !errors.Is(err, grpc.ErrClientConnClosing) || client.connection != nil {
 		t.Fatal("closed balancer read created native workers")
+	}
+	if _, err := client.TestRoute(t.Context(), domain.RoutingProbe{}); !errors.Is(err, grpc.ErrClientConnClosing) || errors.Is(err, domain.ErrRoutingProbeUnknown) || client.connection != nil {
+		t.Fatalf("closed probe created native effects/workers: %v", err)
 	}
 	if _, err := client.AddInboundUser(t.Context(), addition); !errors.Is(err, grpc.ErrClientConnClosing) || errors.Is(err, domain.ErrUserMutationUnknown) || client.connection != nil {
 		t.Fatalf("closed addition created native effects/workers: %v", err)

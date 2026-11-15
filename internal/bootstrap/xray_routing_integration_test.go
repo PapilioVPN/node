@@ -115,7 +115,7 @@ func TestXrayRoutingReadsOverMTLSKeepPriorityTrafficAndInstances(t *testing.T) {
 					if err != nil || info.InstanceId != id || info.BalancerTag != "pool" || info.OverrideTarget == nil || *info.OverrideTarget != "" || info.PrincipalTargets == nil || info.ObservedAtUnixMs <= 0 {
 						t.Fatalf("native balancer presence/identity: %v %v", info, err)
 					}
-					// Native outbound map enumeration has no stable order guarantee.
+					// Check instance membership independently of strategy-specific order.
 					seen := make(map[string]int)
 					for _, tag := range info.PrincipalTargets.Tags {
 						seen[tag]++

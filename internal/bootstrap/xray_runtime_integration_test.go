@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"net"
 	"os"
 	"path/filepath"
@@ -20,6 +21,7 @@ import (
 	"github.com/PapilioVPN/node/internal/bootstrap"
 	"github.com/PapilioVPN/node/internal/modules/core/instances"
 	instancesv1 "github.com/PapilioVPN/node/internal/modules/core/instances/grpcapi/proto/v1"
+	xraydomain "github.com/PapilioVPN/node/internal/modules/engines/xray/domain"
 	xrayv1 "github.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi/proto/v1"
 	rpc "github.com/PapilioVPN/node/internal/platform/grpcserver"
 	"github.com/PapilioVPN/node/internal/settings"
@@ -77,6 +79,9 @@ func TestXrayRuntimeInfoOverMTLSAndNativeReconnect(t *testing.T) {
 			}
 			client := xrayClient(t, server, certificates)
 			response := awaitRuntimeInfo(t, ctx, client, "edge-a")
+			if result, err := routingProbeAPIClient(t, second).TestRoute(ctx, xraydomain.RoutingProbe{}); !errors.Is(err, xraydomain.ErrRoutingProbeUnsupported) || errors.Is(err, xraydomain.ErrRoutingProbeUnknown) || !result.AcknowledgedAt.IsZero() {
+				t.Fatalf("absent native RoutingService accepted a probe or claimed effects: %+v %v", result, err)
+			}
 			if result, err := client.ListRoutingRules(ctx, &xrayv1.ListRoutingRulesRequest{InstanceId: "edge-b"}); result != nil || status.Code(err) != codes.FailedPrecondition {
 				t.Fatalf("absent native RoutingService became successful rules: %v %v", result, err)
 			}
