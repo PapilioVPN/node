@@ -21,6 +21,7 @@ import (
 type Server struct {
 	control     sync.Mutex
 	connections sync.Mutex
+	active      sync.WaitGroup
 	peers       map[net.Conn]struct{}
 	app         *fiber.App
 	tls         *tls.Config
@@ -119,9 +120,11 @@ func (s *Server) Stop(ctx context.Context) error {
 	s.cancel()
 	if err != nil {
 		s.closeConnections()
-		// Native shutdown joins connection work after cooperative handlers are canceled.
-		err = errors.Join(err, s.app.Server().Shutdown())
 	}
+	// fasthttp clears its listener list even when ShutdownWithContext times out;
+	// calling Shutdown again then returns without joining active handlers.
+	// Accept has exited, so no new connection can race Add against this Wait.
+	s.active.Wait()
 	return errors.Join(err, s.serveErr)
 }
 
@@ -137,6 +140,7 @@ func (s *Server) Close() error {
 	s.stopListening()
 	s.closeConnections()
 	err := s.app.Server().Shutdown()
+	s.active.Wait()
 	if errors.Is(err, net.ErrClosed) {
 		err = nil
 	}
@@ -158,8 +162,12 @@ func (s *Server) connectionState(connection net.Conn, state fasthttp.ConnState) 
 	switch state {
 	case fasthttp.StateNew:
 		s.peers[connection] = struct{}{}
+		s.active.Add(1)
 	case fasthttp.StateClosed, fasthttp.StateHijacked:
-		delete(s.peers, connection)
+		if _, owned := s.peers[connection]; owned {
+			delete(s.peers, connection)
+			s.active.Done()
+		}
 	}
 }
 
