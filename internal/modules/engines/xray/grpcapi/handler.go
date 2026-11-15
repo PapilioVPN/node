@@ -23,6 +23,7 @@ type BinaryInfoReader interface {
 type Handler struct {
 	xrayv1.UnimplementedXrayServiceServer
 	Info          BinaryInfoReader
+	Runtime       RuntimeInfoReader
 	AllowInfoRead bool
 }
 

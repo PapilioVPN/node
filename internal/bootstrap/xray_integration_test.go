@@ -71,6 +71,9 @@ func TestXrayBinaryInfoOverMTLSKeepsLiveInstancesUnchanged(t *testing.T) {
 		t.Fatal(err)
 	}
 	client := xrayClient(t, server, certificates)
+	if _, err := client.GetRuntimeInfo(ctx, &xrayv1.GetRuntimeInfoRequest{InstanceId: "edge-a"}); status.Code(err) != codes.FailedPrecondition {
+		t.Fatalf("absent API settings were ignored: %v", err)
+	}
 	before := time.Now().UnixMilli()
 	response, err := client.GetBinaryInfo(ctx, &xrayv1.GetBinaryInfoRequest{InstanceId: "edge-a"})
 	if err != nil {
@@ -127,6 +130,9 @@ func TestXrayBinaryInfoRequiresItsOwnGrant(t *testing.T) {
 	for _, id := range []string{"unknown", ""} {
 		if _, err := client.GetBinaryInfo(t.Context(), &xrayv1.GetBinaryInfoRequest{InstanceId: id}); status.Code(err) != codes.PermissionDenied {
 			t.Fatalf("other instance grants must not authorize engine information: %v", err)
+		}
+		if _, err := client.GetRuntimeInfo(t.Context(), &xrayv1.GetRuntimeInfoRequest{InstanceId: id}); status.Code(err) != codes.PermissionDenied {
+			t.Fatalf("other instance grants must not authorize runtime information: %v", err)
 		}
 	}
 }

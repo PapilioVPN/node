@@ -17,9 +17,12 @@ import (
 	"github.com/PapilioVPN/node/internal/settings"
 )
 
-// Module owns engine information without constructing another runtime or hook.
+// Module owns Xray observations and API clients independently of instance runtimes.
 func Module(grpcEnabled bool) fx.Option {
-	options := []fx.Option{fx.Provide(newBinaryInfoService, fx.Private), fx.Provide(capability)}
+	options := []fx.Option{
+		fx.Provide(newBinaryInfoService, newAPIResources, newRuntimeInfoService, fx.Private),
+		fx.Provide(capability, apiCleanup), fx.Invoke(registerAPILifecycle),
+	}
 	if grpcEnabled {
 		options = append(options, fx.Invoke(registerGRPC))
 	}
@@ -47,8 +50,8 @@ func newBinaryInfoService(config []settings.Instance) (*app.BinaryInfoService, e
 	return app.NewBinaryInfoService(readers), nil
 }
 
-func registerGRPC(registrar grpc.ServiceRegistrar, info *app.BinaryInfoService, cfg settings.GRPCPermissions) {
-	xrayv1.RegisterXrayServiceServer(registrar, grpcapi.Handler{Info: info, AllowInfoRead: cfg.ReadEngineInfo})
+func registerGRPC(registrar grpc.ServiceRegistrar, info *app.BinaryInfoService, runtime *app.RuntimeInfoService, cfg settings.GRPCPermissions) {
+	xrayv1.RegisterXrayServiceServer(registrar, grpcapi.Handler{Info: info, Runtime: runtime, AllowInfoRead: cfg.ReadEngineInfo})
 }
 
 type capabilityResult struct {
@@ -57,5 +60,5 @@ type capabilityResult struct {
 }
 
 func capability() capabilityResult {
-	return capabilityResult{Values: []system.Capability{domain.ReadBinaryInfo}}
+	return capabilityResult{Values: []system.Capability{domain.ReadBinaryInfo, domain.ReadRuntimeInfo}}
 }
