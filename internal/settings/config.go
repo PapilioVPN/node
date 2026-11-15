@@ -96,6 +96,9 @@ func Load(path string) (Config, error) {
 		xray := config.Instances[i].Xray
 		resolvePath(filepath.Dir(location), &xray.Binary)
 		resolvePath(filepath.Dir(location), &xray.ConfigFile)
+		if api := xray.API; api != nil && api.Network == "unix" {
+			resolvePath(filepath.Dir(location), &api.Address)
+		}
 		if validation := config.Instances[i].Validation; validation != nil {
 			resolvePath(filepath.Dir(location), &validation.WorkDir)
 		}

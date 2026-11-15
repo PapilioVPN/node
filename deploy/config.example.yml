@@ -18,6 +18,14 @@ instances: []
 #        timeout: 1s
 #        max_output_bytes: 1024
 #        max_concurrent: 1
+#      # Optional native API reads; enable StatsService in Xray's own config.
+#      # Unix address resolves against this YAML. For TCP use a loopback IP:port.
+#      api:
+#        network: unix
+#        address: xray-api.sock
+#        request_timeout: 2s
+#        max_receive_bytes: 4096
+#        max_concurrent: 4
 #    # Optional candidate building. Create/mount work_dir before enabling it.
 #    validation:
 #      work_dir: validation-work
@@ -40,7 +48,7 @@ communications:
       control_instances: false
       # Separate opt-in to bounded candidate building; never applies a config.
       validate_instance_config: false
-      # Separate opt-in to configured engine binary information.
+      # Separate opt-in to configured engine binary/runtime information.
       read_engine_info: false
     tls:
       certificate_file: ""
