@@ -5,6 +5,8 @@ import "errors"
 
 var ErrNotFound = errors.New("instance not found")
 
+var ErrInvalidInput = errors.New("invalid instance input")
+
 type InstanceID string
 
 type EngineKind string

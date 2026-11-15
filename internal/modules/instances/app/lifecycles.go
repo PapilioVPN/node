@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"maps"
+	"slices"
 
 	"github.com/PapilioVPN/node/internal/modules/instances/domain"
 )
@@ -11,10 +12,12 @@ import (
 // Construction copies bindings once; operations select only the requested runtime.
 type LifecycleService struct {
 	instances map[domain.InstanceID]*Lifecycle
+	ids       []domain.InstanceID
 }
 
 func NewLifecycleService(instances map[domain.InstanceID]*Lifecycle) *LifecycleService {
-	return &LifecycleService{instances: maps.Clone(instances)}
+	bindings := maps.Clone(instances)
+	return &LifecycleService{instances: bindings, ids: slices.Sorted(maps.Keys(bindings))}
 }
 
 func (s *LifecycleService) GetInstanceStatus(ctx context.Context, id domain.InstanceID) (domain.Status, error) {
