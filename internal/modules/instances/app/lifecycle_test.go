@@ -50,16 +50,20 @@ type controlledRuntime struct {
 	failure      error
 	context      context.Context
 	calls        int
+	starts       int
+	stops        int
 	observations int
 }
 
 func (r *controlledRuntime) Start(ctx context.Context) error {
+	r.starts++
 	r.context = ctx
 	r.calls++
 	return r.err
 }
 
 func (r *controlledRuntime) Stop(ctx context.Context) error {
+	r.stops++
 	r.context = ctx
 	r.calls++
 	return r.err
