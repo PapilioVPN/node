@@ -1,4 +1,5 @@
-package grpcapi
+// Package grpcidentity verifies native transport identity for capability adapters.
+package grpcidentity
 
 import (
 	"context"
@@ -9,7 +10,9 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func verifyClient(ctx context.Context) error {
+// VerifyClient requires the native transport's verified client certificate chain.
+// Operation grants remain the responsibility of the owning capability adapter.
+func VerifyClient(ctx context.Context) error {
 	client, ok := peer.FromContext(ctx)
 	if !ok {
 		return status.Error(codes.Unauthenticated, "verified client certificate required")

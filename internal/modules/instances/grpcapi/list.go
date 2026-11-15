@@ -9,6 +9,7 @@ import (
 
 	"github.com/PapilioVPN/node/internal/modules/instances/domain"
 	instancesv1 "github.com/PapilioVPN/node/internal/modules/instances/grpcapi/proto/v1"
+	"github.com/PapilioVPN/node/internal/shared/grpcidentity"
 	"github.com/PapilioVPN/node/internal/shared/grpcresponse"
 )
 
@@ -18,7 +19,7 @@ type InstanceStatusesReader interface {
 }
 
 func (h Handler) ListInstanceStatuses(ctx context.Context, request *instancesv1.ListInstanceStatusesRequest) (*instancesv1.ListInstanceStatusesResponse, error) {
-	if err := verifyClient(ctx); err != nil {
+	if err := grpcidentity.VerifyClient(ctx); err != nil {
 		return nil, err
 	}
 	if !h.AllowStatusRead {

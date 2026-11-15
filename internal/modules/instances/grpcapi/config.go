@@ -10,6 +10,7 @@ import (
 
 	"github.com/PapilioVPN/node/internal/modules/instances/domain"
 	instancesv1 "github.com/PapilioVPN/node/internal/modules/instances/grpcapi/proto/v1"
+	"github.com/PapilioVPN/node/internal/shared/grpcidentity"
 	"github.com/PapilioVPN/node/internal/shared/grpcresponse"
 )
 
@@ -18,7 +19,7 @@ type InstanceConfigValidator interface {
 }
 
 func (h Handler) ValidateInstanceConfig(ctx context.Context, request *instancesv1.ValidateInstanceConfigRequest) (*instancesv1.ValidateInstanceConfigResponse, error) {
-	if err := verifyClient(ctx); err != nil {
+	if err := grpcidentity.VerifyClient(ctx); err != nil {
 		return nil, err
 	}
 	if !h.AllowConfigValidation {
