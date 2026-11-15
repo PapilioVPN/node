@@ -21,6 +21,10 @@ communications:
     connection_timeout: 5s
     max_receive_bytes: 65536
     max_concurrent_streams: 64 # Per HTTP/2 connection.
+    permissions:
+      # Opt in to status reads of all instances by every trusted mTLS client.
+      # This grants no engine mutation operations.
+      read_instance_status: false
     tls:
       certificate_file: ""
       private_key_file: ""

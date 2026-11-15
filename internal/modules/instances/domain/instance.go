@@ -1,6 +1,10 @@
 // Package domain defines engine-independent instance identities and lifecycle observations.
 package domain
 
+import "errors"
+
+var ErrNotFound = errors.New("instance not found")
+
 type InstanceID string
 
 type EngineKind string

@@ -15,7 +15,6 @@ import (
 	"google.golang.org/grpc/health"
 	healthv1 "google.golang.org/grpc/health/grpc_health_v1"
 
-	nodev1 "github.com/PapilioVPN/node/internal/entrypoints/grpc/proto/v1"
 	"github.com/PapilioVPN/node/internal/settings"
 )
 
@@ -35,7 +34,7 @@ type Server struct {
 	onFailure func()
 }
 
-func NewServer(cfg settings.GRPC, reader NodeInfoReader, onFailure func()) (*Server, error) {
+func NewServer(cfg settings.GRPC, onFailure func()) (*Server, error) {
 	certificate, err := tls.LoadX509KeyPair(cfg.TLS.CertificateFile, cfg.TLS.PrivateKeyFile)
 	if err != nil {
 		return nil, fmt.Errorf("load gRPC server certificate: %w", err)
@@ -62,13 +61,14 @@ func NewServer(cfg settings.GRPC, reader NodeInfoReader, onFailure func()) (*Ser
 			return handler(ctx, request)
 		}),
 	)
-	nodev1.RegisterNodeServiceServer(server, Handler{Info: reader})
 	probe := health.NewServer()
 	probe.SetServingStatus("", healthv1.HealthCheckResponse_NOT_SERVING)
-	probe.SetServingStatus(nodev1.NodeService_ServiceDesc.ServiceName, healthv1.HealthCheckResponse_NOT_SERVING)
 	healthv1.RegisterHealthServer(server, probe)
 	return &Server{server: server, health: probe, address: cfg.Listen, onFailure: onFailure}, nil
 }
+
+// Registrar exposes native service registration to capability modules before Start.
+func (s *Server) Registrar() grpc.ServiceRegistrar { return s.server }
 
 func (s *Server) Start(ctx context.Context) error {
 	s.control.Lock()
@@ -87,7 +87,9 @@ func (s *Server) Start(ctx context.Context) error {
 	s.done = make(chan struct{})
 	s.health.Resume()
 	s.health.SetServingStatus("", healthv1.HealthCheckResponse_SERVING)
-	s.health.SetServingStatus(nodev1.NodeService_ServiceDesc.ServiceName, healthv1.HealthCheckResponse_SERVING)
+	for service := range s.server.GetServiceInfo() {
+		s.health.SetServingStatus(service, healthv1.HealthCheckResponse_SERVING)
+	}
 	go func() {
 		s.serveErr = s.server.Serve(listener)
 		if errors.Is(s.serveErr, grpc.ErrServerStopped) {

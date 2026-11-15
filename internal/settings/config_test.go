@@ -32,6 +32,8 @@ communications:
     connection_timeout: 3s
     max_receive_bytes: 65536
     max_concurrent_streams: 64
+    permissions:
+      read_instance_status: true
     tls:
       certificate_file: server.pem
       private_key_file: server-key.pem
@@ -49,6 +51,9 @@ runtime:
 	if !filepath.IsAbs(config.Communications.GRPC.TLS.CertificateFile) || filepath.Base(config.Communications.GRPC.TLS.CertificateFile) != "server.pem" {
 		t.Fatal("certificate path was not resolved relative to the configuration file")
 	}
+	if !config.Communications.GRPC.Permissions.ReadInstanceStatus {
+		t.Fatal("explicit instance-status grant was lost")
+	}
 }
 
 func TestLoadRejectsInvalidConfiguration(t *testing.T) {
@@ -65,6 +70,8 @@ func TestLoadRejectsInvalidConfiguration(t *testing.T) {
 		"out of range port":         "node: {id: west}\ncommunications: {grpc: {enabled: true, listen: 'localhost:70000'}}\n",
 		"unsupported transport":     "node: {id: west}\ncommunications: {nats: {enabled: true}}\n",
 		"invalid type":              "node: {id: west}\ncommunications: {grpc: {enabled: 'not-a-boolean'}}\n",
+		"invalid permission":        "node: {id: west}\ncommunications: {grpc: {permissions: {read_instance_status: 'not-a-boolean'}}}\n",
+		"unknown permission":        "node: {id: west}\ncommunications: {grpc: {permissions: {write_instances: true}}}\n",
 		"empty file":                "",
 	}
 	for name, contents := range cases {
@@ -85,8 +92,12 @@ func TestLoadDoesNotExposeConfigurationValues(t *testing.T) {
 }
 
 func TestLoadOptionalGRPC(t *testing.T) {
-	if _, err := settings.Load(writeConfig(t, "node: {id: west}\n")); err != nil {
+	config, err := settings.Load(writeConfig(t, "node: {id: west}\n"))
+	if err != nil {
 		t.Fatalf("an inactive transport must not require connection settings: %v", err)
+	}
+	if config.Communications.GRPC.Permissions.ReadInstanceStatus {
+		t.Fatal("status access must require an explicit grant")
 	}
 }
 

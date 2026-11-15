@@ -15,7 +15,9 @@ import (
 
 	"go.yaml.in/yaml/v3"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/status"
 
 	nodev1 "github.com/PapilioVPN/node/internal/entrypoints/grpc/proto/v1"
 	"github.com/PapilioVPN/node/internal/testutil"
@@ -34,6 +36,7 @@ func TestContainer(t *testing.T) {
 	cfg.Communications.GRPC.TLS.CertificateFile = "server.pem"
 	cfg.Communications.GRPC.TLS.PrivateKeyFile = "server-key.pem"
 	cfg.Communications.GRPC.TLS.ClientCAFile = "ca.pem"
+	cfg.Communications.GRPC.Permissions.ReadInstanceStatus = true
 	contents, err := yaml.Marshal(cfg)
 	if err != nil {
 		t.Fatal(err)
@@ -72,6 +75,11 @@ func TestContainer(t *testing.T) {
 	if err != nil || info.GetNodeId() != "test-node" || info.GetVersion() == "" {
 		logs, _ := exec.CommandContext(ctx, "docker", "logs", containerID).CombinedOutput()
 		t.Fatalf("packaged operation failed: %v, %v; logs: %s", info, err, logs)
+	}
+	// The packaged binary must honor the explicit grant loaded from its YAML.
+	_, err = nodev1.NewInstanceServiceClient(connection).GetInstanceStatus(request, &nodev1.GetInstanceStatusRequest{InstanceId: "unconfigured"})
+	if status.Code(err) != codes.NotFound {
+		t.Fatalf("packaged status grant/service failed: %v", err)
 	}
 	if output, err := exec.CommandContext(ctx, "docker", "stop", "--time", "5", containerID).CombinedOutput(); err != nil {
 		t.Fatalf("stop runtime: %s, %v", output, err)

@@ -36,11 +36,18 @@ type GRPC struct {
 	Enabled bool   `yaml:"enabled"`
 	Listen  string `yaml:"listen"`
 	// RequestTimeout bounds unary RPCs; native health streams live until canceled.
-	RequestTimeout       time.Duration `yaml:"request_timeout"`
-	ConnectionTimeout    time.Duration `yaml:"connection_timeout"`
-	MaxReceiveBytes      int           `yaml:"max_receive_bytes"`
-	MaxConcurrentStreams uint32        `yaml:"max_concurrent_streams"`
-	TLS                  TLS           `yaml:"tls"`
+	RequestTimeout       time.Duration   `yaml:"request_timeout"`
+	ConnectionTimeout    time.Duration   `yaml:"connection_timeout"`
+	MaxReceiveBytes      int             `yaml:"max_receive_bytes"`
+	MaxConcurrentStreams uint32          `yaml:"max_concurrent_streams"`
+	TLS                  TLS             `yaml:"tls"`
+	Permissions          GRPCPermissions `yaml:"permissions"`
+}
+
+// GRPCPermissions grants only the declared operations to authenticated clients.
+// Zero values preserve the foundation's node-info/health-only access.
+type GRPCPermissions struct {
+	ReadInstanceStatus bool `yaml:"read_instance_status"`
 }
 
 type TLS struct {

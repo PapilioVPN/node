@@ -1,4 +1,4 @@
-package grpc_test
+package grpcapi_test
 
 import (
 	"context"
@@ -9,9 +9,9 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	rpc "github.com/PapilioVPN/node/internal/entrypoints/grpc"
 	nodev1 "github.com/PapilioVPN/node/internal/entrypoints/grpc/proto/v1"
 	"github.com/PapilioVPN/node/internal/modules/system/domain"
+	rpc "github.com/PapilioVPN/node/internal/modules/system/grpcapi"
 )
 
 type infoReader func(context.Context) (domain.NodeInfo, error)

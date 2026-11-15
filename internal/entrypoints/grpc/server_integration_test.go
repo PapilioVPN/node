@@ -19,6 +19,7 @@ import (
 	rpc "github.com/PapilioVPN/node/internal/entrypoints/grpc"
 	nodev1 "github.com/PapilioVPN/node/internal/entrypoints/grpc/proto/v1"
 	"github.com/PapilioVPN/node/internal/modules/system/domain"
+	"github.com/PapilioVPN/node/internal/modules/system/grpcapi"
 	"github.com/PapilioVPN/node/internal/testutil"
 )
 
@@ -26,13 +27,14 @@ func TestRequestDeadlineAndMessageLimit(t *testing.T) {
 	certificates := testutil.NewCertificates(t)
 	cfg := certificates.Config().Communications.GRPC
 	cfg.RequestTimeout = 30 * time.Millisecond
-	server, err := rpc.NewServer(cfg, infoReader(func(ctx context.Context) (domain.NodeInfo, error) {
-		<-ctx.Done()
-		return domain.NodeInfo{}, ctx.Err()
-	}), nil)
+	server, err := rpc.NewServer(cfg, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
+	nodev1.RegisterNodeServiceServer(server.Registrar(), grpcapi.Handler{Info: infoReader(func(ctx context.Context) (domain.NodeInfo, error) {
+		<-ctx.Done()
+		return domain.NodeInfo{}, ctx.Err()
+	})})
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	if err := server.Start(ctx); err != nil {
@@ -62,7 +64,7 @@ func TestRequestDeadlineAndMessageLimit(t *testing.T) {
 
 func TestStopForcesOpenHealthStreamAndJoins(t *testing.T) {
 	certificates := testutil.NewCertificates(t)
-	server, err := rpc.NewServer(certificates.Config().Communications.GRPC, infoReader(func(context.Context) (domain.NodeInfo, error) { return domain.NodeInfo{}, nil }), nil)
+	server, err := rpc.NewServer(certificates.Config().Communications.GRPC, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -102,3 +104,7 @@ func TestStopForcesOpenHealthStreamAndJoins(t *testing.T) {
 		}
 	}
 }
+
+type infoReader func(context.Context) (domain.NodeInfo, error)
+
+func (f infoReader) GetNodeInfo(ctx context.Context) (domain.NodeInfo, error) { return f(ctx) }

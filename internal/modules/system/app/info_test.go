@@ -17,7 +17,7 @@ func TestGetNodeInfo(t *testing.T) {
 	if info.NodeID != "node-west" || info.Version != "test-version" || info.APIVersion != "v1" {
 		t.Fatalf("unexpected node identity: %+v", info)
 	}
-	if len(info.Capabilities) != 1 || info.Capabilities[0] != "node.info.read" {
+	if len(info.Capabilities) != 2 || info.Capabilities[0] != "node.info.read" || info.Capabilities[1] != "instance.status.read" {
 		t.Fatalf("advertised unimplemented capabilities: %v", info.Capabilities)
 	}
 	info.Capabilities[0] = "engine.start"

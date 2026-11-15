@@ -7,14 +7,29 @@ import (
 	"fmt"
 
 	"go.uber.org/fx"
+	"google.golang.org/grpc"
 
 	"github.com/PapilioVPN/node/internal/engines/xray"
+	nodev1 "github.com/PapilioVPN/node/internal/entrypoints/grpc/proto/v1"
 	"github.com/PapilioVPN/node/internal/modules/instances/app"
 	"github.com/PapilioVPN/node/internal/modules/instances/domain"
+	"github.com/PapilioVPN/node/internal/modules/instances/grpcapi"
 	"github.com/PapilioVPN/node/internal/settings"
 )
 
-var Module = fx.Module("instances", fx.Provide(newResources), fx.Invoke(registerLifecycle))
+func Module(communications settings.Communications) fx.Option {
+	options := []fx.Option{fx.Provide(newResources, newStatusService), fx.Invoke(registerLifecycle)}
+	if communications.GRPC.Enabled {
+		options = append(options, fx.Invoke(registerGRPC))
+	}
+	return fx.Module("instances", options...)
+}
+
+func registerGRPC(registrar grpc.ServiceRegistrar, reader *app.StatusService, cfg settings.Config) {
+	nodev1.RegisterInstanceServiceServer(registrar, grpcapi.Handler{
+		Status: reader, AllowStatusRead: cfg.Communications.GRPC.Permissions.ReadInstanceStatus,
+	})
+}
 
 // Resources owns final cleanup independently of Fx's startup/stop contexts.
 // Construction has no native effects; registered hooks use application operations.
@@ -68,6 +83,14 @@ func registerLifecycle(lifecycle fx.Lifecycle, resources *Resources) {
 			},
 		})
 	}
+}
+
+func newStatusService(resources *Resources) *app.StatusService {
+	bindings := make(map[domain.InstanceID]*app.Lifecycle, len(resources.instances))
+	for _, instance := range resources.instances {
+		bindings[instance.id] = instance.lifecycle
+	}
+	return app.NewStatusService(bindings)
 }
 
 // Close permanently stops every owned instance in reverse construction order.

@@ -23,6 +23,6 @@ func (s *InfoService) GetNodeInfo(ctx context.Context) (domain.NodeInfo, error) 
 		NodeID:       s.nodeID,
 		Version:      s.version,
 		APIVersion:   "v1",
-		Capabilities: []domain.Capability{domain.ReadNodeInfo},
+		Capabilities: []domain.Capability{domain.ReadNodeInfo, domain.ReadInstanceStatus},
 	}, nil
 }

@@ -19,7 +19,7 @@ import (
 // Run owns final cleanup when an expired Fx context prevents lifecycle hooks.
 func New(cfg settings.Config, version string, options ...fx.Option) *fx.App {
 	modules := []fx.Option{
-		fx.Supply(cfg), system.Module(version), instances.Module,
+		fx.Supply(cfg), system.Module(version, cfg.Communications), instances.Module(cfg.Communications),
 		fx.StartTimeout(cfg.Runtime.StartupTimeout), fx.StopTimeout(cfg.Runtime.ShutdownTimeout),
 		fx.WithLogger(func() fxevent.Logger { return &fxevent.SlogLogger{Logger: slog.Default()} }),
 	}

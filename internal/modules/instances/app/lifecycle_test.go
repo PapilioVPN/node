@@ -45,11 +45,12 @@ func TestLifecycleStatusDoesNotMutateRuntime(t *testing.T) {
 }
 
 type controlledRuntime struct {
-	state   domain.State
-	err     error
-	failure error
-	context context.Context
-	calls   int
+	state        domain.State
+	err          error
+	failure      error
+	context      context.Context
+	calls        int
+	observations int
 }
 
 func (r *controlledRuntime) Start(ctx context.Context) error {
@@ -64,4 +65,7 @@ func (r *controlledRuntime) Stop(ctx context.Context) error {
 	return r.err
 }
 
-func (r *controlledRuntime) Observe() (domain.State, error) { return r.state, r.failure }
+func (r *controlledRuntime) Observe() (domain.State, error) {
+	r.observations++
+	return r.state, r.failure
+}

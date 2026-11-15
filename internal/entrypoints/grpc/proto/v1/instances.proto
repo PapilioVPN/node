@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+package papilio.node.v1;
+
+option go_package = "github.com/PapilioVPN/node/internal/entrypoints/grpc/proto/v1;nodev1";
+
+service InstanceService {
+  rpc GetInstanceStatus(GetInstanceStatusRequest) returns (GetInstanceStatusResponse);
+}
+
+message GetInstanceStatusRequest {
+  string instance_id = 1;
+}
+
+message GetInstanceStatusResponse {
+  string instance_id = 1;
+  string engine = 2;
+  // Lifecycle observation only; RUNNING does not imply readiness or traffic health.
+  InstanceState state = 3;
+  // Absent when there is no completed execution failure. Raw errors are private.
+  InstanceFailure failure = 4;
+}
+
+enum InstanceState {
+  INSTANCE_STATE_UNSPECIFIED = 0;
+  INSTANCE_STATE_STOPPED = 1;
+  INSTANCE_STATE_RUNNING = 2;
+  INSTANCE_STATE_STOPPING = 3;
+  INSTANCE_STATE_EXITED = 4;
+}
+
+message InstanceFailure {
+  InstanceFailureCode code = 1;
+  // Present only when a nonnegative native exit code is known, including zero.
+  optional int32 exit_code = 2;
+}
+
+enum InstanceFailureCode {
+  INSTANCE_FAILURE_CODE_UNSPECIFIED = 0;
+  INSTANCE_FAILURE_CODE_EXECUTION_FAILED = 1;
+}
