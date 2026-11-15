@@ -102,6 +102,9 @@ func TestContainer(t *testing.T) {
 	if _, err := xrayv1.NewXrayServiceClient(connection).GetBinaryInfo(request, &xrayv1.GetBinaryInfoRequest{InstanceId: "unconfigured"}); status.Code(err) != codes.NotFound {
 		t.Fatalf("packaged Xray information grant/service failed: %v", err)
 	}
+	if _, err := xrayv1.NewXrayServiceClient(connection).GetRuntimeInfo(request, &xrayv1.GetRuntimeInfoRequest{InstanceId: "unconfigured"}); status.Code(err) != codes.NotFound {
+		t.Fatalf("packaged Xray runtime grant/service failed: %v", err)
+	}
 	if output, err := exec.CommandContext(ctx, "docker", "stop", "--time", "5", containerID).CombinedOutput(); err != nil {
 		t.Fatalf("stop runtime: %s, %v", output, err)
 	}
