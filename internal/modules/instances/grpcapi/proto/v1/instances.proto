@@ -6,6 +6,10 @@ option go_package = "github.com/PapilioVPN/node/internal/modules/instances/grpca
 
 service InstanceService {
   rpc GetInstanceStatus(GetInstanceStatusRequest) returns (GetInstanceStatusResponse);
+  // Admission/spawn only, not readiness. Execution outlives the request.
+  rpc StartInstance(StartInstanceRequest) returns (InstanceStatus);
+  // Joins the selected execution; cancellation can follow an applied stop.
+  rpc StopInstance(StopInstanceRequest) returns (InstanceStatus);
 }
 
 message GetInstanceStatusRequest {
@@ -38,4 +42,22 @@ message InstanceFailure {
 enum InstanceFailureCode {
   INSTANCE_FAILURE_CODE_UNSPECIFIED = 0;
   INSTANCE_FAILURE_CODE_EXECUTION_FAILED = 1;
+}
+
+message StartInstanceRequest {
+  string instance_id = 1;
+}
+
+message StopInstanceRequest {
+  string instance_id = 1;
+}
+
+// Shared control outcome, also carried as a native gRPC error detail when known.
+// An RPC failure or a lost response does not establish that no effect occurred.
+// Keep GetInstanceStatusResponse's existing flat wire contract unchanged.
+message InstanceStatus {
+  string instance_id = 1;
+  string engine = 2;
+  InstanceState state = 3;
+  InstanceFailure failure = 4;
 }

@@ -289,6 +289,165 @@ func (x *InstanceFailure) GetExitCode() int32 {
 	return 0
 }
 
+type StartInstanceRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	InstanceId    string                 `protobuf:"bytes,1,opt,name=instance_id,json=instanceId,proto3" json:"instance_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StartInstanceRequest) Reset() {
+	*x = StartInstanceRequest{}
+	mi := &file_internal_modules_instances_grpcapi_proto_v1_instances_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StartInstanceRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StartInstanceRequest) ProtoMessage() {}
+
+func (x *StartInstanceRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_modules_instances_grpcapi_proto_v1_instances_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StartInstanceRequest.ProtoReflect.Descriptor instead.
+func (*StartInstanceRequest) Descriptor() ([]byte, []int) {
+	return file_internal_modules_instances_grpcapi_proto_v1_instances_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *StartInstanceRequest) GetInstanceId() string {
+	if x != nil {
+		return x.InstanceId
+	}
+	return ""
+}
+
+type StopInstanceRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	InstanceId    string                 `protobuf:"bytes,1,opt,name=instance_id,json=instanceId,proto3" json:"instance_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StopInstanceRequest) Reset() {
+	*x = StopInstanceRequest{}
+	mi := &file_internal_modules_instances_grpcapi_proto_v1_instances_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StopInstanceRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StopInstanceRequest) ProtoMessage() {}
+
+func (x *StopInstanceRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_modules_instances_grpcapi_proto_v1_instances_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StopInstanceRequest.ProtoReflect.Descriptor instead.
+func (*StopInstanceRequest) Descriptor() ([]byte, []int) {
+	return file_internal_modules_instances_grpcapi_proto_v1_instances_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *StopInstanceRequest) GetInstanceId() string {
+	if x != nil {
+		return x.InstanceId
+	}
+	return ""
+}
+
+// Shared control outcome, also carried as a native gRPC error detail when known.
+// An RPC failure or a lost response does not establish that no effect occurred.
+// Keep GetInstanceStatusResponse's existing flat wire contract unchanged.
+type InstanceStatus struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	InstanceId    string                 `protobuf:"bytes,1,opt,name=instance_id,json=instanceId,proto3" json:"instance_id,omitempty"`
+	Engine        string                 `protobuf:"bytes,2,opt,name=engine,proto3" json:"engine,omitempty"`
+	State         InstanceState          `protobuf:"varint,3,opt,name=state,proto3,enum=papilio.node.v1.InstanceState" json:"state,omitempty"`
+	Failure       *InstanceFailure       `protobuf:"bytes,4,opt,name=failure,proto3" json:"failure,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *InstanceStatus) Reset() {
+	*x = InstanceStatus{}
+	mi := &file_internal_modules_instances_grpcapi_proto_v1_instances_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InstanceStatus) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InstanceStatus) ProtoMessage() {}
+
+func (x *InstanceStatus) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_modules_instances_grpcapi_proto_v1_instances_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InstanceStatus.ProtoReflect.Descriptor instead.
+func (*InstanceStatus) Descriptor() ([]byte, []int) {
+	return file_internal_modules_instances_grpcapi_proto_v1_instances_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *InstanceStatus) GetInstanceId() string {
+	if x != nil {
+		return x.InstanceId
+	}
+	return ""
+}
+
+func (x *InstanceStatus) GetEngine() string {
+	if x != nil {
+		return x.Engine
+	}
+	return ""
+}
+
+func (x *InstanceStatus) GetState() InstanceState {
+	if x != nil {
+		return x.State
+	}
+	return InstanceState_INSTANCE_STATE_UNSPECIFIED
+}
+
+func (x *InstanceStatus) GetFailure() *InstanceFailure {
+	if x != nil {
+		return x.Failure
+	}
+	return nil
+}
+
 var File_internal_modules_instances_grpcapi_proto_v1_instances_proto protoreflect.FileDescriptor
 
 const file_internal_modules_instances_grpcapi_proto_v1_instances_proto_rawDesc = "" +
@@ -307,7 +466,19 @@ const file_internal_modules_instances_grpcapi_proto_v1_instances_proto_rawDesc =
 	"\x04code\x18\x01 \x01(\x0e2$.papilio.node.v1.InstanceFailureCodeR\x04code\x12 \n" +
 	"\texit_code\x18\x02 \x01(\x05H\x00R\bexitCode\x88\x01\x01B\f\n" +
 	"\n" +
-	"_exit_code*\x9f\x01\n" +
+	"_exit_code\"7\n" +
+	"\x14StartInstanceRequest\x12\x1f\n" +
+	"\vinstance_id\x18\x01 \x01(\tR\n" +
+	"instanceId\"6\n" +
+	"\x13StopInstanceRequest\x12\x1f\n" +
+	"\vinstance_id\x18\x01 \x01(\tR\n" +
+	"instanceId\"\xbb\x01\n" +
+	"\x0eInstanceStatus\x12\x1f\n" +
+	"\vinstance_id\x18\x01 \x01(\tR\n" +
+	"instanceId\x12\x16\n" +
+	"\x06engine\x18\x02 \x01(\tR\x06engine\x124\n" +
+	"\x05state\x18\x03 \x01(\x0e2\x1e.papilio.node.v1.InstanceStateR\x05state\x12:\n" +
+	"\afailure\x18\x04 \x01(\v2 .papilio.node.v1.InstanceFailureR\afailure*\x9f\x01\n" +
 	"\rInstanceState\x12\x1e\n" +
 	"\x1aINSTANCE_STATE_UNSPECIFIED\x10\x00\x12\x1a\n" +
 	"\x16INSTANCE_STATE_STOPPED\x10\x01\x12\x1a\n" +
@@ -316,9 +487,11 @@ const file_internal_modules_instances_grpcapi_proto_v1_instances_proto_rawDesc =
 	"\x15INSTANCE_STATE_EXITED\x10\x04*h\n" +
 	"\x13InstanceFailureCode\x12%\n" +
 	"!INSTANCE_FAILURE_CODE_UNSPECIFIED\x10\x00\x12*\n" +
-	"&INSTANCE_FAILURE_CODE_EXECUTION_FAILED\x10\x012}\n" +
+	"&INSTANCE_FAILURE_CODE_EXECUTION_FAILED\x10\x012\xad\x02\n" +
 	"\x0fInstanceService\x12j\n" +
-	"\x11GetInstanceStatus\x12).papilio.node.v1.GetInstanceStatusRequest\x1a*.papilio.node.v1.GetInstanceStatusResponseBTZRgithub.com/PapilioVPN/node/internal/modules/instances/grpcapi/proto/v1;instancesv1b\x06proto3"
+	"\x11GetInstanceStatus\x12).papilio.node.v1.GetInstanceStatusRequest\x1a*.papilio.node.v1.GetInstanceStatusResponse\x12W\n" +
+	"\rStartInstance\x12%.papilio.node.v1.StartInstanceRequest\x1a\x1f.papilio.node.v1.InstanceStatus\x12U\n" +
+	"\fStopInstance\x12$.papilio.node.v1.StopInstanceRequest\x1a\x1f.papilio.node.v1.InstanceStatusBTZRgithub.com/PapilioVPN/node/internal/modules/instances/grpcapi/proto/v1;instancesv1b\x06proto3"
 
 var (
 	file_internal_modules_instances_grpcapi_proto_v1_instances_proto_rawDescOnce sync.Once
@@ -333,25 +506,34 @@ func file_internal_modules_instances_grpcapi_proto_v1_instances_proto_rawDescGZI
 }
 
 var file_internal_modules_instances_grpcapi_proto_v1_instances_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_internal_modules_instances_grpcapi_proto_v1_instances_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_internal_modules_instances_grpcapi_proto_v1_instances_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_internal_modules_instances_grpcapi_proto_v1_instances_proto_goTypes = []any{
 	(InstanceState)(0),                // 0: papilio.node.v1.InstanceState
 	(InstanceFailureCode)(0),          // 1: papilio.node.v1.InstanceFailureCode
 	(*GetInstanceStatusRequest)(nil),  // 2: papilio.node.v1.GetInstanceStatusRequest
 	(*GetInstanceStatusResponse)(nil), // 3: papilio.node.v1.GetInstanceStatusResponse
 	(*InstanceFailure)(nil),           // 4: papilio.node.v1.InstanceFailure
+	(*StartInstanceRequest)(nil),      // 5: papilio.node.v1.StartInstanceRequest
+	(*StopInstanceRequest)(nil),       // 6: papilio.node.v1.StopInstanceRequest
+	(*InstanceStatus)(nil),            // 7: papilio.node.v1.InstanceStatus
 }
 var file_internal_modules_instances_grpcapi_proto_v1_instances_proto_depIdxs = []int32{
 	0, // 0: papilio.node.v1.GetInstanceStatusResponse.state:type_name -> papilio.node.v1.InstanceState
 	4, // 1: papilio.node.v1.GetInstanceStatusResponse.failure:type_name -> papilio.node.v1.InstanceFailure
 	1, // 2: papilio.node.v1.InstanceFailure.code:type_name -> papilio.node.v1.InstanceFailureCode
-	2, // 3: papilio.node.v1.InstanceService.GetInstanceStatus:input_type -> papilio.node.v1.GetInstanceStatusRequest
-	3, // 4: papilio.node.v1.InstanceService.GetInstanceStatus:output_type -> papilio.node.v1.GetInstanceStatusResponse
-	4, // [4:5] is the sub-list for method output_type
-	3, // [3:4] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	0, // 3: papilio.node.v1.InstanceStatus.state:type_name -> papilio.node.v1.InstanceState
+	4, // 4: papilio.node.v1.InstanceStatus.failure:type_name -> papilio.node.v1.InstanceFailure
+	2, // 5: papilio.node.v1.InstanceService.GetInstanceStatus:input_type -> papilio.node.v1.GetInstanceStatusRequest
+	5, // 6: papilio.node.v1.InstanceService.StartInstance:input_type -> papilio.node.v1.StartInstanceRequest
+	6, // 7: papilio.node.v1.InstanceService.StopInstance:input_type -> papilio.node.v1.StopInstanceRequest
+	3, // 8: papilio.node.v1.InstanceService.GetInstanceStatus:output_type -> papilio.node.v1.GetInstanceStatusResponse
+	7, // 9: papilio.node.v1.InstanceService.StartInstance:output_type -> papilio.node.v1.InstanceStatus
+	7, // 10: papilio.node.v1.InstanceService.StopInstance:output_type -> papilio.node.v1.InstanceStatus
+	8, // [8:11] is the sub-list for method output_type
+	5, // [5:8] is the sub-list for method input_type
+	5, // [5:5] is the sub-list for extension type_name
+	5, // [5:5] is the sub-list for extension extendee
+	0, // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_internal_modules_instances_grpcapi_proto_v1_instances_proto_init() }
@@ -366,7 +548,7 @@ func file_internal_modules_instances_grpcapi_proto_v1_instances_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_internal_modules_instances_grpcapi_proto_v1_instances_proto_rawDesc), len(file_internal_modules_instances_grpcapi_proto_v1_instances_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   3,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
