@@ -24,7 +24,7 @@ jobs:
       - name: Verify generated protocol source
         run: |
           make generate
-          git diff --exit-code -- internal/modules/system/grpcapi/proto/v1 internal/modules/instances/grpcapi/proto/v1
+          git diff --exit-code -- internal/modules/system/grpcapi/proto/v1 internal/modules/instances/grpcapi/proto/v1 internal/modules/engines/xray/grpcapi/proto/v1
       - name: Check
         run: make check
       - name: Build and package runtime image

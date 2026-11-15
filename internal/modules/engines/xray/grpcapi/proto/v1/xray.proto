@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package papilio.node.xray.v1;
+
+option go_package = "github.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi/proto/v1;xrayv1";
+
+service XrayService {
+  // Executes the selected configured binary's native version command only.
+  // These facts may differ from a previously started process after file replacement.
+  rpc GetBinaryInfo(GetBinaryInfoRequest) returns (GetBinaryInfoResponse);
+}
+
+message GetBinaryInfoRequest {
+  string instance_id = 1;
+}
+
+message GetBinaryInfoResponse {
+  string instance_id = 1;
+  BinaryInfo binary = 2;
+}
+
+// Configured executable metadata, not process state, readiness or native API support.
+message BinaryInfo {
+  string version = 1;
+  string build = 2;
+  string go_version = 3;
+  string operating_system = 4;
+  string architecture = 5;
+  int64 observed_at_unix_ms = 6;
+}
