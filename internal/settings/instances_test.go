@@ -29,7 +29,7 @@ instances:
 	}
 	for i, name := range []string{"a.json", "b.json"} {
 		xray := config.Instances[i].Xray
-		if xray.Inspection != nil || config.Communications.GRPC.Permissions.ReadEngineInfo || config.Communications.GRPC.Permissions.ReadEngineStats {
+		if xray.Inspection != nil || config.Communications.GRPC.Permissions.ReadEngineInfo || config.Communications.GRPC.Permissions.ReadEngineStats || config.Communications.GRPC.Permissions.ReadEngineOnline {
 			t.Fatal("binary inspection or its grant was implicitly enabled")
 		}
 		if xray.Binary != filepath.Join(filepath.Dir(path), "bin/xray") || xray.ConfigFile != filepath.Join(filepath.Dir(path), "engines", name) {
@@ -65,7 +65,7 @@ communications:
 		t.Fatalf("inspection limits lost: %+v", inspection)
 	}
 	permissions := cfg.Communications.GRPC.Permissions
-	if !permissions.ReadEngineInfo || permissions.ReadEngineStats || permissions.ReadInstanceStatus || permissions.ControlInstances || permissions.ValidateInstanceConfig {
+	if !permissions.ReadEngineInfo || permissions.ReadEngineStats || permissions.ReadEngineOnline || permissions.ReadInstanceStatus || permissions.ControlInstances || permissions.ValidateInstanceConfig {
 		t.Fatalf("engine information expanded existing grants: %+v", permissions)
 	}
 }
@@ -177,6 +177,23 @@ instances:
     validation: `+input+"\n"))
 		if !errors.Is(err, settings.ErrInvalidConfig) {
 			t.Fatalf("invalid validation settings accepted: %v", err)
+		}
+	}
+}
+
+func TestOnlineGrantIsExplicitAndIndependent(t *testing.T) {
+	for _, grant := range []string{"false", "true"} {
+		cfg, err := settings.Load(writeConfig(t, `node: {id: west}
+communications:
+  grpc:
+    permissions: {read_engine_online: `+grant+`}
+`))
+		if err != nil {
+			t.Fatal(err)
+		}
+		p := cfg.Communications.GRPC.Permissions
+		if p.ReadEngineOnline != (grant == "true") || p.ReadEngineInfo || p.ReadEngineStats || p.ControlInstances || p.ReadInstanceStatus || p.ValidateInstanceConfig {
+			t.Fatalf("independent online grant: %+v", p)
 		}
 	}
 }

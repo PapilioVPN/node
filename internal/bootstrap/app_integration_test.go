@@ -51,6 +51,11 @@ func TestRuntimeMTLSAndShutdown(t *testing.T) {
 	if !slices.Contains(result.GetCapabilities(), "xray.runtime.info.read") {
 		t.Fatalf("Xray runtime operation is absent: %v", result.GetCapabilities())
 	}
+	for _, capability := range []string{"xray.user.online.read", "xray.user.online.ips.list", "xray.users.online.list"} {
+		if !slices.Contains(result.GetCapabilities(), capability) {
+			t.Fatalf("online operation absent: %s", capability)
+		}
+	}
 	if !slices.Contains(result.GetCapabilities(), "xray.traffic.counter.list") {
 		t.Fatalf("Xray traffic collection operation is absent: %v", result.GetCapabilities())
 	}

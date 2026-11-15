@@ -52,6 +52,7 @@ type GRPCPermissions struct {
 	ValidateInstanceConfig bool `yaml:"validate_instance_config"`
 	ReadEngineInfo         bool `yaml:"read_engine_info"`
 	ReadEngineStats        bool `yaml:"read_engine_stats"`
+	ReadEngineOnline       bool `yaml:"read_engine_online"`
 }
 
 type TLS struct {

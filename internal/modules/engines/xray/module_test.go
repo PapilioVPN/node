@@ -57,6 +57,15 @@ func TestModuleClosesAPIAdmissionAndExportsFinalCleanup(t *testing.T) {
 	if _, err := newTrafficCountersService(resources).ListTrafficCounters(t.Context(), "edge", domain.UserTraffic); !errors.Is(err, grpc.ErrClientConnClosing) {
 		t.Fatalf("OnStop did not close collection admission: %v", err)
 	}
+	if _, err := newOnlineService(resources).GetUserOnlineStats(t.Context(), "edge", "reader"); !errors.Is(err, grpc.ErrClientConnClosing) {
+		t.Fatalf("OnStop did not close online count admission: %v", err)
+	}
+	if _, err := newOnlineService(resources).ListUserOnlineIPs(t.Context(), "edge", "reader"); !errors.Is(err, grpc.ErrClientConnClosing) {
+		t.Fatalf("OnStop did not close online IP admission: %v", err)
+	}
+	if _, err := newOnlineService(resources).ListOnlineUsers(t.Context(), "edge"); !errors.Is(err, grpc.ErrClientConnClosing) {
+		t.Fatalf("OnStop did not close online user admission: %v", err)
+	}
 	if err := resources.Close(); err != nil {
 		t.Fatalf("final cleanup after OnStop: %v", err)
 	}

@@ -26,8 +26,10 @@ type Handler struct {
 	Runtime         RuntimeInfoReader
 	Traffic         TrafficCounterReader
 	TrafficCounters TrafficCountersReader
+	Online          OnlineReader
 	AllowInfoRead   bool
 	AllowStatsRead  bool
+	AllowOnlineRead bool
 }
 
 func (h Handler) GetBinaryInfo(ctx context.Context, request *xrayv1.GetBinaryInfoRequest) (*xrayv1.GetBinaryInfoResponse, error) {
