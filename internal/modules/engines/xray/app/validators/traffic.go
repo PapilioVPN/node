@@ -9,16 +9,21 @@ import (
 
 // TrafficSelection validates boundary input without changing its identity.
 func TrafficSelection(selection domain.TrafficSelection) error {
-	if strings.TrimSpace(selection.Name) == "" {
-		return domain.ErrInvalidTrafficSelection
-	}
-	if err := TrafficScope(selection.Scope); err != nil {
+	if err := TrafficPairSelection(domain.TrafficPairSelection{Scope: selection.Scope, Name: selection.Name}); err != nil {
 		return err
 	}
 	if selection.Direction != domain.Uplink && selection.Direction != domain.Downlink {
 		return domain.ErrInvalidTrafficSelection
 	}
 	return nil
+}
+
+// TrafficPairSelection checks an opaque email/tag without normalizing it.
+func TrafficPairSelection(selection domain.TrafficPairSelection) error {
+	if strings.TrimSpace(selection.Name) == "" {
+		return domain.ErrInvalidTrafficSelection
+	}
+	return TrafficScope(selection.Scope)
 }
 
 // TrafficScope checks a collection scope without normalizing it.

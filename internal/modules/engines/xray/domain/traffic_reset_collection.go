@@ -15,6 +15,7 @@ const (
 	TrafficResetAcknowledged TrafficResetState = "acknowledged"
 	TrafficResetNotApplied   TrafficResetState = "not_applied"
 	TrafficResetUnknown      TrafficResetState = "unknown"
+	TrafficResetMissing      TrafficResetState = "missing"
 )
 
 // TrafficCounterResetEntry retains a selected counter even when it was not run.
