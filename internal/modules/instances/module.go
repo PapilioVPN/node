@@ -8,9 +8,9 @@ import (
 
 	"go.uber.org/fx"
 
-	"github.com/PapilioVPN/node/internal/apps/instances/app"
-	"github.com/PapilioVPN/node/internal/apps/instances/domain"
 	"github.com/PapilioVPN/node/internal/engines/xray"
+	"github.com/PapilioVPN/node/internal/modules/instances/app"
+	"github.com/PapilioVPN/node/internal/modules/instances/domain"
 	"github.com/PapilioVPN/node/internal/settings"
 )
 

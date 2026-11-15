@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/PapilioVPN/node/internal/apps/instances/domain"
+	"github.com/PapilioVPN/node/internal/modules/instances/domain"
 )
 
 // Instance declares one named engine execution started with Node.

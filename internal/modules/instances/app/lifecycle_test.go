@@ -5,8 +5,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/PapilioVPN/node/internal/apps/instances/app"
-	"github.com/PapilioVPN/node/internal/apps/instances/domain"
+	"github.com/PapilioVPN/node/internal/modules/instances/app"
+	"github.com/PapilioVPN/node/internal/modules/instances/domain"
 )
 
 func TestLifecyclePreservesIdentityContextAndPartialOutcomes(t *testing.T) {

@@ -4,7 +4,7 @@ package app
 import (
 	"context"
 
-	"github.com/PapilioVPN/node/internal/apps/instances/domain"
+	"github.com/PapilioVPN/node/internal/modules/instances/domain"
 )
 
 // Runtime is the lifecycle capability consumed by one bound instance.

@@ -3,7 +3,7 @@ package app
 import (
 	"context"
 
-	"github.com/PapilioVPN/node/internal/apps/system/domain"
+	"github.com/PapilioVPN/node/internal/modules/system/domain"
 )
 
 type InfoService struct {

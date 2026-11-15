@@ -3,8 +3,8 @@ package bootstrap
 import (
 	"go.uber.org/fx"
 
-	"github.com/PapilioVPN/node/internal/apps/system/app"
 	rpc "github.com/PapilioVPN/node/internal/entrypoints/grpc"
+	"github.com/PapilioVPN/node/internal/modules/system/app"
 	"github.com/PapilioVPN/node/internal/settings"
 )
 

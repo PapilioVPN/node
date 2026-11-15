@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/PapilioVPN/node/internal/apps/system/app"
+	"github.com/PapilioVPN/node/internal/modules/system/app"
 )
 
 func TestGetNodeInfo(t *testing.T) {

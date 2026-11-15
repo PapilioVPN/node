@@ -7,8 +7,8 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/PapilioVPN/node/internal/apps/system/domain"
 	nodev1 "github.com/PapilioVPN/node/internal/entrypoints/grpc/proto/v1"
+	"github.com/PapilioVPN/node/internal/modules/system/domain"
 )
 
 // NodeInfoReader is the application operation consumed by this adapter.

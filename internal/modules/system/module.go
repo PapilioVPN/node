@@ -3,8 +3,8 @@ package system
 import (
 	"go.uber.org/fx"
 
-	"github.com/PapilioVPN/node/internal/apps/system/app"
-	"github.com/PapilioVPN/node/internal/apps/system/domain"
+	"github.com/PapilioVPN/node/internal/modules/system/app"
+	"github.com/PapilioVPN/node/internal/modules/system/domain"
 	"github.com/PapilioVPN/node/internal/settings"
 )
 

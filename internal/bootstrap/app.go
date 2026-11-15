@@ -8,9 +8,9 @@ import (
 	"go.uber.org/fx"
 	"go.uber.org/fx/fxevent"
 
-	"github.com/PapilioVPN/node/internal/apps/instances"
-	"github.com/PapilioVPN/node/internal/apps/system"
 	rpc "github.com/PapilioVPN/node/internal/entrypoints/grpc"
+	"github.com/PapilioVPN/node/internal/modules/instances"
+	"github.com/PapilioVPN/node/internal/modules/system"
 	"github.com/PapilioVPN/node/internal/settings"
 )
 
