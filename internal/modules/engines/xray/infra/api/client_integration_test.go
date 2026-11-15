@@ -31,10 +31,16 @@ func (s runtimeServer) GetSysStats(ctx context.Context, _ *native.SysStatsReques
 	return s.read(ctx)
 }
 
-type connectionCounts struct{ opened atomic.Int32 }
+type connectionCounts struct {
+	opened atomic.Int32
+	rpcs   atomic.Int64
+}
 
-func (*connectionCounts) TagRPC(ctx context.Context, _ *stats.RPCTagInfo) context.Context { return ctx }
-func (*connectionCounts) HandleRPC(context.Context, stats.RPCStats)                       {}
+func (s *connectionCounts) TagRPC(ctx context.Context, _ *stats.RPCTagInfo) context.Context {
+	s.rpcs.Add(1)
+	return ctx
+}
+func (*connectionCounts) HandleRPC(context.Context, stats.RPCStats) {}
 func (*connectionCounts) TagConn(ctx context.Context, _ *stats.ConnTagInfo) context.Context {
 	return ctx
 }

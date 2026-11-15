@@ -21,11 +21,16 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/PapilioVPN/node/internal/bootstrap"
+	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
+	"github.com/PapilioVPN/node/internal/modules/engines/xray/app/services"
+	"github.com/PapilioVPN/node/internal/modules/engines/xray/domain"
 	xrayv1 "github.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi/proto/v1"
+	xrayapi "github.com/PapilioVPN/node/internal/modules/engines/xray/infra/api"
 	rpc "github.com/PapilioVPN/node/internal/platform/grpcserver"
 	"github.com/PapilioVPN/node/internal/settings"
 	"github.com/PapilioVPN/node/internal/shared/testutil"
 	handlers "github.com/xtls/xray-core/app/proxyman/command"
+	"google.golang.org/protobuf/proto"
 )
 
 // This verifies changes to real native user managers for all eight families.
@@ -70,7 +75,7 @@ func TestLiveUserAdditionUpdatesEveryBaselineNativeUserManager(t *testing.T) {
 		{"ss2022", "shadowsocks", "tcp", map[string]any{"method": "2022-blake3-aes-128-gcm", "password": serverKey, "clients": []map[string]any{{"email": "seed@local", "password": seed}}}, nil, &xrayv1.InboundUser{Account: &xrayv1.InboundUser_Shadowsocks_2022{Shadowsocks_2022: &xrayv1.Shadowsocks2022Account{Key: key}}}},
 		{"hysteria", "hysteria", "udp", map[string]any{"version": 2, "clients": []any{}}, stream("hysteria", "h3"), &xrayv1.InboundUser{Account: &xrayv1.InboundUser_Hysteria{Hysteria: &xrayv1.HysteriaAccount{Auth: "test-only-auth"}}}},
 		{"masque", "masque", "tcp", map[string]any{"address": []string{"10.254.1.1/30"}, "clients": []any{}}, stream("masque", "h2"), &xrayv1.InboundUser{Account: &xrayv1.InboundUser_Masque{Masque: &xrayv1.PasswordAccount{Password: "test-only-masque"}}}},
-		{"wireguard", "wireguard", "udp", map[string]any{"secretKey": base64.StdEncoding.EncodeToString(bytes.Repeat([]byte{9}, 32)), "address": []string{"10.254.2.1/24"}, "noKernelTun": true}, nil, &xrayv1.InboundUser{Account: &xrayv1.InboundUser_Wireguard{Wireguard: &xrayv1.WireGuardAccount{PublicKey: bytes.Repeat([]byte{7}, 32), PreSharedKey: bytes.Repeat([]byte{8}, 32), AllowedIps: []string{"10.254.2.2/32"}, KeepAliveSeconds: new(uint32)}}}},
+		{"wireguard", "wireguard", "udp", map[string]any{"secretKey": base64.StdEncoding.EncodeToString(bytes.Repeat([]byte{9}, 32)), "address": []string{"10.254.2.1/24"}, "noKernelTun": true, "peers": []map[string]any{{"publicKey": base64.StdEncoding.EncodeToString(bytes.Repeat([]byte{6}, 32)), "allowedIPs": []string{"10.254.2.3/32"}}}}, nil, &xrayv1.InboundUser{Account: &xrayv1.InboundUser_Wireguard{Wireguard: &xrayv1.WireGuardAccount{PublicKey: bytes.Repeat([]byte{7}, 32), PreSharedKey: bytes.Repeat([]byte{8}, 32), AllowedIps: []string{"10.254.2.2/32"}, KeepAliveSeconds: new(uint32)}}}},
 	}
 	content, err := os.ReadFile(instance.Xray.ConfigFile)
 	if err != nil {
@@ -153,6 +158,13 @@ func TestLiveUserAdditionUpdatesEveryBaselineNativeUserManager(t *testing.T) {
 	}
 	defer connection.Close()
 	native := handlers.NewHandlerServiceClient(connection)
+	observer, err := xrayapi.NewClient(xrayapi.Config{Network: instance.Xray.API.Network, Address: instance.Xray.API.Address, RequestTimeout: instance.Xray.API.RequestTimeout, MaxReceiveBytes: instance.Xray.API.MaxReceiveBytes, MaxConcurrent: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer observer.Close()
+	// Private application reads remain independent of the pending public API decision.
+	observations := services.NewUserObservationService(map[instances.InstanceID]services.UserObservationReader{instance.ID: observer})
 	client := xrayClient(t, server, certificates)
 	for _, tc := range cases {
 		t.Run(tc.tag, func(t *testing.T) {
@@ -162,6 +174,11 @@ func TestLiveUserAdditionUpdatesEveryBaselineNativeUserManager(t *testing.T) {
 			}
 			if before.InstanceId != "edge" || before.InboundTag != tc.tag || before.ObservedAtUnixMs <= 0 {
 				t.Fatal("count response lost native selection/observation time")
+			}
+			selection := domain.InboundUserSelection{InboundTag: tc.tag, Email: "added@local"}
+			absent, err := observations.GetInboundUser(ctx, instance.ID, selection)
+			if err != nil || absent.Observation.User != nil || absent.Observation.ObservedAt.IsZero() {
+				t.Fatal("real missing native user was not a completed absent observation")
 			}
 			tc.user.Email, tc.user.Level = "added@local", 23
 			if _, err := client.AddInboundUser(ctx, &xrayv1.AddInboundUserRequest{InstanceId: "edge", InboundTag: tc.tag, User: tc.user}); err != nil {
@@ -175,12 +192,55 @@ func TestLiveUserAdditionUpdatesEveryBaselineNativeUserManager(t *testing.T) {
 			if err != nil || len(users.GetUsers()) != 1 || users.Users[0].GetEmail() != "added@local" || users.Users[0].GetLevel() != 23 || users.Users[0].GetAccount() == nil {
 				t.Fatal("native stored identity/level/account differs; credentials withheld")
 			}
+			one, err := observations.GetInboundUser(ctx, instance.ID, selection)
+			if err != nil || one.Observation.User == nil || one.Observation.User.Email != "added@local" || one.Observation.User.Level != 23 || one.Observation.User.Account.TypeName != users.Users[0].Account.Type || !bytes.Equal(one.Observation.User.Account.Protobuf, users.Users[0].Account.Value) {
+				t.Fatal("real account observation changed native identity/level/payload; credentials withheld")
+			}
+			expected := before.Count + 1
+			if tc.tag == "wireguard" {
+				// Native WireGuard permits multiple keys with one email. Listing must
+				// retain both records; a single lookup makes no uniqueness assertion.
+				duplicate := proto.Clone(tc.user).(*xrayv1.InboundUser)
+				duplicate.GetWireguard().PublicKey = bytes.Repeat([]byte{5}, 32)
+				duplicate.GetWireguard().AllowedIps = []string{"10.254.2.4/32"}
+				if _, err := client.AddInboundUser(ctx, &xrayv1.AddInboundUserRequest{InstanceId: "edge", InboundTag: tc.tag, User: duplicate}); err != nil {
+					t.Fatal(err)
+				}
+				expected++
+			}
+			list, err := observations.ListInboundUsers(ctx, instance.ID, tc.tag)
+			if err != nil || int64(len(list.Observation.Users)) != expected || list.Observation.ObservedAt.IsZero() {
+				t.Fatal("real native user collection was truncated or invalid")
+			}
+			selected, anonymous := 0, 0
+			for _, user := range list.Observation.Users {
+				if user.Email == "added@local" {
+					selected++
+				}
+				if user.Email == "" {
+					anonymous++
+				}
+			}
+			if tc.tag == "wireguard" {
+				if selected != 2 || anonymous != 1 {
+					t.Fatal("native duplicates or anonymous peer were dropped")
+				}
+				if _, err := client.RemoveInboundUser(ctx, &xrayv1.RemoveInboundUserRequest{InstanceId: "edge", InboundTag: tc.tag, Email: "added@local"}); err != nil {
+					t.Fatal(err)
+				}
+			} else if selected != 1 {
+				t.Fatal("native selected user was lost")
+			}
 			if _, err := client.RemoveInboundUser(ctx, &xrayv1.RemoveInboundUserRequest{InstanceId: "edge", InboundTag: tc.tag, Email: "added@local"}); err != nil {
 				t.Fatal(err)
 			}
 			after, err = client.GetInboundUserCount(ctx, &xrayv1.GetInboundUserCountRequest{InstanceId: "edge", InboundTag: tc.tag})
 			if err != nil || after.Count != before.Count {
 				t.Fatalf("native removal did not restore original membership: %v", err)
+			}
+			absent, err = observations.GetInboundUser(ctx, instance.ID, selection)
+			if err != nil || absent.Observation.User != nil {
+				t.Fatal("removed native user still appeared in observations")
 			}
 		})
 	}

@@ -32,6 +32,12 @@ func TestAPIConstructionAndCanceledAdmissionCreateNoNativeChannel(t *testing.T) 
 	if _, err := client.ReadInboundUserCount(ctx, "in"); !errors.Is(err, context.Canceled) || client.connection != nil {
 		t.Fatalf("canceled count created native workers: %v", err)
 	}
+	if _, err := client.ReadInboundUser(ctx, domain.InboundUserSelection{InboundTag: "in", Email: "user"}); !errors.Is(err, context.Canceled) || client.connection != nil {
+		t.Fatal("canceled user lookup created native workers")
+	}
+	if _, err := client.ReadInboundUsers(ctx, "in"); !errors.Is(err, context.Canceled) || client.connection != nil {
+		t.Fatal("canceled user collection created native workers")
+	}
 	selection := domain.TrafficSelection{Scope: domain.InboundTraffic, Name: "proxy", Direction: domain.Uplink}
 	if _, err := client.ReadTrafficCounter(ctx, selection); !errors.Is(err, context.Canceled) || client.connection != nil {
 		t.Fatalf("canceled traffic admission created a channel: %v", err)
@@ -50,6 +56,12 @@ func TestAPIConstructionAndCanceledAdmissionCreateNoNativeChannel(t *testing.T) 
 	}
 	if _, err := client.ReadInboundUserCount(t.Context(), "in"); !errors.Is(err, grpc.ErrClientConnClosing) || client.connection != nil {
 		t.Fatalf("closed count created native workers: %v", err)
+	}
+	if _, err := client.ReadInboundUser(t.Context(), domain.InboundUserSelection{InboundTag: "in", Email: "user"}); !errors.Is(err, grpc.ErrClientConnClosing) || client.connection != nil {
+		t.Fatal("closed user lookup created native workers")
+	}
+	if _, err := client.ReadInboundUsers(t.Context(), "in"); !errors.Is(err, grpc.ErrClientConnClosing) || client.connection != nil {
+		t.Fatal("closed user collection created native workers")
 	}
 	if _, err := client.ReadTrafficCounter(t.Context(), selection); !errors.Is(err, grpc.ErrClientConnClosing) || client.connection != nil {
 		t.Fatalf("closed traffic admission created a channel: %v", err)
