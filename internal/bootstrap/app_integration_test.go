@@ -51,6 +51,9 @@ func TestRuntimeMTLSAndShutdown(t *testing.T) {
 	if !slices.Contains(result.GetCapabilities(), "xray.runtime.info.read") {
 		t.Fatalf("Xray runtime operation is absent: %v", result.GetCapabilities())
 	}
+	if !slices.Contains(result.GetCapabilities(), "xray.traffic.counter.read") {
+		t.Fatalf("Xray traffic operation is absent: %v", result.GetCapabilities())
+	}
 	probe, err := healthv1.NewHealthClient(connection).Check(ctx, &healthv1.HealthCheckRequest{Service: nodev1.NodeService_ServiceDesc.ServiceName})
 	if err != nil || probe.GetStatus() != healthv1.HealthCheckResponse_SERVING {
 		t.Fatalf("runtime not ready: %v, %v", probe, err)

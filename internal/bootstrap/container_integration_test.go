@@ -42,6 +42,7 @@ func TestContainer(t *testing.T) {
 	cfg.Communications.GRPC.Permissions.ControlInstances = true
 	cfg.Communications.GRPC.Permissions.ValidateInstanceConfig = true
 	cfg.Communications.GRPC.Permissions.ReadEngineInfo = true
+	cfg.Communications.GRPC.Permissions.ReadEngineStats = true
 	contents, err := yaml.Marshal(cfg)
 	if err != nil {
 		t.Fatal(err)
@@ -104,6 +105,12 @@ func TestContainer(t *testing.T) {
 	}
 	if _, err := xrayv1.NewXrayServiceClient(connection).GetRuntimeInfo(request, &xrayv1.GetRuntimeInfoRequest{InstanceId: "unconfigured"}); status.Code(err) != codes.NotFound {
 		t.Fatalf("packaged Xray runtime grant/service failed: %v", err)
+	}
+	if _, err := xrayv1.NewXrayServiceClient(connection).GetTrafficCounter(request, &xrayv1.GetTrafficCounterRequest{
+		InstanceId: "unconfigured", Scope: xrayv1.TrafficScope_TRAFFIC_SCOPE_INBOUND,
+		Name: "proxy", Direction: xrayv1.TrafficDirection_TRAFFIC_DIRECTION_UPLINK,
+	}); status.Code(err) != codes.NotFound {
+		t.Fatalf("packaged Xray traffic grant/service failed: %v", err)
 	}
 	if output, err := exec.CommandContext(ctx, "docker", "stop", "--time", "5", containerID).CombinedOutput(); err != nil {
 		t.Fatalf("stop runtime: %s, %v", output, err)

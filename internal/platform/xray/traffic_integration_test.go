@@ -126,3 +126,48 @@ func TestTrafficSharesAdmissionAndReleasesItAfterCancellation(t *testing.T) {
 		t.Fatalf("capacity not released: %v", err)
 	}
 }
+
+func TestTrafficNativeDeadlineAndCloseDiscardFacts(t *testing.T) {
+	for _, mode := range []string{"deadline", "native-timeout", "close"} {
+		t.Run(mode, func(t *testing.T) {
+			started := make(chan struct{}, 1)
+			address, _ := apiServer(t, trafficServer{read: func(ctx context.Context, _ *native.GetStatsRequest) (*native.GetStatsResponse, error) {
+				started <- struct{}{}
+				<-ctx.Done()
+				return nil, status.FromContextError(ctx.Err()).Err()
+			}})
+			timeout := 2 * time.Second
+			if mode == "native-timeout" {
+				timeout = time.Second
+			}
+			client := apiClient(t, address, timeout, 4096)
+			ctx, cancel := context.WithCancel(t.Context())
+			if mode == "deadline" {
+				cancel()
+				ctx, cancel = context.WithTimeout(t.Context(), time.Second)
+			}
+			finished := make(chan struct{})
+			var counter domain.TrafficCounter
+			var readError error
+			go func() {
+				counter, readError = client.ReadTrafficCounter(ctx, domain.TrafficSelection{Scope: domain.InboundTraffic, Name: "proxy", Direction: domain.Uplink})
+				close(finished)
+			}()
+			defer func() { cancel(); _ = client.Close(); <-finished }()
+			select {
+			case <-started:
+			case <-time.After(3 * time.Second):
+				t.Fatal("native read did not start")
+			}
+			if mode == "close" {
+				if err := client.Close(); err != nil {
+					t.Fatal(err)
+				}
+			}
+			<-finished
+			if counter != (domain.TrafficCounter{}) || readError == nil || mode != "close" && !errors.Is(readError, context.DeadlineExceeded) {
+				t.Fatalf("interrupted read became facts: %+v, %v", counter, readError)
+			}
+		})
+	}
+}

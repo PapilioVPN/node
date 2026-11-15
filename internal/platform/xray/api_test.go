@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"google.golang.org/grpc"
+
+	"github.com/PapilioVPN/node/internal/modules/engines/xray/domain"
 )
 
 func TestAPIConstructionAndCanceledAdmissionCreateNoNativeChannel(t *testing.T) {
@@ -23,6 +25,10 @@ func TestAPIConstructionAndCanceledAdmissionCreateNoNativeChannel(t *testing.T) 
 	if client.connection != nil {
 		t.Fatal("construction/canceled admission allocated native workers")
 	}
+	selection := domain.TrafficSelection{Scope: domain.InboundTraffic, Name: "proxy", Direction: domain.Uplink}
+	if _, err := client.ReadTrafficCounter(ctx, selection); !errors.Is(err, context.Canceled) || client.connection != nil {
+		t.Fatalf("canceled traffic admission created a channel: %v", err)
+	}
 	if err := client.Close(); err != nil {
 		t.Fatal(err)
 	}
@@ -31,5 +37,8 @@ func TestAPIConstructionAndCanceledAdmissionCreateNoNativeChannel(t *testing.T) 
 	}
 	if client.connection != nil {
 		t.Fatal("closed admission created native channel")
+	}
+	if _, err := client.ReadTrafficCounter(t.Context(), selection); !errors.Is(err, grpc.ErrClientConnClosing) || client.connection != nil {
+		t.Fatalf("closed traffic admission created a channel: %v", err)
 	}
 }
