@@ -8,6 +8,7 @@ import (
 )
 
 const ReadTrafficCounter = "xray.traffic.counter.read"
+const ListTrafficCounters = "xray.traffic.counter.list"
 
 var ErrInvalidTrafficSelection = errors.New("invalid Xray traffic selection")
 var ErrTrafficCounterNotFound = errors.New("Xray traffic counter not found")
@@ -47,4 +48,24 @@ type InstanceTrafficCounter struct {
 	InstanceID instances.InstanceID
 	Selection  TrafficSelection
 	Counter    TrafficCounter
+}
+
+// TrafficCounterEntry identifies one observed native counter within its scope.
+type TrafficCounterEntry struct {
+	Name      string
+	Direction TrafficDirection
+	Bytes     int64
+}
+
+// TrafficCounters owns its items. ObservedAt is collection completion, not an
+// atomic snapshot time; native counters can change independently during the read.
+type TrafficCounters struct {
+	Items      []TrafficCounterEntry
+	ObservedAt time.Time
+}
+
+type InstanceTrafficCounters struct {
+	InstanceID instances.InstanceID
+	Scope      TrafficScope
+	Counters   TrafficCounters
 }
