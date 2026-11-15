@@ -3,8 +3,12 @@
 package bootstrap_test
 
 import (
+	"bytes"
 	"context"
+	"os"
+	"strings"
 	"testing"
+	"time"
 
 	"go.uber.org/fx"
 	"google.golang.org/grpc"
@@ -14,7 +18,10 @@ import (
 
 	"github.com/PapilioVPN/node/internal/bootstrap"
 	xrayv1 "github.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi/proto/v1"
+	"github.com/PapilioVPN/node/internal/modules/instances"
+	instancesv1 "github.com/PapilioVPN/node/internal/modules/instances/grpcapi/proto/v1"
 	rpc "github.com/PapilioVPN/node/internal/platform/grpcserver"
+	"github.com/PapilioVPN/node/internal/settings"
 	"github.com/PapilioVPN/node/internal/shared/testutil"
 )
 
@@ -26,6 +33,75 @@ func xrayClient(t *testing.T, server *rpc.Server, certificates testutil.Certific
 	}
 	t.Cleanup(func() { _ = connection.Close() })
 	return xrayv1.NewXrayServiceClient(connection)
+}
+
+func TestXrayBinaryInfoOverMTLSKeepsLiveInstancesUnchanged(t *testing.T) {
+	certificates := testutil.NewCertificates(t)
+	first, firstAddress := configuredXray(t, certificates.Directory, "edge-a")
+	second, secondAddress := configuredXray(t, certificates.Directory, "edge-b")
+	first.Xray.Inspection = &settings.BinaryInspection{Timeout: time.Second, MaxOutputBytes: 1024, MaxConcurrent: 1}
+	original, err := os.ReadFile(first.Xray.ConfigFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg := certificates.Config()
+	cfg.Instances = []settings.Instance{first, second}
+	cfg.Communications.GRPC.Permissions.ReadEngineInfo = true
+	var server *rpc.Server
+	var resources *instances.Resources
+	application := bootstrap.New(cfg, "test", fx.NopLogger, fx.Populate(&server, &resources))
+	if err := application.Start(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if err := application.Stop(context.Background()); err != nil {
+			t.Error(err)
+		}
+		if err := server.Close(); err != nil {
+			t.Error(err)
+		}
+		if err := resources.Close(); err != nil {
+			t.Error(err)
+		}
+		assertInstancePortsReleased(t, firstAddress, secondAddress)
+	})
+	ctx, cancel := context.WithTimeout(t.Context(), 8*time.Second)
+	defer cancel()
+	if err := xrayTraffic(ctx, firstAddress, secondAddress); err != nil {
+		t.Fatal(err)
+	}
+	client := xrayClient(t, server, certificates)
+	before := time.Now().UnixMilli()
+	response, err := client.GetBinaryInfo(ctx, &xrayv1.GetBinaryInfoRequest{InstanceId: "edge-a"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	info := response.GetBinary()
+	if response.InstanceId != "edge-a" || info.GetVersion() != "26.11.9" || info.Build == "" || !strings.HasPrefix(info.GoVersion, "go") || info.OperatingSystem != "linux" || info.Architecture != "amd64" || info.ObservedAtUnixMs < before || info.ObservedAtUnixMs > time.Now().UnixMilli() {
+		t.Fatalf("native Xray binary facts over mTLS: %v", response)
+	}
+	for id, expected := range map[string]codes.Code{"missing": codes.NotFound, "edge-b": codes.FailedPrecondition, " edge-a ": codes.NotFound, "": codes.InvalidArgument} {
+		if _, err := client.GetBinaryInfo(ctx, &xrayv1.GetBinaryInfoRequest{InstanceId: id}); status.Code(err) != expected || strings.Contains(err.Error(), certificates.Directory) {
+			t.Fatalf("selection failure: %v; want %v", err, expected)
+		}
+	}
+	controls := instanceClient(t, server, certificates)
+	if _, err := controls.GetInstanceStatus(ctx, &instancesv1.GetInstanceStatusRequest{InstanceId: "edge-a"}); status.Code(err) != codes.PermissionDenied {
+		t.Fatalf("engine information granted status reads: %v", err)
+	}
+	if _, err := controls.StopInstance(ctx, &instancesv1.StopInstanceRequest{InstanceId: "edge-a"}); status.Code(err) != codes.PermissionDenied {
+		t.Fatalf("engine information granted runtime control: %v", err)
+	}
+	if _, err := controls.ValidateInstanceConfig(ctx, &instancesv1.ValidateInstanceConfigRequest{InstanceId: "edge-a"}); status.Code(err) != codes.PermissionDenied {
+		t.Fatalf("engine information granted config validation: %v", err)
+	}
+	if err := xrayTraffic(ctx, firstAddress, secondAddress); err != nil {
+		t.Fatalf("binary inspection interrupted traffic: %v", err)
+	}
+	current, err := os.ReadFile(first.Xray.ConfigFile)
+	if err != nil || !bytes.Equal(current, original) {
+		t.Fatalf("binary inspection modified native configuration: %v", err)
+	}
 }
 
 func TestXrayBinaryInfoRequiresItsOwnGrant(t *testing.T) {

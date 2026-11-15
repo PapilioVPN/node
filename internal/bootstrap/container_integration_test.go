@@ -19,6 +19,7 @@ import (
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/status"
 
+	xrayv1 "github.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi/proto/v1"
 	nodev1 "github.com/PapilioVPN/node/internal/modules/instances/grpcapi/proto/v1"
 	systemv1 "github.com/PapilioVPN/node/internal/modules/system/grpcapi/proto/v1"
 	"github.com/PapilioVPN/node/internal/shared/testutil"
@@ -40,6 +41,7 @@ func TestContainer(t *testing.T) {
 	cfg.Communications.GRPC.Permissions.ReadInstanceStatus = true
 	cfg.Communications.GRPC.Permissions.ControlInstances = true
 	cfg.Communications.GRPC.Permissions.ValidateInstanceConfig = true
+	cfg.Communications.GRPC.Permissions.ReadEngineInfo = true
 	contents, err := yaml.Marshal(cfg)
 	if err != nil {
 		t.Fatal(err)
@@ -96,6 +98,9 @@ func TestContainer(t *testing.T) {
 	}
 	if _, err := nodev1.NewInstanceServiceClient(connection).ValidateInstanceConfig(request, &nodev1.ValidateInstanceConfigRequest{InstanceId: "unconfigured", Format: nodev1.ConfigFormat_CONFIG_FORMAT_JSON, Content: []byte("{}")}); status.Code(err) != codes.NotFound {
 		t.Fatalf("packaged validation grant/service failed: %v", err)
+	}
+	if _, err := xrayv1.NewXrayServiceClient(connection).GetBinaryInfo(request, &xrayv1.GetBinaryInfoRequest{InstanceId: "unconfigured"}); status.Code(err) != codes.NotFound {
+		t.Fatalf("packaged Xray information grant/service failed: %v", err)
 	}
 	if output, err := exec.CommandContext(ctx, "docker", "stop", "--time", "5", containerID).CombinedOutput(); err != nil {
 		t.Fatalf("stop runtime: %s, %v", output, err)

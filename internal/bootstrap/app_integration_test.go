@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"net"
+	"slices"
 	"testing"
 	"time"
 
@@ -43,6 +44,9 @@ func TestRuntimeMTLSAndShutdown(t *testing.T) {
 	result, err := nodev1.NewNodeServiceClient(connection).GetNodeInfo(ctx, &nodev1.GetNodeInfoRequest{})
 	if err != nil || result.GetNodeId() != "test-node" || result.GetVersion() != "integration-version" {
 		t.Fatalf("real gRPC operation failed: %v, %v", result, err)
+	}
+	if !slices.Contains(result.GetCapabilities(), "xray.binary.info.read") {
+		t.Fatalf("Xray module did not contribute its installed operation: %v", result.GetCapabilities())
 	}
 	probe, err := healthv1.NewHealthClient(connection).Check(ctx, &healthv1.HealthCheckRequest{Service: nodev1.NodeService_ServiceDesc.ServiceName})
 	if err != nil || probe.GetStatus() != healthv1.HealthCheckResponse_SERVING {

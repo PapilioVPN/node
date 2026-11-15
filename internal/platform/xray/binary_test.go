@@ -34,3 +34,25 @@ func TestNativeVersionOutputIsBoundedAcrossWrites(t *testing.T) {
 		t.Fatalf("excess output retained or accepted: %d, %v, %d", n, err, len(writer.data))
 	}
 }
+
+func FuzzVersionOutput(f *testing.F) {
+	f.Add([]byte("Xray 26.11.9 (Xray, Penetrates Everything.) native-build (go1.27.3 linux/amd64)\n"))
+	f.Add([]byte("Xray invalid\x00\r\n"))
+	f.Add([]byte{})
+	f.Fuzz(func(t *testing.T, output []byte) {
+		// Native reads are bounded before parsing; keep fuzz work bounded as well.
+		if len(output) > 4096 {
+			t.Skip()
+		}
+		info, err := parseVersionOutput(output)
+		if err != nil {
+			if !errors.Is(err, domain.ErrInvalidInfoOutput) || info != (domain.BinaryInfo{}) {
+				t.Fatalf("invalid output returned partial facts: %+v, %v", info, err)
+			}
+			return
+		}
+		if info.Version == "" || info.Build == "" || info.GoVersion == "" || info.OperatingSystem == "" || info.Architecture == "" || info.ObservedAt.IsZero() {
+			t.Fatalf("accepted incomplete native statement: %+v", info)
+		}
+	})
+}
