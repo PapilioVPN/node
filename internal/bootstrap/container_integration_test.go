@@ -38,6 +38,7 @@ func TestContainer(t *testing.T) {
 	cfg.Communications.GRPC.TLS.PrivateKeyFile = "server-key.pem"
 	cfg.Communications.GRPC.TLS.ClientCAFile = "ca.pem"
 	cfg.Communications.GRPC.Permissions.ReadInstanceStatus = true
+	cfg.Communications.GRPC.Permissions.ControlInstances = true
 	contents, err := yaml.Marshal(cfg)
 	if err != nil {
 		t.Fatal(err)
@@ -77,10 +78,16 @@ func TestContainer(t *testing.T) {
 		logs, _ := exec.CommandContext(ctx, "docker", "logs", containerID).CombinedOutput()
 		t.Fatalf("packaged operation failed: %v, %v; logs: %s", info, err, logs)
 	}
-	// The packaged binary must honor the explicit grant loaded from its YAML.
+	// The packaged binary must honor independent grants loaded from its YAML.
 	_, err = nodev1.NewInstanceServiceClient(connection).GetInstanceStatus(request, &nodev1.GetInstanceStatusRequest{InstanceId: "unconfigured"})
 	if status.Code(err) != codes.NotFound {
 		t.Fatalf("packaged status grant/service failed: %v", err)
+	}
+	if _, err := nodev1.NewInstanceServiceClient(connection).StartInstance(request, &nodev1.StartInstanceRequest{InstanceId: "unconfigured"}); status.Code(err) != codes.NotFound {
+		t.Fatalf("packaged start grant/service failed: %v", err)
+	}
+	if _, err := nodev1.NewInstanceServiceClient(connection).StopInstance(request, &nodev1.StopInstanceRequest{InstanceId: "unconfigured"}); status.Code(err) != codes.NotFound {
+		t.Fatalf("packaged stop grant/service failed: %v", err)
 	}
 	if output, err := exec.CommandContext(ctx, "docker", "stop", "--time", "5", containerID).CombinedOutput(); err != nil {
 		t.Fatalf("stop runtime: %s, %v", output, err)

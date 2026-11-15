@@ -144,3 +144,13 @@ func TestValidateRuntimeRequirements(t *testing.T) {
 		})
 	}
 }
+
+func TestExistingReadGrantDoesNotEnableControl(t *testing.T) {
+	cfg, err := settings.Load(writeConfig(t, "node: {id: west}\ncommunications: {grpc: {permissions: {read_instance_status: true}}}\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !cfg.Communications.GRPC.Permissions.ReadInstanceStatus || cfg.Communications.GRPC.Permissions.ControlInstances {
+		t.Fatal("existing read configuration changed its authorization meaning")
+	}
+}
