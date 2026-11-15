@@ -18,6 +18,11 @@ service XrayService {
   // Discovers one exact scope without reset, then resets selected counters in order.
   // Non-atomic 1+N fallback: stops on first failure and retains progress in details.
   rpc ResetTrafficCounters(ResetTrafficCountersRequest) returns (ResetTrafficCountersResponse);
+  // Two exact non-reset reads; absent directions are omitted, never zero-filled.
+  rpc GetTrafficPair(GetTrafficPairRequest) returns (GetTrafficPairResponse);
+  // Attempts uplink then downlink, not atomically. Missing directions are retained.
+  // Other failures stop and preserve observed progress in typed error details.
+  rpc ResetTrafficPair(ResetTrafficPairRequest) returns (ResetTrafficPairResponse);
   // Reads all existing traffic counters in one scope without resetting them.
   // Complete response or resource-limit error; native Xray offers no pagination.
   rpc ListTrafficCounters(ListTrafficCountersRequest) returns (ListTrafficCountersResponse);
@@ -204,6 +209,8 @@ enum TrafficCounterResetState {
   TRAFFIC_COUNTER_RESET_STATE_ACKNOWLEDGED = 2;
   TRAFFIC_COUNTER_RESET_STATE_NOT_APPLIED = 3;
   TRAFFIC_COUNTER_RESET_STATE_UNKNOWN = 4;
+  // Pair direction absent at its exact native request; no counter was created.
+  TRAFFIC_COUNTER_RESET_STATE_MISSING = 5;
 }
 
 message TrafficCounterResetAcknowledgement {
@@ -234,4 +241,44 @@ message ResetTrafficCountersResponse {
 // details/lost replies can hide effects, including all swaps. Do not blindly replay.
 message TrafficCountersResetFailure {
   ResetTrafficCountersResponse progress = 1;
+}
+
+message GetTrafficPairRequest {
+  string instance_id = 1;
+  TrafficScope scope = 2;
+  string name = 3;
+}
+
+message TrafficCounterObservation {
+  int64 bytes = 1;
+  int64 observed_at_unix_ms = 2;
+}
+
+message GetTrafficPairResponse {
+  string instance_id = 1;
+  TrafficScope scope = 2;
+  string name = 3;
+  // Independent observations, not an atomic snapshot. Absent means missing.
+  TrafficCounterObservation uplink = 4;
+  TrafficCounterObservation downlink = 5;
+}
+
+message ResetTrafficPairRequest {
+  string instance_id = 1;
+  TrafficScope scope = 2;
+  string name = 3;
+}
+
+message ResetTrafficPairResponse {
+  string instance_id = 1;
+  TrafficScope scope = 2;
+  string name = 3;
+  // Exactly uplink then downlink, including missing/unattempted directions.
+  repeated TrafficCounterResetEntry items = 4;
+}
+
+// Failure retains confirmed, missing, unattempted and uncertain effects. Lost or
+// absent details can hide effects; a current read cannot recover previous bytes.
+message TrafficPairResetFailure {
+  ResetTrafficPairResponse progress = 1;
 }

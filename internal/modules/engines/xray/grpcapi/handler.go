@@ -27,6 +27,8 @@ type Handler struct {
 	Traffic         TrafficCounterReader
 	Resets          TrafficCounterResetter
 	ScopeResets     TrafficCountersResetter
+	Pairs           TrafficPairReader
+	PairResets      TrafficPairResetter
 	TrafficCounters TrafficCountersReader
 	Online          OnlineReader
 	AllowInfoRead   bool

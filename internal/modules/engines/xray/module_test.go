@@ -63,6 +63,13 @@ func TestModuleClosesAPIAdmissionAndExportsFinalCleanup(t *testing.T) {
 	if report, err := newTrafficCountersResetService(configuration, resources).ResetTrafficCounters(t.Context(), "edge", domain.UserTraffic, 1); !errors.Is(err, grpc.ErrClientConnClosing) || len(report.Reset.Items) != 0 {
 		t.Fatalf("OnStop did not close collection reset admission before effects: %+v %v", report, err)
 	}
+	pairedReads, pairedResets := newTrafficPairServices(configuration, resources)
+	if _, err := pairedReads.GetTrafficPair(t.Context(), "edge", domain.TrafficPairSelection{Scope: domain.UserTraffic, Name: "user"}); !errors.Is(err, grpc.ErrClientConnClosing) {
+		t.Fatalf("pair read admission after close: %v", err)
+	}
+	if report, err := pairedResets.ResetTrafficPair(t.Context(), "edge", domain.TrafficPairSelection{Scope: domain.UserTraffic, Name: "user"}); !errors.Is(err, grpc.ErrClientConnClosing) || report.Items[0].State != domain.TrafficResetNotApplied || report.Items[1].State != domain.TrafficResetNotAttempted {
+		t.Fatalf("pair reset admission after close: %+v %v", report, err)
+	}
 	if _, err := newOnlineService(resources).GetUserOnlineStats(t.Context(), "edge", "reader"); !errors.Is(err, grpc.ErrClientConnClosing) {
 		t.Fatalf("OnStop did not close online count admission: %v", err)
 	}

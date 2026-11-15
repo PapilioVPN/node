@@ -50,9 +50,9 @@ communications:
       validate_instance_config: false
       # Separate opt-in to configured engine binary/runtime information.
       read_engine_info: false
-      # Single and collection traffic reads; independent of runtime/binary information.
+      # Single, pair and collection traffic reads; independent of runtime/binary info.
       read_engine_stats: false
-      # Single/scope reset grant; a lost reply can hide partial or complete effects.
+      # Single/pair/scope reset; a lost reply can hide partial or complete effects.
       reset_engine_stats: false
       # Online user identities, distinct-IP counts and IP lists; independent of traffic.
       read_engine_online: false

@@ -41,27 +41,34 @@ func (h Handler) GetTrafficCounter(ctx context.Context, request *xrayv1.GetTraff
 		return nil, status.Error(codes.InvalidArgument, "valid scope, name and direction are required")
 	}
 	result, err := h.Traffic.GetTrafficCounter(ctx, instances.InstanceID(request.GetInstanceId()), selection)
-	if mapped := grpcresponse.ContextError(errors.Join(ctx.Err(), err)); mapped != nil {
+	if mapped := trafficReadError(ctx, err); mapped != nil {
 		return nil, mapped
-	}
-	switch {
-	case errors.Is(err, instances.ErrNotFound):
-		return nil, status.Error(codes.NotFound, "Xray instance not found")
-	case errors.Is(err, domain.ErrTrafficCounterNotFound):
-		return nil, status.Error(codes.NotFound, "Xray traffic counter not found")
-	case errors.Is(err, domain.ErrAPIDisabled):
-		return nil, status.Error(codes.FailedPrecondition, "Xray API is not enabled")
-	case errors.Is(err, domain.ErrTrafficUnsupported):
-		return nil, status.Error(codes.FailedPrecondition, "Xray traffic counters are not supported")
-	case errors.Is(err, domain.ErrAPIBusy), errors.Is(err, domain.ErrAPIResourceLimit):
-		return nil, status.Error(codes.ResourceExhausted, "Xray API resource limit exceeded")
-	case err != nil:
-		return nil, status.Error(codes.Unavailable, "cannot read Xray traffic counter")
 	}
 	return &xrayv1.GetTrafficCounterResponse{
 		InstanceId: string(result.InstanceID), Scope: request.Scope, Name: result.Selection.Name,
 		Direction: request.Direction, Bytes: result.Counter.Bytes, ObservedAtUnixMs: result.Counter.ObservedAt.UnixMilli(),
 	}, nil
+}
+
+func trafficReadError(ctx context.Context, err error) error {
+	if mapped := grpcresponse.ContextError(errors.Join(ctx.Err(), err)); mapped != nil {
+		return mapped
+	}
+	switch {
+	case errors.Is(err, instances.ErrNotFound):
+		return status.Error(codes.NotFound, "Xray instance not found")
+	case errors.Is(err, domain.ErrTrafficCounterNotFound):
+		return status.Error(codes.NotFound, "Xray traffic counter not found")
+	case errors.Is(err, domain.ErrAPIDisabled):
+		return status.Error(codes.FailedPrecondition, "Xray API is not enabled")
+	case errors.Is(err, domain.ErrTrafficUnsupported):
+		return status.Error(codes.FailedPrecondition, "Xray traffic counters are not supported")
+	case errors.Is(err, domain.ErrAPIBusy), errors.Is(err, domain.ErrAPIResourceLimit):
+		return status.Error(codes.ResourceExhausted, "Xray API resource limit exceeded")
+	case err != nil:
+		return status.Error(codes.Unavailable, "cannot read Xray traffic counter")
+	}
+	return nil
 }
 
 func decodeTrafficScope(scope xrayv1.TrafficScope) domain.TrafficScope {

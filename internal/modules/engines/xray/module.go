@@ -26,7 +26,7 @@ import (
 // Module owns Xray operations and API clients independently of instance runtimes.
 func Module(grpcEnabled bool) fx.Option {
 	options := []fx.Option{
-		fx.Provide(newBinaryInfoService, newAPIResources, newRuntimeInfoService, newTrafficCounterService, newTrafficCounterResetService, newTrafficCountersResetService, newTrafficCountersService, newOnlineService, fx.Private),
+		fx.Provide(newBinaryInfoService, newAPIResources, newRuntimeInfoService, newTrafficCounterService, newTrafficCounterResetService, newTrafficCountersResetService, newTrafficCountersService, newTrafficPairServices, newOnlineService, fx.Private),
 		fx.Provide(capability, apiCleanup, newRuntimeBindings), fx.Invoke(registerAPILifecycle),
 	}
 	if grpcEnabled {
@@ -174,6 +174,23 @@ func newOnlineService(resources *apiResources) *services.OnlineService {
 	return services.NewOnlineService(resources.onlineReaders)
 }
 
+func newTrafficPairServices(config []settings.Instance, resources *apiResources) (*services.TrafficPairService, *services.TrafficPairResetService) {
+	readers := make(map[instances.InstanceID]services.TrafficPairReadBinding)
+	resetters := make(map[instances.InstanceID]services.TrafficPairResetBinding)
+	for _, instance := range config {
+		if instance.Engine != instances.Xray {
+			continue
+		}
+		reader := services.TrafficPairReadBinding{Reader: resources.trafficReaders[instance.ID]}
+		resetter := services.TrafficPairResetBinding{Resetter: resources.trafficResetters[instance.ID]}
+		if api := instance.Xray.API; api != nil {
+			reader.Timeout, resetter.Timeout = api.RequestTimeout, api.RequestTimeout
+		}
+		readers[instance.ID], resetters[instance.ID] = reader, resetter
+	}
+	return services.NewTrafficPairService(readers), services.NewTrafficPairResetService(resetters)
+}
+
 func registerAPILifecycle(lifecycle fx.Lifecycle, resources *apiResources) {
 	lifecycle.Append(fx.Hook{OnStop: func(context.Context) error { return resources.Close() }})
 }
@@ -194,6 +211,8 @@ type grpcServices struct {
 	Traffic     *services.TrafficCounterService
 	Resets      *services.TrafficCounterResetService
 	ScopeResets *services.TrafficCountersResetService
+	Pairs       *services.TrafficPairService
+	PairResets  *services.TrafficPairResetService
 	Counters    *services.TrafficCountersService
 	Online      *services.OnlineService
 	Permissions settings.GRPCPermissions
@@ -201,7 +220,8 @@ type grpcServices struct {
 
 func registerGRPC(p grpcServices) {
 	xrayv1.RegisterXrayServiceServer(p.Registrar, grpcapi.Handler{
-		Info: p.Info, Runtime: p.Runtime, Traffic: p.Traffic, Resets: p.Resets, ScopeResets: p.ScopeResets, TrafficCounters: p.Counters, Online: p.Online,
+		Info: p.Info, Runtime: p.Runtime, Traffic: p.Traffic, Resets: p.Resets, ScopeResets: p.ScopeResets,
+		Pairs: p.Pairs, PairResets: p.PairResets, TrafficCounters: p.Counters, Online: p.Online,
 		AllowInfoRead: p.Permissions.ReadEngineInfo, AllowStatsRead: p.Permissions.ReadEngineStats,
 		AllowOnlineRead: p.Permissions.ReadEngineOnline, AllowStatsReset: p.Permissions.ResetEngineStats,
 	})
@@ -216,6 +236,7 @@ func capability() capabilityResult {
 	return capabilityResult{Values: []system.Capability{
 		domain.ReadBinaryInfo, domain.ReadRuntimeInfo,
 		domain.ReadTrafficCounter, domain.ListTrafficCounters, domain.ResetTrafficCounter, domain.ResetTrafficCounters,
+		domain.ReadTrafficPair, domain.ResetTrafficPair,
 		domain.ReadUserOnlineStats, domain.ListUserOnlineIPs, domain.ListOnlineUsers,
 	}}
 }

@@ -179,6 +179,8 @@ const (
 	TrafficCounterResetState_TRAFFIC_COUNTER_RESET_STATE_ACKNOWLEDGED  TrafficCounterResetState = 2
 	TrafficCounterResetState_TRAFFIC_COUNTER_RESET_STATE_NOT_APPLIED   TrafficCounterResetState = 3
 	TrafficCounterResetState_TRAFFIC_COUNTER_RESET_STATE_UNKNOWN       TrafficCounterResetState = 4
+	// Pair direction absent at its exact native request; no counter was created.
+	TrafficCounterResetState_TRAFFIC_COUNTER_RESET_STATE_MISSING TrafficCounterResetState = 5
 )
 
 // Enum value maps for TrafficCounterResetState.
@@ -189,6 +191,7 @@ var (
 		2: "TRAFFIC_COUNTER_RESET_STATE_ACKNOWLEDGED",
 		3: "TRAFFIC_COUNTER_RESET_STATE_NOT_APPLIED",
 		4: "TRAFFIC_COUNTER_RESET_STATE_UNKNOWN",
+		5: "TRAFFIC_COUNTER_RESET_STATE_MISSING",
 	}
 	TrafficCounterResetState_value = map[string]int32{
 		"TRAFFIC_COUNTER_RESET_STATE_UNSPECIFIED":   0,
@@ -196,6 +199,7 @@ var (
 		"TRAFFIC_COUNTER_RESET_STATE_ACKNOWLEDGED":  2,
 		"TRAFFIC_COUNTER_RESET_STATE_NOT_APPLIED":   3,
 		"TRAFFIC_COUNTER_RESET_STATE_UNKNOWN":       4,
+		"TRAFFIC_COUNTER_RESET_STATE_MISSING":       5,
 	}
 )
 
@@ -1866,6 +1870,370 @@ func (x *TrafficCountersResetFailure) GetProgress() *ResetTrafficCountersRespons
 	return nil
 }
 
+type GetTrafficPairRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	InstanceId    string                 `protobuf:"bytes,1,opt,name=instance_id,json=instanceId,proto3" json:"instance_id,omitempty"`
+	Scope         TrafficScope           `protobuf:"varint,2,opt,name=scope,proto3,enum=papilio.node.xray.v1.TrafficScope" json:"scope,omitempty"`
+	Name          string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetTrafficPairRequest) Reset() {
+	*x = GetTrafficPairRequest{}
+	mi := &file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes[26]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetTrafficPairRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetTrafficPairRequest) ProtoMessage() {}
+
+func (x *GetTrafficPairRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes[26]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetTrafficPairRequest.ProtoReflect.Descriptor instead.
+func (*GetTrafficPairRequest) Descriptor() ([]byte, []int) {
+	return file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_rawDescGZIP(), []int{26}
+}
+
+func (x *GetTrafficPairRequest) GetInstanceId() string {
+	if x != nil {
+		return x.InstanceId
+	}
+	return ""
+}
+
+func (x *GetTrafficPairRequest) GetScope() TrafficScope {
+	if x != nil {
+		return x.Scope
+	}
+	return TrafficScope_TRAFFIC_SCOPE_UNSPECIFIED
+}
+
+func (x *GetTrafficPairRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+type TrafficCounterObservation struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	Bytes            int64                  `protobuf:"varint,1,opt,name=bytes,proto3" json:"bytes,omitempty"`
+	ObservedAtUnixMs int64                  `protobuf:"varint,2,opt,name=observed_at_unix_ms,json=observedAtUnixMs,proto3" json:"observed_at_unix_ms,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *TrafficCounterObservation) Reset() {
+	*x = TrafficCounterObservation{}
+	mi := &file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes[27]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TrafficCounterObservation) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TrafficCounterObservation) ProtoMessage() {}
+
+func (x *TrafficCounterObservation) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes[27]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TrafficCounterObservation.ProtoReflect.Descriptor instead.
+func (*TrafficCounterObservation) Descriptor() ([]byte, []int) {
+	return file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_rawDescGZIP(), []int{27}
+}
+
+func (x *TrafficCounterObservation) GetBytes() int64 {
+	if x != nil {
+		return x.Bytes
+	}
+	return 0
+}
+
+func (x *TrafficCounterObservation) GetObservedAtUnixMs() int64 {
+	if x != nil {
+		return x.ObservedAtUnixMs
+	}
+	return 0
+}
+
+type GetTrafficPairResponse struct {
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	InstanceId string                 `protobuf:"bytes,1,opt,name=instance_id,json=instanceId,proto3" json:"instance_id,omitempty"`
+	Scope      TrafficScope           `protobuf:"varint,2,opt,name=scope,proto3,enum=papilio.node.xray.v1.TrafficScope" json:"scope,omitempty"`
+	Name       string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	// Independent observations, not an atomic snapshot. Absent means missing.
+	Uplink        *TrafficCounterObservation `protobuf:"bytes,4,opt,name=uplink,proto3" json:"uplink,omitempty"`
+	Downlink      *TrafficCounterObservation `protobuf:"bytes,5,opt,name=downlink,proto3" json:"downlink,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetTrafficPairResponse) Reset() {
+	*x = GetTrafficPairResponse{}
+	mi := &file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes[28]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetTrafficPairResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetTrafficPairResponse) ProtoMessage() {}
+
+func (x *GetTrafficPairResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes[28]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetTrafficPairResponse.ProtoReflect.Descriptor instead.
+func (*GetTrafficPairResponse) Descriptor() ([]byte, []int) {
+	return file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_rawDescGZIP(), []int{28}
+}
+
+func (x *GetTrafficPairResponse) GetInstanceId() string {
+	if x != nil {
+		return x.InstanceId
+	}
+	return ""
+}
+
+func (x *GetTrafficPairResponse) GetScope() TrafficScope {
+	if x != nil {
+		return x.Scope
+	}
+	return TrafficScope_TRAFFIC_SCOPE_UNSPECIFIED
+}
+
+func (x *GetTrafficPairResponse) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *GetTrafficPairResponse) GetUplink() *TrafficCounterObservation {
+	if x != nil {
+		return x.Uplink
+	}
+	return nil
+}
+
+func (x *GetTrafficPairResponse) GetDownlink() *TrafficCounterObservation {
+	if x != nil {
+		return x.Downlink
+	}
+	return nil
+}
+
+type ResetTrafficPairRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	InstanceId    string                 `protobuf:"bytes,1,opt,name=instance_id,json=instanceId,proto3" json:"instance_id,omitempty"`
+	Scope         TrafficScope           `protobuf:"varint,2,opt,name=scope,proto3,enum=papilio.node.xray.v1.TrafficScope" json:"scope,omitempty"`
+	Name          string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ResetTrafficPairRequest) Reset() {
+	*x = ResetTrafficPairRequest{}
+	mi := &file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes[29]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ResetTrafficPairRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ResetTrafficPairRequest) ProtoMessage() {}
+
+func (x *ResetTrafficPairRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes[29]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ResetTrafficPairRequest.ProtoReflect.Descriptor instead.
+func (*ResetTrafficPairRequest) Descriptor() ([]byte, []int) {
+	return file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_rawDescGZIP(), []int{29}
+}
+
+func (x *ResetTrafficPairRequest) GetInstanceId() string {
+	if x != nil {
+		return x.InstanceId
+	}
+	return ""
+}
+
+func (x *ResetTrafficPairRequest) GetScope() TrafficScope {
+	if x != nil {
+		return x.Scope
+	}
+	return TrafficScope_TRAFFIC_SCOPE_UNSPECIFIED
+}
+
+func (x *ResetTrafficPairRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+type ResetTrafficPairResponse struct {
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	InstanceId string                 `protobuf:"bytes,1,opt,name=instance_id,json=instanceId,proto3" json:"instance_id,omitempty"`
+	Scope      TrafficScope           `protobuf:"varint,2,opt,name=scope,proto3,enum=papilio.node.xray.v1.TrafficScope" json:"scope,omitempty"`
+	Name       string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	// Exactly uplink then downlink, including missing/unattempted directions.
+	Items         []*TrafficCounterResetEntry `protobuf:"bytes,4,rep,name=items,proto3" json:"items,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ResetTrafficPairResponse) Reset() {
+	*x = ResetTrafficPairResponse{}
+	mi := &file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes[30]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ResetTrafficPairResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ResetTrafficPairResponse) ProtoMessage() {}
+
+func (x *ResetTrafficPairResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes[30]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ResetTrafficPairResponse.ProtoReflect.Descriptor instead.
+func (*ResetTrafficPairResponse) Descriptor() ([]byte, []int) {
+	return file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_rawDescGZIP(), []int{30}
+}
+
+func (x *ResetTrafficPairResponse) GetInstanceId() string {
+	if x != nil {
+		return x.InstanceId
+	}
+	return ""
+}
+
+func (x *ResetTrafficPairResponse) GetScope() TrafficScope {
+	if x != nil {
+		return x.Scope
+	}
+	return TrafficScope_TRAFFIC_SCOPE_UNSPECIFIED
+}
+
+func (x *ResetTrafficPairResponse) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *ResetTrafficPairResponse) GetItems() []*TrafficCounterResetEntry {
+	if x != nil {
+		return x.Items
+	}
+	return nil
+}
+
+// Failure retains confirmed, missing, unattempted and uncertain effects. Lost or
+// absent details can hide effects; a current read cannot recover previous bytes.
+type TrafficPairResetFailure struct {
+	state         protoimpl.MessageState    `protogen:"open.v1"`
+	Progress      *ResetTrafficPairResponse `protobuf:"bytes,1,opt,name=progress,proto3" json:"progress,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TrafficPairResetFailure) Reset() {
+	*x = TrafficPairResetFailure{}
+	mi := &file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes[31]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TrafficPairResetFailure) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TrafficPairResetFailure) ProtoMessage() {}
+
+func (x *TrafficPairResetFailure) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes[31]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TrafficPairResetFailure.ProtoReflect.Descriptor instead.
+func (*TrafficPairResetFailure) Descriptor() ([]byte, []int) {
+	return file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_rawDescGZIP(), []int{31}
+}
+
+func (x *TrafficPairResetFailure) GetProgress() *ResetTrafficPairResponse {
+	if x != nil {
+		return x.Progress
+	}
+	return nil
+}
+
 var File_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto protoreflect.FileDescriptor
 
 const file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_rawDesc = "" +
@@ -2005,7 +2373,35 @@ const file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_rawDesc = "
 	"\x13selected_at_unix_ms\x18\x04 \x01(\x03H\x00R\x10selectedAtUnixMs\x88\x01\x01B\x16\n" +
 	"\x14_selected_at_unix_ms\"m\n" +
 	"\x1bTrafficCountersResetFailure\x12N\n" +
-	"\bprogress\x18\x01 \x01(\v22.papilio.node.xray.v1.ResetTrafficCountersResponseR\bprogress*|\n" +
+	"\bprogress\x18\x01 \x01(\v22.papilio.node.xray.v1.ResetTrafficCountersResponseR\bprogress\"\x86\x01\n" +
+	"\x15GetTrafficPairRequest\x12\x1f\n" +
+	"\vinstance_id\x18\x01 \x01(\tR\n" +
+	"instanceId\x128\n" +
+	"\x05scope\x18\x02 \x01(\x0e2\".papilio.node.xray.v1.TrafficScopeR\x05scope\x12\x12\n" +
+	"\x04name\x18\x03 \x01(\tR\x04name\"`\n" +
+	"\x19TrafficCounterObservation\x12\x14\n" +
+	"\x05bytes\x18\x01 \x01(\x03R\x05bytes\x12-\n" +
+	"\x13observed_at_unix_ms\x18\x02 \x01(\x03R\x10observedAtUnixMs\"\x9d\x02\n" +
+	"\x16GetTrafficPairResponse\x12\x1f\n" +
+	"\vinstance_id\x18\x01 \x01(\tR\n" +
+	"instanceId\x128\n" +
+	"\x05scope\x18\x02 \x01(\x0e2\".papilio.node.xray.v1.TrafficScopeR\x05scope\x12\x12\n" +
+	"\x04name\x18\x03 \x01(\tR\x04name\x12G\n" +
+	"\x06uplink\x18\x04 \x01(\v2/.papilio.node.xray.v1.TrafficCounterObservationR\x06uplink\x12K\n" +
+	"\bdownlink\x18\x05 \x01(\v2/.papilio.node.xray.v1.TrafficCounterObservationR\bdownlink\"\x88\x01\n" +
+	"\x17ResetTrafficPairRequest\x12\x1f\n" +
+	"\vinstance_id\x18\x01 \x01(\tR\n" +
+	"instanceId\x128\n" +
+	"\x05scope\x18\x02 \x01(\x0e2\".papilio.node.xray.v1.TrafficScopeR\x05scope\x12\x12\n" +
+	"\x04name\x18\x03 \x01(\tR\x04name\"\xcf\x01\n" +
+	"\x18ResetTrafficPairResponse\x12\x1f\n" +
+	"\vinstance_id\x18\x01 \x01(\tR\n" +
+	"instanceId\x128\n" +
+	"\x05scope\x18\x02 \x01(\x0e2\".papilio.node.xray.v1.TrafficScopeR\x05scope\x12\x12\n" +
+	"\x04name\x18\x03 \x01(\tR\x04name\x12D\n" +
+	"\x05items\x18\x04 \x03(\v2..papilio.node.xray.v1.TrafficCounterResetEntryR\x05items\"e\n" +
+	"\x17TrafficPairResetFailure\x12J\n" +
+	"\bprogress\x18\x01 \x01(\v2..papilio.node.xray.v1.ResetTrafficPairResponseR\bprogress*|\n" +
 	"\fTrafficScope\x12\x1d\n" +
 	"\x19TRAFFIC_SCOPE_UNSPECIFIED\x10\x00\x12\x16\n" +
 	"\x12TRAFFIC_SCOPE_USER\x10\x01\x12\x19\n" +
@@ -2018,19 +2414,23 @@ const file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_rawDesc = "
 	"\x1aTrafficCounterResetOutcome\x12-\n" +
 	")TRAFFIC_COUNTER_RESET_OUTCOME_UNSPECIFIED\x10\x00\x12-\n" +
 	")TRAFFIC_COUNTER_RESET_OUTCOME_NOT_APPLIED\x10\x01\x12)\n" +
-	"%TRAFFIC_COUNTER_RESET_OUTCOME_UNKNOWN\x10\x02*\xfa\x01\n" +
+	"%TRAFFIC_COUNTER_RESET_OUTCOME_UNKNOWN\x10\x02*\xa3\x02\n" +
 	"\x18TrafficCounterResetState\x12+\n" +
 	"'TRAFFIC_COUNTER_RESET_STATE_UNSPECIFIED\x10\x00\x12-\n" +
 	")TRAFFIC_COUNTER_RESET_STATE_NOT_ATTEMPTED\x10\x01\x12,\n" +
 	"(TRAFFIC_COUNTER_RESET_STATE_ACKNOWLEDGED\x10\x02\x12+\n" +
 	"'TRAFFIC_COUNTER_RESET_STATE_NOT_APPLIED\x10\x03\x12'\n" +
-	"#TRAFFIC_COUNTER_RESET_STATE_UNKNOWN\x10\x042\xb0\b\n" +
+	"#TRAFFIC_COUNTER_RESET_STATE_UNKNOWN\x10\x04\x12'\n" +
+	"#TRAFFIC_COUNTER_RESET_STATE_MISSING\x10\x052\x90\n" +
+	"\n" +
 	"\vXrayService\x12h\n" +
 	"\rGetBinaryInfo\x12*.papilio.node.xray.v1.GetBinaryInfoRequest\x1a+.papilio.node.xray.v1.GetBinaryInfoResponse\x12k\n" +
 	"\x0eGetRuntimeInfo\x12+.papilio.node.xray.v1.GetRuntimeInfoRequest\x1a,.papilio.node.xray.v1.GetRuntimeInfoResponse\x12t\n" +
 	"\x11GetTrafficCounter\x12..papilio.node.xray.v1.GetTrafficCounterRequest\x1a/.papilio.node.xray.v1.GetTrafficCounterResponse\x12z\n" +
 	"\x13ResetTrafficCounter\x120.papilio.node.xray.v1.ResetTrafficCounterRequest\x1a1.papilio.node.xray.v1.ResetTrafficCounterResponse\x12}\n" +
-	"\x14ResetTrafficCounters\x121.papilio.node.xray.v1.ResetTrafficCountersRequest\x1a2.papilio.node.xray.v1.ResetTrafficCountersResponse\x12z\n" +
+	"\x14ResetTrafficCounters\x121.papilio.node.xray.v1.ResetTrafficCountersRequest\x1a2.papilio.node.xray.v1.ResetTrafficCountersResponse\x12k\n" +
+	"\x0eGetTrafficPair\x12+.papilio.node.xray.v1.GetTrafficPairRequest\x1a,.papilio.node.xray.v1.GetTrafficPairResponse\x12q\n" +
+	"\x10ResetTrafficPair\x12-.papilio.node.xray.v1.ResetTrafficPairRequest\x1a..papilio.node.xray.v1.ResetTrafficPairResponse\x12z\n" +
 	"\x13ListTrafficCounters\x120.papilio.node.xray.v1.ListTrafficCountersRequest\x1a1.papilio.node.xray.v1.ListTrafficCountersResponse\x12w\n" +
 	"\x12GetUserOnlineStats\x12/.papilio.node.xray.v1.GetUserOnlineStatsRequest\x1a0.papilio.node.xray.v1.GetUserOnlineStatsResponse\x12t\n" +
 	"\x11ListUserOnlineIPs\x12..papilio.node.xray.v1.ListUserOnlineIPsRequest\x1a/.papilio.node.xray.v1.ListUserOnlineIPsResponse\x12n\n" +
@@ -2049,7 +2449,7 @@ func file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_rawDescGZIP(
 }
 
 var file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
-var file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes = make([]protoimpl.MessageInfo, 26)
+var file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes = make([]protoimpl.MessageInfo, 32)
 var file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_goTypes = []any{
 	(TrafficScope)(0),                          // 0: papilio.node.xray.v1.TrafficScope
 	(TrafficDirection)(0),                      // 1: papilio.node.xray.v1.TrafficDirection
@@ -2081,6 +2481,12 @@ var file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_goTypes = []a
 	(*TrafficCounterResetEntry)(nil),           // 27: papilio.node.xray.v1.TrafficCounterResetEntry
 	(*ResetTrafficCountersResponse)(nil),       // 28: papilio.node.xray.v1.ResetTrafficCountersResponse
 	(*TrafficCountersResetFailure)(nil),        // 29: papilio.node.xray.v1.TrafficCountersResetFailure
+	(*GetTrafficPairRequest)(nil),              // 30: papilio.node.xray.v1.GetTrafficPairRequest
+	(*TrafficCounterObservation)(nil),          // 31: papilio.node.xray.v1.TrafficCounterObservation
+	(*GetTrafficPairResponse)(nil),             // 32: papilio.node.xray.v1.GetTrafficPairResponse
+	(*ResetTrafficPairRequest)(nil),            // 33: papilio.node.xray.v1.ResetTrafficPairRequest
+	(*ResetTrafficPairResponse)(nil),           // 34: papilio.node.xray.v1.ResetTrafficPairResponse
+	(*TrafficPairResetFailure)(nil),            // 35: papilio.node.xray.v1.TrafficPairResetFailure
 }
 var file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_depIdxs = []int32{
 	0,  // 0: papilio.node.xray.v1.GetTrafficCounterRequest.scope:type_name -> papilio.node.xray.v1.TrafficScope
@@ -2106,29 +2512,41 @@ var file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_depIdxs = []i
 	0,  // 20: papilio.node.xray.v1.ResetTrafficCountersResponse.scope:type_name -> papilio.node.xray.v1.TrafficScope
 	27, // 21: papilio.node.xray.v1.ResetTrafficCountersResponse.items:type_name -> papilio.node.xray.v1.TrafficCounterResetEntry
 	28, // 22: papilio.node.xray.v1.TrafficCountersResetFailure.progress:type_name -> papilio.node.xray.v1.ResetTrafficCountersResponse
-	9,  // 23: papilio.node.xray.v1.XrayService.GetBinaryInfo:input_type -> papilio.node.xray.v1.GetBinaryInfoRequest
-	6,  // 24: papilio.node.xray.v1.XrayService.GetRuntimeInfo:input_type -> papilio.node.xray.v1.GetRuntimeInfoRequest
-	4,  // 25: papilio.node.xray.v1.XrayService.GetTrafficCounter:input_type -> papilio.node.xray.v1.GetTrafficCounterRequest
-	22, // 26: papilio.node.xray.v1.XrayService.ResetTrafficCounter:input_type -> papilio.node.xray.v1.ResetTrafficCounterRequest
-	25, // 27: papilio.node.xray.v1.XrayService.ResetTrafficCounters:input_type -> papilio.node.xray.v1.ResetTrafficCountersRequest
-	12, // 28: papilio.node.xray.v1.XrayService.ListTrafficCounters:input_type -> papilio.node.xray.v1.ListTrafficCountersRequest
-	15, // 29: papilio.node.xray.v1.XrayService.GetUserOnlineStats:input_type -> papilio.node.xray.v1.GetUserOnlineStatsRequest
-	17, // 30: papilio.node.xray.v1.XrayService.ListUserOnlineIPs:input_type -> papilio.node.xray.v1.ListUserOnlineIPsRequest
-	20, // 31: papilio.node.xray.v1.XrayService.ListOnlineUsers:input_type -> papilio.node.xray.v1.ListOnlineUsersRequest
-	10, // 32: papilio.node.xray.v1.XrayService.GetBinaryInfo:output_type -> papilio.node.xray.v1.GetBinaryInfoResponse
-	7,  // 33: papilio.node.xray.v1.XrayService.GetRuntimeInfo:output_type -> papilio.node.xray.v1.GetRuntimeInfoResponse
-	5,  // 34: papilio.node.xray.v1.XrayService.GetTrafficCounter:output_type -> papilio.node.xray.v1.GetTrafficCounterResponse
-	23, // 35: papilio.node.xray.v1.XrayService.ResetTrafficCounter:output_type -> papilio.node.xray.v1.ResetTrafficCounterResponse
-	28, // 36: papilio.node.xray.v1.XrayService.ResetTrafficCounters:output_type -> papilio.node.xray.v1.ResetTrafficCountersResponse
-	13, // 37: papilio.node.xray.v1.XrayService.ListTrafficCounters:output_type -> papilio.node.xray.v1.ListTrafficCountersResponse
-	16, // 38: papilio.node.xray.v1.XrayService.GetUserOnlineStats:output_type -> papilio.node.xray.v1.GetUserOnlineStatsResponse
-	18, // 39: papilio.node.xray.v1.XrayService.ListUserOnlineIPs:output_type -> papilio.node.xray.v1.ListUserOnlineIPsResponse
-	21, // 40: papilio.node.xray.v1.XrayService.ListOnlineUsers:output_type -> papilio.node.xray.v1.ListOnlineUsersResponse
-	32, // [32:41] is the sub-list for method output_type
-	23, // [23:32] is the sub-list for method input_type
-	23, // [23:23] is the sub-list for extension type_name
-	23, // [23:23] is the sub-list for extension extendee
-	0,  // [0:23] is the sub-list for field type_name
+	0,  // 23: papilio.node.xray.v1.GetTrafficPairRequest.scope:type_name -> papilio.node.xray.v1.TrafficScope
+	0,  // 24: papilio.node.xray.v1.GetTrafficPairResponse.scope:type_name -> papilio.node.xray.v1.TrafficScope
+	31, // 25: papilio.node.xray.v1.GetTrafficPairResponse.uplink:type_name -> papilio.node.xray.v1.TrafficCounterObservation
+	31, // 26: papilio.node.xray.v1.GetTrafficPairResponse.downlink:type_name -> papilio.node.xray.v1.TrafficCounterObservation
+	0,  // 27: papilio.node.xray.v1.ResetTrafficPairRequest.scope:type_name -> papilio.node.xray.v1.TrafficScope
+	0,  // 28: papilio.node.xray.v1.ResetTrafficPairResponse.scope:type_name -> papilio.node.xray.v1.TrafficScope
+	27, // 29: papilio.node.xray.v1.ResetTrafficPairResponse.items:type_name -> papilio.node.xray.v1.TrafficCounterResetEntry
+	34, // 30: papilio.node.xray.v1.TrafficPairResetFailure.progress:type_name -> papilio.node.xray.v1.ResetTrafficPairResponse
+	9,  // 31: papilio.node.xray.v1.XrayService.GetBinaryInfo:input_type -> papilio.node.xray.v1.GetBinaryInfoRequest
+	6,  // 32: papilio.node.xray.v1.XrayService.GetRuntimeInfo:input_type -> papilio.node.xray.v1.GetRuntimeInfoRequest
+	4,  // 33: papilio.node.xray.v1.XrayService.GetTrafficCounter:input_type -> papilio.node.xray.v1.GetTrafficCounterRequest
+	22, // 34: papilio.node.xray.v1.XrayService.ResetTrafficCounter:input_type -> papilio.node.xray.v1.ResetTrafficCounterRequest
+	25, // 35: papilio.node.xray.v1.XrayService.ResetTrafficCounters:input_type -> papilio.node.xray.v1.ResetTrafficCountersRequest
+	30, // 36: papilio.node.xray.v1.XrayService.GetTrafficPair:input_type -> papilio.node.xray.v1.GetTrafficPairRequest
+	33, // 37: papilio.node.xray.v1.XrayService.ResetTrafficPair:input_type -> papilio.node.xray.v1.ResetTrafficPairRequest
+	12, // 38: papilio.node.xray.v1.XrayService.ListTrafficCounters:input_type -> papilio.node.xray.v1.ListTrafficCountersRequest
+	15, // 39: papilio.node.xray.v1.XrayService.GetUserOnlineStats:input_type -> papilio.node.xray.v1.GetUserOnlineStatsRequest
+	17, // 40: papilio.node.xray.v1.XrayService.ListUserOnlineIPs:input_type -> papilio.node.xray.v1.ListUserOnlineIPsRequest
+	20, // 41: papilio.node.xray.v1.XrayService.ListOnlineUsers:input_type -> papilio.node.xray.v1.ListOnlineUsersRequest
+	10, // 42: papilio.node.xray.v1.XrayService.GetBinaryInfo:output_type -> papilio.node.xray.v1.GetBinaryInfoResponse
+	7,  // 43: papilio.node.xray.v1.XrayService.GetRuntimeInfo:output_type -> papilio.node.xray.v1.GetRuntimeInfoResponse
+	5,  // 44: papilio.node.xray.v1.XrayService.GetTrafficCounter:output_type -> papilio.node.xray.v1.GetTrafficCounterResponse
+	23, // 45: papilio.node.xray.v1.XrayService.ResetTrafficCounter:output_type -> papilio.node.xray.v1.ResetTrafficCounterResponse
+	28, // 46: papilio.node.xray.v1.XrayService.ResetTrafficCounters:output_type -> papilio.node.xray.v1.ResetTrafficCountersResponse
+	32, // 47: papilio.node.xray.v1.XrayService.GetTrafficPair:output_type -> papilio.node.xray.v1.GetTrafficPairResponse
+	34, // 48: papilio.node.xray.v1.XrayService.ResetTrafficPair:output_type -> papilio.node.xray.v1.ResetTrafficPairResponse
+	13, // 49: papilio.node.xray.v1.XrayService.ListTrafficCounters:output_type -> papilio.node.xray.v1.ListTrafficCountersResponse
+	16, // 50: papilio.node.xray.v1.XrayService.GetUserOnlineStats:output_type -> papilio.node.xray.v1.GetUserOnlineStatsResponse
+	18, // 51: papilio.node.xray.v1.XrayService.ListUserOnlineIPs:output_type -> papilio.node.xray.v1.ListUserOnlineIPsResponse
+	21, // 52: papilio.node.xray.v1.XrayService.ListOnlineUsers:output_type -> papilio.node.xray.v1.ListOnlineUsersResponse
+	42, // [42:53] is the sub-list for method output_type
+	31, // [31:42] is the sub-list for method input_type
+	31, // [31:31] is the sub-list for extension type_name
+	31, // [31:31] is the sub-list for extension extendee
+	0,  // [0:31] is the sub-list for field type_name
 }
 
 func init() { file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_init() }
@@ -2143,7 +2561,7 @@ func file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_rawDesc), len(file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_rawDesc)),
 			NumEnums:      4,
-			NumMessages:   26,
+			NumMessages:   32,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

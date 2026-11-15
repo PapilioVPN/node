@@ -54,27 +54,33 @@ func encodeTrafficCountersReset(result domain.InstanceTrafficCountersReset, scop
 		response.SelectedAtUnixMs = &selectedAt
 	}
 	for i, item := range result.Reset.Items {
-		entry := &xrayv1.TrafficCounterResetEntry{Name: item.Name}
-		switch item.Direction {
-		case domain.Uplink:
-			entry.Direction = xrayv1.TrafficDirection_TRAFFIC_DIRECTION_UPLINK
-		case domain.Downlink:
-			entry.Direction = xrayv1.TrafficDirection_TRAFFIC_DIRECTION_DOWNLINK
-		}
-		switch item.State {
-		case domain.TrafficResetNotAttempted:
-			entry.State = xrayv1.TrafficCounterResetState_TRAFFIC_COUNTER_RESET_STATE_NOT_ATTEMPTED
-		case domain.TrafficResetAcknowledged:
-			entry.State = xrayv1.TrafficCounterResetState_TRAFFIC_COUNTER_RESET_STATE_ACKNOWLEDGED
-		case domain.TrafficResetNotApplied:
-			entry.State = xrayv1.TrafficCounterResetState_TRAFFIC_COUNTER_RESET_STATE_NOT_APPLIED
-		case domain.TrafficResetUnknown:
-			entry.State = xrayv1.TrafficCounterResetState_TRAFFIC_COUNTER_RESET_STATE_UNKNOWN
-		}
-		if item.Reset != nil {
-			entry.Acknowledgement = &xrayv1.TrafficCounterResetAcknowledgement{PreviousBytes: item.Reset.PreviousBytes, AcknowledgedAtUnixMs: item.Reset.AcknowledgedAt.UnixMilli()}
-		}
-		response.Items[i] = entry
+		response.Items[i] = encodeTrafficResetEntry(item)
 	}
 	return response
+}
+
+func encodeTrafficResetEntry(item domain.TrafficCounterResetEntry) *xrayv1.TrafficCounterResetEntry {
+	entry := &xrayv1.TrafficCounterResetEntry{Name: item.Name}
+	switch item.Direction {
+	case domain.Uplink:
+		entry.Direction = xrayv1.TrafficDirection_TRAFFIC_DIRECTION_UPLINK
+	case domain.Downlink:
+		entry.Direction = xrayv1.TrafficDirection_TRAFFIC_DIRECTION_DOWNLINK
+	}
+	switch item.State {
+	case domain.TrafficResetNotAttempted:
+		entry.State = xrayv1.TrafficCounterResetState_TRAFFIC_COUNTER_RESET_STATE_NOT_ATTEMPTED
+	case domain.TrafficResetAcknowledged:
+		entry.State = xrayv1.TrafficCounterResetState_TRAFFIC_COUNTER_RESET_STATE_ACKNOWLEDGED
+	case domain.TrafficResetNotApplied:
+		entry.State = xrayv1.TrafficCounterResetState_TRAFFIC_COUNTER_RESET_STATE_NOT_APPLIED
+	case domain.TrafficResetUnknown:
+		entry.State = xrayv1.TrafficCounterResetState_TRAFFIC_COUNTER_RESET_STATE_UNKNOWN
+	case domain.TrafficResetMissing:
+		entry.State = xrayv1.TrafficCounterResetState_TRAFFIC_COUNTER_RESET_STATE_MISSING
+	}
+	if item.Reset != nil {
+		entry.Acknowledgement = &xrayv1.TrafficCounterResetAcknowledgement{PreviousBytes: item.Reset.PreviousBytes, AcknowledgedAtUnixMs: item.Reset.AcknowledgedAt.UnixMilli()}
+	}
+	return entry
 }

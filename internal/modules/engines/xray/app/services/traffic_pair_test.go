@@ -59,7 +59,11 @@ func TestTrafficPairDiscardsPartialReadsAndPreservesFailureAndCancellation(t *te
 		ctx, cancel := context.WithCancel(t.Context())
 		calls := 0
 		failure := domain.ErrAPIResourceLimit
-		service := services.NewTrafficPairService(map[instances.InstanceID]services.TrafficPairReadBinding{"edge": {Timeout: time.Second, Reader: trafficReader(func(ctx context.Context, _ domain.TrafficSelection) (domain.TrafficCounter, error) {
+		timeout := time.Second
+		if mode == "deadline" {
+			timeout, failure = 10*time.Millisecond, context.DeadlineExceeded
+		}
+		service := services.NewTrafficPairService(map[instances.InstanceID]services.TrafficPairReadBinding{"edge": {Timeout: timeout, Reader: trafficReader(func(ctx context.Context, _ domain.TrafficSelection) (domain.TrafficCounter, error) {
 			calls++
 			if mode == "cancel" {
 				cancel()
@@ -73,12 +77,6 @@ func TestTrafficPairDiscardsPartialReadsAndPreservesFailureAndCancellation(t *te
 			}
 			return domain.TrafficCounter{Bytes: 99}, nil
 		})}})
-		if mode == "deadline" {
-			short, release := context.WithTimeout(ctx, 10*time.Millisecond)
-			defer release()
-			ctx = short
-			failure = context.DeadlineExceeded
-		}
 		result, err := service.GetTrafficPair(ctx, "edge", domain.TrafficPairSelection{Scope: domain.InboundTraffic, Name: "proxy"})
 		cancel()
 		if mode == "cancel" {
