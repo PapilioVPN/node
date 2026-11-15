@@ -3,14 +3,15 @@ package bootstrap
 import (
 	"context"
 	"errors"
+	"io"
 	"log/slog"
 
 	"go.uber.org/fx"
 	"go.uber.org/fx/fxevent"
 
-	rpc "github.com/PapilioVPN/node/internal/entrypoints/grpc"
 	"github.com/PapilioVPN/node/internal/modules/instances"
 	"github.com/PapilioVPN/node/internal/modules/system"
+	rpc "github.com/PapilioVPN/node/internal/platform/grpcserver"
 	"github.com/PapilioVPN/node/internal/settings"
 )
 
@@ -19,7 +20,8 @@ import (
 // Run owns final cleanup when an expired Fx context prevents lifecycle hooks.
 func New(cfg settings.Config, version string, options ...fx.Option) *fx.App {
 	modules := []fx.Option{
-		fx.Supply(cfg), system.Module(version, cfg.Communications), instances.Module(cfg.Communications),
+		fx.Supply(cfg.Node, cfg.Communications.GRPC, cfg.Communications.GRPC.Permissions, cfg.Instances),
+		system.Module(version, cfg.Communications.GRPC.Enabled), instances.Module(cfg.Communications.GRPC.Enabled),
 		fx.StartTimeout(cfg.Runtime.StartupTimeout), fx.StopTimeout(cfg.Runtime.ShutdownTimeout),
 		fx.WithLogger(func() fxevent.Logger { return &fxevent.SlogLogger{Logger: slog.Default()} }),
 	}
@@ -35,14 +37,14 @@ func Run(ctx context.Context, cfg settings.Config, version string, options ...fx
 		return errors.New("no implemented communication transport is enabled")
 	}
 	var server *rpc.Server
-	var engines *instances.Resources
-	application := New(cfg, version, append(options, fx.Populate(&server, &engines))...)
+	var resources moduleResources
+	application := New(cfg, version, append(options, fx.Populate(&server, &resources))...)
 	defer func() {
 		if server != nil {
 			result = errors.Join(result, server.Close())
 		}
-		if engines != nil {
-			result = errors.Join(result, engines.Close())
+		for _, resource := range resources.Closers {
+			result = errors.Join(result, resource.Close())
 		}
 	}()
 	startup, cancel := context.WithTimeout(ctx, cfg.Runtime.StartupTimeout)
@@ -64,4 +66,10 @@ func Run(ctx context.Context, cfg settings.Config, version string, options ...fx
 		return errors.Join(errors.New("runtime stopped unexpectedly"), err)
 	}
 	return err
+}
+
+// Module resources are independent owners; each preserves its internal close order.
+type moduleResources struct {
+	fx.In
+	Closers []io.Closer `group:"module_resources"`
 }

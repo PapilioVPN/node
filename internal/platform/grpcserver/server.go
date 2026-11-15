@@ -1,4 +1,5 @@
-package grpc
+// Package grpcserver owns the native management transport and its connections.
+package grpcserver
 
 import (
 	"context"

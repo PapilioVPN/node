@@ -4,15 +4,15 @@ import (
 	"go.uber.org/fx"
 	"google.golang.org/grpc"
 
-	rpc "github.com/PapilioVPN/node/internal/entrypoints/grpc"
+	rpc "github.com/PapilioVPN/node/internal/platform/grpcserver"
 	"github.com/PapilioVPN/node/internal/settings"
 )
 
 // The process-wide transport is registered here; its adapter has no Fx imports.
 var grpcModule = fx.Module("grpc", fx.Provide(newGRPCServer, serviceRegistrar), fx.Invoke(registerGRPCLifecycle))
 
-func newGRPCServer(cfg settings.Config, shutdown fx.Shutdowner) (*rpc.Server, error) {
-	return rpc.NewServer(cfg.Communications.GRPC, func() {
+func newGRPCServer(cfg settings.GRPC, shutdown fx.Shutdowner) (*rpc.Server, error) {
+	return rpc.NewServer(cfg, func() {
 		// A second shutdown request needs no further action; Stop reports the cause.
 		_ = shutdown.Shutdown(fx.ExitCode(1))
 	})

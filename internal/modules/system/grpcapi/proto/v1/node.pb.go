@@ -2,9 +2,9 @@
 // versions:
 // 	protoc-gen-go v1.36.12
 // 	protoc        v7.36.2
-// source: internal/entrypoints/grpc/proto/v1/node.proto
+// source: internal/modules/system/grpcapi/proto/v1/node.proto
 
-package nodev1
+package systemv1
 
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
@@ -29,7 +29,7 @@ type GetNodeInfoRequest struct {
 
 func (x *GetNodeInfoRequest) Reset() {
 	*x = GetNodeInfoRequest{}
-	mi := &file_internal_entrypoints_grpc_proto_v1_node_proto_msgTypes[0]
+	mi := &file_internal_modules_system_grpcapi_proto_v1_node_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -41,7 +41,7 @@ func (x *GetNodeInfoRequest) String() string {
 func (*GetNodeInfoRequest) ProtoMessage() {}
 
 func (x *GetNodeInfoRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_entrypoints_grpc_proto_v1_node_proto_msgTypes[0]
+	mi := &file_internal_modules_system_grpcapi_proto_v1_node_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -54,7 +54,7 @@ func (x *GetNodeInfoRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetNodeInfoRequest.ProtoReflect.Descriptor instead.
 func (*GetNodeInfoRequest) Descriptor() ([]byte, []int) {
-	return file_internal_entrypoints_grpc_proto_v1_node_proto_rawDescGZIP(), []int{0}
+	return file_internal_modules_system_grpcapi_proto_v1_node_proto_rawDescGZIP(), []int{0}
 }
 
 type GetNodeInfoResponse struct {
@@ -70,7 +70,7 @@ type GetNodeInfoResponse struct {
 
 func (x *GetNodeInfoResponse) Reset() {
 	*x = GetNodeInfoResponse{}
-	mi := &file_internal_entrypoints_grpc_proto_v1_node_proto_msgTypes[1]
+	mi := &file_internal_modules_system_grpcapi_proto_v1_node_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -82,7 +82,7 @@ func (x *GetNodeInfoResponse) String() string {
 func (*GetNodeInfoResponse) ProtoMessage() {}
 
 func (x *GetNodeInfoResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_entrypoints_grpc_proto_v1_node_proto_msgTypes[1]
+	mi := &file_internal_modules_system_grpcapi_proto_v1_node_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -95,7 +95,7 @@ func (x *GetNodeInfoResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetNodeInfoResponse.ProtoReflect.Descriptor instead.
 func (*GetNodeInfoResponse) Descriptor() ([]byte, []int) {
-	return file_internal_entrypoints_grpc_proto_v1_node_proto_rawDescGZIP(), []int{1}
+	return file_internal_modules_system_grpcapi_proto_v1_node_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *GetNodeInfoResponse) GetNodeId() string {
@@ -126,11 +126,11 @@ func (x *GetNodeInfoResponse) GetCapabilities() []string {
 	return nil
 }
 
-var File_internal_entrypoints_grpc_proto_v1_node_proto protoreflect.FileDescriptor
+var File_internal_modules_system_grpcapi_proto_v1_node_proto protoreflect.FileDescriptor
 
-const file_internal_entrypoints_grpc_proto_v1_node_proto_rawDesc = "" +
+const file_internal_modules_system_grpcapi_proto_v1_node_proto_rawDesc = "" +
 	"\n" +
-	"-internal/entrypoints/grpc/proto/v1/node.proto\x12\x0fpapilio.node.v1\"\x14\n" +
+	"3internal/modules/system/grpcapi/proto/v1/node.proto\x12\x0fpapilio.node.v1\"\x14\n" +
 	"\x12GetNodeInfoRequest\"\x8d\x01\n" +
 	"\x13GetNodeInfoResponse\x12\x17\n" +
 	"\anode_id\x18\x01 \x01(\tR\x06nodeId\x12\x18\n" +
@@ -139,26 +139,26 @@ const file_internal_entrypoints_grpc_proto_v1_node_proto_rawDesc = "" +
 	"apiVersion\x12\"\n" +
 	"\fcapabilities\x18\x04 \x03(\tR\fcapabilities2g\n" +
 	"\vNodeService\x12X\n" +
-	"\vGetNodeInfo\x12#.papilio.node.v1.GetNodeInfoRequest\x1a$.papilio.node.v1.GetNodeInfoResponseBFZDgithub.com/PapilioVPN/node/internal/entrypoints/grpc/proto/v1;nodev1b\x06proto3"
+	"\vGetNodeInfo\x12#.papilio.node.v1.GetNodeInfoRequest\x1a$.papilio.node.v1.GetNodeInfoResponseBNZLgithub.com/PapilioVPN/node/internal/modules/system/grpcapi/proto/v1;systemv1b\x06proto3"
 
 var (
-	file_internal_entrypoints_grpc_proto_v1_node_proto_rawDescOnce sync.Once
-	file_internal_entrypoints_grpc_proto_v1_node_proto_rawDescData []byte
+	file_internal_modules_system_grpcapi_proto_v1_node_proto_rawDescOnce sync.Once
+	file_internal_modules_system_grpcapi_proto_v1_node_proto_rawDescData []byte
 )
 
-func file_internal_entrypoints_grpc_proto_v1_node_proto_rawDescGZIP() []byte {
-	file_internal_entrypoints_grpc_proto_v1_node_proto_rawDescOnce.Do(func() {
-		file_internal_entrypoints_grpc_proto_v1_node_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_internal_entrypoints_grpc_proto_v1_node_proto_rawDesc), len(file_internal_entrypoints_grpc_proto_v1_node_proto_rawDesc)))
+func file_internal_modules_system_grpcapi_proto_v1_node_proto_rawDescGZIP() []byte {
+	file_internal_modules_system_grpcapi_proto_v1_node_proto_rawDescOnce.Do(func() {
+		file_internal_modules_system_grpcapi_proto_v1_node_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_internal_modules_system_grpcapi_proto_v1_node_proto_rawDesc), len(file_internal_modules_system_grpcapi_proto_v1_node_proto_rawDesc)))
 	})
-	return file_internal_entrypoints_grpc_proto_v1_node_proto_rawDescData
+	return file_internal_modules_system_grpcapi_proto_v1_node_proto_rawDescData
 }
 
-var file_internal_entrypoints_grpc_proto_v1_node_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
-var file_internal_entrypoints_grpc_proto_v1_node_proto_goTypes = []any{
+var file_internal_modules_system_grpcapi_proto_v1_node_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_internal_modules_system_grpcapi_proto_v1_node_proto_goTypes = []any{
 	(*GetNodeInfoRequest)(nil),  // 0: papilio.node.v1.GetNodeInfoRequest
 	(*GetNodeInfoResponse)(nil), // 1: papilio.node.v1.GetNodeInfoResponse
 }
-var file_internal_entrypoints_grpc_proto_v1_node_proto_depIdxs = []int32{
+var file_internal_modules_system_grpcapi_proto_v1_node_proto_depIdxs = []int32{
 	0, // 0: papilio.node.v1.NodeService.GetNodeInfo:input_type -> papilio.node.v1.GetNodeInfoRequest
 	1, // 1: papilio.node.v1.NodeService.GetNodeInfo:output_type -> papilio.node.v1.GetNodeInfoResponse
 	1, // [1:2] is the sub-list for method output_type
@@ -168,26 +168,26 @@ var file_internal_entrypoints_grpc_proto_v1_node_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for field type_name
 }
 
-func init() { file_internal_entrypoints_grpc_proto_v1_node_proto_init() }
-func file_internal_entrypoints_grpc_proto_v1_node_proto_init() {
-	if File_internal_entrypoints_grpc_proto_v1_node_proto != nil {
+func init() { file_internal_modules_system_grpcapi_proto_v1_node_proto_init() }
+func file_internal_modules_system_grpcapi_proto_v1_node_proto_init() {
+	if File_internal_modules_system_grpcapi_proto_v1_node_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_internal_entrypoints_grpc_proto_v1_node_proto_rawDesc), len(file_internal_entrypoints_grpc_proto_v1_node_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_internal_modules_system_grpcapi_proto_v1_node_proto_rawDesc), len(file_internal_modules_system_grpcapi_proto_v1_node_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   2,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_internal_entrypoints_grpc_proto_v1_node_proto_goTypes,
-		DependencyIndexes: file_internal_entrypoints_grpc_proto_v1_node_proto_depIdxs,
-		MessageInfos:      file_internal_entrypoints_grpc_proto_v1_node_proto_msgTypes,
+		GoTypes:           file_internal_modules_system_grpcapi_proto_v1_node_proto_goTypes,
+		DependencyIndexes: file_internal_modules_system_grpcapi_proto_v1_node_proto_depIdxs,
+		MessageInfos:      file_internal_modules_system_grpcapi_proto_v1_node_proto_msgTypes,
 	}.Build()
-	File_internal_entrypoints_grpc_proto_v1_node_proto = out.File
-	file_internal_entrypoints_grpc_proto_v1_node_proto_goTypes = nil
-	file_internal_entrypoints_grpc_proto_v1_node_proto_depIdxs = nil
+	File_internal_modules_system_grpcapi_proto_v1_node_proto = out.File
+	file_internal_modules_system_grpcapi_proto_v1_node_proto_goTypes = nil
+	file_internal_modules_system_grpcapi_proto_v1_node_proto_depIdxs = nil
 }

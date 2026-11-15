@@ -9,9 +9,9 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	nodev1 "github.com/PapilioVPN/node/internal/entrypoints/grpc/proto/v1"
 	"github.com/PapilioVPN/node/internal/modules/system/domain"
 	rpc "github.com/PapilioVPN/node/internal/modules/system/grpcapi"
+	systemv1 "github.com/PapilioVPN/node/internal/modules/system/grpcapi/proto/v1"
 )
 
 type infoReader func(context.Context) (domain.NodeInfo, error)
@@ -30,7 +30,7 @@ func TestHandlerErrorMapping(t *testing.T) {
 	} {
 		t.Run(item.name, func(t *testing.T) {
 			handler := rpc.Handler{Info: infoReader(func(context.Context) (domain.NodeInfo, error) { return domain.NodeInfo{}, item.err })}
-			_, err := handler.GetNodeInfo(context.Background(), &nodev1.GetNodeInfoRequest{})
+			_, err := handler.GetNodeInfo(context.Background(), &systemv1.GetNodeInfoRequest{})
 			if status.Code(err) != item.code || (item.code == codes.Internal && strings.Contains(err.Error(), item.err.Error())) {
 				t.Fatalf("incorrect error mapping: %v", err)
 			}

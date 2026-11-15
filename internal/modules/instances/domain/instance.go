@@ -34,3 +34,6 @@ type Status struct {
 	// whether reading status succeeded. Wire adapters must map it explicitly.
 	Failure error
 }
+
+// ReadStatus identifies the implemented observation operation.
+const ReadStatus = "instance.status.read"

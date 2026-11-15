@@ -19,8 +19,9 @@ import (
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/status"
 
-	nodev1 "github.com/PapilioVPN/node/internal/entrypoints/grpc/proto/v1"
-	"github.com/PapilioVPN/node/internal/testutil"
+	nodev1 "github.com/PapilioVPN/node/internal/modules/instances/grpcapi/proto/v1"
+	systemv1 "github.com/PapilioVPN/node/internal/modules/system/grpcapi/proto/v1"
+	"github.com/PapilioVPN/node/internal/shared/testutil"
 )
 
 var image = flag.String("image", "", "prebuilt image to verify")
@@ -71,7 +72,7 @@ func TestContainer(t *testing.T) {
 	defer connection.Close()
 	request, stopRequest := context.WithTimeout(ctx, 10*time.Second)
 	defer stopRequest()
-	info, err := nodev1.NewNodeServiceClient(connection).GetNodeInfo(request, &nodev1.GetNodeInfoRequest{}, grpc.WaitForReady(true))
+	info, err := systemv1.NewNodeServiceClient(connection).GetNodeInfo(request, &systemv1.GetNodeInfoRequest{}, grpc.WaitForReady(true))
 	if err != nil || info.GetNodeId() != "test-node" || info.GetVersion() == "" {
 		logs, _ := exec.CommandContext(ctx, "docker", "logs", containerID).CombinedOutput()
 		t.Fatalf("packaged operation failed: %v, %v; logs: %s", info, err, logs)

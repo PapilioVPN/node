@@ -2,9 +2,9 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.2
 // - protoc             v7.36.2
-// source: internal/entrypoints/grpc/proto/v1/instances.proto
+// source: internal/modules/instances/grpcapi/proto/v1/instances.proto
 
-package nodev1
+package instancesv1
 
 import (
 	context "context"
@@ -117,5 +117,5 @@ var InstanceService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "internal/entrypoints/grpc/proto/v1/instances.proto",
+	Metadata: "internal/modules/instances/grpcapi/proto/v1/instances.proto",
 }

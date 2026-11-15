@@ -9,16 +9,16 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	nodev1 "github.com/PapilioVPN/node/internal/entrypoints/grpc/proto/v1"
 	"github.com/PapilioVPN/node/internal/modules/instances/domain"
+	instancesv1 "github.com/PapilioVPN/node/internal/modules/instances/grpcapi/proto/v1"
 )
 
 func TestStatusResponsePreservesLifecycleAndFailurePresence(t *testing.T) {
-	for observed, expected := range map[domain.State]nodev1.InstanceState{
-		domain.Stopped:  nodev1.InstanceState_INSTANCE_STATE_STOPPED,
-		domain.Running:  nodev1.InstanceState_INSTANCE_STATE_RUNNING,
-		domain.Stopping: nodev1.InstanceState_INSTANCE_STATE_STOPPING,
-		domain.Exited:   nodev1.InstanceState_INSTANCE_STATE_EXITED,
+	for observed, expected := range map[domain.State]instancesv1.InstanceState{
+		domain.Stopped:  instancesv1.InstanceState_INSTANCE_STATE_STOPPED,
+		domain.Running:  instancesv1.InstanceState_INSTANCE_STATE_RUNNING,
+		domain.Stopping: instancesv1.InstanceState_INSTANCE_STATE_STOPPING,
+		domain.Exited:   instancesv1.InstanceState_INSTANCE_STATE_EXITED,
 	} {
 		response, err := statusResponse(domain.Status{Instance: domain.Instance{ID: "edge", Kind: domain.Xray}, State: observed})
 		if err != nil || response.InstanceId != "edge" || response.Engine != "xray" || response.State != expected || response.Failure != nil {
@@ -33,7 +33,7 @@ func TestStatusResponsePreservesLifecycleAndFailurePresence(t *testing.T) {
 func TestStatusResponsePreservesExitCodeWithoutRawErrors(t *testing.T) {
 	for _, code := range []int{0, 23, -1, 1 << 33} {
 		response, err := statusResponse(domain.Status{State: domain.Exited, Failure: fmt.Errorf("private path: %w", codedFailure(code))})
-		if err != nil || response.Failure.GetCode() != nodev1.InstanceFailureCode_INSTANCE_FAILURE_CODE_EXECUTION_FAILED {
+		if err != nil || response.Failure.GetCode() != instancesv1.InstanceFailureCode_INSTANCE_FAILURE_CODE_EXECUTION_FAILED {
 			t.Fatalf("execution failure mapping = %v, %v", response, err)
 		}
 		if code >= 0 && code <= 23 {

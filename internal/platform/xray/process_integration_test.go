@@ -20,9 +20,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PapilioVPN/node/internal/engines/xray"
 	"github.com/PapilioVPN/node/internal/modules/instances/app"
 	"github.com/PapilioVPN/node/internal/modules/instances/domain"
+	"github.com/PapilioVPN/node/internal/platform/xray"
 )
 
 func TestIndependentXrayInstances(t *testing.T) {

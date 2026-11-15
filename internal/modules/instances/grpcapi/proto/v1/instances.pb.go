@@ -2,9 +2,9 @@
 // versions:
 // 	protoc-gen-go v1.36.12
 // 	protoc        v7.36.2
-// source: internal/entrypoints/grpc/proto/v1/instances.proto
+// source: internal/modules/instances/grpcapi/proto/v1/instances.proto
 
-package nodev1
+package instancesv1
 
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
@@ -60,11 +60,11 @@ func (x InstanceState) String() string {
 }
 
 func (InstanceState) Descriptor() protoreflect.EnumDescriptor {
-	return file_internal_entrypoints_grpc_proto_v1_instances_proto_enumTypes[0].Descriptor()
+	return file_internal_modules_instances_grpcapi_proto_v1_instances_proto_enumTypes[0].Descriptor()
 }
 
 func (InstanceState) Type() protoreflect.EnumType {
-	return &file_internal_entrypoints_grpc_proto_v1_instances_proto_enumTypes[0]
+	return &file_internal_modules_instances_grpcapi_proto_v1_instances_proto_enumTypes[0]
 }
 
 func (x InstanceState) Number() protoreflect.EnumNumber {
@@ -73,7 +73,7 @@ func (x InstanceState) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use InstanceState.Descriptor instead.
 func (InstanceState) EnumDescriptor() ([]byte, []int) {
-	return file_internal_entrypoints_grpc_proto_v1_instances_proto_rawDescGZIP(), []int{0}
+	return file_internal_modules_instances_grpcapi_proto_v1_instances_proto_rawDescGZIP(), []int{0}
 }
 
 type InstanceFailureCode int32
@@ -106,11 +106,11 @@ func (x InstanceFailureCode) String() string {
 }
 
 func (InstanceFailureCode) Descriptor() protoreflect.EnumDescriptor {
-	return file_internal_entrypoints_grpc_proto_v1_instances_proto_enumTypes[1].Descriptor()
+	return file_internal_modules_instances_grpcapi_proto_v1_instances_proto_enumTypes[1].Descriptor()
 }
 
 func (InstanceFailureCode) Type() protoreflect.EnumType {
-	return &file_internal_entrypoints_grpc_proto_v1_instances_proto_enumTypes[1]
+	return &file_internal_modules_instances_grpcapi_proto_v1_instances_proto_enumTypes[1]
 }
 
 func (x InstanceFailureCode) Number() protoreflect.EnumNumber {
@@ -119,7 +119,7 @@ func (x InstanceFailureCode) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use InstanceFailureCode.Descriptor instead.
 func (InstanceFailureCode) EnumDescriptor() ([]byte, []int) {
-	return file_internal_entrypoints_grpc_proto_v1_instances_proto_rawDescGZIP(), []int{1}
+	return file_internal_modules_instances_grpcapi_proto_v1_instances_proto_rawDescGZIP(), []int{1}
 }
 
 type GetInstanceStatusRequest struct {
@@ -131,7 +131,7 @@ type GetInstanceStatusRequest struct {
 
 func (x *GetInstanceStatusRequest) Reset() {
 	*x = GetInstanceStatusRequest{}
-	mi := &file_internal_entrypoints_grpc_proto_v1_instances_proto_msgTypes[0]
+	mi := &file_internal_modules_instances_grpcapi_proto_v1_instances_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -143,7 +143,7 @@ func (x *GetInstanceStatusRequest) String() string {
 func (*GetInstanceStatusRequest) ProtoMessage() {}
 
 func (x *GetInstanceStatusRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_entrypoints_grpc_proto_v1_instances_proto_msgTypes[0]
+	mi := &file_internal_modules_instances_grpcapi_proto_v1_instances_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -156,7 +156,7 @@ func (x *GetInstanceStatusRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetInstanceStatusRequest.ProtoReflect.Descriptor instead.
 func (*GetInstanceStatusRequest) Descriptor() ([]byte, []int) {
-	return file_internal_entrypoints_grpc_proto_v1_instances_proto_rawDescGZIP(), []int{0}
+	return file_internal_modules_instances_grpcapi_proto_v1_instances_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *GetInstanceStatusRequest) GetInstanceId() string {
@@ -180,7 +180,7 @@ type GetInstanceStatusResponse struct {
 
 func (x *GetInstanceStatusResponse) Reset() {
 	*x = GetInstanceStatusResponse{}
-	mi := &file_internal_entrypoints_grpc_proto_v1_instances_proto_msgTypes[1]
+	mi := &file_internal_modules_instances_grpcapi_proto_v1_instances_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -192,7 +192,7 @@ func (x *GetInstanceStatusResponse) String() string {
 func (*GetInstanceStatusResponse) ProtoMessage() {}
 
 func (x *GetInstanceStatusResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_entrypoints_grpc_proto_v1_instances_proto_msgTypes[1]
+	mi := &file_internal_modules_instances_grpcapi_proto_v1_instances_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -205,7 +205,7 @@ func (x *GetInstanceStatusResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetInstanceStatusResponse.ProtoReflect.Descriptor instead.
 func (*GetInstanceStatusResponse) Descriptor() ([]byte, []int) {
-	return file_internal_entrypoints_grpc_proto_v1_instances_proto_rawDescGZIP(), []int{1}
+	return file_internal_modules_instances_grpcapi_proto_v1_instances_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *GetInstanceStatusResponse) GetInstanceId() string {
@@ -247,7 +247,7 @@ type InstanceFailure struct {
 
 func (x *InstanceFailure) Reset() {
 	*x = InstanceFailure{}
-	mi := &file_internal_entrypoints_grpc_proto_v1_instances_proto_msgTypes[2]
+	mi := &file_internal_modules_instances_grpcapi_proto_v1_instances_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -259,7 +259,7 @@ func (x *InstanceFailure) String() string {
 func (*InstanceFailure) ProtoMessage() {}
 
 func (x *InstanceFailure) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_entrypoints_grpc_proto_v1_instances_proto_msgTypes[2]
+	mi := &file_internal_modules_instances_grpcapi_proto_v1_instances_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -272,7 +272,7 @@ func (x *InstanceFailure) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InstanceFailure.ProtoReflect.Descriptor instead.
 func (*InstanceFailure) Descriptor() ([]byte, []int) {
-	return file_internal_entrypoints_grpc_proto_v1_instances_proto_rawDescGZIP(), []int{2}
+	return file_internal_modules_instances_grpcapi_proto_v1_instances_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *InstanceFailure) GetCode() InstanceFailureCode {
@@ -289,11 +289,11 @@ func (x *InstanceFailure) GetExitCode() int32 {
 	return 0
 }
 
-var File_internal_entrypoints_grpc_proto_v1_instances_proto protoreflect.FileDescriptor
+var File_internal_modules_instances_grpcapi_proto_v1_instances_proto protoreflect.FileDescriptor
 
-const file_internal_entrypoints_grpc_proto_v1_instances_proto_rawDesc = "" +
+const file_internal_modules_instances_grpcapi_proto_v1_instances_proto_rawDesc = "" +
 	"\n" +
-	"2internal/entrypoints/grpc/proto/v1/instances.proto\x12\x0fpapilio.node.v1\";\n" +
+	";internal/modules/instances/grpcapi/proto/v1/instances.proto\x12\x0fpapilio.node.v1\";\n" +
 	"\x18GetInstanceStatusRequest\x12\x1f\n" +
 	"\vinstance_id\x18\x01 \x01(\tR\n" +
 	"instanceId\"\xc6\x01\n" +
@@ -318,30 +318,30 @@ const file_internal_entrypoints_grpc_proto_v1_instances_proto_rawDesc = "" +
 	"!INSTANCE_FAILURE_CODE_UNSPECIFIED\x10\x00\x12*\n" +
 	"&INSTANCE_FAILURE_CODE_EXECUTION_FAILED\x10\x012}\n" +
 	"\x0fInstanceService\x12j\n" +
-	"\x11GetInstanceStatus\x12).papilio.node.v1.GetInstanceStatusRequest\x1a*.papilio.node.v1.GetInstanceStatusResponseBFZDgithub.com/PapilioVPN/node/internal/entrypoints/grpc/proto/v1;nodev1b\x06proto3"
+	"\x11GetInstanceStatus\x12).papilio.node.v1.GetInstanceStatusRequest\x1a*.papilio.node.v1.GetInstanceStatusResponseBTZRgithub.com/PapilioVPN/node/internal/modules/instances/grpcapi/proto/v1;instancesv1b\x06proto3"
 
 var (
-	file_internal_entrypoints_grpc_proto_v1_instances_proto_rawDescOnce sync.Once
-	file_internal_entrypoints_grpc_proto_v1_instances_proto_rawDescData []byte
+	file_internal_modules_instances_grpcapi_proto_v1_instances_proto_rawDescOnce sync.Once
+	file_internal_modules_instances_grpcapi_proto_v1_instances_proto_rawDescData []byte
 )
 
-func file_internal_entrypoints_grpc_proto_v1_instances_proto_rawDescGZIP() []byte {
-	file_internal_entrypoints_grpc_proto_v1_instances_proto_rawDescOnce.Do(func() {
-		file_internal_entrypoints_grpc_proto_v1_instances_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_internal_entrypoints_grpc_proto_v1_instances_proto_rawDesc), len(file_internal_entrypoints_grpc_proto_v1_instances_proto_rawDesc)))
+func file_internal_modules_instances_grpcapi_proto_v1_instances_proto_rawDescGZIP() []byte {
+	file_internal_modules_instances_grpcapi_proto_v1_instances_proto_rawDescOnce.Do(func() {
+		file_internal_modules_instances_grpcapi_proto_v1_instances_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_internal_modules_instances_grpcapi_proto_v1_instances_proto_rawDesc), len(file_internal_modules_instances_grpcapi_proto_v1_instances_proto_rawDesc)))
 	})
-	return file_internal_entrypoints_grpc_proto_v1_instances_proto_rawDescData
+	return file_internal_modules_instances_grpcapi_proto_v1_instances_proto_rawDescData
 }
 
-var file_internal_entrypoints_grpc_proto_v1_instances_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_internal_entrypoints_grpc_proto_v1_instances_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
-var file_internal_entrypoints_grpc_proto_v1_instances_proto_goTypes = []any{
+var file_internal_modules_instances_grpcapi_proto_v1_instances_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_internal_modules_instances_grpcapi_proto_v1_instances_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_internal_modules_instances_grpcapi_proto_v1_instances_proto_goTypes = []any{
 	(InstanceState)(0),                // 0: papilio.node.v1.InstanceState
 	(InstanceFailureCode)(0),          // 1: papilio.node.v1.InstanceFailureCode
 	(*GetInstanceStatusRequest)(nil),  // 2: papilio.node.v1.GetInstanceStatusRequest
 	(*GetInstanceStatusResponse)(nil), // 3: papilio.node.v1.GetInstanceStatusResponse
 	(*InstanceFailure)(nil),           // 4: papilio.node.v1.InstanceFailure
 }
-var file_internal_entrypoints_grpc_proto_v1_instances_proto_depIdxs = []int32{
+var file_internal_modules_instances_grpcapi_proto_v1_instances_proto_depIdxs = []int32{
 	0, // 0: papilio.node.v1.GetInstanceStatusResponse.state:type_name -> papilio.node.v1.InstanceState
 	4, // 1: papilio.node.v1.GetInstanceStatusResponse.failure:type_name -> papilio.node.v1.InstanceFailure
 	1, // 2: papilio.node.v1.InstanceFailure.code:type_name -> papilio.node.v1.InstanceFailureCode
@@ -354,28 +354,28 @@ var file_internal_entrypoints_grpc_proto_v1_instances_proto_depIdxs = []int32{
 	0, // [0:3] is the sub-list for field type_name
 }
 
-func init() { file_internal_entrypoints_grpc_proto_v1_instances_proto_init() }
-func file_internal_entrypoints_grpc_proto_v1_instances_proto_init() {
-	if File_internal_entrypoints_grpc_proto_v1_instances_proto != nil {
+func init() { file_internal_modules_instances_grpcapi_proto_v1_instances_proto_init() }
+func file_internal_modules_instances_grpcapi_proto_v1_instances_proto_init() {
+	if File_internal_modules_instances_grpcapi_proto_v1_instances_proto != nil {
 		return
 	}
-	file_internal_entrypoints_grpc_proto_v1_instances_proto_msgTypes[2].OneofWrappers = []any{}
+	file_internal_modules_instances_grpcapi_proto_v1_instances_proto_msgTypes[2].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_internal_entrypoints_grpc_proto_v1_instances_proto_rawDesc), len(file_internal_entrypoints_grpc_proto_v1_instances_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_internal_modules_instances_grpcapi_proto_v1_instances_proto_rawDesc), len(file_internal_modules_instances_grpcapi_proto_v1_instances_proto_rawDesc)),
 			NumEnums:      2,
 			NumMessages:   3,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_internal_entrypoints_grpc_proto_v1_instances_proto_goTypes,
-		DependencyIndexes: file_internal_entrypoints_grpc_proto_v1_instances_proto_depIdxs,
-		EnumInfos:         file_internal_entrypoints_grpc_proto_v1_instances_proto_enumTypes,
-		MessageInfos:      file_internal_entrypoints_grpc_proto_v1_instances_proto_msgTypes,
+		GoTypes:           file_internal_modules_instances_grpcapi_proto_v1_instances_proto_goTypes,
+		DependencyIndexes: file_internal_modules_instances_grpcapi_proto_v1_instances_proto_depIdxs,
+		EnumInfos:         file_internal_modules_instances_grpcapi_proto_v1_instances_proto_enumTypes,
+		MessageInfos:      file_internal_modules_instances_grpcapi_proto_v1_instances_proto_msgTypes,
 	}.Build()
-	File_internal_entrypoints_grpc_proto_v1_instances_proto = out.File
-	file_internal_entrypoints_grpc_proto_v1_instances_proto_goTypes = nil
-	file_internal_entrypoints_grpc_proto_v1_instances_proto_depIdxs = nil
+	File_internal_modules_instances_grpcapi_proto_v1_instances_proto = out.File
+	file_internal_modules_instances_grpcapi_proto_v1_instances_proto_goTypes = nil
+	file_internal_modules_instances_grpcapi_proto_v1_instances_proto_depIdxs = nil
 }

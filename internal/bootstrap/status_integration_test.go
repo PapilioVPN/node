@@ -20,11 +20,12 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/PapilioVPN/node/internal/bootstrap"
-	rpc "github.com/PapilioVPN/node/internal/entrypoints/grpc"
-	nodev1 "github.com/PapilioVPN/node/internal/entrypoints/grpc/proto/v1"
 	"github.com/PapilioVPN/node/internal/modules/instances"
+	nodev1 "github.com/PapilioVPN/node/internal/modules/instances/grpcapi/proto/v1"
+	systemv1 "github.com/PapilioVPN/node/internal/modules/system/grpcapi/proto/v1"
+	rpc "github.com/PapilioVPN/node/internal/platform/grpcserver"
 	"github.com/PapilioVPN/node/internal/settings"
-	"github.com/PapilioVPN/node/internal/testutil"
+	"github.com/PapilioVPN/node/internal/shared/testutil"
 )
 
 func TestInstanceStatusDeniedByDefault(t *testing.T) {
@@ -122,7 +123,7 @@ func TestInstanceStatusReportsRealExitWithoutAffectingOtherInstance(t *testing.T
 	if _, err := client.GetInstanceStatus(canceled, &nodev1.GetInstanceStatusRequest{InstanceId: "edge-a"}); status.Code(err) != codes.Canceled {
 		t.Fatalf("client cancellation lost: %v", err)
 	}
-	info, err := nodev1.NewNodeServiceClient(connection).GetNodeInfo(ctx, &nodev1.GetNodeInfoRequest{})
+	info, err := systemv1.NewNodeServiceClient(connection).GetNodeInfo(ctx, &systemv1.GetNodeInfoRequest{})
 	if err != nil || !slices.Contains(info.GetCapabilities(), "instance.status.read") {
 		t.Fatalf("implemented observation not advertised: %v, %v", info, err)
 	}

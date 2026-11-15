@@ -15,9 +15,9 @@ import (
 	healthv1 "google.golang.org/grpc/health/grpc_health_v1"
 
 	"github.com/PapilioVPN/node/internal/bootstrap"
-	rpc "github.com/PapilioVPN/node/internal/entrypoints/grpc"
-	nodev1 "github.com/PapilioVPN/node/internal/entrypoints/grpc/proto/v1"
-	"github.com/PapilioVPN/node/internal/testutil"
+	nodev1 "github.com/PapilioVPN/node/internal/modules/system/grpcapi/proto/v1"
+	rpc "github.com/PapilioVPN/node/internal/platform/grpcserver"
+	"github.com/PapilioVPN/node/internal/shared/testutil"
 )
 
 func TestRuntimeMTLSAndShutdown(t *testing.T) {

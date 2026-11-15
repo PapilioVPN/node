@@ -28,5 +28,5 @@ GOBIN="$tool_dir" go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.6.
 PATH="$tool_dir:$PATH" "$tool_dir/protoc" \
   --go_out=. --go_opt=paths=source_relative \
   --go-grpc_out=. --go-grpc_opt=paths=source_relative \
-  internal/entrypoints/grpc/proto/v1/node.proto \
-  internal/entrypoints/grpc/proto/v1/instances.proto
+  internal/modules/system/grpcapi/proto/v1/node.proto \
+  internal/modules/instances/grpcapi/proto/v1/instances.proto

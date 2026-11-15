@@ -14,9 +14,9 @@ import (
 	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/status"
 
-	nodev1 "github.com/PapilioVPN/node/internal/entrypoints/grpc/proto/v1"
 	"github.com/PapilioVPN/node/internal/modules/instances/domain"
 	"github.com/PapilioVPN/node/internal/modules/instances/grpcapi"
+	instancesv1 "github.com/PapilioVPN/node/internal/modules/instances/grpcapi/proto/v1"
 )
 
 func TestStatusAuthenticationAndGrantPrecedeLookup(t *testing.T) {
@@ -34,7 +34,7 @@ func TestStatusAuthenticationAndGrantPrecedeLookup(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			// A nil reader makes an unintended application call fail immediately.
 			handler := grpcapi.Handler{AllowStatusRead: item.grant}
-			_, err := handler.GetInstanceStatus(item.ctx, &nodev1.GetInstanceStatusRequest{InstanceId: "unknown"})
+			_, err := handler.GetInstanceStatus(item.ctx, &instancesv1.GetInstanceStatusRequest{InstanceId: "unknown"})
 			if status.Code(err) != item.code {
 				t.Fatalf("authorization mapping = %v", err)
 			}
@@ -45,7 +45,7 @@ func TestStatusAuthenticationAndGrantPrecedeLookup(t *testing.T) {
 func TestStatusRequestValidationAndErrorMapping(t *testing.T) {
 	ctx := verifiedContext(t)
 	handler := grpcapi.Handler{AllowStatusRead: true}
-	for _, request := range []*nodev1.GetInstanceStatusRequest{nil, {}, {InstanceId: "  "}} {
+	for _, request := range []*instancesv1.GetInstanceStatusRequest{nil, {}, {InstanceId: "  "}} {
 		if _, err := handler.GetInstanceStatus(ctx, request); status.Code(err) != codes.InvalidArgument {
 			t.Fatalf("invalid identity reached reader: %v", err)
 		}
@@ -62,7 +62,7 @@ func TestStatusRequestValidationAndErrorMapping(t *testing.T) {
 			}
 			return domain.Status{}, cause
 		})
-		_, err := handler.GetInstanceStatus(ctx, &nodev1.GetInstanceStatusRequest{InstanceId: "edge-a"})
+		_, err := handler.GetInstanceStatus(ctx, &instancesv1.GetInstanceStatusRequest{InstanceId: "edge-a"})
 		if status.Code(err) != expected || strings.Contains(err.Error(), "private") {
 			t.Fatalf("read error mapping = %v", err)
 		}
@@ -73,8 +73,8 @@ func TestExecutionFailureIsAReadableOutcome(t *testing.T) {
 	handler := grpcapi.Handler{AllowStatusRead: true, Status: statusReader(func(context.Context, domain.InstanceID) (domain.Status, error) {
 		return domain.Status{Instance: domain.Instance{ID: "edge-a", Kind: domain.Xray}, State: domain.Exited, Failure: context.Canceled}, nil
 	})}
-	response, err := handler.GetInstanceStatus(verifiedContext(t), &nodev1.GetInstanceStatusRequest{InstanceId: "edge-a"})
-	if err != nil || response.GetState() != nodev1.InstanceState_INSTANCE_STATE_EXITED || response.Failure == nil {
+	response, err := handler.GetInstanceStatus(verifiedContext(t), &instancesv1.GetInstanceStatusRequest{InstanceId: "edge-a"})
+	if err != nil || response.GetState() != instancesv1.InstanceState_INSTANCE_STATE_EXITED || response.Failure == nil {
 		t.Fatalf("execution failure was confused with failed status read: %v, %v", response, err)
 	}
 }

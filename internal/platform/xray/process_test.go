@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PapilioVPN/node/internal/engines/xray"
+	"github.com/PapilioVPN/node/internal/platform/xray"
 )
 
 func TestNewRequiresExplicitProcessSettings(t *testing.T) {

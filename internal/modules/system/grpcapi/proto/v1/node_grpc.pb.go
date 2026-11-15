@@ -2,9 +2,9 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.2
 // - protoc             v7.36.2
-// source: internal/entrypoints/grpc/proto/v1/node.proto
+// source: internal/modules/system/grpcapi/proto/v1/node.proto
 
-package nodev1
+package systemv1
 
 import (
 	context "context"
@@ -121,5 +121,5 @@ var NodeService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "internal/entrypoints/grpc/proto/v1/node.proto",
+	Metadata: "internal/modules/system/grpcapi/proto/v1/node.proto",
 }

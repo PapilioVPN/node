@@ -5,29 +5,32 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 
 	"go.uber.org/fx"
 	"google.golang.org/grpc"
 
-	"github.com/PapilioVPN/node/internal/engines/xray"
-	nodev1 "github.com/PapilioVPN/node/internal/entrypoints/grpc/proto/v1"
 	"github.com/PapilioVPN/node/internal/modules/instances/app"
 	"github.com/PapilioVPN/node/internal/modules/instances/domain"
 	"github.com/PapilioVPN/node/internal/modules/instances/grpcapi"
+	instancesv1 "github.com/PapilioVPN/node/internal/modules/instances/grpcapi/proto/v1"
+	systemdomain "github.com/PapilioVPN/node/internal/modules/system/domain"
+	"github.com/PapilioVPN/node/internal/platform/xray"
 	"github.com/PapilioVPN/node/internal/settings"
 )
 
-func Module(communications settings.Communications) fx.Option {
-	options := []fx.Option{fx.Provide(newResources, newStatusService), fx.Invoke(registerLifecycle)}
-	if communications.GRPC.Enabled {
+// Module composes instance operations, native adapters and capability registration.
+func Module(grpcEnabled bool) fx.Option {
+	options := []fx.Option{fx.Provide(newResources, newStatusService, capability), fx.Invoke(registerLifecycle)}
+	if grpcEnabled {
 		options = append(options, fx.Invoke(registerGRPC))
 	}
 	return fx.Module("instances", options...)
 }
 
-func registerGRPC(registrar grpc.ServiceRegistrar, reader *app.StatusService, cfg settings.Config) {
-	nodev1.RegisterInstanceServiceServer(registrar, grpcapi.Handler{
-		Status: reader, AllowStatusRead: cfg.Communications.GRPC.Permissions.ReadInstanceStatus,
+func registerGRPC(registrar grpc.ServiceRegistrar, reader *app.StatusService, cfg settings.GRPCPermissions) {
+	instancesv1.RegisterInstanceServiceServer(registrar, grpcapi.Handler{
+		Status: reader, AllowStatusRead: cfg.ReadInstanceStatus,
 	})
 }
 
@@ -40,12 +43,12 @@ type Resources struct {
 type ownedInstance struct {
 	id        domain.InstanceID
 	lifecycle *app.Lifecycle
-	process   *xray.Process
+	closer    io.Closer
 }
 
-func newResources(cfg settings.Config) (*Resources, error) {
+func newResources(config []settings.Instance) (resourceResult, error) {
 	resources := &Resources{}
-	for _, instance := range cfg.Instances {
+	for _, instance := range config {
 		switch instance.Engine {
 		case domain.Xray:
 			process, err := xray.New(xray.Config{
@@ -53,15 +56,15 @@ func newResources(cfg settings.Config) (*Resources, error) {
 				StopTimeout: instance.Xray.StopTimeout,
 			})
 			if err != nil {
-				return nil, fmt.Errorf("construct instance %q: %w", instance.ID, err)
+				return resourceResult{}, fmt.Errorf("construct instance %q: %w", instance.ID, err)
 			}
 			service := app.NewLifecycle(domain.Instance{ID: instance.ID, Kind: instance.Engine}, process)
-			resources.instances = append(resources.instances, ownedInstance{instance.ID, service, process})
+			resources.instances = append(resources.instances, ownedInstance{id: instance.ID, lifecycle: service, closer: process})
 		default:
-			return nil, fmt.Errorf("%w: unsupported instance engine", settings.ErrInvalidConfig)
+			return resourceResult{}, fmt.Errorf("%w: unsupported instance engine", settings.ErrInvalidConfig)
 		}
 	}
-	return resources, nil
+	return resourceResult{Resources: resources, Cleanup: resources}, nil
 }
 
 func registerLifecycle(lifecycle fx.Lifecycle, resources *Resources) {
@@ -100,9 +103,24 @@ func (r *Resources) Close() error {
 	var result error
 	for i := len(r.instances) - 1; i >= 0; i-- {
 		instance := r.instances[i]
-		if err := instance.process.Close(); err != nil {
+		if err := instance.closer.Close(); err != nil {
 			result = errors.Join(result, fmt.Errorf("close instance %q: %w", instance.id, err))
 		}
 	}
 	return result
+}
+
+type capabilityResult struct {
+	fx.Out
+	Value systemdomain.Capability `group:"node_capabilities"`
+}
+
+func capability() capabilityResult {
+	return capabilityResult{Value: systemdomain.Capability(domain.ReadStatus)}
+}
+
+type resourceResult struct {
+	fx.Out
+	Resources *Resources
+	Cleanup   io.Closer `group:"module_resources"`
 }

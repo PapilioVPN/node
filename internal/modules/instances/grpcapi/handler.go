@@ -11,8 +11,8 @@ import (
 	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/status"
 
-	nodev1 "github.com/PapilioVPN/node/internal/entrypoints/grpc/proto/v1"
 	"github.com/PapilioVPN/node/internal/modules/instances/domain"
+	instancesv1 "github.com/PapilioVPN/node/internal/modules/instances/grpcapi/proto/v1"
 )
 
 type InstanceStatusReader interface {
@@ -20,12 +20,12 @@ type InstanceStatusReader interface {
 }
 
 type Handler struct {
-	nodev1.UnimplementedInstanceServiceServer
+	instancesv1.UnimplementedInstanceServiceServer
 	Status          InstanceStatusReader
 	AllowStatusRead bool
 }
 
-func (h Handler) GetInstanceStatus(ctx context.Context, request *nodev1.GetInstanceStatusRequest) (*nodev1.GetInstanceStatusResponse, error) {
+func (h Handler) GetInstanceStatus(ctx context.Context, request *instancesv1.GetInstanceStatusRequest) (*instancesv1.GetInstanceStatusResponse, error) {
 	client, ok := peer.FromContext(ctx)
 	if !ok {
 		return nil, status.Error(codes.Unauthenticated, "verified client certificate required")

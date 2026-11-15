@@ -20,11 +20,11 @@ import (
 	"go.yaml.in/yaml/v3"
 
 	"github.com/PapilioVPN/node/internal/bootstrap"
-	rpc "github.com/PapilioVPN/node/internal/entrypoints/grpc"
 	"github.com/PapilioVPN/node/internal/modules/instances"
 	"github.com/PapilioVPN/node/internal/modules/instances/domain"
+	rpc "github.com/PapilioVPN/node/internal/platform/grpcserver"
 	"github.com/PapilioVPN/node/internal/settings"
-	"github.com/PapilioVPN/node/internal/testutil"
+	"github.com/PapilioVPN/node/internal/shared/testutil"
 )
 
 func TestConfiguredInstancesStartAndStop(t *testing.T) {
