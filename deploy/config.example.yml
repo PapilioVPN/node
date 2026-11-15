@@ -4,6 +4,15 @@ node:
 runtime:
   startup_timeout: 10s
   shutdown_timeout: 10s
+# Every declared instance starts with Node. Paths resolve against this YAML file.
+# Supply the executable and native config yourself, including inside containers.
+instances: []
+#  - id: edge-a
+#    engine: xray
+#    xray:
+#      binary: ""
+#      config_file: ""
+#      stop_timeout: 5s
 communications:
   grpc:
     enabled: true

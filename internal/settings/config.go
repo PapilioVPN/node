@@ -21,6 +21,7 @@ type Config struct {
 	Node           Node           `yaml:"node"`
 	Communications Communications `yaml:"communications"`
 	Runtime        Runtime        `yaml:"runtime"`
+	Instances      []Instance     `yaml:"instances"`
 }
 
 type Node struct {
@@ -79,14 +80,23 @@ func Load(path string) (Config, error) {
 		return Config{}, fmt.Errorf("resolve configuration location: %w", err)
 	}
 	for _, value := range []*string{&config.Communications.GRPC.TLS.CertificateFile, &config.Communications.GRPC.TLS.PrivateKeyFile, &config.Communications.GRPC.TLS.ClientCAFile} {
-		if *value != "" && !filepath.IsAbs(*value) {
-			*value = filepath.Join(filepath.Dir(location), *value)
-		}
+		resolvePath(filepath.Dir(location), value)
+	}
+	for i := range config.Instances {
+		xray := config.Instances[i].Xray
+		resolvePath(filepath.Dir(location), &xray.Binary)
+		resolvePath(filepath.Dir(location), &xray.ConfigFile)
 	}
 	return config, nil
 }
 
-// Validate checks the settings owned by this implemented foundation.
+func resolvePath(base string, value *string) {
+	if *value != "" && !filepath.IsAbs(*value) {
+		*value = filepath.Join(base, *value)
+	}
+}
+
+// Validate checks Node settings, not engine-native configuration contents.
 func (c Config) Validate() error {
 	if strings.TrimSpace(c.Node.ID) == "" {
 		return fmt.Errorf("%w: node.id is required", ErrInvalidConfig)
@@ -107,9 +117,11 @@ func (c Config) Validate() error {
 		if strings.TrimSpace(grpc.TLS.CertificateFile) == "" || strings.TrimSpace(grpc.TLS.PrivateKeyFile) == "" || strings.TrimSpace(grpc.TLS.ClientCAFile) == "" {
 			return fmt.Errorf("%w: gRPC server certificate, private key and client CA files are required", ErrInvalidConfig)
 		}
+	}
+	if c.Communications.GRPC.Enabled || len(c.Instances) > 0 {
 		if c.Runtime.StartupTimeout <= 0 || c.Runtime.ShutdownTimeout <= 0 {
 			return fmt.Errorf("%w: positive runtime startup/shutdown timeouts are required", ErrInvalidConfig)
 		}
 	}
-	return nil
+	return validateInstances(c.Instances)
 }

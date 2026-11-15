@@ -8,6 +8,7 @@ import (
 	"go.uber.org/fx"
 	"go.uber.org/fx/fxevent"
 
+	"github.com/PapilioVPN/node/internal/apps/instances"
 	"github.com/PapilioVPN/node/internal/apps/system"
 	rpc "github.com/PapilioVPN/node/internal/entrypoints/grpc"
 	"github.com/PapilioVPN/node/internal/settings"
@@ -15,9 +16,10 @@ import (
 
 // New composes validated settings and the implemented capability modules.
 // Options use native Fx extension points, including composition test consumers.
+// Run owns final cleanup when an expired Fx context prevents lifecycle hooks.
 func New(cfg settings.Config, version string, options ...fx.Option) *fx.App {
 	modules := []fx.Option{
-		fx.Supply(cfg), system.Module(version),
+		fx.Supply(cfg), system.Module(version), instances.Module,
 		fx.StartTimeout(cfg.Runtime.StartupTimeout), fx.StopTimeout(cfg.Runtime.ShutdownTimeout),
 		fx.WithLogger(func() fxevent.Logger { return &fxevent.SlogLogger{Logger: slog.Default()} }),
 	}
@@ -33,10 +35,14 @@ func Run(ctx context.Context, cfg settings.Config, version string, options ...fx
 		return errors.New("no implemented communication transport is enabled")
 	}
 	var server *rpc.Server
-	application := New(cfg, version, append(options, fx.Populate(&server))...)
+	var engines *instances.Resources
+	application := New(cfg, version, append(options, fx.Populate(&server, &engines))...)
 	defer func() {
 		if server != nil {
 			result = errors.Join(result, server.Close())
+		}
+		if engines != nil {
+			result = errors.Join(result, engines.Close())
 		}
 	}()
 	startup, cancel := context.WithTimeout(ctx, cfg.Runtime.StartupTimeout)
