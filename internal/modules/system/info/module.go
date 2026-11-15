@@ -10,6 +10,8 @@ import (
 	"github.com/PapilioVPN/node/internal/modules/system/info/grpcapi"
 	systemv1 "github.com/PapilioVPN/node/internal/modules/system/info/grpcapi/proto/v1"
 	"github.com/PapilioVPN/node/internal/modules/system/info/httpapi"
+	"github.com/PapilioVPN/node/internal/modules/system/info/natsapi"
+	"github.com/PapilioVPN/node/internal/platform/natsserver"
 	"github.com/PapilioVPN/node/internal/settings"
 )
 
@@ -23,6 +25,9 @@ func Module(version string, communications settings.Communications) fx.Option {
 	}
 	if communications.HTTP.Enabled {
 		options = append(options, fx.Invoke(registerHTTP))
+	}
+	if communications.NATS.Enabled {
+		options = append(options, fx.Invoke(registerNATS))
 	}
 	return fx.Module("info", options...)
 }
@@ -39,4 +44,9 @@ type capabilities struct {
 
 func registerHTTP(router fiber.Router, info *services.InfoService) {
 	httpapi.Handler{Info: info}.Register(router)
+}
+
+func registerNATS(server *natsserver.Server, info *services.InfoService, cfg settings.NATS) error {
+	handler := natsapi.Handler{Info: info, MaxResponseBytes: cfg.MaxResponseBytes}
+	return server.Handle("node.info.get", handler.GetNodeInfo)
 }

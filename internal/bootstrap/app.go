@@ -32,7 +32,7 @@ func New(cfg settings.Config, version string, options ...fx.Option) *fx.App {
 
 // Run starts the process and stops it on caller cancellation or native Fx shutdown.
 func Run(ctx context.Context, cfg settings.Config, version string, options ...fx.Option) (result error) {
-	if !cfg.Communications.GRPC.Enabled && !cfg.Communications.HTTP.Enabled {
+	if !cfg.Communications.GRPC.Enabled && !cfg.Communications.HTTP.Enabled && !cfg.Communications.NATS.Enabled {
 		return errors.New("no implemented communication transport is enabled")
 	}
 	var resources moduleResources

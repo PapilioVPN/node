@@ -2,14 +2,15 @@ package bootstrap
 
 import (
 	"context"
-	"github.com/gofiber/fiber/v3"
 	"io"
 
+	"github.com/gofiber/fiber/v3"
 	"go.uber.org/fx"
 	"google.golang.org/grpc"
 
 	rpc "github.com/PapilioVPN/node/internal/platform/grpcserver"
 	"github.com/PapilioVPN/node/internal/platform/httpserver"
+	"github.com/PapilioVPN/node/internal/platform/natsserver"
 	"github.com/PapilioVPN/node/internal/settings"
 )
 
@@ -34,6 +35,9 @@ func communications(cfg settings.Communications) fx.Option {
 	}
 	if cfg.HTTP.Enabled {
 		options = append(options, fx.Supply(cfg.HTTP), fx.Provide(newHTTPServer))
+	}
+	if cfg.NATS.Enabled {
+		options = append(options, fx.Supply(cfg.NATS), fx.Provide(newNATSServer))
 	}
 	return fx.Options(fx.Options(options...), fx.Invoke(registerTransports))
 }
@@ -69,4 +73,18 @@ func newHTTPServer(cfg settings.HTTP, shutdown fx.Shutdowner) (httpResult, error
 		return httpResult{}, err
 	}
 	return httpResult{Server: server, Router: server.Router(), Transport: server}, nil
+}
+
+type natsResult struct {
+	fx.Out
+	Server    *natsserver.Server
+	Transport transport `group:"transports"`
+}
+
+func newNATSServer(cfg settings.NATS, shutdown fx.Shutdowner) (natsResult, error) {
+	server, err := natsserver.NewServer(cfg, func() { _ = shutdown.Shutdown(fx.ExitCode(1)) })
+	if err != nil {
+		return natsResult{}, err
+	}
+	return natsResult{Server: server, Transport: server}, nil
 }
