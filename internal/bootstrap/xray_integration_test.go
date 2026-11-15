@@ -47,6 +47,7 @@ func TestXrayBinaryInfoOverMTLSKeepsLiveInstancesUnchanged(t *testing.T) {
 	cfg := certificates.Config()
 	cfg.Instances = []settings.Instance{first, second}
 	cfg.Communications.GRPC.Permissions.ReadEngineInfo = true
+	cfg.Communications.GRPC.Permissions.TestEngineRouting = true
 	var server *rpc.Server
 	var resources *instances.Resources
 	application := bootstrap.New(cfg, "test", fx.NopLogger, fx.Populate(&server, &resources))
@@ -71,6 +72,8 @@ func TestXrayBinaryInfoOverMTLSKeepsLiveInstancesUnchanged(t *testing.T) {
 		t.Fatal(err)
 	}
 	client := xrayClient(t, server, certificates)
+	_, probeError := client.TestRoute(ctx, &xrayv1.TestRouteRequest{InstanceId: "edge-a", Context: &xrayv1.RoutingContext{}})
+	assertRoutingProbeFailure(t, probeError, codes.FailedPrecondition, xrayv1.RoutingProbeOutcome_ROUTING_PROBE_OUTCOME_NOT_EXECUTED)
 	if _, err := client.GetRuntimeInfo(ctx, &xrayv1.GetRuntimeInfoRequest{InstanceId: "edge-a"}); status.Code(err) != codes.FailedPrecondition {
 		t.Fatalf("absent API settings were ignored: %v", err)
 	}

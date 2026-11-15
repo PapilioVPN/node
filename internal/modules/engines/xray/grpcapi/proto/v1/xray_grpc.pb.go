@@ -35,6 +35,7 @@ const (
 	XrayService_GetInboundUserCount_FullMethodName  = "/papilio.node.xray.v1.XrayService/GetInboundUserCount"
 	XrayService_ListRoutingRules_FullMethodName     = "/papilio.node.xray.v1.XrayService/ListRoutingRules"
 	XrayService_GetBalancerInfo_FullMethodName      = "/papilio.node.xray.v1.XrayService/GetBalancerInfo"
+	XrayService_TestRoute_FullMethodName            = "/papilio.node.xray.v1.XrayService/TestRoute"
 )
 
 // XrayServiceClient is the client API for XrayService service.
@@ -79,6 +80,9 @@ type XrayServiceClient interface {
 	ListRoutingRules(ctx context.Context, in *ListRoutingRulesRequest, opts ...grpc.CallOption) (*ListRoutingRulesResponse, error)
 	// Native field presence is retained; this does not probe or override routing.
 	GetBalancerInfo(ctx context.Context, in *GetBalancerInfoRequest, opts ...grpc.CallOption) (*GetBalancerInfoResponse, error)
+	// Native route selection can advance balancers, resolve DNS and fire webhooks.
+	// A lost reply may follow effects. Never replay automatically.
+	TestRoute(ctx context.Context, in *TestRouteRequest, opts ...grpc.CallOption) (*TestRouteResponse, error)
 }
 
 type xrayServiceClient struct {
@@ -249,6 +253,16 @@ func (c *xrayServiceClient) GetBalancerInfo(ctx context.Context, in *GetBalancer
 	return out, nil
 }
 
+func (c *xrayServiceClient) TestRoute(ctx context.Context, in *TestRouteRequest, opts ...grpc.CallOption) (*TestRouteResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TestRouteResponse)
+	err := c.cc.Invoke(ctx, XrayService_TestRoute_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // XrayServiceServer is the server API for XrayService service.
 // All implementations must embed UnimplementedXrayServiceServer
 // for forward compatibility.
@@ -291,6 +305,9 @@ type XrayServiceServer interface {
 	ListRoutingRules(context.Context, *ListRoutingRulesRequest) (*ListRoutingRulesResponse, error)
 	// Native field presence is retained; this does not probe or override routing.
 	GetBalancerInfo(context.Context, *GetBalancerInfoRequest) (*GetBalancerInfoResponse, error)
+	// Native route selection can advance balancers, resolve DNS and fire webhooks.
+	// A lost reply may follow effects. Never replay automatically.
+	TestRoute(context.Context, *TestRouteRequest) (*TestRouteResponse, error)
 	mustEmbedUnimplementedXrayServiceServer()
 }
 
@@ -348,6 +365,9 @@ func (UnimplementedXrayServiceServer) ListRoutingRules(context.Context, *ListRou
 }
 func (UnimplementedXrayServiceServer) GetBalancerInfo(context.Context, *GetBalancerInfoRequest) (*GetBalancerInfoResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetBalancerInfo not implemented")
+}
+func (UnimplementedXrayServiceServer) TestRoute(context.Context, *TestRouteRequest) (*TestRouteResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method TestRoute not implemented")
 }
 func (UnimplementedXrayServiceServer) mustEmbedUnimplementedXrayServiceServer() {}
 func (UnimplementedXrayServiceServer) testEmbeddedByValue()                     {}
@@ -658,6 +678,24 @@ func _XrayService_GetBalancerInfo_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _XrayService_TestRoute_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TestRouteRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(XrayServiceServer).TestRoute(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: XrayService_TestRoute_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(XrayServiceServer).TestRoute(ctx, req.(*TestRouteRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // XrayService_ServiceDesc is the grpc.ServiceDesc for XrayService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -728,6 +766,10 @@ var XrayService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetBalancerInfo",
 			Handler:    _XrayService_GetBalancerInfo_Handler,
+		},
+		{
+			MethodName: "TestRoute",
+			Handler:    _XrayService_TestRoute_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

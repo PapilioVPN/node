@@ -56,6 +56,7 @@ func TestContainer(t *testing.T) {
 	cfg.Communications.GRPC.Permissions.ReadEngineUsers = true
 	cfg.Communications.GRPC.Permissions.ReadEngineOnline = true
 	cfg.Communications.GRPC.Permissions.ReadEngineRouting = true
+	cfg.Communications.GRPC.Permissions.TestEngineRouting = true
 	contents, err := yaml.Marshal(cfg)
 	if err != nil {
 		t.Fatal(err)
@@ -94,6 +95,15 @@ func TestContainer(t *testing.T) {
 	if err != nil || info.GetNodeId() != "test-node" || info.GetVersion() == "" {
 		logs, _ := exec.CommandContext(ctx, "docker", "logs", containerID).CombinedOutput()
 		t.Fatalf("packaged operation failed: %v, %v; logs: %s", info, err, logs)
+	}
+	probeInstalled := false
+	for _, capability := range info.GetCapabilities() {
+		if capability == "xray.routing.test" {
+			probeInstalled = true
+		}
+	}
+	if !probeInstalled {
+		t.Fatal("packaged metadata omitted the installed routing probe")
 	}
 	output, err = exec.CommandContext(ctx, "docker", "port", containerID, "9444/tcp").Output()
 	if err != nil {
@@ -166,6 +176,18 @@ func TestContainer(t *testing.T) {
 	}
 	if _, err := xrayv1.NewXrayServiceClient(connection).GetBalancerInfo(request, &xrayv1.GetBalancerInfoRequest{InstanceId: "unconfigured", BalancerTag: "pool"}); status.Code(err) != codes.NotFound {
 		t.Fatalf("packaged balancer read not wired: %v", err)
+	}
+	_, probeError := xrayv1.NewXrayServiceClient(connection).TestRoute(request, &xrayv1.TestRouteRequest{InstanceId: "unconfigured", Context: &xrayv1.RoutingContext{}})
+	if status.Code(probeError) != codes.NotFound {
+		t.Fatalf("packaged routing probe not wired: %v", probeError)
+	}
+	probeDetails := status.Convert(probeError).Details()
+	if len(probeDetails) != 1 {
+		t.Fatalf("packaged routing probe outcome missing: %v", probeError)
+	}
+	probeFailure, ok := probeDetails[0].(*xrayv1.TestRouteFailure)
+	if !ok || probeFailure.Outcome != xrayv1.RoutingProbeOutcome_ROUTING_PROBE_OUTCOME_NOT_EXECUTED {
+		t.Fatalf("packaged routing probe outcome incorrect: %v", probeDetails)
 	}
 	if _, err := xrayv1.NewXrayServiceClient(connection).AddInboundUser(request, &xrayv1.AddInboundUserRequest{InstanceId: "unconfigured", InboundTag: "in", User: &xrayv1.InboundUser{Email: "user", Account: &xrayv1.InboundUser_Vless{Vless: &xrayv1.VLESSAccount{Id: "test-only"}}}}); status.Code(err) != codes.NotFound {
 		t.Fatalf("packaged user addition not wired: %v", err)

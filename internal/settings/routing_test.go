@@ -20,6 +20,7 @@ communications:
    read_engine_online: true
    reset_engine_stats: true
    manage_engine_users: true
+   test_engine_routing: true
 `))
 	if err != nil {
 		t.Fatal(err)
@@ -38,5 +39,41 @@ communications:
 	}
 	if config.Communications.GRPC.Permissions != (settings.GRPCPermissions{ReadEngineRouting: true}) {
 		t.Fatal("routing grant did not load independently")
+	}
+}
+
+func TestRoutingProbeGrantIsIndependentAndOptIn(t *testing.T) {
+	config, err := settings.Load(writeConfig(t, `node: {id: west}
+communications:
+ grpc:
+  permissions:
+   read_instance_status: true
+   control_instances: true
+   validate_instance_config: true
+   read_engine_info: true
+   read_engine_stats: true
+   read_engine_users: true
+   read_engine_online: true
+   reset_engine_stats: true
+   manage_engine_users: true
+   read_engine_routing: true
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if config.Communications.GRPC.Permissions.TestEngineRouting {
+		t.Fatal("other grants implicitly enabled routing probes")
+	}
+	config, err = settings.Load(writeConfig(t, `node: {id: west}
+communications:
+ grpc:
+  permissions:
+   test_engine_routing: true
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if config.Communications.GRPC.Permissions != (settings.GRPCPermissions{TestEngineRouting: true}) {
+		t.Fatal("probe grant did not load independently")
 	}
 }

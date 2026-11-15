@@ -26,7 +26,7 @@ import (
 // Module owns Xray operations and API clients independently of instance runtimes.
 func Module(grpcEnabled bool) fx.Option {
 	options := []fx.Option{
-		fx.Provide(newBinaryInfoService, newAPIResources, newRuntimeInfoService, newTrafficCounterService, newTrafficCounterResetService, newTrafficCountersResetService, newTrafficCountersService, newTrafficPairServices, newUserRemovalService, newUserAdditionService, newUserCountService, newOnlineService, newRoutingService, fx.Private),
+		fx.Provide(newBinaryInfoService, newAPIResources, newRuntimeInfoService, newTrafficCounterService, newTrafficCounterResetService, newTrafficCountersResetService, newTrafficCountersService, newTrafficPairServices, newUserRemovalService, newUserAdditionService, newUserCountService, newOnlineService, newRoutingService, newRoutingProbeService, fx.Private),
 		fx.Provide(capability, apiCleanup, newRuntimeBindings), fx.Invoke(registerAPILifecycle),
 	}
 	if grpcEnabled {
@@ -104,6 +104,7 @@ type apiResources struct {
 	userAdders        map[instances.InstanceID]services.InboundUserAdder
 	userCountReaders  map[instances.InstanceID]services.InboundUserCountReader
 	routingReaders    map[instances.InstanceID]services.RoutingReader
+	routingProbers    map[instances.InstanceID]services.RoutingProber
 	clients           []*xrayapi.Client
 }
 
@@ -118,6 +119,7 @@ func newAPIResources(config []settings.Instance) (*apiResources, error) {
 		userAdders:        make(map[instances.InstanceID]services.InboundUserAdder),
 		userCountReaders:  make(map[instances.InstanceID]services.InboundUserCountReader),
 		routingReaders:    make(map[instances.InstanceID]services.RoutingReader),
+		routingProbers:    make(map[instances.InstanceID]services.RoutingProber),
 	}
 	for _, instance := range config {
 		if instance.Engine != instances.Xray {
@@ -132,6 +134,7 @@ func newAPIResources(config []settings.Instance) (*apiResources, error) {
 		resources.userAdders[instance.ID] = nil
 		resources.userCountReaders[instance.ID] = nil
 		resources.routingReaders[instance.ID] = nil
+		resources.routingProbers[instance.ID] = nil
 		if api := instance.Xray.API; api != nil {
 			client, err := xrayapi.NewClient(xrayapi.Config{
 				Network: api.Network, Address: api.Address, RequestTimeout: api.RequestTimeout,
@@ -149,6 +152,7 @@ func newAPIResources(config []settings.Instance) (*apiResources, error) {
 			resources.userAdders[instance.ID] = client
 			resources.userCountReaders[instance.ID] = client
 			resources.routingReaders[instance.ID] = client
+			resources.routingProbers[instance.ID] = client
 			resources.clients = append(resources.clients, client)
 		}
 	}
@@ -206,6 +210,10 @@ func newRoutingService(resources *apiResources) *services.RoutingService {
 	return services.NewRoutingService(resources.routingReaders)
 }
 
+func newRoutingProbeService(resources *apiResources) *services.RoutingProbeService {
+	return services.NewRoutingProbeService(resources.routingProbers)
+}
+
 func newTrafficPairServices(config []settings.Instance, resources *apiResources) (*services.TrafficPairService, *services.TrafficPairResetService) {
 	readers := make(map[instances.InstanceID]services.TrafficPairReadBinding)
 	resetters := make(map[instances.InstanceID]services.TrafficPairResetBinding)
@@ -251,6 +259,7 @@ type grpcServices struct {
 	Counters     *services.TrafficCountersService
 	Online       *services.OnlineService
 	Routing      *services.RoutingService
+	Probes       *services.RoutingProbeService
 	Permissions  settings.GRPCPermissions
 }
 
@@ -261,6 +270,7 @@ func registerGRPC(p grpcServices) {
 		UserRemoval: p.UserRemoval, UserAddition: p.UserAddition, AllowUserManagement: p.Permissions.ManageEngineUsers,
 		UserCounts: p.UserCounts, AllowUsersRead: p.Permissions.ReadEngineUsers,
 		Routing: p.Routing, AllowRoutingRead: p.Permissions.ReadEngineRouting,
+		Probes: p.Probes, AllowRoutingTest: p.Permissions.TestEngineRouting,
 		AllowInfoRead: p.Permissions.ReadEngineInfo, AllowStatsRead: p.Permissions.ReadEngineStats,
 		AllowOnlineRead: p.Permissions.ReadEngineOnline, AllowStatsReset: p.Permissions.ResetEngineStats,
 	})
@@ -279,6 +289,7 @@ func capability() capabilityResult {
 		domain.RemoveInboundUser, domain.AddInboundUser,
 		domain.ReadInboundUserCount,
 		domain.ListRoutingRules, domain.ReadBalancerInfo,
+		domain.TestRoute,
 		domain.ReadUserOnlineStats, domain.ListUserOnlineIPs, domain.ListOnlineUsers,
 	}}
 }

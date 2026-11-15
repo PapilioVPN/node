@@ -47,6 +47,7 @@ func TestXrayRuntimeInfoOverMTLSAndNativeReconnect(t *testing.T) {
 			cfg.Communications.GRPC.Permissions.ReadEngineStats = true
 			cfg.Communications.GRPC.Permissions.ReadEngineUsers = true
 			cfg.Communications.GRPC.Permissions.ReadEngineRouting = true
+			cfg.Communications.GRPC.Permissions.TestEngineRouting = true
 			cfg.Communications.GRPC.Permissions.ControlInstances = true
 			if err := cfg.Validate(); err != nil {
 				t.Fatal(err)
@@ -82,6 +83,8 @@ func TestXrayRuntimeInfoOverMTLSAndNativeReconnect(t *testing.T) {
 			if result, err := routingProbeAPIClient(t, second).TestRoute(ctx, xraydomain.RoutingProbe{}); !errors.Is(err, xraydomain.ErrRoutingProbeUnsupported) || errors.Is(err, xraydomain.ErrRoutingProbeUnknown) || !result.AcknowledgedAt.IsZero() {
 				t.Fatalf("absent native RoutingService accepted a probe or claimed effects: %+v %v", result, err)
 			}
+			_, probeError := client.TestRoute(ctx, &xrayv1.TestRouteRequest{InstanceId: "edge-b", Context: &xrayv1.RoutingContext{}})
+			assertRoutingProbeFailure(t, probeError, codes.FailedPrecondition, xrayv1.RoutingProbeOutcome_ROUTING_PROBE_OUTCOME_NOT_EXECUTED)
 			if result, err := client.ListRoutingRules(ctx, &xrayv1.ListRoutingRulesRequest{InstanceId: "edge-b"}); result != nil || status.Code(err) != codes.FailedPrecondition {
 				t.Fatalf("absent native RoutingService became successful rules: %v %v", result, err)
 			}

@@ -43,6 +43,9 @@ service XrayService {
   rpc ListRoutingRules(ListRoutingRulesRequest) returns (ListRoutingRulesResponse);
   // Native field presence is retained; this does not probe or override routing.
   rpc GetBalancerInfo(GetBalancerInfoRequest) returns (GetBalancerInfoResponse);
+  // Native route selection can advance balancers, resolve DNS and fire webhooks.
+  // A lost reply may follow effects. Never replay automatically.
+  rpc TestRoute(TestRouteRequest) returns (TestRouteResponse);
 }
 
 enum TrafficScope {
@@ -427,3 +430,64 @@ message GetBalancerInfoResponse {
   BalancerPrincipalTargets principal_targets = 4;
   int64 observed_at_unix_ms = 5;
 }
+
+enum RoutingNetwork {
+  ROUTING_NETWORK_UNKNOWN = 0;
+  ROUTING_NETWORK_TCP = 1;
+  ROUTING_NETWORK_UDP = 2;
+  ROUTING_NETWORK_UNIX = 3;
+}
+
+// Routing facts, not a real connection or an engine configuration. IP strings
+// accept valid unzoned addresses and return canonical text, retaining mapped IPv6.
+message RoutingContext {
+  string inbound_tag = 1;
+  RoutingNetwork network = 2;
+  repeated string source_ips = 3;
+  uint32 source_port = 4;
+  repeated string target_ips = 5;
+  uint32 target_port = 6;
+  string target_domain = 7;
+  string protocol = 8;
+  string user = 9;
+  map<string, string> attributes = 10;
+  repeated string local_ips = 11;
+  uint32 local_port = 12;
+  uint32 vless_route = 13;
+}
+
+message TestRouteRequest {
+  string instance_id = 1;
+  // Required; an explicitly empty context is valid native input.
+  RoutingContext context = 2;
+  // Native prefixes, including empty/unknown prefixes. Empty selects all fields.
+  repeated string field_selectors = 3;
+  // Requests native publication only where supported; not a delivery guarantee.
+  // False does not disable selection, DNS or webhook effects.
+  bool publish_result = 4;
+}
+
+message RoutingResult {
+  // Only native projected fields. Omitted values are not inferred from input.
+  // The pinned engine omits vless_route even when it affected selection.
+  RoutingContext context = 1;
+  string outbound_tag = 2;
+  repeated string outbound_group_tags = 3;
+}
+
+message TestRouteResponse {
+  string instance_id = 1;
+  RoutingResult route = 2;
+  // Node receipt of completion, not webhook completion or event delivery.
+  int64 acknowledged_at_unix_ms = 3;
+}
+
+enum RoutingProbeOutcome {
+  ROUTING_PROBE_OUTCOME_UNSPECIFIED = 0;
+  ROUTING_PROBE_OUTCOME_NOT_EXECUTED = 1;
+  ROUTING_PROBE_OUTCOME_UNKNOWN = 2;
+}
+
+// Missing details or an undelivered response never prove that a probe had no
+// effects. NOT_EXECUTED denotes known rejection before any supported native probe.
+message TestRouteFailure { RoutingProbeOutcome outcome = 1; }

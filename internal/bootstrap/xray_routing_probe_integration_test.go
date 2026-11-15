@@ -18,20 +18,23 @@ import (
 	"time"
 
 	"go.uber.org/fx"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/PapilioVPN/node/internal/bootstrap"
 	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
 	"github.com/PapilioVPN/node/internal/modules/engines/xray/app/services"
 	"github.com/PapilioVPN/node/internal/modules/engines/xray/domain"
+	xrayv1 "github.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi/proto/v1"
 	xrayapi "github.com/PapilioVPN/node/internal/modules/engines/xray/infra/api"
 	rpc "github.com/PapilioVPN/node/internal/platform/grpcserver"
 	"github.com/PapilioVPN/node/internal/settings"
 	"github.com/PapilioVPN/node/internal/shared/testutil"
 )
 
-// Actual native/process coverage; the public probe adapter is a separate increment.
+// Native and mTLS paths share one isolated engine fixture and independent oracles.
 func TestXrayRoutingProbePreservesNativeFieldsProjectionAndEffects(t *testing.T) {
 	for _, network := range []string{"unix", "tcp"} {
 		t.Run(network, func(t *testing.T) {
@@ -66,6 +69,7 @@ func TestXrayRoutingProbePreservesNativeFieldsProjectionAndEffects(t *testing.T)
 			secondConfig := configureXrayProbeRouting(t, second, webhook.URL)
 			cfg := certificates.Config()
 			cfg.Instances = []settings.Instance{first, second}
+			cfg.Communications.GRPC.Permissions.TestEngineRouting = true
 			var server *rpc.Server
 			var cleanup struct {
 				fx.In
@@ -133,6 +137,20 @@ func TestXrayRoutingProbePreservesNativeFieldsProjectionAndEffects(t *testing.T)
 			if err != nil || result.InstanceID != "edge-a" || result.Result.Route.OutboundTag != "edge-a-out-a" || !reflect.DeepEqual(result.Result.Route.Context, expected) || result.Result.AcknowledgedAt.IsZero() {
 				t.Fatalf("native full context was narrowed/fabricated: %+v %v", result, err)
 			}
+			client := xrayClient(t, server, certificates)
+			wireInput := &xrayv1.RoutingContext{
+				InboundTag: " exact>>>in ", Network: xrayv1.RoutingNetwork_ROUTING_NETWORK_TCP,
+				SourceIps: []string{"192.0.2.1", "::ffff:192.0.2.1", "192.0.2.1"}, SourcePort: 60000,
+				TargetIps: []string{"2001:0db8::1"}, TargetPort: 65535, TargetDomain: "details.invalid",
+				LocalIps: []string{"192.0.2.2"}, LocalPort: 1, VlessRoute: 65535,
+				Protocol: " opaque-protocol ", User: " route-user ", Attributes: map[string]string{" opaque ": " value "},
+			}
+			response, err := client.TestRoute(ctx, &xrayv1.TestRouteRequest{InstanceId: "edge-a", Context: wireInput})
+			wireExpected := proto.Clone(wireInput).(*xrayv1.RoutingContext)
+			wireExpected.TargetIps[0], wireExpected.VlessRoute = "2001:db8::1", 0
+			if err != nil || response.InstanceId != "edge-a" || response.GetRoute().GetOutboundTag() != "edge-a-out-a" || response.AcknowledgedAtUnixMs <= 0 || !proto.Equal(response.Route.Context, wireExpected) {
+				t.Fatalf("mTLS probe lost native context/selection/projection: %v %v", response, err)
+			}
 			withoutRoute := input
 			withoutRoute.VLESSRoute = 0
 			if result, err := service.TestRoute(ctx, "edge-a", domain.RoutingProbe{Context: withoutRoute}); err != nil || result.Result.Route.OutboundTag != "edge-a-out-b" {
@@ -153,6 +171,40 @@ func TestXrayRoutingProbePreservesNativeFieldsProjectionAndEffects(t *testing.T)
 					t.Fatal("native probe did not fire the configured webhook")
 				}
 			}
+			wireInput.TargetDomain = "priority.invalid"
+			for _, publish := range []bool{false, true} {
+				response, err := client.TestRoute(ctx, &xrayv1.TestRouteRequest{InstanceId: "edge-a", Context: wireInput, FieldSelectors: []string{"out"}, PublishResult: publish})
+				if err != nil || response.GetRoute().GetOutboundTag() != "edge-a-out-a" || !proto.Equal(response.Route.Context, &xrayv1.RoutingContext{}) {
+					t.Fatalf("mTLS probe did not preserve native projection: %v %v", response, err)
+				}
+				select {
+				case event := <-events:
+					if event.Email != " route-user " || event.Inbound != " exact>>>in " || event.Outbound != "edge-a-out-a" {
+						t.Fatalf("mTLS probe changed webhook identity/effects: %+v", event)
+					}
+				case <-ctx.Done():
+					t.Fatal("mTLS probe did not fire its native webhook")
+				}
+			}
+			// A caller-side receive limit can discard Node's valid acknowledgement
+			// after the native webhook effect. Missing details never mean no effect.
+			lost, lostErr := client.TestRoute(ctx, &xrayv1.TestRouteRequest{InstanceId: "edge-a", Context: wireInput}, grpc.MaxCallRecvMsgSize(1))
+			if lost != nil || status.Code(lostErr) != codes.ResourceExhausted {
+				t.Fatalf("expected caller-side acknowledgement loss: %v %v", lost, lostErr)
+			}
+			for _, detail := range status.Convert(lostErr).Details() {
+				if failure, ok := detail.(*xrayv1.TestRouteFailure); ok && failure.Outcome == xrayv1.RoutingProbeOutcome_ROUTING_PROBE_OUTCOME_NOT_EXECUTED {
+					t.Fatal("lost external acknowledgement claimed no effects")
+				}
+			}
+			select {
+			case event := <-events:
+				if event.Outbound != "edge-a-out-a" || event.Email != " route-user " {
+					t.Fatalf("lost-reply effect changed identity: %+v", event)
+				}
+			case <-ctx.Done():
+				t.Fatal("caller-side reply loss erased the native webhook effect")
+			}
 			// The native outbound manager sorts this fixture's two candidate tags.
 			// Consecutive probes advance round-robin, despite PublishResult=false.
 			for _, item := range []struct {
@@ -165,6 +217,15 @@ func TestXrayRoutingProbePreservesNativeFieldsProjectionAndEffects(t *testing.T)
 					t.Fatalf("probe did not retain native strategy progression/instance isolation: %+v %v", result, err)
 				}
 			}
+			for _, item := range []struct {
+				id     string
+				suffix string
+			}{{"edge-a", "a"}, {"edge-b", "b"}} {
+				response, err := client.TestRoute(ctx, &xrayv1.TestRouteRequest{InstanceId: item.id, Context: &xrayv1.RoutingContext{Network: xrayv1.RoutingNetwork_ROUTING_NETWORK_TCP, TargetDomain: "pool.invalid"}})
+				if err != nil || response.InstanceId != item.id || response.GetRoute().GetOutboundTag() != item.id+"-out-"+item.suffix {
+					t.Fatalf("mTLS probe crossed instances or changed strategy effects: %v %v", response, err)
+				}
+			}
 			result, err = service.TestRoute(ctx, "edge-a", domain.RoutingProbe{Context: domain.RoutingContext{TargetDomain: "details.invalid", VLESSRoute: 65535}, FieldSelectors: []string{"unknown"}})
 			if err != nil || !reflect.DeepEqual(result.Result.Route, domain.RouteResult{}) || result.Result.AcknowledgedAt.IsZero() {
 				t.Fatalf("empty native projection became missing route: %+v %v", result, err)
@@ -172,6 +233,11 @@ func TestXrayRoutingProbePreservesNativeFieldsProjectionAndEffects(t *testing.T)
 			result, err = service.TestRoute(ctx, "edge-a", domain.RoutingProbe{})
 			if err == nil || !errors.Is(err, domain.ErrRoutingProbeUnknown) || !reflect.DeepEqual(result, domain.InstanceRoutingProbe{}) {
 				t.Fatalf("native no-match became successful route or known no effect: %+v %v", result, err)
+			}
+			if response, err := client.TestRoute(ctx, &xrayv1.TestRouteRequest{InstanceId: "edge-a", Context: &xrayv1.RoutingContext{}}); response != nil {
+				t.Fatal("native no-match became an mTLS success")
+			} else {
+				assertRoutingProbeFailure(t, err, codes.Unavailable, xrayv1.RoutingProbeOutcome_ROUTING_PROBE_OUTCOME_UNKNOWN)
 			}
 			if err := xrayTraffic(ctx, firstAddress, secondAddress); err != nil {
 				t.Fatal(err)
