@@ -17,7 +17,7 @@ func TestStatusSelectsExistingRuntimeAndPreservesFailure(t *testing.T) {
 		"edge-a": app.NewLifecycle(domain.Instance{ID: "edge-a", Kind: domain.Xray}, first),
 		"edge-b": app.NewLifecycle(domain.Instance{ID: "edge-b", Kind: domain.Xray}, second),
 	}
-	service := app.NewStatusService(bindings)
+	service := app.NewLifecycleService(bindings)
 	delete(bindings, "edge-a") // The process-owned index must not borrow a mutable map.
 	status, err := service.GetInstanceStatus(t.Context(), "edge-a")
 	if err != nil || status.Instance.ID != "edge-a" || status.State != domain.Exited || status.Failure != cause {
@@ -34,7 +34,7 @@ func TestStatusSelectsExistingRuntimeAndPreservesFailure(t *testing.T) {
 
 func TestStatusMissingInstanceAndCancellationDoNotObserve(t *testing.T) {
 	runtime := &controlledRuntime{state: domain.Running}
-	service := app.NewStatusService(map[domain.InstanceID]*app.Lifecycle{
+	service := app.NewLifecycleService(map[domain.InstanceID]*app.Lifecycle{
 		"edge": app.NewLifecycle(domain.Instance{ID: "edge", Kind: domain.Xray}, runtime),
 	})
 	if _, err := service.GetInstanceStatus(t.Context(), "missing"); !errors.Is(err, domain.ErrNotFound) {

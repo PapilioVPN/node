@@ -52,7 +52,7 @@ func TestResourceOwnershipWithIndependentRuntimes(t *testing.T) {
 	if err := application.Start(context.Background()); err != nil {
 		t.Fatal(err)
 	}
-	service := newStatusService(resources)
+	service := newLifecycleService(resources)
 	observed, err := service.GetInstanceStatus(context.Background(), "second")
 	if err != nil || observed.Instance.ID != "second" || observed.State != domain.Running {
 		t.Fatalf("wrong bound runtime: %+v, %v", observed, err)

@@ -21,14 +21,14 @@ import (
 
 // Module composes instance operations, native adapters and capability registration.
 func Module(grpcEnabled bool) fx.Option {
-	options := []fx.Option{fx.Provide(newResources, newStatusService, capability), fx.Invoke(registerLifecycle)}
+	options := []fx.Option{fx.Provide(newResources, newLifecycleService, capability), fx.Invoke(registerLifecycle)}
 	if grpcEnabled {
 		options = append(options, fx.Invoke(registerGRPC))
 	}
 	return fx.Module("instances", options...)
 }
 
-func registerGRPC(registrar grpc.ServiceRegistrar, reader *app.StatusService, cfg settings.GRPCPermissions) {
+func registerGRPC(registrar grpc.ServiceRegistrar, reader *app.LifecycleService, cfg settings.GRPCPermissions) {
 	instancesv1.RegisterInstanceServiceServer(registrar, grpcapi.Handler{
 		Status: reader, AllowStatusRead: cfg.ReadInstanceStatus,
 	})
@@ -88,12 +88,12 @@ func registerLifecycle(lifecycle fx.Lifecycle, resources *Resources) {
 	}
 }
 
-func newStatusService(resources *Resources) *app.StatusService {
+func newLifecycleService(resources *Resources) *app.LifecycleService {
 	bindings := make(map[domain.InstanceID]*app.Lifecycle, len(resources.instances))
 	for _, instance := range resources.instances {
 		bindings[instance.id] = instance.lifecycle
 	}
-	return app.NewStatusService(bindings)
+	return app.NewLifecycleService(bindings)
 }
 
 // Close permanently stops every owned instance in reverse construction order.
