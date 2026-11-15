@@ -19,9 +19,10 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	InstanceService_GetInstanceStatus_FullMethodName = "/papilio.node.v1.InstanceService/GetInstanceStatus"
-	InstanceService_StartInstance_FullMethodName     = "/papilio.node.v1.InstanceService/StartInstance"
-	InstanceService_StopInstance_FullMethodName      = "/papilio.node.v1.InstanceService/StopInstance"
+	InstanceService_GetInstanceStatus_FullMethodName    = "/papilio.node.v1.InstanceService/GetInstanceStatus"
+	InstanceService_ListInstanceStatuses_FullMethodName = "/papilio.node.v1.InstanceService/ListInstanceStatuses"
+	InstanceService_StartInstance_FullMethodName        = "/papilio.node.v1.InstanceService/StartInstance"
+	InstanceService_StopInstance_FullMethodName         = "/papilio.node.v1.InstanceService/StopInstance"
 )
 
 // InstanceServiceClient is the client API for InstanceService service.
@@ -29,6 +30,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type InstanceServiceClient interface {
 	GetInstanceStatus(ctx context.Context, in *GetInstanceStatusRequest, opts ...grpc.CallOption) (*GetInstanceStatusResponse, error)
+	ListInstanceStatuses(ctx context.Context, in *ListInstanceStatusesRequest, opts ...grpc.CallOption) (*ListInstanceStatusesResponse, error)
 	// Admission/spawn only, not readiness. Execution outlives the request.
 	StartInstance(ctx context.Context, in *StartInstanceRequest, opts ...grpc.CallOption) (*InstanceStatus, error)
 	// Joins the selected execution; cancellation can follow an applied stop.
@@ -47,6 +49,16 @@ func (c *instanceServiceClient) GetInstanceStatus(ctx context.Context, in *GetIn
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetInstanceStatusResponse)
 	err := c.cc.Invoke(ctx, InstanceService_GetInstanceStatus_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *instanceServiceClient) ListInstanceStatuses(ctx context.Context, in *ListInstanceStatusesRequest, opts ...grpc.CallOption) (*ListInstanceStatusesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListInstanceStatusesResponse)
+	err := c.cc.Invoke(ctx, InstanceService_ListInstanceStatuses_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -78,6 +90,7 @@ func (c *instanceServiceClient) StopInstance(ctx context.Context, in *StopInstan
 // for forward compatibility.
 type InstanceServiceServer interface {
 	GetInstanceStatus(context.Context, *GetInstanceStatusRequest) (*GetInstanceStatusResponse, error)
+	ListInstanceStatuses(context.Context, *ListInstanceStatusesRequest) (*ListInstanceStatusesResponse, error)
 	// Admission/spawn only, not readiness. Execution outlives the request.
 	StartInstance(context.Context, *StartInstanceRequest) (*InstanceStatus, error)
 	// Joins the selected execution; cancellation can follow an applied stop.
@@ -94,6 +107,9 @@ type UnimplementedInstanceServiceServer struct{}
 
 func (UnimplementedInstanceServiceServer) GetInstanceStatus(context.Context, *GetInstanceStatusRequest) (*GetInstanceStatusResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetInstanceStatus not implemented")
+}
+func (UnimplementedInstanceServiceServer) ListInstanceStatuses(context.Context, *ListInstanceStatusesRequest) (*ListInstanceStatusesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListInstanceStatuses not implemented")
 }
 func (UnimplementedInstanceServiceServer) StartInstance(context.Context, *StartInstanceRequest) (*InstanceStatus, error) {
 	return nil, status.Error(codes.Unimplemented, "method StartInstance not implemented")
@@ -136,6 +152,24 @@ func _InstanceService_GetInstanceStatus_Handler(srv interface{}, ctx context.Con
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(InstanceServiceServer).GetInstanceStatus(ctx, req.(*GetInstanceStatusRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _InstanceService_ListInstanceStatuses_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListInstanceStatusesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(InstanceServiceServer).ListInstanceStatuses(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: InstanceService_ListInstanceStatuses_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(InstanceServiceServer).ListInstanceStatuses(ctx, req.(*ListInstanceStatusesRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -186,6 +220,10 @@ var InstanceService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetInstanceStatus",
 			Handler:    _InstanceService_GetInstanceStatus_Handler,
+		},
+		{
+			MethodName: "ListInstanceStatuses",
+			Handler:    _InstanceService_ListInstanceStatuses_Handler,
 		},
 		{
 			MethodName: "StartInstance",

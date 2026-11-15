@@ -6,6 +6,7 @@ option go_package = "github.com/PapilioVPN/node/internal/modules/instances/grpca
 
 service InstanceService {
   rpc GetInstanceStatus(GetInstanceStatusRequest) returns (GetInstanceStatusResponse);
+  rpc ListInstanceStatuses(ListInstanceStatusesRequest) returns (ListInstanceStatusesResponse);
   // Admission/spawn only, not readiness. Execution outlives the request.
   rpc StartInstance(StartInstanceRequest) returns (InstanceStatus);
   // Joins the selected execution; cancellation can follow an applied stop.
@@ -52,7 +53,7 @@ message StopInstanceRequest {
   string instance_id = 1;
 }
 
-// Shared control outcome, also carried as a native gRPC error detail when known.
+// Lifecycle observation used by collection/control results and native error details.
 // An RPC failure or a lost response does not establish that no effect occurred.
 // Keep GetInstanceStatusResponse's existing flat wire contract unchanged.
 message InstanceStatus {
@@ -60,4 +61,19 @@ message InstanceStatus {
   string engine = 2;
   InstanceState state = 3;
   InstanceFailure failure = 4;
+}
+
+message ListInstanceStatusesRequest {
+  // Required positive size; allocation/observations also stop at configured count.
+  int32 page_size = 1;
+  // Exclusive lexicographic position. Empty starts at the first configured ID.
+  string after_instance_id = 2;
+}
+
+message ListInstanceStatusesResponse {
+  // IDs are ordered; states are independently sampled, not an atomic snapshot.
+  repeated InstanceStatus items = 1;
+  // Last emitted ID when more configured IDs remain, otherwise empty.
+  // Membership can change across Node runs; this is a position, not a snapshot token.
+  string next_after_instance_id = 2;
 }
