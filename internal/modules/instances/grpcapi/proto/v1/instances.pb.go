@@ -378,7 +378,7 @@ func (x *StopInstanceRequest) GetInstanceId() string {
 }
 
 // Lifecycle observation used by collection/control results and native error details.
-// An RPC failure or a lost response does not establish that no effect occurred.
+// For control RPCs, a failure or lost response does not establish that no effect occurred.
 // Keep GetInstanceStatusResponse's existing flat wire contract unchanged.
 type InstanceStatus struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`

@@ -42,7 +42,7 @@ func TestStatusPagesObserveOnlySelectedInstances(t *testing.T) {
 				for j, item := range page.Items {
 					index := seen + j
 					id := domain.InstanceID(fmt.Sprintf("edge-%03d", index))
-					if item.Instance.ID != id || item.Instance.Kind != domain.Xray || item.Failure != runtimes[index].failure {
+					if item.Instance.ID != id || item.Instance.Kind != domain.Xray || item.State != runtimes[index].state || item.Failure != runtimes[index].failure {
 						t.Fatalf("wrong selection/outcome: %+v", item)
 					}
 				}

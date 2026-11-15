@@ -109,6 +109,10 @@ func TestInstanceStatusReportsRealExitWithoutAffectingOtherInstance(t *testing.T
 	if err != nil || other.GetState() != nodev1.InstanceState_INSTANCE_STATE_RUNNING || other.Failure != nil {
 		t.Fatalf("other instance was affected: %v, %v", other, err)
 	}
+	page, err := client.ListInstanceStatuses(ctx, &nodev1.ListInstanceStatusesRequest{PageSize: 2})
+	if err != nil || len(page.GetItems()) != 2 || page.Items[0].InstanceId != "edge-a" || page.Items[0].State != nodev1.InstanceState_INSTANCE_STATE_RUNNING || page.Items[1].InstanceId != "edge-b" || page.Items[1].State != nodev1.InstanceState_INSTANCE_STATE_EXITED || page.Items[1].Failure == nil || page.Items[1].Failure.ExitCode == nil || page.Items[1].Failure.GetExitCode() != 23 || page.NextAfterInstanceId != "" || strings.Contains(page.String(), certificates.Directory) {
+		t.Fatalf("failed execution was not a readable collection item: %v, %v", page, err)
+	}
 	if err := xrayTraffic(ctx, firstAddress); err != nil {
 		t.Fatal(err)
 	}

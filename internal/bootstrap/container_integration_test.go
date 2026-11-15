@@ -83,6 +83,10 @@ func TestContainer(t *testing.T) {
 	if status.Code(err) != codes.NotFound {
 		t.Fatalf("packaged status grant/service failed: %v", err)
 	}
+	page, err := nodev1.NewInstanceServiceClient(connection).ListInstanceStatuses(request, &nodev1.ListInstanceStatusesRequest{PageSize: 1})
+	if err != nil || len(page.GetItems()) != 0 || page.NextAfterInstanceId != "" {
+		t.Fatalf("packaged collection grant/service failed: %v, %v", page, err)
+	}
 	if _, err := nodev1.NewInstanceServiceClient(connection).StartInstance(request, &nodev1.StartInstanceRequest{InstanceId: "unconfigured"}); status.Code(err) != codes.NotFound {
 		t.Fatalf("packaged start grant/service failed: %v", err)
 	}

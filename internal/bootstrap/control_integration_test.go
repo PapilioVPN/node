@@ -25,7 +25,7 @@ import (
 	"github.com/PapilioVPN/node/internal/shared/testutil"
 )
 
-func controlClient(t *testing.T, server *rpc.Server, certificates testutil.Certificates) instancesv1.InstanceServiceClient {
+func instanceClient(t *testing.T, server *rpc.Server, certificates testutil.Certificates) instancesv1.InstanceServiceClient {
 	t.Helper()
 	connection, err := grpc.NewClient(server.Addr().String(), grpc.WithTransportCredentials(credentials.NewTLS(certificates.ClientTLS(t))))
 	if err != nil {
@@ -57,7 +57,7 @@ func TestControlPermissionsRemainIndependentOverMTLS(t *testing.T) {
 					t.Error(err)
 				}
 			})
-			client := controlClient(t, server, certificates)
+			client := instanceClient(t, server, certificates)
 			controlCode, readCode := codes.PermissionDenied, codes.PermissionDenied
 			if test.control {
 				controlCode = codes.NotFound
@@ -73,6 +73,14 @@ func TestControlPermissionsRemainIndependentOverMTLS(t *testing.T) {
 			}
 			if _, err := client.GetInstanceStatus(t.Context(), &instancesv1.GetInstanceStatusRequest{InstanceId: "unknown"}); status.Code(err) != readCode {
 				t.Fatalf("read: %v; want %v", err, readCode)
+			}
+			listCode := codes.PermissionDenied
+			if test.read {
+				listCode = codes.OK
+			}
+			page, err := client.ListInstanceStatuses(t.Context(), &instancesv1.ListInstanceStatusesRequest{PageSize: 1})
+			if status.Code(err) != listCode || err == nil && (len(page.GetItems()) != 0 || page.NextAfterInstanceId != "") {
+				t.Fatalf("list grant: %v, %v; want %v", page, err, listCode)
 			}
 			blankCode := codes.PermissionDenied
 			if test.control {
@@ -132,7 +140,7 @@ func TestControlRestartsOnlySelectedXrayAndRetainsShutdownOwnership(t *testing.T
 			t.Error(err)
 		}
 	})
-	client := controlClient(t, server, certificates)
+	client := instanceClient(t, server, certificates)
 	ctx, cancel := context.WithTimeout(t.Context(), 8*time.Second)
 	defer cancel()
 	if err := xrayTraffic(ctx, firstAddress, secondAddress); err != nil {
@@ -196,7 +204,7 @@ func TestControlFailureTransmitsPartialNativeOutcome(t *testing.T) {
 		_ = server.Close()
 		_ = resources.Close()
 	})
-	client := controlClient(t, server, certificates)
+	client := instanceClient(t, server, certificates)
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()
 	ticker := time.NewTicker(10 * time.Millisecond)

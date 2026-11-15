@@ -10,7 +10,8 @@ import (
 
 // ListInstanceStatuses observes only the selected page of the immutable ID index.
 // Membership is stable for this Node run; individual states may change between
-// observations. Work and allocation never exceed the remaining configured count.
+// observations. Binary search skips earlier IDs; observations and result
+// allocation never exceed the remaining configured count.
 func (s *LifecycleService) ListInstanceStatuses(ctx context.Context, input domain.StatusPageInput) (domain.StatusPage, error) {
 	if err := ctx.Err(); err != nil {
 		return domain.StatusPage{}, err
