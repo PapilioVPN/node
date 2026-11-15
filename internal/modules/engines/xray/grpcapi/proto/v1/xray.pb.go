@@ -279,6 +279,65 @@ func (UserMutationOutcome) EnumDescriptor() ([]byte, []int) {
 	return file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_rawDescGZIP(), []int{4}
 }
 
+type ShadowsocksCipher int32
+
+const (
+	ShadowsocksCipher_SHADOWSOCKS_CIPHER_UNSPECIFIED        ShadowsocksCipher = 0
+	ShadowsocksCipher_SHADOWSOCKS_CIPHER_AES_128_GCM        ShadowsocksCipher = 1
+	ShadowsocksCipher_SHADOWSOCKS_CIPHER_AES_256_GCM        ShadowsocksCipher = 2
+	ShadowsocksCipher_SHADOWSOCKS_CIPHER_CHACHA20_POLY1305  ShadowsocksCipher = 3
+	ShadowsocksCipher_SHADOWSOCKS_CIPHER_XCHACHA20_POLY1305 ShadowsocksCipher = 4
+	// Legacy compatibility only; current pinned Xray rejects this cipher.
+	ShadowsocksCipher_SHADOWSOCKS_CIPHER_NONE ShadowsocksCipher = 5
+)
+
+// Enum value maps for ShadowsocksCipher.
+var (
+	ShadowsocksCipher_name = map[int32]string{
+		0: "SHADOWSOCKS_CIPHER_UNSPECIFIED",
+		1: "SHADOWSOCKS_CIPHER_AES_128_GCM",
+		2: "SHADOWSOCKS_CIPHER_AES_256_GCM",
+		3: "SHADOWSOCKS_CIPHER_CHACHA20_POLY1305",
+		4: "SHADOWSOCKS_CIPHER_XCHACHA20_POLY1305",
+		5: "SHADOWSOCKS_CIPHER_NONE",
+	}
+	ShadowsocksCipher_value = map[string]int32{
+		"SHADOWSOCKS_CIPHER_UNSPECIFIED":        0,
+		"SHADOWSOCKS_CIPHER_AES_128_GCM":        1,
+		"SHADOWSOCKS_CIPHER_AES_256_GCM":        2,
+		"SHADOWSOCKS_CIPHER_CHACHA20_POLY1305":  3,
+		"SHADOWSOCKS_CIPHER_XCHACHA20_POLY1305": 4,
+		"SHADOWSOCKS_CIPHER_NONE":               5,
+	}
+)
+
+func (x ShadowsocksCipher) Enum() *ShadowsocksCipher {
+	p := new(ShadowsocksCipher)
+	*p = x
+	return p
+}
+
+func (x ShadowsocksCipher) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ShadowsocksCipher) Descriptor() protoreflect.EnumDescriptor {
+	return file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_enumTypes[5].Descriptor()
+}
+
+func (ShadowsocksCipher) Type() protoreflect.EnumType {
+	return &file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_enumTypes[5]
+}
+
+func (x ShadowsocksCipher) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ShadowsocksCipher.Descriptor instead.
+func (ShadowsocksCipher) EnumDescriptor() ([]byte, []int) {
+	return file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_rawDescGZIP(), []int{5}
+}
+
 type GetTrafficCounterRequest struct {
 	state      protoimpl.MessageState `protogen:"open.v1"`
 	InstanceId string                 `protobuf:"bytes,1,opt,name=instance_id,json=instanceId,proto3" json:"instance_id,omitempty"`
@@ -2458,6 +2517,691 @@ func (x *UserMutationFailure) GetOutcome() UserMutationOutcome {
 	return UserMutationOutcome_USER_MUTATION_OUTCOME_UNSPECIFIED
 }
 
+type AddInboundUserRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	InstanceId    string                 `protobuf:"bytes,1,opt,name=instance_id,json=instanceId,proto3" json:"instance_id,omitempty"`
+	InboundTag    string                 `protobuf:"bytes,2,opt,name=inbound_tag,json=inboundTag,proto3" json:"inbound_tag,omitempty"`
+	User          *InboundUser           `protobuf:"bytes,3,opt,name=user,proto3" json:"user,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AddInboundUserRequest) Reset() {
+	*x = AddInboundUserRequest{}
+	mi := &file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes[35]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddInboundUserRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddInboundUserRequest) ProtoMessage() {}
+
+func (x *AddInboundUserRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes[35]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddInboundUserRequest.ProtoReflect.Descriptor instead.
+func (*AddInboundUserRequest) Descriptor() ([]byte, []int) {
+	return file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_rawDescGZIP(), []int{35}
+}
+
+func (x *AddInboundUserRequest) GetInstanceId() string {
+	if x != nil {
+		return x.InstanceId
+	}
+	return ""
+}
+
+func (x *AddInboundUserRequest) GetInboundTag() string {
+	if x != nil {
+		return x.InboundTag
+	}
+	return ""
+}
+
+func (x *AddInboundUserRequest) GetUser() *InboundUser {
+	if x != nil {
+		return x.User
+	}
+	return nil
+}
+
+type InboundUser struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Email string                 `protobuf:"bytes,1,opt,name=email,proto3" json:"email,omitempty"`
+	Level uint32                 `protobuf:"varint,2,opt,name=level,proto3" json:"level,omitempty"`
+	// Exactly one account; credentials are never included in the response.
+	//
+	// Types that are valid to be assigned to Account:
+	//
+	//	*InboundUser_Vless
+	//	*InboundUser_Vmess
+	//	*InboundUser_Trojan
+	//	*InboundUser_Shadowsocks
+	//	*InboundUser_Shadowsocks_2022
+	//	*InboundUser_Hysteria
+	//	*InboundUser_Masque
+	//	*InboundUser_Wireguard
+	Account       isInboundUser_Account `protobuf_oneof:"account"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *InboundUser) Reset() {
+	*x = InboundUser{}
+	mi := &file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes[36]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InboundUser) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InboundUser) ProtoMessage() {}
+
+func (x *InboundUser) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes[36]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InboundUser.ProtoReflect.Descriptor instead.
+func (*InboundUser) Descriptor() ([]byte, []int) {
+	return file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_rawDescGZIP(), []int{36}
+}
+
+func (x *InboundUser) GetEmail() string {
+	if x != nil {
+		return x.Email
+	}
+	return ""
+}
+
+func (x *InboundUser) GetLevel() uint32 {
+	if x != nil {
+		return x.Level
+	}
+	return 0
+}
+
+func (x *InboundUser) GetAccount() isInboundUser_Account {
+	if x != nil {
+		return x.Account
+	}
+	return nil
+}
+
+func (x *InboundUser) GetVless() *VLESSAccount {
+	if x != nil {
+		if x, ok := x.Account.(*InboundUser_Vless); ok {
+			return x.Vless
+		}
+	}
+	return nil
+}
+
+func (x *InboundUser) GetVmess() *VMessAccount {
+	if x != nil {
+		if x, ok := x.Account.(*InboundUser_Vmess); ok {
+			return x.Vmess
+		}
+	}
+	return nil
+}
+
+func (x *InboundUser) GetTrojan() *PasswordAccount {
+	if x != nil {
+		if x, ok := x.Account.(*InboundUser_Trojan); ok {
+			return x.Trojan
+		}
+	}
+	return nil
+}
+
+func (x *InboundUser) GetShadowsocks() *ShadowsocksAccount {
+	if x != nil {
+		if x, ok := x.Account.(*InboundUser_Shadowsocks); ok {
+			return x.Shadowsocks
+		}
+	}
+	return nil
+}
+
+func (x *InboundUser) GetShadowsocks_2022() *Shadowsocks2022Account {
+	if x != nil {
+		if x, ok := x.Account.(*InboundUser_Shadowsocks_2022); ok {
+			return x.Shadowsocks_2022
+		}
+	}
+	return nil
+}
+
+func (x *InboundUser) GetHysteria() *HysteriaAccount {
+	if x != nil {
+		if x, ok := x.Account.(*InboundUser_Hysteria); ok {
+			return x.Hysteria
+		}
+	}
+	return nil
+}
+
+func (x *InboundUser) GetMasque() *PasswordAccount {
+	if x != nil {
+		if x, ok := x.Account.(*InboundUser_Masque); ok {
+			return x.Masque
+		}
+	}
+	return nil
+}
+
+func (x *InboundUser) GetWireguard() *WireGuardAccount {
+	if x != nil {
+		if x, ok := x.Account.(*InboundUser_Wireguard); ok {
+			return x.Wireguard
+		}
+	}
+	return nil
+}
+
+type isInboundUser_Account interface {
+	isInboundUser_Account()
+}
+
+type InboundUser_Vless struct {
+	Vless *VLESSAccount `protobuf:"bytes,3,opt,name=vless,proto3,oneof"`
+}
+
+type InboundUser_Vmess struct {
+	Vmess *VMessAccount `protobuf:"bytes,4,opt,name=vmess,proto3,oneof"`
+}
+
+type InboundUser_Trojan struct {
+	Trojan *PasswordAccount `protobuf:"bytes,5,opt,name=trojan,proto3,oneof"`
+}
+
+type InboundUser_Shadowsocks struct {
+	Shadowsocks *ShadowsocksAccount `protobuf:"bytes,6,opt,name=shadowsocks,proto3,oneof"`
+}
+
+type InboundUser_Shadowsocks_2022 struct {
+	Shadowsocks_2022 *Shadowsocks2022Account `protobuf:"bytes,7,opt,name=shadowsocks_2022,json=shadowsocks2022,proto3,oneof"`
+}
+
+type InboundUser_Hysteria struct {
+	Hysteria *HysteriaAccount `protobuf:"bytes,8,opt,name=hysteria,proto3,oneof"`
+}
+
+type InboundUser_Masque struct {
+	Masque *PasswordAccount `protobuf:"bytes,9,opt,name=masque,proto3,oneof"`
+}
+
+type InboundUser_Wireguard struct {
+	Wireguard *WireGuardAccount `protobuf:"bytes,10,opt,name=wireguard,proto3,oneof"`
+}
+
+func (*InboundUser_Vless) isInboundUser_Account() {}
+
+func (*InboundUser_Vmess) isInboundUser_Account() {}
+
+func (*InboundUser_Trojan) isInboundUser_Account() {}
+
+func (*InboundUser_Shadowsocks) isInboundUser_Account() {}
+
+func (*InboundUser_Shadowsocks_2022) isInboundUser_Account() {}
+
+func (*InboundUser_Hysteria) isInboundUser_Account() {}
+
+func (*InboundUser_Masque) isInboundUser_Account() {}
+
+func (*InboundUser_Wireguard) isInboundUser_Account() {}
+
+type VLESSAccount struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Uses native Xray UUID parsing, including supported short identifiers.
+	Id            string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Flow          string `protobuf:"bytes,2,opt,name=flow,proto3" json:"flow,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *VLESSAccount) Reset() {
+	*x = VLESSAccount{}
+	mi := &file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes[37]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *VLESSAccount) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*VLESSAccount) ProtoMessage() {}
+
+func (x *VLESSAccount) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes[37]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use VLESSAccount.ProtoReflect.Descriptor instead.
+func (*VLESSAccount) Descriptor() ([]byte, []int) {
+	return file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_rawDescGZIP(), []int{37}
+}
+
+func (x *VLESSAccount) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *VLESSAccount) GetFlow() string {
+	if x != nil {
+		return x.Flow
+	}
+	return ""
+}
+
+type VMessAccount struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *VMessAccount) Reset() {
+	*x = VMessAccount{}
+	mi := &file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes[38]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *VMessAccount) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*VMessAccount) ProtoMessage() {}
+
+func (x *VMessAccount) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes[38]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use VMessAccount.ProtoReflect.Descriptor instead.
+func (*VMessAccount) Descriptor() ([]byte, []int) {
+	return file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_rawDescGZIP(), []int{38}
+}
+
+func (x *VMessAccount) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+type PasswordAccount struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Password      string                 `protobuf:"bytes,1,opt,name=password,proto3" json:"password,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PasswordAccount) Reset() {
+	*x = PasswordAccount{}
+	mi := &file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes[39]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PasswordAccount) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PasswordAccount) ProtoMessage() {}
+
+func (x *PasswordAccount) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes[39]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PasswordAccount.ProtoReflect.Descriptor instead.
+func (*PasswordAccount) Descriptor() ([]byte, []int) {
+	return file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_rawDescGZIP(), []int{39}
+}
+
+func (x *PasswordAccount) GetPassword() string {
+	if x != nil {
+		return x.Password
+	}
+	return ""
+}
+
+type HysteriaAccount struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Auth          string                 `protobuf:"bytes,1,opt,name=auth,proto3" json:"auth,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *HysteriaAccount) Reset() {
+	*x = HysteriaAccount{}
+	mi := &file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes[40]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *HysteriaAccount) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*HysteriaAccount) ProtoMessage() {}
+
+func (x *HysteriaAccount) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes[40]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use HysteriaAccount.ProtoReflect.Descriptor instead.
+func (*HysteriaAccount) Descriptor() ([]byte, []int) {
+	return file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_rawDescGZIP(), []int{40}
+}
+
+func (x *HysteriaAccount) GetAuth() string {
+	if x != nil {
+		return x.Auth
+	}
+	return ""
+}
+
+type ShadowsocksAccount struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Password      string                 `protobuf:"bytes,1,opt,name=password,proto3" json:"password,omitempty"`
+	Cipher        ShadowsocksCipher      `protobuf:"varint,2,opt,name=cipher,proto3,enum=papilio.node.xray.v1.ShadowsocksCipher" json:"cipher,omitempty"`
+	IvCheck       bool                   `protobuf:"varint,3,opt,name=iv_check,json=ivCheck,proto3" json:"iv_check,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ShadowsocksAccount) Reset() {
+	*x = ShadowsocksAccount{}
+	mi := &file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes[41]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ShadowsocksAccount) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ShadowsocksAccount) ProtoMessage() {}
+
+func (x *ShadowsocksAccount) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes[41]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ShadowsocksAccount.ProtoReflect.Descriptor instead.
+func (*ShadowsocksAccount) Descriptor() ([]byte, []int) {
+	return file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_rawDescGZIP(), []int{41}
+}
+
+func (x *ShadowsocksAccount) GetPassword() string {
+	if x != nil {
+		return x.Password
+	}
+	return ""
+}
+
+func (x *ShadowsocksAccount) GetCipher() ShadowsocksCipher {
+	if x != nil {
+		return x.Cipher
+	}
+	return ShadowsocksCipher_SHADOWSOCKS_CIPHER_UNSPECIFIED
+}
+
+func (x *ShadowsocksAccount) GetIvCheck() bool {
+	if x != nil {
+		return x.IvCheck
+	}
+	return false
+}
+
+type Shadowsocks2022Account struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Raw 16/32-byte key, not an already base64-encoded string.
+	Key           []byte `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Shadowsocks2022Account) Reset() {
+	*x = Shadowsocks2022Account{}
+	mi := &file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes[42]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Shadowsocks2022Account) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Shadowsocks2022Account) ProtoMessage() {}
+
+func (x *Shadowsocks2022Account) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes[42]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Shadowsocks2022Account.ProtoReflect.Descriptor instead.
+func (*Shadowsocks2022Account) Descriptor() ([]byte, []int) {
+	return file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_rawDescGZIP(), []int{42}
+}
+
+func (x *Shadowsocks2022Account) GetKey() []byte {
+	if x != nil {
+		return x.Key
+	}
+	return nil
+}
+
+type WireGuardAccount struct {
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	PublicKey []byte                 `protobuf:"bytes,1,opt,name=public_key,json=publicKey,proto3" json:"public_key,omitempty"`
+	// Empty preserves native omission; it does not promise clearing a prior PSK.
+	PreSharedKey []byte   `protobuf:"bytes,2,opt,name=pre_shared_key,json=preSharedKey,proto3" json:"pre_shared_key,omitempty"`
+	AllowedIps   []string `protobuf:"bytes,3,rep,name=allowed_ips,json=allowedIps,proto3" json:"allowed_ips,omitempty"`
+	// Absence preserves omission; explicit zero disables persistent keepalive.
+	KeepAliveSeconds *uint32 `protobuf:"varint,4,opt,name=keep_alive_seconds,json=keepAliveSeconds,proto3,oneof" json:"keep_alive_seconds,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *WireGuardAccount) Reset() {
+	*x = WireGuardAccount{}
+	mi := &file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes[43]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WireGuardAccount) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WireGuardAccount) ProtoMessage() {}
+
+func (x *WireGuardAccount) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes[43]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WireGuardAccount.ProtoReflect.Descriptor instead.
+func (*WireGuardAccount) Descriptor() ([]byte, []int) {
+	return file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_rawDescGZIP(), []int{43}
+}
+
+func (x *WireGuardAccount) GetPublicKey() []byte {
+	if x != nil {
+		return x.PublicKey
+	}
+	return nil
+}
+
+func (x *WireGuardAccount) GetPreSharedKey() []byte {
+	if x != nil {
+		return x.PreSharedKey
+	}
+	return nil
+}
+
+func (x *WireGuardAccount) GetAllowedIps() []string {
+	if x != nil {
+		return x.AllowedIps
+	}
+	return nil
+}
+
+func (x *WireGuardAccount) GetKeepAliveSeconds() uint32 {
+	if x != nil && x.KeepAliveSeconds != nil {
+		return *x.KeepAliveSeconds
+	}
+	return 0
+}
+
+type AddInboundUserResponse struct {
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	InstanceId string                 `protobuf:"bytes,1,opt,name=instance_id,json=instanceId,proto3" json:"instance_id,omitempty"`
+	InboundTag string                 `protobuf:"bytes,2,opt,name=inbound_tag,json=inboundTag,proto3" json:"inbound_tag,omitempty"`
+	Email      string                 `protobuf:"bytes,3,opt,name=email,proto3" json:"email,omitempty"`
+	// Native completion, not durable config or a strict-create guarantee.
+	AcknowledgedAtUnixMs int64 `protobuf:"varint,4,opt,name=acknowledged_at_unix_ms,json=acknowledgedAtUnixMs,proto3" json:"acknowledged_at_unix_ms,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
+}
+
+func (x *AddInboundUserResponse) Reset() {
+	*x = AddInboundUserResponse{}
+	mi := &file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes[44]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddInboundUserResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddInboundUserResponse) ProtoMessage() {}
+
+func (x *AddInboundUserResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes[44]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddInboundUserResponse.ProtoReflect.Descriptor instead.
+func (*AddInboundUserResponse) Descriptor() ([]byte, []int) {
+	return file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_rawDescGZIP(), []int{44}
+}
+
+func (x *AddInboundUserResponse) GetInstanceId() string {
+	if x != nil {
+		return x.InstanceId
+	}
+	return ""
+}
+
+func (x *AddInboundUserResponse) GetInboundTag() string {
+	if x != nil {
+		return x.InboundTag
+	}
+	return ""
+}
+
+func (x *AddInboundUserResponse) GetEmail() string {
+	if x != nil {
+		return x.Email
+	}
+	return ""
+}
+
+func (x *AddInboundUserResponse) GetAcknowledgedAtUnixMs() int64 {
+	if x != nil {
+		return x.AcknowledgedAtUnixMs
+	}
+	return 0
+}
+
 var File_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto protoreflect.FileDescriptor
 
 const file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_rawDesc = "" +
@@ -2640,7 +3384,56 @@ const file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_rawDesc = "
 	"\x05email\x18\x03 \x01(\tR\x05email\x125\n" +
 	"\x17acknowledged_at_unix_ms\x18\x04 \x01(\x03R\x14acknowledgedAtUnixMs\"Z\n" +
 	"\x13UserMutationFailure\x12C\n" +
-	"\aoutcome\x18\x01 \x01(\x0e2).papilio.node.xray.v1.UserMutationOutcomeR\aoutcome*|\n" +
+	"\aoutcome\x18\x01 \x01(\x0e2).papilio.node.xray.v1.UserMutationOutcomeR\aoutcome\"\x90\x01\n" +
+	"\x15AddInboundUserRequest\x12\x1f\n" +
+	"\vinstance_id\x18\x01 \x01(\tR\n" +
+	"instanceId\x12\x1f\n" +
+	"\vinbound_tag\x18\x02 \x01(\tR\n" +
+	"inboundTag\x125\n" +
+	"\x04user\x18\x03 \x01(\v2!.papilio.node.xray.v1.InboundUserR\x04user\"\xf4\x04\n" +
+	"\vInboundUser\x12\x14\n" +
+	"\x05email\x18\x01 \x01(\tR\x05email\x12\x14\n" +
+	"\x05level\x18\x02 \x01(\rR\x05level\x12:\n" +
+	"\x05vless\x18\x03 \x01(\v2\".papilio.node.xray.v1.VLESSAccountH\x00R\x05vless\x12:\n" +
+	"\x05vmess\x18\x04 \x01(\v2\".papilio.node.xray.v1.VMessAccountH\x00R\x05vmess\x12?\n" +
+	"\x06trojan\x18\x05 \x01(\v2%.papilio.node.xray.v1.PasswordAccountH\x00R\x06trojan\x12L\n" +
+	"\vshadowsocks\x18\x06 \x01(\v2(.papilio.node.xray.v1.ShadowsocksAccountH\x00R\vshadowsocks\x12Y\n" +
+	"\x10shadowsocks_2022\x18\a \x01(\v2,.papilio.node.xray.v1.Shadowsocks2022AccountH\x00R\x0fshadowsocks2022\x12C\n" +
+	"\bhysteria\x18\b \x01(\v2%.papilio.node.xray.v1.HysteriaAccountH\x00R\bhysteria\x12?\n" +
+	"\x06masque\x18\t \x01(\v2%.papilio.node.xray.v1.PasswordAccountH\x00R\x06masque\x12F\n" +
+	"\twireguard\x18\n" +
+	" \x01(\v2&.papilio.node.xray.v1.WireGuardAccountH\x00R\twireguardB\t\n" +
+	"\aaccount\"2\n" +
+	"\fVLESSAccount\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
+	"\x04flow\x18\x02 \x01(\tR\x04flow\"\x1e\n" +
+	"\fVMessAccount\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"-\n" +
+	"\x0fPasswordAccount\x12\x1a\n" +
+	"\bpassword\x18\x01 \x01(\tR\bpassword\"%\n" +
+	"\x0fHysteriaAccount\x12\x12\n" +
+	"\x04auth\x18\x01 \x01(\tR\x04auth\"\x8c\x01\n" +
+	"\x12ShadowsocksAccount\x12\x1a\n" +
+	"\bpassword\x18\x01 \x01(\tR\bpassword\x12?\n" +
+	"\x06cipher\x18\x02 \x01(\x0e2'.papilio.node.xray.v1.ShadowsocksCipherR\x06cipher\x12\x19\n" +
+	"\biv_check\x18\x03 \x01(\bR\aivCheck\"*\n" +
+	"\x16Shadowsocks2022Account\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\fR\x03key\"\xc2\x01\n" +
+	"\x10WireGuardAccount\x12\x1d\n" +
+	"\n" +
+	"public_key\x18\x01 \x01(\fR\tpublicKey\x12$\n" +
+	"\x0epre_shared_key\x18\x02 \x01(\fR\fpreSharedKey\x12\x1f\n" +
+	"\vallowed_ips\x18\x03 \x03(\tR\n" +
+	"allowedIps\x121\n" +
+	"\x12keep_alive_seconds\x18\x04 \x01(\rH\x00R\x10keepAliveSeconds\x88\x01\x01B\x15\n" +
+	"\x13_keep_alive_seconds\"\xa7\x01\n" +
+	"\x16AddInboundUserResponse\x12\x1f\n" +
+	"\vinstance_id\x18\x01 \x01(\tR\n" +
+	"instanceId\x12\x1f\n" +
+	"\vinbound_tag\x18\x02 \x01(\tR\n" +
+	"inboundTag\x12\x14\n" +
+	"\x05email\x18\x03 \x01(\tR\x05email\x125\n" +
+	"\x17acknowledged_at_unix_ms\x18\x04 \x01(\x03R\x14acknowledgedAtUnixMs*|\n" +
 	"\fTrafficScope\x12\x1d\n" +
 	"\x19TRAFFIC_SCOPE_UNSPECIFIED\x10\x00\x12\x16\n" +
 	"\x12TRAFFIC_SCOPE_USER\x10\x01\x12\x19\n" +
@@ -2664,8 +3457,16 @@ const file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_rawDesc = "
 	"\x13UserMutationOutcome\x12%\n" +
 	"!USER_MUTATION_OUTCOME_UNSPECIFIED\x10\x00\x12%\n" +
 	"!USER_MUTATION_OUTCOME_NOT_APPLIED\x10\x01\x12!\n" +
-	"\x1dUSER_MUTATION_OUTCOME_UNKNOWN\x10\x022\x86\v\n" +
-	"\vXrayService\x12t\n" +
+	"\x1dUSER_MUTATION_OUTCOME_UNKNOWN\x10\x02*\xf1\x01\n" +
+	"\x11ShadowsocksCipher\x12\"\n" +
+	"\x1eSHADOWSOCKS_CIPHER_UNSPECIFIED\x10\x00\x12\"\n" +
+	"\x1eSHADOWSOCKS_CIPHER_AES_128_GCM\x10\x01\x12\"\n" +
+	"\x1eSHADOWSOCKS_CIPHER_AES_256_GCM\x10\x02\x12(\n" +
+	"$SHADOWSOCKS_CIPHER_CHACHA20_POLY1305\x10\x03\x12)\n" +
+	"%SHADOWSOCKS_CIPHER_XCHACHA20_POLY1305\x10\x04\x12\x1b\n" +
+	"\x17SHADOWSOCKS_CIPHER_NONE\x10\x052\xf3\v\n" +
+	"\vXrayService\x12k\n" +
+	"\x0eAddInboundUser\x12+.papilio.node.xray.v1.AddInboundUserRequest\x1a,.papilio.node.xray.v1.AddInboundUserResponse\x12t\n" +
 	"\x11RemoveInboundUser\x12..papilio.node.xray.v1.RemoveInboundUserRequest\x1a/.papilio.node.xray.v1.RemoveInboundUserResponse\x12h\n" +
 	"\rGetBinaryInfo\x12*.papilio.node.xray.v1.GetBinaryInfoRequest\x1a+.papilio.node.xray.v1.GetBinaryInfoResponse\x12k\n" +
 	"\x0eGetRuntimeInfo\x12+.papilio.node.xray.v1.GetRuntimeInfoRequest\x1a,.papilio.node.xray.v1.GetRuntimeInfoResponse\x12t\n" +
@@ -2691,62 +3492,73 @@ func file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_rawDescGZIP(
 	return file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_rawDescData
 }
 
-var file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_enumTypes = make([]protoimpl.EnumInfo, 5)
-var file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes = make([]protoimpl.MessageInfo, 35)
+var file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_enumTypes = make([]protoimpl.EnumInfo, 6)
+var file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes = make([]protoimpl.MessageInfo, 45)
 var file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_goTypes = []any{
 	(TrafficScope)(0),                          // 0: papilio.node.xray.v1.TrafficScope
 	(TrafficDirection)(0),                      // 1: papilio.node.xray.v1.TrafficDirection
 	(TrafficCounterResetOutcome)(0),            // 2: papilio.node.xray.v1.TrafficCounterResetOutcome
 	(TrafficCounterResetState)(0),              // 3: papilio.node.xray.v1.TrafficCounterResetState
 	(UserMutationOutcome)(0),                   // 4: papilio.node.xray.v1.UserMutationOutcome
-	(*GetTrafficCounterRequest)(nil),           // 5: papilio.node.xray.v1.GetTrafficCounterRequest
-	(*GetTrafficCounterResponse)(nil),          // 6: papilio.node.xray.v1.GetTrafficCounterResponse
-	(*GetRuntimeInfoRequest)(nil),              // 7: papilio.node.xray.v1.GetRuntimeInfoRequest
-	(*GetRuntimeInfoResponse)(nil),             // 8: papilio.node.xray.v1.GetRuntimeInfoResponse
-	(*RuntimeInfo)(nil),                        // 9: papilio.node.xray.v1.RuntimeInfo
-	(*GetBinaryInfoRequest)(nil),               // 10: papilio.node.xray.v1.GetBinaryInfoRequest
-	(*GetBinaryInfoResponse)(nil),              // 11: papilio.node.xray.v1.GetBinaryInfoResponse
-	(*BinaryInfo)(nil),                         // 12: papilio.node.xray.v1.BinaryInfo
-	(*ListTrafficCountersRequest)(nil),         // 13: papilio.node.xray.v1.ListTrafficCountersRequest
-	(*ListTrafficCountersResponse)(nil),        // 14: papilio.node.xray.v1.ListTrafficCountersResponse
-	(*TrafficCounterEntry)(nil),                // 15: papilio.node.xray.v1.TrafficCounterEntry
-	(*GetUserOnlineStatsRequest)(nil),          // 16: papilio.node.xray.v1.GetUserOnlineStatsRequest
-	(*GetUserOnlineStatsResponse)(nil),         // 17: papilio.node.xray.v1.GetUserOnlineStatsResponse
-	(*ListUserOnlineIPsRequest)(nil),           // 18: papilio.node.xray.v1.ListUserOnlineIPsRequest
-	(*ListUserOnlineIPsResponse)(nil),          // 19: papilio.node.xray.v1.ListUserOnlineIPsResponse
-	(*OnlineIP)(nil),                           // 20: papilio.node.xray.v1.OnlineIP
-	(*ListOnlineUsersRequest)(nil),             // 21: papilio.node.xray.v1.ListOnlineUsersRequest
-	(*ListOnlineUsersResponse)(nil),            // 22: papilio.node.xray.v1.ListOnlineUsersResponse
-	(*ResetTrafficCounterRequest)(nil),         // 23: papilio.node.xray.v1.ResetTrafficCounterRequest
-	(*ResetTrafficCounterResponse)(nil),        // 24: papilio.node.xray.v1.ResetTrafficCounterResponse
-	(*TrafficCounterResetFailure)(nil),         // 25: papilio.node.xray.v1.TrafficCounterResetFailure
-	(*ResetTrafficCountersRequest)(nil),        // 26: papilio.node.xray.v1.ResetTrafficCountersRequest
-	(*TrafficCounterResetAcknowledgement)(nil), // 27: papilio.node.xray.v1.TrafficCounterResetAcknowledgement
-	(*TrafficCounterResetEntry)(nil),           // 28: papilio.node.xray.v1.TrafficCounterResetEntry
-	(*ResetTrafficCountersResponse)(nil),       // 29: papilio.node.xray.v1.ResetTrafficCountersResponse
-	(*TrafficCountersResetFailure)(nil),        // 30: papilio.node.xray.v1.TrafficCountersResetFailure
-	(*GetTrafficPairRequest)(nil),              // 31: papilio.node.xray.v1.GetTrafficPairRequest
-	(*TrafficCounterObservation)(nil),          // 32: papilio.node.xray.v1.TrafficCounterObservation
-	(*GetTrafficPairResponse)(nil),             // 33: papilio.node.xray.v1.GetTrafficPairResponse
-	(*ResetTrafficPairRequest)(nil),            // 34: papilio.node.xray.v1.ResetTrafficPairRequest
-	(*ResetTrafficPairResponse)(nil),           // 35: papilio.node.xray.v1.ResetTrafficPairResponse
-	(*TrafficPairResetFailure)(nil),            // 36: papilio.node.xray.v1.TrafficPairResetFailure
-	(*RemoveInboundUserRequest)(nil),           // 37: papilio.node.xray.v1.RemoveInboundUserRequest
-	(*RemoveInboundUserResponse)(nil),          // 38: papilio.node.xray.v1.RemoveInboundUserResponse
-	(*UserMutationFailure)(nil),                // 39: papilio.node.xray.v1.UserMutationFailure
+	(ShadowsocksCipher)(0),                     // 5: papilio.node.xray.v1.ShadowsocksCipher
+	(*GetTrafficCounterRequest)(nil),           // 6: papilio.node.xray.v1.GetTrafficCounterRequest
+	(*GetTrafficCounterResponse)(nil),          // 7: papilio.node.xray.v1.GetTrafficCounterResponse
+	(*GetRuntimeInfoRequest)(nil),              // 8: papilio.node.xray.v1.GetRuntimeInfoRequest
+	(*GetRuntimeInfoResponse)(nil),             // 9: papilio.node.xray.v1.GetRuntimeInfoResponse
+	(*RuntimeInfo)(nil),                        // 10: papilio.node.xray.v1.RuntimeInfo
+	(*GetBinaryInfoRequest)(nil),               // 11: papilio.node.xray.v1.GetBinaryInfoRequest
+	(*GetBinaryInfoResponse)(nil),              // 12: papilio.node.xray.v1.GetBinaryInfoResponse
+	(*BinaryInfo)(nil),                         // 13: papilio.node.xray.v1.BinaryInfo
+	(*ListTrafficCountersRequest)(nil),         // 14: papilio.node.xray.v1.ListTrafficCountersRequest
+	(*ListTrafficCountersResponse)(nil),        // 15: papilio.node.xray.v1.ListTrafficCountersResponse
+	(*TrafficCounterEntry)(nil),                // 16: papilio.node.xray.v1.TrafficCounterEntry
+	(*GetUserOnlineStatsRequest)(nil),          // 17: papilio.node.xray.v1.GetUserOnlineStatsRequest
+	(*GetUserOnlineStatsResponse)(nil),         // 18: papilio.node.xray.v1.GetUserOnlineStatsResponse
+	(*ListUserOnlineIPsRequest)(nil),           // 19: papilio.node.xray.v1.ListUserOnlineIPsRequest
+	(*ListUserOnlineIPsResponse)(nil),          // 20: papilio.node.xray.v1.ListUserOnlineIPsResponse
+	(*OnlineIP)(nil),                           // 21: papilio.node.xray.v1.OnlineIP
+	(*ListOnlineUsersRequest)(nil),             // 22: papilio.node.xray.v1.ListOnlineUsersRequest
+	(*ListOnlineUsersResponse)(nil),            // 23: papilio.node.xray.v1.ListOnlineUsersResponse
+	(*ResetTrafficCounterRequest)(nil),         // 24: papilio.node.xray.v1.ResetTrafficCounterRequest
+	(*ResetTrafficCounterResponse)(nil),        // 25: papilio.node.xray.v1.ResetTrafficCounterResponse
+	(*TrafficCounterResetFailure)(nil),         // 26: papilio.node.xray.v1.TrafficCounterResetFailure
+	(*ResetTrafficCountersRequest)(nil),        // 27: papilio.node.xray.v1.ResetTrafficCountersRequest
+	(*TrafficCounterResetAcknowledgement)(nil), // 28: papilio.node.xray.v1.TrafficCounterResetAcknowledgement
+	(*TrafficCounterResetEntry)(nil),           // 29: papilio.node.xray.v1.TrafficCounterResetEntry
+	(*ResetTrafficCountersResponse)(nil),       // 30: papilio.node.xray.v1.ResetTrafficCountersResponse
+	(*TrafficCountersResetFailure)(nil),        // 31: papilio.node.xray.v1.TrafficCountersResetFailure
+	(*GetTrafficPairRequest)(nil),              // 32: papilio.node.xray.v1.GetTrafficPairRequest
+	(*TrafficCounterObservation)(nil),          // 33: papilio.node.xray.v1.TrafficCounterObservation
+	(*GetTrafficPairResponse)(nil),             // 34: papilio.node.xray.v1.GetTrafficPairResponse
+	(*ResetTrafficPairRequest)(nil),            // 35: papilio.node.xray.v1.ResetTrafficPairRequest
+	(*ResetTrafficPairResponse)(nil),           // 36: papilio.node.xray.v1.ResetTrafficPairResponse
+	(*TrafficPairResetFailure)(nil),            // 37: papilio.node.xray.v1.TrafficPairResetFailure
+	(*RemoveInboundUserRequest)(nil),           // 38: papilio.node.xray.v1.RemoveInboundUserRequest
+	(*RemoveInboundUserResponse)(nil),          // 39: papilio.node.xray.v1.RemoveInboundUserResponse
+	(*UserMutationFailure)(nil),                // 40: papilio.node.xray.v1.UserMutationFailure
+	(*AddInboundUserRequest)(nil),              // 41: papilio.node.xray.v1.AddInboundUserRequest
+	(*InboundUser)(nil),                        // 42: papilio.node.xray.v1.InboundUser
+	(*VLESSAccount)(nil),                       // 43: papilio.node.xray.v1.VLESSAccount
+	(*VMessAccount)(nil),                       // 44: papilio.node.xray.v1.VMessAccount
+	(*PasswordAccount)(nil),                    // 45: papilio.node.xray.v1.PasswordAccount
+	(*HysteriaAccount)(nil),                    // 46: papilio.node.xray.v1.HysteriaAccount
+	(*ShadowsocksAccount)(nil),                 // 47: papilio.node.xray.v1.ShadowsocksAccount
+	(*Shadowsocks2022Account)(nil),             // 48: papilio.node.xray.v1.Shadowsocks2022Account
+	(*WireGuardAccount)(nil),                   // 49: papilio.node.xray.v1.WireGuardAccount
+	(*AddInboundUserResponse)(nil),             // 50: papilio.node.xray.v1.AddInboundUserResponse
 }
 var file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_depIdxs = []int32{
 	0,  // 0: papilio.node.xray.v1.GetTrafficCounterRequest.scope:type_name -> papilio.node.xray.v1.TrafficScope
 	1,  // 1: papilio.node.xray.v1.GetTrafficCounterRequest.direction:type_name -> papilio.node.xray.v1.TrafficDirection
 	0,  // 2: papilio.node.xray.v1.GetTrafficCounterResponse.scope:type_name -> papilio.node.xray.v1.TrafficScope
 	1,  // 3: papilio.node.xray.v1.GetTrafficCounterResponse.direction:type_name -> papilio.node.xray.v1.TrafficDirection
-	9,  // 4: papilio.node.xray.v1.GetRuntimeInfoResponse.runtime:type_name -> papilio.node.xray.v1.RuntimeInfo
-	12, // 5: papilio.node.xray.v1.GetBinaryInfoResponse.binary:type_name -> papilio.node.xray.v1.BinaryInfo
+	10, // 4: papilio.node.xray.v1.GetRuntimeInfoResponse.runtime:type_name -> papilio.node.xray.v1.RuntimeInfo
+	13, // 5: papilio.node.xray.v1.GetBinaryInfoResponse.binary:type_name -> papilio.node.xray.v1.BinaryInfo
 	0,  // 6: papilio.node.xray.v1.ListTrafficCountersRequest.scope:type_name -> papilio.node.xray.v1.TrafficScope
 	0,  // 7: papilio.node.xray.v1.ListTrafficCountersResponse.scope:type_name -> papilio.node.xray.v1.TrafficScope
-	15, // 8: papilio.node.xray.v1.ListTrafficCountersResponse.items:type_name -> papilio.node.xray.v1.TrafficCounterEntry
+	16, // 8: papilio.node.xray.v1.ListTrafficCountersResponse.items:type_name -> papilio.node.xray.v1.TrafficCounterEntry
 	1,  // 9: papilio.node.xray.v1.TrafficCounterEntry.direction:type_name -> papilio.node.xray.v1.TrafficDirection
-	20, // 10: papilio.node.xray.v1.ListUserOnlineIPsResponse.items:type_name -> papilio.node.xray.v1.OnlineIP
+	21, // 10: papilio.node.xray.v1.ListUserOnlineIPsResponse.items:type_name -> papilio.node.xray.v1.OnlineIP
 	0,  // 11: papilio.node.xray.v1.ResetTrafficCounterRequest.scope:type_name -> papilio.node.xray.v1.TrafficScope
 	1,  // 12: papilio.node.xray.v1.ResetTrafficCounterRequest.direction:type_name -> papilio.node.xray.v1.TrafficDirection
 	0,  // 13: papilio.node.xray.v1.ResetTrafficCounterResponse.scope:type_name -> papilio.node.xray.v1.TrafficScope
@@ -2755,48 +3567,60 @@ var file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_depIdxs = []i
 	0,  // 16: papilio.node.xray.v1.ResetTrafficCountersRequest.scope:type_name -> papilio.node.xray.v1.TrafficScope
 	1,  // 17: papilio.node.xray.v1.TrafficCounterResetEntry.direction:type_name -> papilio.node.xray.v1.TrafficDirection
 	3,  // 18: papilio.node.xray.v1.TrafficCounterResetEntry.state:type_name -> papilio.node.xray.v1.TrafficCounterResetState
-	27, // 19: papilio.node.xray.v1.TrafficCounterResetEntry.acknowledgement:type_name -> papilio.node.xray.v1.TrafficCounterResetAcknowledgement
+	28, // 19: papilio.node.xray.v1.TrafficCounterResetEntry.acknowledgement:type_name -> papilio.node.xray.v1.TrafficCounterResetAcknowledgement
 	0,  // 20: papilio.node.xray.v1.ResetTrafficCountersResponse.scope:type_name -> papilio.node.xray.v1.TrafficScope
-	28, // 21: papilio.node.xray.v1.ResetTrafficCountersResponse.items:type_name -> papilio.node.xray.v1.TrafficCounterResetEntry
-	29, // 22: papilio.node.xray.v1.TrafficCountersResetFailure.progress:type_name -> papilio.node.xray.v1.ResetTrafficCountersResponse
+	29, // 21: papilio.node.xray.v1.ResetTrafficCountersResponse.items:type_name -> papilio.node.xray.v1.TrafficCounterResetEntry
+	30, // 22: papilio.node.xray.v1.TrafficCountersResetFailure.progress:type_name -> papilio.node.xray.v1.ResetTrafficCountersResponse
 	0,  // 23: papilio.node.xray.v1.GetTrafficPairRequest.scope:type_name -> papilio.node.xray.v1.TrafficScope
 	0,  // 24: papilio.node.xray.v1.GetTrafficPairResponse.scope:type_name -> papilio.node.xray.v1.TrafficScope
-	32, // 25: papilio.node.xray.v1.GetTrafficPairResponse.uplink:type_name -> papilio.node.xray.v1.TrafficCounterObservation
-	32, // 26: papilio.node.xray.v1.GetTrafficPairResponse.downlink:type_name -> papilio.node.xray.v1.TrafficCounterObservation
+	33, // 25: papilio.node.xray.v1.GetTrafficPairResponse.uplink:type_name -> papilio.node.xray.v1.TrafficCounterObservation
+	33, // 26: papilio.node.xray.v1.GetTrafficPairResponse.downlink:type_name -> papilio.node.xray.v1.TrafficCounterObservation
 	0,  // 27: papilio.node.xray.v1.ResetTrafficPairRequest.scope:type_name -> papilio.node.xray.v1.TrafficScope
 	0,  // 28: papilio.node.xray.v1.ResetTrafficPairResponse.scope:type_name -> papilio.node.xray.v1.TrafficScope
-	28, // 29: papilio.node.xray.v1.ResetTrafficPairResponse.items:type_name -> papilio.node.xray.v1.TrafficCounterResetEntry
-	35, // 30: papilio.node.xray.v1.TrafficPairResetFailure.progress:type_name -> papilio.node.xray.v1.ResetTrafficPairResponse
+	29, // 29: papilio.node.xray.v1.ResetTrafficPairResponse.items:type_name -> papilio.node.xray.v1.TrafficCounterResetEntry
+	36, // 30: papilio.node.xray.v1.TrafficPairResetFailure.progress:type_name -> papilio.node.xray.v1.ResetTrafficPairResponse
 	4,  // 31: papilio.node.xray.v1.UserMutationFailure.outcome:type_name -> papilio.node.xray.v1.UserMutationOutcome
-	37, // 32: papilio.node.xray.v1.XrayService.RemoveInboundUser:input_type -> papilio.node.xray.v1.RemoveInboundUserRequest
-	10, // 33: papilio.node.xray.v1.XrayService.GetBinaryInfo:input_type -> papilio.node.xray.v1.GetBinaryInfoRequest
-	7,  // 34: papilio.node.xray.v1.XrayService.GetRuntimeInfo:input_type -> papilio.node.xray.v1.GetRuntimeInfoRequest
-	5,  // 35: papilio.node.xray.v1.XrayService.GetTrafficCounter:input_type -> papilio.node.xray.v1.GetTrafficCounterRequest
-	23, // 36: papilio.node.xray.v1.XrayService.ResetTrafficCounter:input_type -> papilio.node.xray.v1.ResetTrafficCounterRequest
-	26, // 37: papilio.node.xray.v1.XrayService.ResetTrafficCounters:input_type -> papilio.node.xray.v1.ResetTrafficCountersRequest
-	31, // 38: papilio.node.xray.v1.XrayService.GetTrafficPair:input_type -> papilio.node.xray.v1.GetTrafficPairRequest
-	34, // 39: papilio.node.xray.v1.XrayService.ResetTrafficPair:input_type -> papilio.node.xray.v1.ResetTrafficPairRequest
-	13, // 40: papilio.node.xray.v1.XrayService.ListTrafficCounters:input_type -> papilio.node.xray.v1.ListTrafficCountersRequest
-	16, // 41: papilio.node.xray.v1.XrayService.GetUserOnlineStats:input_type -> papilio.node.xray.v1.GetUserOnlineStatsRequest
-	18, // 42: papilio.node.xray.v1.XrayService.ListUserOnlineIPs:input_type -> papilio.node.xray.v1.ListUserOnlineIPsRequest
-	21, // 43: papilio.node.xray.v1.XrayService.ListOnlineUsers:input_type -> papilio.node.xray.v1.ListOnlineUsersRequest
-	38, // 44: papilio.node.xray.v1.XrayService.RemoveInboundUser:output_type -> papilio.node.xray.v1.RemoveInboundUserResponse
-	11, // 45: papilio.node.xray.v1.XrayService.GetBinaryInfo:output_type -> papilio.node.xray.v1.GetBinaryInfoResponse
-	8,  // 46: papilio.node.xray.v1.XrayService.GetRuntimeInfo:output_type -> papilio.node.xray.v1.GetRuntimeInfoResponse
-	6,  // 47: papilio.node.xray.v1.XrayService.GetTrafficCounter:output_type -> papilio.node.xray.v1.GetTrafficCounterResponse
-	24, // 48: papilio.node.xray.v1.XrayService.ResetTrafficCounter:output_type -> papilio.node.xray.v1.ResetTrafficCounterResponse
-	29, // 49: papilio.node.xray.v1.XrayService.ResetTrafficCounters:output_type -> papilio.node.xray.v1.ResetTrafficCountersResponse
-	33, // 50: papilio.node.xray.v1.XrayService.GetTrafficPair:output_type -> papilio.node.xray.v1.GetTrafficPairResponse
-	35, // 51: papilio.node.xray.v1.XrayService.ResetTrafficPair:output_type -> papilio.node.xray.v1.ResetTrafficPairResponse
-	14, // 52: papilio.node.xray.v1.XrayService.ListTrafficCounters:output_type -> papilio.node.xray.v1.ListTrafficCountersResponse
-	17, // 53: papilio.node.xray.v1.XrayService.GetUserOnlineStats:output_type -> papilio.node.xray.v1.GetUserOnlineStatsResponse
-	19, // 54: papilio.node.xray.v1.XrayService.ListUserOnlineIPs:output_type -> papilio.node.xray.v1.ListUserOnlineIPsResponse
-	22, // 55: papilio.node.xray.v1.XrayService.ListOnlineUsers:output_type -> papilio.node.xray.v1.ListOnlineUsersResponse
-	44, // [44:56] is the sub-list for method output_type
-	32, // [32:44] is the sub-list for method input_type
-	32, // [32:32] is the sub-list for extension type_name
-	32, // [32:32] is the sub-list for extension extendee
-	0,  // [0:32] is the sub-list for field type_name
+	42, // 32: papilio.node.xray.v1.AddInboundUserRequest.user:type_name -> papilio.node.xray.v1.InboundUser
+	43, // 33: papilio.node.xray.v1.InboundUser.vless:type_name -> papilio.node.xray.v1.VLESSAccount
+	44, // 34: papilio.node.xray.v1.InboundUser.vmess:type_name -> papilio.node.xray.v1.VMessAccount
+	45, // 35: papilio.node.xray.v1.InboundUser.trojan:type_name -> papilio.node.xray.v1.PasswordAccount
+	47, // 36: papilio.node.xray.v1.InboundUser.shadowsocks:type_name -> papilio.node.xray.v1.ShadowsocksAccount
+	48, // 37: papilio.node.xray.v1.InboundUser.shadowsocks_2022:type_name -> papilio.node.xray.v1.Shadowsocks2022Account
+	46, // 38: papilio.node.xray.v1.InboundUser.hysteria:type_name -> papilio.node.xray.v1.HysteriaAccount
+	45, // 39: papilio.node.xray.v1.InboundUser.masque:type_name -> papilio.node.xray.v1.PasswordAccount
+	49, // 40: papilio.node.xray.v1.InboundUser.wireguard:type_name -> papilio.node.xray.v1.WireGuardAccount
+	5,  // 41: papilio.node.xray.v1.ShadowsocksAccount.cipher:type_name -> papilio.node.xray.v1.ShadowsocksCipher
+	41, // 42: papilio.node.xray.v1.XrayService.AddInboundUser:input_type -> papilio.node.xray.v1.AddInboundUserRequest
+	38, // 43: papilio.node.xray.v1.XrayService.RemoveInboundUser:input_type -> papilio.node.xray.v1.RemoveInboundUserRequest
+	11, // 44: papilio.node.xray.v1.XrayService.GetBinaryInfo:input_type -> papilio.node.xray.v1.GetBinaryInfoRequest
+	8,  // 45: papilio.node.xray.v1.XrayService.GetRuntimeInfo:input_type -> papilio.node.xray.v1.GetRuntimeInfoRequest
+	6,  // 46: papilio.node.xray.v1.XrayService.GetTrafficCounter:input_type -> papilio.node.xray.v1.GetTrafficCounterRequest
+	24, // 47: papilio.node.xray.v1.XrayService.ResetTrafficCounter:input_type -> papilio.node.xray.v1.ResetTrafficCounterRequest
+	27, // 48: papilio.node.xray.v1.XrayService.ResetTrafficCounters:input_type -> papilio.node.xray.v1.ResetTrafficCountersRequest
+	32, // 49: papilio.node.xray.v1.XrayService.GetTrafficPair:input_type -> papilio.node.xray.v1.GetTrafficPairRequest
+	35, // 50: papilio.node.xray.v1.XrayService.ResetTrafficPair:input_type -> papilio.node.xray.v1.ResetTrafficPairRequest
+	14, // 51: papilio.node.xray.v1.XrayService.ListTrafficCounters:input_type -> papilio.node.xray.v1.ListTrafficCountersRequest
+	17, // 52: papilio.node.xray.v1.XrayService.GetUserOnlineStats:input_type -> papilio.node.xray.v1.GetUserOnlineStatsRequest
+	19, // 53: papilio.node.xray.v1.XrayService.ListUserOnlineIPs:input_type -> papilio.node.xray.v1.ListUserOnlineIPsRequest
+	22, // 54: papilio.node.xray.v1.XrayService.ListOnlineUsers:input_type -> papilio.node.xray.v1.ListOnlineUsersRequest
+	50, // 55: papilio.node.xray.v1.XrayService.AddInboundUser:output_type -> papilio.node.xray.v1.AddInboundUserResponse
+	39, // 56: papilio.node.xray.v1.XrayService.RemoveInboundUser:output_type -> papilio.node.xray.v1.RemoveInboundUserResponse
+	12, // 57: papilio.node.xray.v1.XrayService.GetBinaryInfo:output_type -> papilio.node.xray.v1.GetBinaryInfoResponse
+	9,  // 58: papilio.node.xray.v1.XrayService.GetRuntimeInfo:output_type -> papilio.node.xray.v1.GetRuntimeInfoResponse
+	7,  // 59: papilio.node.xray.v1.XrayService.GetTrafficCounter:output_type -> papilio.node.xray.v1.GetTrafficCounterResponse
+	25, // 60: papilio.node.xray.v1.XrayService.ResetTrafficCounter:output_type -> papilio.node.xray.v1.ResetTrafficCounterResponse
+	30, // 61: papilio.node.xray.v1.XrayService.ResetTrafficCounters:output_type -> papilio.node.xray.v1.ResetTrafficCountersResponse
+	34, // 62: papilio.node.xray.v1.XrayService.GetTrafficPair:output_type -> papilio.node.xray.v1.GetTrafficPairResponse
+	36, // 63: papilio.node.xray.v1.XrayService.ResetTrafficPair:output_type -> papilio.node.xray.v1.ResetTrafficPairResponse
+	15, // 64: papilio.node.xray.v1.XrayService.ListTrafficCounters:output_type -> papilio.node.xray.v1.ListTrafficCountersResponse
+	18, // 65: papilio.node.xray.v1.XrayService.GetUserOnlineStats:output_type -> papilio.node.xray.v1.GetUserOnlineStatsResponse
+	20, // 66: papilio.node.xray.v1.XrayService.ListUserOnlineIPs:output_type -> papilio.node.xray.v1.ListUserOnlineIPsResponse
+	23, // 67: papilio.node.xray.v1.XrayService.ListOnlineUsers:output_type -> papilio.node.xray.v1.ListOnlineUsersResponse
+	55, // [55:68] is the sub-list for method output_type
+	42, // [42:55] is the sub-list for method input_type
+	42, // [42:42] is the sub-list for extension type_name
+	42, // [42:42] is the sub-list for extension extendee
+	0,  // [0:42] is the sub-list for field type_name
 }
 
 func init() { file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_init() }
@@ -2805,13 +3629,24 @@ func file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_init() {
 		return
 	}
 	file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes[24].OneofWrappers = []any{}
+	file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes[36].OneofWrappers = []any{
+		(*InboundUser_Vless)(nil),
+		(*InboundUser_Vmess)(nil),
+		(*InboundUser_Trojan)(nil),
+		(*InboundUser_Shadowsocks)(nil),
+		(*InboundUser_Shadowsocks_2022)(nil),
+		(*InboundUser_Hysteria)(nil),
+		(*InboundUser_Masque)(nil),
+		(*InboundUser_Wireguard)(nil),
+	}
+	file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes[43].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_rawDesc), len(file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_rawDesc)),
-			NumEnums:      5,
-			NumMessages:   35,
+			NumEnums:      6,
+			NumMessages:   45,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

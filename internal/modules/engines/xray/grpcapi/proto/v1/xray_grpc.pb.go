@@ -19,6 +19,7 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
+	XrayService_AddInboundUser_FullMethodName       = "/papilio.node.xray.v1.XrayService/AddInboundUser"
 	XrayService_RemoveInboundUser_FullMethodName    = "/papilio.node.xray.v1.XrayService/RemoveInboundUser"
 	XrayService_GetBinaryInfo_FullMethodName        = "/papilio.node.xray.v1.XrayService/GetBinaryInfo"
 	XrayService_GetRuntimeInfo_FullMethodName       = "/papilio.node.xray.v1.XrayService/GetRuntimeInfo"
@@ -37,6 +38,9 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type XrayServiceClient interface {
+	// One live native addition after an inbound-type preflight. Not atomic against
+	// external inbound replacement; no remove-before-add or application retry.
+	AddInboundUser(ctx context.Context, in *AddInboundUserRequest, opts ...grpc.CallOption) (*AddInboundUserResponse, error)
 	// One live native removal; no config persistence or established-session claim.
 	// Lost replies can hide an applied change. No application retry.
 	RemoveInboundUser(ctx context.Context, in *RemoveInboundUserRequest, opts ...grpc.CallOption) (*RemoveInboundUserResponse, error)
@@ -74,6 +78,16 @@ type xrayServiceClient struct {
 
 func NewXrayServiceClient(cc grpc.ClientConnInterface) XrayServiceClient {
 	return &xrayServiceClient{cc}
+}
+
+func (c *xrayServiceClient) AddInboundUser(ctx context.Context, in *AddInboundUserRequest, opts ...grpc.CallOption) (*AddInboundUserResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AddInboundUserResponse)
+	err := c.cc.Invoke(ctx, XrayService_AddInboundUser_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *xrayServiceClient) RemoveInboundUser(ctx context.Context, in *RemoveInboundUserRequest, opts ...grpc.CallOption) (*RemoveInboundUserResponse, error) {
@@ -200,6 +214,9 @@ func (c *xrayServiceClient) ListOnlineUsers(ctx context.Context, in *ListOnlineU
 // All implementations must embed UnimplementedXrayServiceServer
 // for forward compatibility.
 type XrayServiceServer interface {
+	// One live native addition after an inbound-type preflight. Not atomic against
+	// external inbound replacement; no remove-before-add or application retry.
+	AddInboundUser(context.Context, *AddInboundUserRequest) (*AddInboundUserResponse, error)
 	// One live native removal; no config persistence or established-session claim.
 	// Lost replies can hide an applied change. No application retry.
 	RemoveInboundUser(context.Context, *RemoveInboundUserRequest) (*RemoveInboundUserResponse, error)
@@ -239,6 +256,9 @@ type XrayServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedXrayServiceServer struct{}
 
+func (UnimplementedXrayServiceServer) AddInboundUser(context.Context, *AddInboundUserRequest) (*AddInboundUserResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method AddInboundUser not implemented")
+}
 func (UnimplementedXrayServiceServer) RemoveInboundUser(context.Context, *RemoveInboundUserRequest) (*RemoveInboundUserResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method RemoveInboundUser not implemented")
 }
@@ -294,6 +314,24 @@ func RegisterXrayServiceServer(s grpc.ServiceRegistrar, srv XrayServiceServer) {
 		t.testEmbeddedByValue()
 	}
 	s.RegisterService(&XrayService_ServiceDesc, srv)
+}
+
+func _XrayService_AddInboundUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddInboundUserRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(XrayServiceServer).AddInboundUser(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: XrayService_AddInboundUser_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(XrayServiceServer).AddInboundUser(ctx, req.(*AddInboundUserRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _XrayService_RemoveInboundUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -519,6 +557,10 @@ var XrayService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "papilio.node.xray.v1.XrayService",
 	HandlerType: (*XrayServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "AddInboundUser",
+			Handler:    _XrayService_AddInboundUser_Handler,
+		},
 		{
 			MethodName: "RemoveInboundUser",
 			Handler:    _XrayService_RemoveInboundUser_Handler,

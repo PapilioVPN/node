@@ -146,7 +146,7 @@ func userTestPort(t *testing.T) int {
 	return port
 }
 
-func TestUserRemovalRequiresIndependentGrantOverMTLS(t *testing.T) {
+func TestUserManagementRequiresIndependentGrantOverMTLS(t *testing.T) {
 	for _, granted := range []bool{false, true} {
 		t.Run(fmt.Sprint(granted), func(t *testing.T) {
 			certificates := testutil.NewCertificates(t)
@@ -167,6 +167,14 @@ func TestUserRemovalRequiresIndependentGrantOverMTLS(t *testing.T) {
 			}
 			t.Cleanup(func() { _ = application.Stop(context.Background()); _ = server.Close() })
 			client := xrayClient(t, server, certificates)
+			_, additionError := client.AddInboundUser(t.Context(), &xrayv1.AddInboundUserRequest{InstanceId: "missing", InboundTag: "in", User: &xrayv1.InboundUser{Email: "user", Account: &xrayv1.InboundUser_Vless{Vless: &xrayv1.VLESSAccount{Id: "test-only"}}}})
+			additionCode := codes.PermissionDenied
+			if granted {
+				additionCode = codes.NotFound
+			}
+			if status.Code(additionError) != additionCode {
+				t.Fatalf("addition did not enforce/wire the independent grant: %v", additionError)
+			}
 			_, err := client.RemoveInboundUser(t.Context(), &xrayv1.RemoveInboundUserRequest{InstanceId: "missing", InboundTag: "in", Email: "user"})
 			if !granted {
 				if status.Code(err) != codes.PermissionDenied {

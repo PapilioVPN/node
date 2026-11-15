@@ -5,6 +5,9 @@ package papilio.node.xray.v1;
 option go_package = "github.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi/proto/v1;xrayv1";
 
 service XrayService {
+  // One live native addition after an inbound-type preflight. Not atomic against
+  // external inbound replacement; no remove-before-add or application retry.
+  rpc AddInboundUser(AddInboundUserRequest) returns (AddInboundUserResponse);
   // One live native removal; no config persistence or established-session claim.
   // Lost replies can hide an applied change. No application retry.
   rpc RemoveInboundUser(RemoveInboundUserRequest) returns (RemoveInboundUserResponse);
@@ -310,4 +313,70 @@ enum UserMutationOutcome {
 // Missing details or an undelivered reply never establish NOT_APPLIED.
 message UserMutationFailure {
   UserMutationOutcome outcome = 1;
+}
+
+message AddInboundUserRequest {
+  string instance_id = 1;
+  string inbound_tag = 2;
+  InboundUser user = 3;
+}
+
+message InboundUser {
+  string email = 1;
+  uint32 level = 2;
+  // Exactly one account; credentials are never included in the response.
+  oneof account {
+    VLESSAccount vless = 3;
+    VMessAccount vmess = 4;
+    PasswordAccount trojan = 5;
+    ShadowsocksAccount shadowsocks = 6;
+    Shadowsocks2022Account shadowsocks_2022 = 7;
+    HysteriaAccount hysteria = 8;
+    PasswordAccount masque = 9;
+    WireGuardAccount wireguard = 10;
+  }
+}
+
+message VLESSAccount {
+  // Uses native Xray UUID parsing, including supported short identifiers.
+  string id = 1;
+  string flow = 2;
+}
+message VMessAccount { string id = 1; }
+message PasswordAccount { string password = 1; }
+message HysteriaAccount { string auth = 1; }
+
+enum ShadowsocksCipher {
+  SHADOWSOCKS_CIPHER_UNSPECIFIED = 0;
+  SHADOWSOCKS_CIPHER_AES_128_GCM = 1;
+  SHADOWSOCKS_CIPHER_AES_256_GCM = 2;
+  SHADOWSOCKS_CIPHER_CHACHA20_POLY1305 = 3;
+  SHADOWSOCKS_CIPHER_XCHACHA20_POLY1305 = 4;
+  // Legacy compatibility only; current pinned Xray rejects this cipher.
+  SHADOWSOCKS_CIPHER_NONE = 5;
+}
+message ShadowsocksAccount {
+  string password = 1;
+  ShadowsocksCipher cipher = 2;
+  bool iv_check = 3;
+}
+message Shadowsocks2022Account {
+  // Raw 16/32-byte key, not an already base64-encoded string.
+  bytes key = 1;
+}
+message WireGuardAccount {
+  bytes public_key = 1;
+  // Empty preserves native omission; it does not promise clearing a prior PSK.
+  bytes pre_shared_key = 2;
+  repeated string allowed_ips = 3;
+  // Absence preserves omission; explicit zero disables persistent keepalive.
+  optional uint32 keep_alive_seconds = 4;
+}
+
+message AddInboundUserResponse {
+  string instance_id = 1;
+  string inbound_tag = 2;
+  string email = 3;
+  // Native completion, not durable config or a strict-create guarantee.
+  int64 acknowledged_at_unix_ms = 4;
 }

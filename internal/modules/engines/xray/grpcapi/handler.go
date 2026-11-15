@@ -30,6 +30,7 @@ type Handler struct {
 	Pairs               TrafficPairReader
 	PairResets          TrafficPairResetter
 	UserRemoval         InboundUserRemover
+	UserAddition        InboundUserAdder
 	TrafficCounters     TrafficCountersReader
 	Online              OnlineReader
 	AllowInfoRead       bool

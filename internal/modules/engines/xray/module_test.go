@@ -85,4 +85,8 @@ func TestModuleClosesAPIAdmissionAndExportsFinalCleanup(t *testing.T) {
 	if _, err := newUserRemovalService(resources).RemoveInboundUser(t.Context(), "edge", domain.InboundUserSelection{InboundTag: "in", Email: "user"}); !errors.Is(err, grpc.ErrClientConnClosing) || errors.Is(err, domain.ErrUserMutationUnknown) {
 		t.Fatalf("closed native API admitted user removal: %v", err)
 	}
+	addition := domain.InboundUserAddition{InboundTag: "in", User: domain.InboundUser{Email: "user", Account: domain.UserAccount{Protocol: domain.VLESS, VLESS: &domain.VLESSAccount{ID: "test-only"}}}}
+	if _, err := newUserAdditionService(resources).AddInboundUser(t.Context(), "edge", addition); !errors.Is(err, grpc.ErrClientConnClosing) || errors.Is(err, domain.ErrUserMutationUnknown) {
+		t.Fatalf("closed native API admitted user addition: %v", err)
+	}
 }

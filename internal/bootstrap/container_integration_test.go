@@ -156,6 +156,9 @@ func TestContainer(t *testing.T) {
 	if _, err := xrayv1.NewXrayServiceClient(connection).ResetTrafficPair(request, &xrayv1.ResetTrafficPairRequest{InstanceId: "unconfigured", Scope: xrayv1.TrafficScope_TRAFFIC_SCOPE_USER, Name: "user"}); status.Code(err) != codes.NotFound {
 		t.Fatalf("packaged pair reset failed: %v", err)
 	}
+	if _, err := xrayv1.NewXrayServiceClient(connection).AddInboundUser(request, &xrayv1.AddInboundUserRequest{InstanceId: "unconfigured", InboundTag: "in", User: &xrayv1.InboundUser{Email: "user", Account: &xrayv1.InboundUser_Vless{Vless: &xrayv1.VLESSAccount{Id: "test-only"}}}}); status.Code(err) != codes.NotFound {
+		t.Fatalf("packaged user addition not wired: %v", err)
+	}
 	if _, err := xrayv1.NewXrayServiceClient(connection).RemoveInboundUser(request, &xrayv1.RemoveInboundUserRequest{InstanceId: "unconfigured", InboundTag: "in", Email: "user"}); status.Code(err) != codes.NotFound {
 		t.Fatalf("packaged user removal grant/service failed: %v", err)
 	}
