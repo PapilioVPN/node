@@ -48,6 +48,7 @@ type GRPC struct {
 // Zero values preserve the foundation's node-info/health-only access.
 type GRPCPermissions struct {
 	ReadInstanceStatus bool `yaml:"read_instance_status"`
+	ControlInstances   bool `yaml:"control_instances"`
 }
 
 type TLS struct {

@@ -2,13 +2,13 @@ package grpcapi
 
 import (
 	"context"
-	"errors"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
 	"github.com/PapilioVPN/node/internal/modules/system/domain"
 	systemv1 "github.com/PapilioVPN/node/internal/modules/system/grpcapi/proto/v1"
+	"github.com/PapilioVPN/node/internal/shared/grpcresponse"
 )
 
 // NodeInfoReader is the application operation consumed by this adapter.
@@ -23,8 +23,8 @@ type Handler struct {
 
 func (h Handler) GetNodeInfo(ctx context.Context, _ *systemv1.GetNodeInfoRequest) (*systemv1.GetNodeInfoResponse, error) {
 	info, err := h.Info.GetNodeInfo(ctx)
-	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
-		return nil, status.FromContextError(err).Err()
+	if mapped := grpcresponse.ContextError(err); mapped != nil {
+		return nil, mapped
 	}
 	if err != nil {
 		return nil, status.Error(codes.Internal, "cannot read node information")

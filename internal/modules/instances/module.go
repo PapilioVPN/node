@@ -30,7 +30,7 @@ func Module(grpcEnabled bool) fx.Option {
 
 func registerGRPC(registrar grpc.ServiceRegistrar, reader *app.LifecycleService, cfg settings.GRPCPermissions) {
 	instancesv1.RegisterInstanceServiceServer(registrar, grpcapi.Handler{
-		Status: reader, AllowStatusRead: cfg.ReadInstanceStatus,
+		Status: reader, Control: reader, AllowStatusRead: cfg.ReadInstanceStatus, AllowControl: cfg.ControlInstances,
 	})
 }
 
@@ -112,11 +112,13 @@ func (r *Resources) Close() error {
 
 type capabilityResult struct {
 	fx.Out
-	Value systemdomain.Capability `group:"node_capabilities"`
+	Values []systemdomain.Capability `group:"node_capabilities,flatten"`
 }
 
 func capability() capabilityResult {
-	return capabilityResult{Value: systemdomain.Capability(domain.ReadStatus)}
+	return capabilityResult{Values: []systemdomain.Capability{
+		systemdomain.Capability(domain.ReadStatus), systemdomain.Capability(domain.StartInstance), systemdomain.Capability(domain.StopInstance),
+	}}
 }
 
 type resourceResult struct {

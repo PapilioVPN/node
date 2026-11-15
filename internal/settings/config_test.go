@@ -34,6 +34,7 @@ communications:
     max_concurrent_streams: 64
     permissions:
       read_instance_status: true
+      control_instances: true
     tls:
       certificate_file: server.pem
       private_key_file: server-key.pem
@@ -51,8 +52,8 @@ runtime:
 	if !filepath.IsAbs(config.Communications.GRPC.TLS.CertificateFile) || filepath.Base(config.Communications.GRPC.TLS.CertificateFile) != "server.pem" {
 		t.Fatal("certificate path was not resolved relative to the configuration file")
 	}
-	if !config.Communications.GRPC.Permissions.ReadInstanceStatus {
-		t.Fatal("explicit instance-status grant was lost")
+	if !config.Communications.GRPC.Permissions.ReadInstanceStatus || !config.Communications.GRPC.Permissions.ControlInstances {
+		t.Fatal("explicit instance grants were lost")
 	}
 }
 
@@ -71,6 +72,7 @@ func TestLoadRejectsInvalidConfiguration(t *testing.T) {
 		"unsupported transport":     "node: {id: west}\ncommunications: {nats: {enabled: true}}\n",
 		"invalid type":              "node: {id: west}\ncommunications: {grpc: {enabled: 'not-a-boolean'}}\n",
 		"invalid permission":        "node: {id: west}\ncommunications: {grpc: {permissions: {read_instance_status: 'not-a-boolean'}}}\n",
+		"invalid control grant":     "node: {id: west}\ncommunications: {grpc: {permissions: {control_instances: 'not-a-boolean'}}}\n",
 		"unknown permission":        "node: {id: west}\ncommunications: {grpc: {permissions: {write_instances: true}}}\n",
 		"empty file":                "",
 	}
@@ -96,8 +98,8 @@ func TestLoadOptionalGRPC(t *testing.T) {
 	if err != nil {
 		t.Fatalf("an inactive transport must not require connection settings: %v", err)
 	}
-	if config.Communications.GRPC.Permissions.ReadInstanceStatus {
-		t.Fatal("status access must require an explicit grant")
+	if config.Communications.GRPC.Permissions.ReadInstanceStatus || config.Communications.GRPC.Permissions.ControlInstances {
+		t.Fatal("instance access must require explicit grants")
 	}
 }
 

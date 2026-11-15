@@ -25,9 +25,9 @@ func TestInstalledModuleCapabilities(t *testing.T) {
 			options := []fx.Option{fx.NopLogger, fx.Supply(settings.Node{ID: "isolated-node"}), system.Module("test", false), fx.Populate(&info)}
 			want := []domain.Capability{domain.ReadNodeInfo}
 			if test.withInstances {
-				// No engine or listener is needed to install the observation capability.
+				// No engine or listener is needed to install the lifecycle capabilities.
 				options = append(options, fx.Supply([]settings.Instance{}), instances.Module(false))
-				want = append(want, domain.Capability(instancedomain.ReadStatus))
+				want = append(want, domain.Capability(instancedomain.StartInstance), domain.Capability(instancedomain.ReadStatus), domain.Capability(instancedomain.StopInstance))
 			}
 			application := fx.New(options...)
 			if err := application.Start(context.Background()); err != nil {

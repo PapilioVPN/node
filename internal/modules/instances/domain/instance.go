@@ -35,5 +35,9 @@ type Status struct {
 	Failure error
 }
 
-// ReadStatus identifies the implemented observation operation.
-const ReadStatus = "instance.status.read"
+// Management capabilities describe implemented operations, not caller grants.
+const (
+	ReadStatus    = "instance.status.read"
+	StartInstance = "instance.start"
+	StopInstance  = "instance.stop"
+)

@@ -25,6 +25,8 @@ communications:
       # Opt in to status reads of all instances by every trusted mTLS client.
       # This grants no engine mutation operations.
       read_instance_status: false
+      # Opt in separately to Start/Stop of all configured instances.
+      control_instances: false
     tls:
       certificate_file: ""
       private_key_file: ""

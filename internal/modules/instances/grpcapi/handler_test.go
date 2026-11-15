@@ -51,10 +51,10 @@ func TestStatusRequestValidationAndErrorMapping(t *testing.T) {
 		}
 	}
 	for cause, expected := range map[error]codes.Code{
-		fmt.Errorf("wrapped: %w", domain.ErrNotFound): codes.NotFound,
-		fmt.Errorf("wrapped: %w", context.Canceled):   codes.Canceled,
-		context.DeadlineExceeded:                      codes.DeadlineExceeded,
-		errors.New("private implementation path"):     codes.Internal,
+		fmt.Errorf("wrapped: %w", domain.ErrNotFound):                   codes.NotFound,
+		fmt.Errorf("private native path: %w", context.Canceled):         codes.Canceled,
+		fmt.Errorf("private native path: %w", context.DeadlineExceeded): codes.DeadlineExceeded,
+		errors.New("private implementation path"):                       codes.Internal,
 	} {
 		handler.Status = statusReader(func(received context.Context, id domain.InstanceID) (domain.Status, error) {
 			if received != ctx || id != "edge-a" {

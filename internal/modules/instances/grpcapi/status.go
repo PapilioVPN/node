@@ -12,33 +12,54 @@ import (
 )
 
 func statusResponse(value domain.Status) (*instancesv1.GetInstanceStatusResponse, error) {
-	var state instancesv1.InstanceState
-	switch value.State {
+	state, err := stateCode(value.State)
+	if err != nil {
+		return nil, err
+	}
+	return &instancesv1.GetInstanceStatusResponse{
+		InstanceId: string(value.Instance.ID), Engine: string(value.Instance.Kind), State: state, Failure: executionFailure(value.Failure),
+	}, nil
+}
+
+func controlResponse(value domain.Status) (*instancesv1.InstanceStatus, error) {
+	state, err := stateCode(value.State)
+	if err != nil {
+		return nil, err
+	}
+	return &instancesv1.InstanceStatus{
+		InstanceId: string(value.Instance.ID), Engine: string(value.Instance.Kind),
+		State: state, Failure: executionFailure(value.Failure),
+	}, nil
+}
+
+func stateCode(value domain.State) (instancesv1.InstanceState, error) {
+	switch value {
 	case domain.Stopped:
-		state = instancesv1.InstanceState_INSTANCE_STATE_STOPPED
+		return instancesv1.InstanceState_INSTANCE_STATE_STOPPED, nil
 	case domain.Running:
-		state = instancesv1.InstanceState_INSTANCE_STATE_RUNNING
+		return instancesv1.InstanceState_INSTANCE_STATE_RUNNING, nil
 	case domain.Stopping:
-		state = instancesv1.InstanceState_INSTANCE_STATE_STOPPING
+		return instancesv1.InstanceState_INSTANCE_STATE_STOPPING, nil
 	case domain.Exited:
-		state = instancesv1.InstanceState_INSTANCE_STATE_EXITED
+		return instancesv1.InstanceState_INSTANCE_STATE_EXITED, nil
 	default:
-		return nil, status.Error(codes.Internal, "cannot represent instance state")
+		return instancesv1.InstanceState_INSTANCE_STATE_UNSPECIFIED, status.Error(codes.Internal, "cannot represent instance state")
 	}
-	response := &instancesv1.GetInstanceStatusResponse{
-		InstanceId: string(value.Instance.ID), Engine: string(value.Instance.Kind), State: state,
+}
+
+func executionFailure(cause error) *instancesv1.InstanceFailure {
+	if cause == nil {
+		return nil
 	}
-	if value.Failure != nil {
-		response.Failure = &instancesv1.InstanceFailure{Code: instancesv1.InstanceFailureCode_INSTANCE_FAILURE_CODE_EXECUTION_FAILED}
-		// Native exec.ExitError exposes ExitCode through its embedded ProcessState.
-		// The adapter needs this error capability, not a concrete Xray/OS dependency.
-		var exit interface{ ExitCode() int }
-		if errors.As(value.Failure, &exit) {
-			if code := exit.ExitCode(); code >= 0 && code <= math.MaxInt32 {
-				code := int32(code)
-				response.Failure.ExitCode = &code
-			}
+	failure := &instancesv1.InstanceFailure{Code: instancesv1.InstanceFailureCode_INSTANCE_FAILURE_CODE_EXECUTION_FAILED}
+	// Native exec.ExitError exposes ExitCode through its embedded ProcessState.
+	// Only this error capability crosses the boundary, never raw native text.
+	var exit interface{ ExitCode() int }
+	if errors.As(cause, &exit) {
+		if code := exit.ExitCode(); code >= 0 && code <= math.MaxInt32 {
+			code := int32(code)
+			failure.ExitCode = &code
 		}
 	}
-	return response, nil
+	return failure
 }

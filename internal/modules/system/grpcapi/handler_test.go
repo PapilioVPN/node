@@ -3,6 +3,7 @@ package grpcapi_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -26,12 +27,14 @@ func TestHandlerErrorMapping(t *testing.T) {
 	}{
 		{"canceled", context.Canceled, codes.Canceled},
 		{"deadline", context.DeadlineExceeded, codes.DeadlineExceeded},
+		{"wrapped cancellation", fmt.Errorf("private native path: %w", context.Canceled), codes.Canceled},
+		{"wrapped deadline", fmt.Errorf("private native path: %w", context.DeadlineExceeded), codes.DeadlineExceeded},
 		{"internal", errors.New("private implementation detail"), codes.Internal},
 	} {
 		t.Run(item.name, func(t *testing.T) {
 			handler := rpc.Handler{Info: infoReader(func(context.Context) (domain.NodeInfo, error) { return domain.NodeInfo{}, item.err })}
 			_, err := handler.GetNodeInfo(context.Background(), &systemv1.GetNodeInfoRequest{})
-			if status.Code(err) != item.code || (item.code == codes.Internal && strings.Contains(err.Error(), item.err.Error())) {
+			if status.Code(err) != item.code || strings.Contains(err.Error(), "private") {
 				t.Fatalf("incorrect error mapping: %v", err)
 			}
 		})
