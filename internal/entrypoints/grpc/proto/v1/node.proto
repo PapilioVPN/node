@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package papilio.node.v1;
+
+option go_package = "github.com/PapilioVPN/node/internal/entrypoints/grpc/proto/v1;nodev1";
+
+// NodeService exposes Node management operations. Engine features are incremental.
+service NodeService {
+  rpc GetNodeInfo(GetNodeInfoRequest) returns (GetNodeInfoResponse);
+}
+
+message GetNodeInfoRequest {}
+
+message GetNodeInfoResponse {
+  string node_id = 1;
+  string version = 2;
+  string api_version = 3;
+  // Supported operations; this does not advertise future engine support.
+  repeated string capabilities = 4;
+}
