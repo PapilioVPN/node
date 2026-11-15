@@ -43,7 +43,7 @@ type Client struct {
 	closeError      error
 }
 
-// NewClient has no native effects. A channel is created on its first read,
+// NewClient has no native effects. A channel is created on its first operation,
 // avoiding native workers during composition or before a failed Fx startup.
 func NewClient(config Config) (*Client, error) {
 	if config.RequestTimeout <= 0 || config.MaxReceiveBytes <= 0 || config.MaxConcurrent <= 0 {

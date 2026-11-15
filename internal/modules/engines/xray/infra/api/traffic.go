@@ -31,7 +31,7 @@ func (c *Client) ReadTrafficCounter(ctx context.Context, selection domain.Traffi
 	if err != nil {
 		return domain.TrafficCounter{}, err
 	}
-	name := string(selection.Scope) + ">>>" + selection.Name + ">>>traffic>>>" + string(selection.Direction)
+	name := trafficCounterName(selection)
 	response, err := client.GetStats(ctx, &native.GetStatsRequest{Name: name, Reset_: false})
 	if cause := ctx.Err(); cause != nil {
 		return domain.TrafficCounter{}, errors.Join(cause, err)
@@ -54,4 +54,8 @@ func (c *Client) ReadTrafficCounter(ctx context.Context, selection domain.Traffi
 		return domain.TrafficCounter{}, domain.ErrInvalidTrafficResponse
 	}
 	return domain.TrafficCounter{Bytes: value.Value, ObservedAt: time.Now().UTC()}, nil
+}
+
+func trafficCounterName(selection domain.TrafficSelection) string {
+	return string(selection.Scope) + ">>>" + selection.Name + ">>>traffic>>>" + string(selection.Direction)
 }
