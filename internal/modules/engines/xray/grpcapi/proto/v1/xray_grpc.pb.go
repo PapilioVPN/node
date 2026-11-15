@@ -19,7 +19,8 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	XrayService_GetBinaryInfo_FullMethodName = "/papilio.node.xray.v1.XrayService/GetBinaryInfo"
+	XrayService_GetBinaryInfo_FullMethodName  = "/papilio.node.xray.v1.XrayService/GetBinaryInfo"
+	XrayService_GetRuntimeInfo_FullMethodName = "/papilio.node.xray.v1.XrayService/GetRuntimeInfo"
 )
 
 // XrayServiceClient is the client API for XrayService service.
@@ -29,6 +30,8 @@ type XrayServiceClient interface {
 	// Executes the selected configured binary's native version command only.
 	// These facts may differ from a previously started process after file replacement.
 	GetBinaryInfo(ctx context.Context, in *GetBinaryInfoRequest, opts ...grpc.CallOption) (*GetBinaryInfoResponse, error)
+	// Observes the configured local API's Go runtime, not host RSS or traffic health.
+	GetRuntimeInfo(ctx context.Context, in *GetRuntimeInfoRequest, opts ...grpc.CallOption) (*GetRuntimeInfoResponse, error)
 }
 
 type xrayServiceClient struct {
@@ -49,6 +52,16 @@ func (c *xrayServiceClient) GetBinaryInfo(ctx context.Context, in *GetBinaryInfo
 	return out, nil
 }
 
+func (c *xrayServiceClient) GetRuntimeInfo(ctx context.Context, in *GetRuntimeInfoRequest, opts ...grpc.CallOption) (*GetRuntimeInfoResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetRuntimeInfoResponse)
+	err := c.cc.Invoke(ctx, XrayService_GetRuntimeInfo_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // XrayServiceServer is the server API for XrayService service.
 // All implementations must embed UnimplementedXrayServiceServer
 // for forward compatibility.
@@ -56,6 +69,8 @@ type XrayServiceServer interface {
 	// Executes the selected configured binary's native version command only.
 	// These facts may differ from a previously started process after file replacement.
 	GetBinaryInfo(context.Context, *GetBinaryInfoRequest) (*GetBinaryInfoResponse, error)
+	// Observes the configured local API's Go runtime, not host RSS or traffic health.
+	GetRuntimeInfo(context.Context, *GetRuntimeInfoRequest) (*GetRuntimeInfoResponse, error)
 	mustEmbedUnimplementedXrayServiceServer()
 }
 
@@ -68,6 +83,9 @@ type UnimplementedXrayServiceServer struct{}
 
 func (UnimplementedXrayServiceServer) GetBinaryInfo(context.Context, *GetBinaryInfoRequest) (*GetBinaryInfoResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetBinaryInfo not implemented")
+}
+func (UnimplementedXrayServiceServer) GetRuntimeInfo(context.Context, *GetRuntimeInfoRequest) (*GetRuntimeInfoResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetRuntimeInfo not implemented")
 }
 func (UnimplementedXrayServiceServer) mustEmbedUnimplementedXrayServiceServer() {}
 func (UnimplementedXrayServiceServer) testEmbeddedByValue()                     {}
@@ -108,6 +126,24 @@ func _XrayService_GetBinaryInfo_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
+func _XrayService_GetRuntimeInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetRuntimeInfoRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(XrayServiceServer).GetRuntimeInfo(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: XrayService_GetRuntimeInfo_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(XrayServiceServer).GetRuntimeInfo(ctx, req.(*GetRuntimeInfoRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // XrayService_ServiceDesc is the grpc.ServiceDesc for XrayService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -118,6 +154,10 @@ var XrayService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetBinaryInfo",
 			Handler:    _XrayService_GetBinaryInfo_Handler,
+		},
+		{
+			MethodName: "GetRuntimeInfo",
+			Handler:    _XrayService_GetRuntimeInfo_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
