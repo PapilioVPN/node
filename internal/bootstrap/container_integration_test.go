@@ -51,6 +51,7 @@ func TestContainer(t *testing.T) {
 	cfg.Communications.GRPC.Permissions.ValidateInstanceConfig = true
 	cfg.Communications.GRPC.Permissions.ReadEngineInfo = true
 	cfg.Communications.GRPC.Permissions.ReadEngineStats = true
+	cfg.Communications.GRPC.Permissions.ResetEngineStats = true
 	cfg.Communications.GRPC.Permissions.ReadEngineOnline = true
 	contents, err := yaml.Marshal(cfg)
 	if err != nil {
@@ -142,6 +143,10 @@ func TestContainer(t *testing.T) {
 	}); status.Code(err) != codes.NotFound {
 		t.Fatalf("packaged Xray traffic grant/service failed: %v", err)
 	}
+	if _, err := xrayv1.NewXrayServiceClient(connection).ResetTrafficCounter(request, &xrayv1.ResetTrafficCounterRequest{InstanceId: "unconfigured", Scope: xrayv1.TrafficScope_TRAFFIC_SCOPE_INBOUND, Name: "proxy", Direction: xrayv1.TrafficDirection_TRAFFIC_DIRECTION_UPLINK}); status.Code(err) != codes.NotFound {
+		t.Fatalf("packaged reset grant/service failed: %v", err)
+	}
+
 	if _, err := xrayv1.NewXrayServiceClient(connection).ListTrafficCounters(request, &xrayv1.ListTrafficCountersRequest{
 		InstanceId: "unconfigured", Scope: xrayv1.TrafficScope_TRAFFIC_SCOPE_USER,
 	}); status.Code(err) != codes.NotFound {

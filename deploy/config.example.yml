@@ -52,6 +52,8 @@ communications:
       read_engine_info: false
       # Single and collection traffic reads; independent of runtime/binary information.
       read_engine_stats: false
+      # Separate mutation grant; reset can have applied when its reply is lost.
+      reset_engine_stats: false
       # Online user identities, distinct-IP counts and IP lists; independent of traffic.
       read_engine_online: false
     tls:

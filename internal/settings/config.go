@@ -54,6 +54,7 @@ type GRPCPermissions struct {
 	ValidateInstanceConfig bool `yaml:"validate_instance_config"`
 	ReadEngineInfo         bool `yaml:"read_engine_info"`
 	ReadEngineStats        bool `yaml:"read_engine_stats"`
+	ResetEngineStats       bool `yaml:"reset_engine_stats"`
 	ReadEngineOnline       bool `yaml:"read_engine_online"`
 }
 

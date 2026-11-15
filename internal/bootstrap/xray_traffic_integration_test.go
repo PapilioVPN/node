@@ -61,11 +61,15 @@ func TestTrafficCounterRPCRequiresIndependentGrant(t *testing.T) {
 			if status.Code(err) != expected {
 				t.Fatalf("independent collection grant: %v; want %v", err, expected)
 			}
+			_, err = client.ResetTrafficCounter(t.Context(), &xrayv1.ResetTrafficCounterRequest{InstanceId: "missing", Scope: xrayv1.TrafficScope_TRAFFIC_SCOPE_INBOUND, Name: "proxy", Direction: xrayv1.TrafficDirection_TRAFFIC_DIRECTION_UPLINK})
+			if status.Code(err) != codes.PermissionDenied {
+				t.Fatalf("read grant expanded to reset: %v", err)
+			}
 		})
 	}
 }
 
-func TestTrafficCountersOverMTLSPreserveNativeUsageAndInstanceIsolation(t *testing.T) {
+func TestTrafficCountersAndResetOverMTLSPreserveNativeUsageAndInstanceIsolation(t *testing.T) {
 	for _, network := range []string{"unix", "tcp"} {
 		t.Run(network, func(t *testing.T) {
 			certificates := testutil.NewCertificates(t)
@@ -82,6 +86,7 @@ func TestTrafficCountersOverMTLSPreserveNativeUsageAndInstanceIsolation(t *testi
 			cfg := certificates.Config()
 			cfg.Instances = []settings.Instance{first, second}
 			cfg.Communications.GRPC.Permissions.ReadEngineStats = true
+			cfg.Communications.GRPC.Permissions.ResetEngineStats = true
 			var server *rpc.Server
 			var cleanup struct {
 				fx.In
@@ -217,12 +222,62 @@ func TestTrafficCountersOverMTLSPreserveNativeUsageAndInstanceIsolation(t *testi
 					}
 				}
 			}
+			// Seed usage in the other real engine before resetting the selected instance.
+			if err := xrayTraffic(ctx, url.UserPassword("reader@local", "test-password").String()+"@"+secondAddress); err != nil {
+				t.Fatal(err)
+			}
+			for scope, name := range map[xrayv1.TrafficScope]string{
+				xrayv1.TrafficScope_TRAFFIC_SCOPE_USER:     "reader@local",
+				xrayv1.TrafficScope_TRAFFIC_SCOPE_INBOUND:  "proxy",
+				xrayv1.TrafficScope_TRAFFIC_SCOPE_OUTBOUND: "direct",
+			} {
+				for _, direction := range []xrayv1.TrafficDirection{xrayv1.TrafficDirection_TRAFFIC_DIRECTION_UPLINK, xrayv1.TrafficDirection_TRAFFIC_DIRECTION_DOWNLINK} {
+					request.Scope, request.Name, request.Direction, request.InstanceId = scope, name, direction, "edge-b"
+					untouched, err := client.GetTrafficCounter(ctx, request)
+					if err != nil || untouched.GetBytes() <= 0 {
+						t.Fatalf("other instance usage unavailable: %v %v", untouched, err)
+					}
+					request.InstanceId = "edge-a"
+					before, err := client.GetTrafficCounter(ctx, request)
+					if err != nil || before.GetBytes() <= 0 {
+						t.Fatalf("earlier reset crossed counter identity: %v %v", before, err)
+					}
+					resetRequest := &xrayv1.ResetTrafficCounterRequest{InstanceId: request.InstanceId, Scope: scope, Name: name, Direction: direction}
+					started := time.Now().UnixMilli()
+					acknowledgement, err := client.ResetTrafficCounter(ctx, resetRequest)
+					if err != nil || acknowledgement.InstanceId != "edge-a" || acknowledgement.Scope != scope || acknowledgement.Name != name || acknowledgement.Direction != direction || acknowledgement.PreviousBytes < before.Bytes || acknowledgement.AcknowledgedAtUnixMs < started {
+						t.Fatalf("native reset acknowledgement: %v %v", acknowledgement, err)
+					}
+					empty, err := client.GetTrafficCounter(ctx, request)
+					if err != nil || empty.Bytes != 0 {
+						t.Fatalf("native counter was not reset: %v %v", empty, err)
+					}
+					repeated, err := client.ResetTrafficCounter(ctx, resetRequest)
+					if err != nil || repeated.PreviousBytes != 0 {
+						t.Fatalf("zero reset became absence: %v %v", repeated, err)
+					}
+					request.InstanceId = "edge-b"
+					other, err := client.GetTrafficCounter(ctx, request)
+					if err != nil || other.Bytes != untouched.Bytes {
+						t.Fatalf("reset crossed instance ownership: %v %v", other, err)
+					}
+				}
+			}
+			if err := xrayTraffic(ctx, url.UserPassword("reader@local", "test-password").String()+"@"+firstAddress); err != nil {
+				t.Fatal(err)
+			}
+			request.InstanceId, request.Scope, request.Name, request.Direction = "edge-a", xrayv1.TrafficScope_TRAFFIC_SCOPE_USER, "reader@local", xrayv1.TrafficDirection_TRAFFIC_DIRECTION_UPLINK
+			resumed, err := client.GetTrafficCounter(ctx, request)
+			if err != nil || resumed.GetBytes() <= 0 {
+				t.Fatalf("traffic did not continue after reset: %v %v", resumed, err)
+			}
+
 			if _, err := client.GetRuntimeInfo(ctx, &xrayv1.GetRuntimeInfoRequest{InstanceId: "edge-a"}); status.Code(err) != codes.PermissionDenied {
 				t.Fatalf("stats grant expanded to info: %v", err)
 			}
 			current, err := os.ReadFile(first.Xray.ConfigFile)
 			if err != nil || !bytes.Equal(current, original) {
-				t.Fatalf("read changed configuration: %v", err)
+				t.Fatalf("traffic operations changed configuration: %v", err)
 			}
 		})
 	}
@@ -263,5 +318,33 @@ func configureTrafficCounters(t *testing.T, instance *settings.Instance) {
 	}
 	if err := os.WriteFile(instance.Xray.ConfigFile, content, 0o600); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestResetRPCUsesIndependentGrantAndNoEffectDetails(t *testing.T) {
+	certificates := testutil.NewCertificates(t)
+	cfg := certificates.Config()
+	cfg.Communications.GRPC.Permissions.ResetEngineStats = true
+	var server *rpc.Server
+	application := bootstrap.New(cfg, "test", fx.NopLogger, fx.Populate(&server))
+	if err := application.Start(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = application.Stop(context.Background()); _ = server.Close() })
+	client := xrayClient(t, server, certificates)
+	_, err := client.ResetTrafficCounter(t.Context(), &xrayv1.ResetTrafficCounterRequest{InstanceId: "missing", Scope: xrayv1.TrafficScope_TRAFFIC_SCOPE_INBOUND, Name: "proxy", Direction: xrayv1.TrafficDirection_TRAFFIC_DIRECTION_UPLINK})
+	if status.Code(err) != codes.NotFound {
+		t.Fatalf("reset grant was not wired: %v", err)
+	}
+	details := status.Convert(err).Details()
+	if len(details) != 1 {
+		t.Fatalf("no-effect detail missing: %v", err)
+	}
+	failure, ok := details[0].(*xrayv1.TrafficCounterResetFailure)
+	if !ok || failure.Outcome != xrayv1.TrafficCounterResetOutcome_TRAFFIC_COUNTER_RESET_OUTCOME_NOT_APPLIED {
+		t.Fatalf("wrong effect detail: %v", details)
+	}
+	if _, err := client.GetTrafficCounter(t.Context(), &xrayv1.GetTrafficCounterRequest{}); status.Code(err) != codes.PermissionDenied {
+		t.Fatalf("reset expanded to reads: %v", err)
 	}
 }

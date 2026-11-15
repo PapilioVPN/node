@@ -12,6 +12,9 @@ service XrayService {
   rpc GetRuntimeInfo(GetRuntimeInfoRequest) returns (GetRuntimeInfoResponse);
   // Reads one exact native traffic counter without resetting it.
   rpc GetTrafficCounter(GetTrafficCounterRequest) returns (GetTrafficCounterResponse);
+  // Atomically swaps one exact existing counter with zero and returns prior bytes.
+  // No application retry. A missing response can follow an applied reset.
+  rpc ResetTrafficCounter(ResetTrafficCounterRequest) returns (ResetTrafficCounterResponse);
   // Reads all existing traffic counters in one scope without resetting them.
   // Complete response or resource-limit error; native Xray offers no pagination.
   rpc ListTrafficCounters(ListTrafficCountersRequest) returns (ListTrafficCountersResponse);
@@ -152,4 +155,35 @@ message ListOnlineUsersResponse {
   // Exact native emails in lexical order; complete result or resource-limit error.
   repeated string emails = 2;
   int64 observed_at_unix_ms = 3;
+}
+
+message ResetTrafficCounterRequest {
+  string instance_id = 1;
+  TrafficScope scope = 2;
+  string name = 3;
+  TrafficDirection direction = 4;
+}
+
+message ResetTrafficCounterResponse {
+  string instance_id = 1;
+  TrafficScope scope = 2;
+  string name = 3;
+  TrafficDirection direction = 4;
+  // Previous native signed int64 bytes, before one atomic swap with zero.
+  int64 previous_bytes = 5;
+  // Node's receipt of the acknowledgement, not the native reset's timestamp.
+  int64 acknowledged_at_unix_ms = 6;
+}
+
+enum TrafficCounterResetOutcome {
+  TRAFFIC_COUNTER_RESET_OUTCOME_UNSPECIFIED = 0;
+  TRAFFIC_COUNTER_RESET_OUTCOME_NOT_APPLIED = 1;
+  TRAFFIC_COUNTER_RESET_OUTCOME_UNKNOWN = 2;
+}
+
+// Delivered in gRPC error details after application selection. Missing details or
+// an undelivered response never establish NOT_APPLIED. A read cannot recover prior
+// usage after an unknown reset; blindly retrying can discard more usage.
+message TrafficCounterResetFailure {
+  TrafficCounterResetOutcome outcome = 1;
 }

@@ -25,10 +25,12 @@ type Handler struct {
 	Info            BinaryInfoReader
 	Runtime         RuntimeInfoReader
 	Traffic         TrafficCounterReader
+	Resets          TrafficCounterResetter
 	TrafficCounters TrafficCountersReader
 	Online          OnlineReader
 	AllowInfoRead   bool
 	AllowStatsRead  bool
+	AllowStatsReset bool
 	AllowOnlineRead bool
 }
 

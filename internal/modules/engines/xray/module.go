@@ -23,10 +23,10 @@ import (
 	"github.com/PapilioVPN/node/internal/settings"
 )
 
-// Module owns Xray observations and API clients independently of instance runtimes.
+// Module owns Xray operations and API clients independently of instance runtimes.
 func Module(grpcEnabled bool) fx.Option {
 	options := []fx.Option{
-		fx.Provide(newBinaryInfoService, newAPIResources, newRuntimeInfoService, newTrafficCounterService, newTrafficCountersService, newOnlineService, fx.Private),
+		fx.Provide(newBinaryInfoService, newAPIResources, newRuntimeInfoService, newTrafficCounterService, newTrafficCounterResetService, newTrafficCountersService, newOnlineService, fx.Private),
 		fx.Provide(capability, apiCleanup, newRuntimeBindings), fx.Invoke(registerAPILifecycle),
 	}
 	if grpcEnabled {
@@ -97,6 +97,7 @@ func newBinaryInfoService(config []settings.Instance) (*services.BinaryInfoServi
 type apiResources struct {
 	runtimeReaders    map[instances.InstanceID]services.RuntimeInfoReader
 	trafficReaders    map[instances.InstanceID]services.TrafficCounterReader
+	trafficResetters  map[instances.InstanceID]services.TrafficCounterResetter
 	collectionReaders map[instances.InstanceID]services.TrafficCountersReader
 	onlineReaders     map[instances.InstanceID]services.OnlineReader
 	clients           []*xrayapi.Client
@@ -106,6 +107,7 @@ func newAPIResources(config []settings.Instance) (*apiResources, error) {
 	resources := &apiResources{
 		runtimeReaders:    make(map[instances.InstanceID]services.RuntimeInfoReader),
 		trafficReaders:    make(map[instances.InstanceID]services.TrafficCounterReader),
+		trafficResetters:  make(map[instances.InstanceID]services.TrafficCounterResetter),
 		collectionReaders: make(map[instances.InstanceID]services.TrafficCountersReader),
 		onlineReaders:     make(map[instances.InstanceID]services.OnlineReader),
 	}
@@ -115,6 +117,7 @@ func newAPIResources(config []settings.Instance) (*apiResources, error) {
 		}
 		resources.runtimeReaders[instance.ID] = nil
 		resources.trafficReaders[instance.ID] = nil
+		resources.trafficResetters[instance.ID] = nil
 		resources.collectionReaders[instance.ID] = nil
 		resources.onlineReaders[instance.ID] = nil
 		if api := instance.Xray.API; api != nil {
@@ -127,6 +130,7 @@ func newAPIResources(config []settings.Instance) (*apiResources, error) {
 			}
 			resources.runtimeReaders[instance.ID] = client
 			resources.trafficReaders[instance.ID] = client
+			resources.trafficResetters[instance.ID] = client
 			resources.collectionReaders[instance.ID] = client
 			resources.onlineReaders[instance.ID] = client
 			resources.clients = append(resources.clients, client)
@@ -141,6 +145,10 @@ func newRuntimeInfoService(resources *apiResources) *services.RuntimeInfoService
 
 func newTrafficCounterService(resources *apiResources) *services.TrafficCounterService {
 	return services.NewTrafficCounterService(resources.trafficReaders)
+}
+
+func newTrafficCounterResetService(resources *apiResources) *services.TrafficCounterResetService {
+	return services.NewTrafficCounterResetService(resources.trafficResetters)
 }
 
 func newTrafficCountersService(resources *apiResources) *services.TrafficCountersService {
@@ -169,6 +177,7 @@ type grpcServices struct {
 	Info        *services.BinaryInfoService
 	Runtime     *services.RuntimeInfoService
 	Traffic     *services.TrafficCounterService
+	Resets      *services.TrafficCounterResetService
 	Counters    *services.TrafficCountersService
 	Online      *services.OnlineService
 	Permissions settings.GRPCPermissions
@@ -176,9 +185,9 @@ type grpcServices struct {
 
 func registerGRPC(p grpcServices) {
 	xrayv1.RegisterXrayServiceServer(p.Registrar, grpcapi.Handler{
-		Info: p.Info, Runtime: p.Runtime, Traffic: p.Traffic, TrafficCounters: p.Counters, Online: p.Online,
+		Info: p.Info, Runtime: p.Runtime, Traffic: p.Traffic, Resets: p.Resets, TrafficCounters: p.Counters, Online: p.Online,
 		AllowInfoRead: p.Permissions.ReadEngineInfo, AllowStatsRead: p.Permissions.ReadEngineStats,
-		AllowOnlineRead: p.Permissions.ReadEngineOnline,
+		AllowOnlineRead: p.Permissions.ReadEngineOnline, AllowStatsReset: p.Permissions.ResetEngineStats,
 	})
 }
 
@@ -190,7 +199,7 @@ type capabilityResult struct {
 func capability() capabilityResult {
 	return capabilityResult{Values: []system.Capability{
 		domain.ReadBinaryInfo, domain.ReadRuntimeInfo,
-		domain.ReadTrafficCounter, domain.ListTrafficCounters,
+		domain.ReadTrafficCounter, domain.ListTrafficCounters, domain.ResetTrafficCounter,
 		domain.ReadUserOnlineStats, domain.ListUserOnlineIPs, domain.ListOnlineUsers,
 	}}
 }
