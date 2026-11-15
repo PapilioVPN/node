@@ -1,4 +1,4 @@
-.PHONY: check build generate package image smoke
+.PHONY: check build generate package image smoke integration
 
 VULN_DB ?= https://vuln.go.dev
 VERSION ?= $(shell git describe --always --dirty)
@@ -6,6 +6,9 @@ IMAGE ?= papilio-node:$(VERSION)
 
 check:
 	./scripts/ci/check.sh "$(VULN_DB)"
+
+integration:
+	./scripts/ci/integration.sh
 
 build:
 	go build ./...
