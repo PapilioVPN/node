@@ -29,11 +29,67 @@ instances:
 	}
 	for i, name := range []string{"a.json", "b.json"} {
 		xray := config.Instances[i].Xray
+		if xray.Inspection != nil || config.Communications.GRPC.Permissions.ReadEngineInfo {
+			t.Fatal("binary inspection or its grant was implicitly enabled")
+		}
 		if xray.Binary != filepath.Join(filepath.Dir(path), "bin/xray") || xray.ConfigFile != filepath.Join(filepath.Dir(path), "engines", name) {
 			t.Fatalf("paths not resolved against Node configuration: %+v", xray)
 		}
 		if xray.StopTimeout != time.Duration(i+1)*time.Second {
 			t.Fatalf("per-instance stop budget lost: %v", xray.StopTimeout)
+		}
+	}
+}
+
+func TestLoadOptionalXrayInspection(t *testing.T) {
+	path := writeConfig(t, `node: {id: west}
+runtime: {startup_timeout: 3s, shutdown_timeout: 3s}
+instances:
+  - id: edge
+    engine: xray
+    xray:
+      binary: bin/xray
+      config_file: config.json
+      stop_timeout: 1s
+      inspection: {timeout: 2s, max_output_bytes: 1024, max_concurrent: 2}
+communications:
+  grpc:
+    permissions: {read_engine_info: true}
+`)
+	cfg, err := settings.Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	inspection := cfg.Instances[0].Xray.Inspection
+	if inspection == nil || inspection.Timeout != 2*time.Second || inspection.MaxOutputBytes != 1024 || inspection.MaxConcurrent != 2 {
+		t.Fatalf("inspection limits lost: %+v", inspection)
+	}
+	permissions := cfg.Communications.GRPC.Permissions
+	if !permissions.ReadEngineInfo || permissions.ReadInstanceStatus || permissions.ControlInstances || permissions.ValidateInstanceConfig {
+		t.Fatalf("engine information expanded existing grants: %+v", permissions)
+	}
+}
+
+func TestXrayInspectionRequiresExplicitBounds(t *testing.T) {
+	for _, input := range []string{
+		"{}",
+		"{timeout: 0s, max_output_bytes: 1024, max_concurrent: 1}",
+		"{timeout: 1s, max_output_bytes: -1, max_concurrent: 1}",
+		"{timeout: 1s, max_output_bytes: 1024, max_concurrent: 0}",
+		"{timeout: 1s, max_output_bytes: 1024, max_concurrent: 1, unknown: true}",
+	} {
+		_, err := settings.Load(writeConfig(t, `node: {id: west}
+runtime: {startup_timeout: 3s, shutdown_timeout: 3s}
+instances:
+  - id: edge
+    engine: xray
+    xray:
+      binary: bin/xray
+      config_file: config.json
+      stop_timeout: 1s
+      inspection: `+input+"\n"))
+		if !errors.Is(err, settings.ErrInvalidConfig) {
+			t.Fatalf("invalid inspection settings accepted: %v", err)
 		}
 	}
 }

@@ -13,6 +13,11 @@ instances: []
 #      binary: ""
 #      config_file: ""
 #      stop_timeout: 5s
+#      # Optional reads of this executable's version/build, independent of readiness.
+#      inspection:
+#        timeout: 1s
+#        max_output_bytes: 1024
+#        max_concurrent: 1
 #    # Optional candidate building. Create/mount work_dir before enabling it.
 #    validation:
 #      work_dir: validation-work
@@ -35,6 +40,8 @@ communications:
       control_instances: false
       # Separate opt-in to bounded candidate building; never applies a config.
       validate_instance_config: false
+      # Separate opt-in to configured engine binary information.
+      read_engine_info: false
     tls:
       certificate_file: ""
       private_key_file: ""

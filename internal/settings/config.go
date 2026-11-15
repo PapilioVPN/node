@@ -50,6 +50,7 @@ type GRPCPermissions struct {
 	ReadInstanceStatus     bool `yaml:"read_instance_status"`
 	ControlInstances       bool `yaml:"control_instances"`
 	ValidateInstanceConfig bool `yaml:"validate_instance_config"`
+	ReadEngineInfo         bool `yaml:"read_engine_info"`
 }
 
 type TLS struct {

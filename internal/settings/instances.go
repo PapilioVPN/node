@@ -25,11 +25,19 @@ type ConfigValidation struct {
 	MaxConcurrent int           `yaml:"max_concurrent"`
 }
 
-// Xray contains process settings; Xray itself parses ConfigFile.
+// Xray contains native execution settings; Xray itself parses ConfigFile.
 type Xray struct {
-	Binary      string        `yaml:"binary"`
-	ConfigFile  string        `yaml:"config_file"`
-	StopTimeout time.Duration `yaml:"stop_timeout"`
+	Binary      string            `yaml:"binary"`
+	ConfigFile  string            `yaml:"config_file"`
+	StopTimeout time.Duration     `yaml:"stop_timeout"`
+	Inspection  *BinaryInspection `yaml:"inspection,omitempty"`
+}
+
+// BinaryInspection enables bounded executable version reads without runtime control.
+type BinaryInspection struct {
+	Timeout        time.Duration `yaml:"timeout"`
+	MaxOutputBytes int           `yaml:"max_output_bytes"`
+	MaxConcurrent  int           `yaml:"max_concurrent"`
 }
 
 func validateInstances(instances []Instance) error {
@@ -48,6 +56,11 @@ func validateInstances(instances []Instance) error {
 		xray := instance.Xray
 		if strings.TrimSpace(xray.Binary) == "" || strings.TrimSpace(xray.ConfigFile) == "" || xray.StopTimeout <= 0 {
 			return fmt.Errorf("%w: instances[%d].xray requires binary, config_file and a positive stop_timeout", ErrInvalidConfig, i)
+		}
+		if inspection := xray.Inspection; inspection != nil {
+			if inspection.Timeout <= 0 || inspection.MaxOutputBytes <= 0 || inspection.MaxConcurrent <= 0 {
+				return fmt.Errorf("%w: instances[%d].xray.inspection requires positive timeout, max_output_bytes and max_concurrent", ErrInvalidConfig, i)
+			}
 		}
 		if validation := instance.Validation; validation != nil {
 			if strings.TrimSpace(validation.WorkDir) == "" || validation.Timeout <= 0 || validation.MaxBytes <= 0 || validation.MaxConcurrent <= 0 {
