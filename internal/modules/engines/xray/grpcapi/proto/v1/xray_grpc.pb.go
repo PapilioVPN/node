@@ -19,14 +19,15 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	XrayService_GetBinaryInfo_FullMethodName       = "/papilio.node.xray.v1.XrayService/GetBinaryInfo"
-	XrayService_GetRuntimeInfo_FullMethodName      = "/papilio.node.xray.v1.XrayService/GetRuntimeInfo"
-	XrayService_GetTrafficCounter_FullMethodName   = "/papilio.node.xray.v1.XrayService/GetTrafficCounter"
-	XrayService_ResetTrafficCounter_FullMethodName = "/papilio.node.xray.v1.XrayService/ResetTrafficCounter"
-	XrayService_ListTrafficCounters_FullMethodName = "/papilio.node.xray.v1.XrayService/ListTrafficCounters"
-	XrayService_GetUserOnlineStats_FullMethodName  = "/papilio.node.xray.v1.XrayService/GetUserOnlineStats"
-	XrayService_ListUserOnlineIPs_FullMethodName   = "/papilio.node.xray.v1.XrayService/ListUserOnlineIPs"
-	XrayService_ListOnlineUsers_FullMethodName     = "/papilio.node.xray.v1.XrayService/ListOnlineUsers"
+	XrayService_GetBinaryInfo_FullMethodName        = "/papilio.node.xray.v1.XrayService/GetBinaryInfo"
+	XrayService_GetRuntimeInfo_FullMethodName       = "/papilio.node.xray.v1.XrayService/GetRuntimeInfo"
+	XrayService_GetTrafficCounter_FullMethodName    = "/papilio.node.xray.v1.XrayService/GetTrafficCounter"
+	XrayService_ResetTrafficCounter_FullMethodName  = "/papilio.node.xray.v1.XrayService/ResetTrafficCounter"
+	XrayService_ResetTrafficCounters_FullMethodName = "/papilio.node.xray.v1.XrayService/ResetTrafficCounters"
+	XrayService_ListTrafficCounters_FullMethodName  = "/papilio.node.xray.v1.XrayService/ListTrafficCounters"
+	XrayService_GetUserOnlineStats_FullMethodName   = "/papilio.node.xray.v1.XrayService/GetUserOnlineStats"
+	XrayService_ListUserOnlineIPs_FullMethodName    = "/papilio.node.xray.v1.XrayService/ListUserOnlineIPs"
+	XrayService_ListOnlineUsers_FullMethodName      = "/papilio.node.xray.v1.XrayService/ListOnlineUsers"
 )
 
 // XrayServiceClient is the client API for XrayService service.
@@ -43,6 +44,9 @@ type XrayServiceClient interface {
 	// Atomically swaps one exact existing counter with zero and returns prior bytes.
 	// No application retry. A missing response can follow an applied reset.
 	ResetTrafficCounter(ctx context.Context, in *ResetTrafficCounterRequest, opts ...grpc.CallOption) (*ResetTrafficCounterResponse, error)
+	// Discovers one exact scope without reset, then resets selected counters in order.
+	// Non-atomic 1+N fallback: stops on first failure and retains progress in details.
+	ResetTrafficCounters(ctx context.Context, in *ResetTrafficCountersRequest, opts ...grpc.CallOption) (*ResetTrafficCountersResponse, error)
 	// Reads all existing traffic counters in one scope without resetting them.
 	// Complete response or resource-limit error; native Xray offers no pagination.
 	ListTrafficCounters(ctx context.Context, in *ListTrafficCountersRequest, opts ...grpc.CallOption) (*ListTrafficCountersResponse, error)
@@ -95,6 +99,16 @@ func (c *xrayServiceClient) ResetTrafficCounter(ctx context.Context, in *ResetTr
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ResetTrafficCounterResponse)
 	err := c.cc.Invoke(ctx, XrayService_ResetTrafficCounter_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *xrayServiceClient) ResetTrafficCounters(ctx context.Context, in *ResetTrafficCountersRequest, opts ...grpc.CallOption) (*ResetTrafficCountersResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ResetTrafficCountersResponse)
+	err := c.cc.Invoke(ctx, XrayService_ResetTrafficCounters_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -155,6 +169,9 @@ type XrayServiceServer interface {
 	// Atomically swaps one exact existing counter with zero and returns prior bytes.
 	// No application retry. A missing response can follow an applied reset.
 	ResetTrafficCounter(context.Context, *ResetTrafficCounterRequest) (*ResetTrafficCounterResponse, error)
+	// Discovers one exact scope without reset, then resets selected counters in order.
+	// Non-atomic 1+N fallback: stops on first failure and retains progress in details.
+	ResetTrafficCounters(context.Context, *ResetTrafficCountersRequest) (*ResetTrafficCountersResponse, error)
 	// Reads all existing traffic counters in one scope without resetting them.
 	// Complete response or resource-limit error; native Xray offers no pagination.
 	ListTrafficCounters(context.Context, *ListTrafficCountersRequest) (*ListTrafficCountersResponse, error)
@@ -184,6 +201,9 @@ func (UnimplementedXrayServiceServer) GetTrafficCounter(context.Context, *GetTra
 }
 func (UnimplementedXrayServiceServer) ResetTrafficCounter(context.Context, *ResetTrafficCounterRequest) (*ResetTrafficCounterResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ResetTrafficCounter not implemented")
+}
+func (UnimplementedXrayServiceServer) ResetTrafficCounters(context.Context, *ResetTrafficCountersRequest) (*ResetTrafficCountersResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ResetTrafficCounters not implemented")
 }
 func (UnimplementedXrayServiceServer) ListTrafficCounters(context.Context, *ListTrafficCountersRequest) (*ListTrafficCountersResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListTrafficCounters not implemented")
@@ -290,6 +310,24 @@ func _XrayService_ResetTrafficCounter_Handler(srv interface{}, ctx context.Conte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _XrayService_ResetTrafficCounters_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ResetTrafficCountersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(XrayServiceServer).ResetTrafficCounters(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: XrayService_ResetTrafficCounters_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(XrayServiceServer).ResetTrafficCounters(ctx, req.(*ResetTrafficCountersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _XrayService_ListTrafficCounters_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ListTrafficCountersRequest)
 	if err := dec(in); err != nil {
@@ -384,6 +422,10 @@ var XrayService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ResetTrafficCounter",
 			Handler:    _XrayService_ResetTrafficCounter_Handler,
+		},
+		{
+			MethodName: "ResetTrafficCounters",
+			Handler:    _XrayService_ResetTrafficCounters_Handler,
 		},
 		{
 			MethodName: "ListTrafficCounters",

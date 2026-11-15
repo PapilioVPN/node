@@ -60,6 +60,9 @@ func TestModuleClosesAPIAdmissionAndExportsFinalCleanup(t *testing.T) {
 	if _, err := newTrafficCountersService(resources).ListTrafficCounters(t.Context(), "edge", domain.UserTraffic); !errors.Is(err, grpc.ErrClientConnClosing) {
 		t.Fatalf("OnStop did not close collection admission: %v", err)
 	}
+	if report, err := newTrafficCountersResetService(configuration, resources).ResetTrafficCounters(t.Context(), "edge", domain.UserTraffic, 1); !errors.Is(err, grpc.ErrClientConnClosing) || len(report.Reset.Items) != 0 {
+		t.Fatalf("OnStop did not close collection reset admission before effects: %+v %v", report, err)
+	}
 	if _, err := newOnlineService(resources).GetUserOnlineStats(t.Context(), "edge", "reader"); !errors.Is(err, grpc.ErrClientConnClosing) {
 		t.Fatalf("OnStop did not close online count admission: %v", err)
 	}

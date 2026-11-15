@@ -146,6 +146,9 @@ func TestContainer(t *testing.T) {
 	if _, err := xrayv1.NewXrayServiceClient(connection).ResetTrafficCounter(request, &xrayv1.ResetTrafficCounterRequest{InstanceId: "unconfigured", Scope: xrayv1.TrafficScope_TRAFFIC_SCOPE_INBOUND, Name: "proxy", Direction: xrayv1.TrafficDirection_TRAFFIC_DIRECTION_UPLINK}); status.Code(err) != codes.NotFound {
 		t.Fatalf("packaged reset grant/service failed: %v", err)
 	}
+	if _, err := xrayv1.NewXrayServiceClient(connection).ResetTrafficCounters(request, &xrayv1.ResetTrafficCountersRequest{InstanceId: "unconfigured", Scope: xrayv1.TrafficScope_TRAFFIC_SCOPE_USER, MaxCounters: 1}); status.Code(err) != codes.NotFound {
+		t.Fatalf("packaged scope reset grant/service failed: %v", err)
+	}
 
 	if _, err := xrayv1.NewXrayServiceClient(connection).ListTrafficCounters(request, &xrayv1.ListTrafficCountersRequest{
 		InstanceId: "unconfigured", Scope: xrayv1.TrafficScope_TRAFFIC_SCOPE_USER,

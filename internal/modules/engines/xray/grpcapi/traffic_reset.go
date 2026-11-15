@@ -52,6 +52,20 @@ func (h Handler) ResetTrafficCounter(ctx context.Context, request *xrayv1.ResetT
 }
 
 func trafficResetError(ctx context.Context, cause error) error {
+	mapped := trafficResetStatus(ctx, cause)
+	outcome := xrayv1.TrafficCounterResetOutcome_TRAFFIC_COUNTER_RESET_OUTCOME_NOT_APPLIED
+	if errors.Is(cause, domain.ErrTrafficResetUnknown) {
+		outcome = xrayv1.TrafficCounterResetOutcome_TRAFFIC_COUNTER_RESET_OUTCOME_UNKNOWN
+	}
+	detailed, err := mapped.WithDetails(&xrayv1.TrafficCounterResetFailure{Outcome: outcome})
+	if err != nil {
+		// Missing details must never be treated as no effect.
+		return mapped.Err()
+	}
+	return detailed.Err()
+}
+
+func trafficResetStatus(ctx context.Context, cause error) *status.Status {
 	mapped := grpcresponse.ContextError(errors.Join(cause, ctx.Err()))
 	if mapped == nil {
 		code, message := codes.Unavailable, "cannot reset Xray traffic counter"
@@ -69,13 +83,5 @@ func trafficResetError(ctx context.Context, cause error) error {
 		}
 		mapped = status.Error(code, message)
 	}
-	outcome := xrayv1.TrafficCounterResetOutcome_TRAFFIC_COUNTER_RESET_OUTCOME_NOT_APPLIED
-	if errors.Is(cause, domain.ErrTrafficResetUnknown) {
-		outcome = xrayv1.TrafficCounterResetOutcome_TRAFFIC_COUNTER_RESET_OUTCOME_UNKNOWN
-	}
-	detailed, err := status.Convert(mapped).WithDetails(&xrayv1.TrafficCounterResetFailure{Outcome: outcome})
-	if err != nil {
-		return mapped
-	} // Missing details must never be treated as no effect.
-	return detailed.Err()
+	return status.Convert(mapped)
 }

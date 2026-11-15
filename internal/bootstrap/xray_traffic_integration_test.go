@@ -65,6 +65,9 @@ func TestTrafficCounterRPCRequiresIndependentGrant(t *testing.T) {
 			if status.Code(err) != codes.PermissionDenied {
 				t.Fatalf("read grant expanded to reset: %v", err)
 			}
+			if _, err := client.ResetTrafficCounters(t.Context(), &xrayv1.ResetTrafficCountersRequest{InstanceId: "missing", Scope: xrayv1.TrafficScope_TRAFFIC_SCOPE_USER, MaxCounters: 1}); status.Code(err) != codes.PermissionDenied {
+				t.Fatalf("read grant expanded to scope reset: %v", err)
+			}
 		})
 	}
 }
@@ -271,6 +274,64 @@ func TestTrafficCountersAndResetOverMTLSPreserveNativeUsageAndInstanceIsolation(
 			if err != nil || resumed.GetBytes() <= 0 {
 				t.Fatalf("traffic did not continue after reset: %v %v", resumed, err)
 			}
+			// Complete each selected scope in the same two real engine processes.
+			for _, scope := range []xrayv1.TrafficScope{xrayv1.TrafficScope_TRAFFIC_SCOPE_USER, xrayv1.TrafficScope_TRAFFIC_SCOPE_INBOUND, xrayv1.TrafficScope_TRAFFIC_SCOPE_OUTBOUND} {
+				collectionRequest := &xrayv1.ListTrafficCountersRequest{InstanceId: "edge-a", Scope: scope}
+				before, err := client.ListTrafficCounters(ctx, collectionRequest)
+				if err != nil || len(before.Items) < 2 {
+					t.Fatalf("real scope unavailable: %v %v", before, err)
+				}
+				resetRequest := &xrayv1.ResetTrafficCountersRequest{InstanceId: "edge-a", Scope: scope, MaxCounters: uint32(len(before.Items) - 1)}
+				if _, err := client.ResetTrafficCounters(ctx, resetRequest); status.Code(err) != codes.ResourceExhausted {
+					t.Fatalf("scope cap not enforced: %v", err)
+				}
+				unchanged, err := client.ListTrafficCounters(ctx, collectionRequest)
+				if err != nil || len(unchanged.Items) != len(before.Items) {
+					t.Fatalf("preflight changed scope: %v %v", unchanged, err)
+				}
+				for i, item := range before.Items {
+					if unchanged.Items[i].Bytes != item.Bytes {
+						t.Fatal("preflight reset usage before rejecting limit")
+					}
+				}
+				collectionRequest.InstanceId = "edge-b"
+				otherBefore, err := client.ListTrafficCounters(ctx, collectionRequest)
+				if err != nil {
+					t.Fatal(err)
+				}
+				resetRequest.MaxCounters = uint32(len(before.Items))
+				report, err := client.ResetTrafficCounters(ctx, resetRequest)
+				if err != nil || report.InstanceId != "edge-a" || report.Scope != scope || report.SelectedAtUnixMs == nil || len(report.Items) != len(before.Items) {
+					t.Fatalf("scope reset: %v %v", report, err)
+				}
+				for i, item := range report.Items {
+					if item.Name != before.Items[i].Name || item.Direction != before.Items[i].Direction || item.State != xrayv1.TrafficCounterResetState_TRAFFIC_COUNTER_RESET_STATE_ACKNOWLEDGED || item.Acknowledgement == nil || item.Acknowledgement.PreviousBytes != before.Items[i].Bytes {
+						t.Fatalf("scope reset acknowledgement: %v", item)
+					}
+				}
+				otherAfter, err := client.ListTrafficCounters(ctx, collectionRequest)
+				if err != nil || len(otherAfter.Items) != len(otherBefore.Items) {
+					t.Fatalf("other scope changed: %v %v", otherAfter, err)
+				}
+				for i, item := range otherBefore.Items {
+					if otherAfter.Items[i].Bytes != item.Bytes {
+						t.Fatal("scope reset crossed instance ownership")
+					}
+				}
+				collectionRequest.InstanceId = "edge-a"
+				empty, err := client.ListTrafficCounters(ctx, collectionRequest)
+				if err != nil || len(empty.Items) != len(before.Items) {
+					t.Fatalf("reset removed native counters: %v %v", empty, err)
+				}
+				for _, item := range empty.Items {
+					if item.Bytes != 0 {
+						t.Fatalf("scope reset not applied: %v", item)
+					}
+				}
+			}
+			if err := xrayTraffic(ctx, url.UserPassword("reader@local", "test-password").String()+"@"+firstAddress); err != nil {
+				t.Fatalf("traffic did not continue after scope reset: %v", err)
+			}
 
 			if _, err := client.GetRuntimeInfo(ctx, &xrayv1.GetRuntimeInfoRequest{InstanceId: "edge-a"}); status.Code(err) != codes.PermissionDenied {
 				t.Fatalf("stats grant expanded to info: %v", err)
@@ -346,5 +407,17 @@ func TestResetRPCUsesIndependentGrantAndNoEffectDetails(t *testing.T) {
 	}
 	if _, err := client.GetTrafficCounter(t.Context(), &xrayv1.GetTrafficCounterRequest{}); status.Code(err) != codes.PermissionDenied {
 		t.Fatalf("reset expanded to reads: %v", err)
+	}
+	_, err = client.ResetTrafficCounters(t.Context(), &xrayv1.ResetTrafficCountersRequest{InstanceId: "missing", Scope: xrayv1.TrafficScope_TRAFFIC_SCOPE_USER, MaxCounters: 1})
+	if status.Code(err) != codes.NotFound {
+		t.Fatalf("scope reset grant not wired: %v", err)
+	}
+	details = status.Convert(err).Details()
+	if len(details) != 1 {
+		t.Fatalf("scope progress detail missing: %v", err)
+	}
+	progress, ok := details[0].(*xrayv1.TrafficCountersResetFailure)
+	if !ok || progress.Progress == nil || len(progress.Progress.Items) != 0 || progress.Progress.SelectedAtUnixMs != nil {
+		t.Fatalf("scope preflight invented effects: %v", details)
 	}
 }

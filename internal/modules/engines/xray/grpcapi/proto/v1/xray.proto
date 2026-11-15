@@ -15,6 +15,9 @@ service XrayService {
   // Atomically swaps one exact existing counter with zero and returns prior bytes.
   // No application retry. A missing response can follow an applied reset.
   rpc ResetTrafficCounter(ResetTrafficCounterRequest) returns (ResetTrafficCounterResponse);
+  // Discovers one exact scope without reset, then resets selected counters in order.
+  // Non-atomic 1+N fallback: stops on first failure and retains progress in details.
+  rpc ResetTrafficCounters(ResetTrafficCountersRequest) returns (ResetTrafficCountersResponse);
   // Reads all existing traffic counters in one scope without resetting them.
   // Complete response or resource-limit error; native Xray offers no pagination.
   rpc ListTrafficCounters(ListTrafficCountersRequest) returns (ListTrafficCountersResponse);
@@ -186,4 +189,49 @@ enum TrafficCounterResetOutcome {
 // usage after an unknown reset; blindly retrying can discard more usage.
 message TrafficCounterResetFailure {
   TrafficCounterResetOutcome outcome = 1;
+}
+
+message ResetTrafficCountersRequest {
+  string instance_id = 1;
+  TrafficScope scope = 2;
+  // Required positive bound. Excess selection fails before any reset.
+  uint32 max_counters = 3;
+}
+
+enum TrafficCounterResetState {
+  TRAFFIC_COUNTER_RESET_STATE_UNSPECIFIED = 0;
+  TRAFFIC_COUNTER_RESET_STATE_NOT_ATTEMPTED = 1;
+  TRAFFIC_COUNTER_RESET_STATE_ACKNOWLEDGED = 2;
+  TRAFFIC_COUNTER_RESET_STATE_NOT_APPLIED = 3;
+  TRAFFIC_COUNTER_RESET_STATE_UNKNOWN = 4;
+}
+
+message TrafficCounterResetAcknowledgement {
+  // Previous native signed bytes from the atomic swap, not from discovery.
+  int64 previous_bytes = 1;
+  int64 acknowledged_at_unix_ms = 2;
+}
+
+message TrafficCounterResetEntry {
+  string name = 1;
+  TrafficDirection direction = 2;
+  TrafficCounterResetState state = 3;
+  // Present only when state is ACKNOWLEDGED; zero bytes are valid.
+  TrafficCounterResetAcknowledgement acknowledgement = 4;
+}
+
+message ResetTrafficCountersResponse {
+  string instance_id = 1;
+  TrafficScope scope = 2;
+  // Every selected identity, ordered by exact name then direction.
+  repeated TrafficCounterResetEntry items = 3;
+  // Absent when preflight did not complete. This is not an atomic snapshot.
+  optional int64 selected_at_unix_ms = 4;
+}
+
+// A failed operation is never a successful partial reset. Delivered details retain
+// Node's observed effects; an empty report means no swaps were invoked. Missing
+// details/lost replies can hide effects, including all swaps. Do not blindly replay.
+message TrafficCountersResetFailure {
+  ResetTrafficCountersResponse progress = 1;
 }

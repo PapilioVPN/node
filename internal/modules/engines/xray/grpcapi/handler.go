@@ -26,6 +26,7 @@ type Handler struct {
 	Runtime         RuntimeInfoReader
 	Traffic         TrafficCounterReader
 	Resets          TrafficCounterResetter
+	ScopeResets     TrafficCountersResetter
 	TrafficCounters TrafficCountersReader
 	Online          OnlineReader
 	AllowInfoRead   bool
