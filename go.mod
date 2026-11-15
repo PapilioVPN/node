@@ -1,6 +1,6 @@
 module github.com/PapilioVPN/node
 
-go 1.26.11
+go 1.27.3
 
 require (
 	go.uber.org/fx v1.24.0
