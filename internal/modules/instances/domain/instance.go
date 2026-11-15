@@ -40,6 +40,7 @@ type Status struct {
 // Management capabilities describe implemented operations, not caller grants.
 const (
 	ReadStatus    = "instance.status.read"
+	ListStatuses  = "instance.status.list"
 	StartInstance = "instance.start"
 	StopInstance  = "instance.stop"
 )

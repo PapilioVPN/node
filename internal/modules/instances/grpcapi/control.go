@@ -50,7 +50,7 @@ func (h Handler) authorizeControl(ctx context.Context, id string) error {
 
 func controlResult(value domain.Status, cause error) (*instancesv1.InstanceStatus, error) {
 	if cause == nil {
-		return controlResponse(value)
+		return instanceStatus(value)
 	}
 	failure := status.New(codes.Internal, "cannot control instance")
 	if mapped := grpcresponse.ContextError(cause); mapped != nil {
@@ -63,7 +63,7 @@ func controlResult(value domain.Status, cause error) (*instancesv1.InstanceStatu
 	}
 	// Native gRPC discards response messages on errors. Preserve a selected
 	// runtime's partial observation as a typed, sanitized status detail instead.
-	outcome, err := controlResponse(value)
+	outcome, err := instanceStatus(value)
 	if err != nil {
 		return nil, failure.Err()
 	}

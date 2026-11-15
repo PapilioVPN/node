@@ -28,9 +28,10 @@ func Module(grpcEnabled bool) fx.Option {
 	return fx.Module("instances", options...)
 }
 
-func registerGRPC(registrar grpc.ServiceRegistrar, reader *app.LifecycleService, cfg settings.GRPCPermissions) {
+func registerGRPC(registrar grpc.ServiceRegistrar, service *app.LifecycleService, cfg settings.GRPCPermissions) {
 	instancesv1.RegisterInstanceServiceServer(registrar, grpcapi.Handler{
-		Status: reader, Control: reader, AllowStatusRead: cfg.ReadInstanceStatus, AllowControl: cfg.ControlInstances,
+		Status: service, Statuses: service, Control: service,
+		AllowStatusRead: cfg.ReadInstanceStatus, AllowControl: cfg.ControlInstances,
 	})
 }
 
@@ -117,7 +118,7 @@ type capabilityResult struct {
 
 func capability() capabilityResult {
 	return capabilityResult{Values: []systemdomain.Capability{
-		systemdomain.Capability(domain.ReadStatus), systemdomain.Capability(domain.StartInstance), systemdomain.Capability(domain.StopInstance),
+		domain.ReadStatus, domain.ListStatuses, domain.StartInstance, domain.StopInstance,
 	}}
 }
 

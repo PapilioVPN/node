@@ -21,6 +21,7 @@ type InstanceStatusReader interface {
 type Handler struct {
 	instancesv1.UnimplementedInstanceServiceServer
 	Status          InstanceStatusReader
+	Statuses        InstanceStatusesReader
 	Control         InstanceController
 	AllowStatusRead bool
 	AllowControl    bool

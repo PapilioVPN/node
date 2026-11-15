@@ -21,7 +21,7 @@ func statusResponse(value domain.Status) (*instancesv1.GetInstanceStatusResponse
 	}, nil
 }
 
-func controlResponse(value domain.Status) (*instancesv1.InstanceStatus, error) {
+func instanceStatus(value domain.Status) (*instancesv1.InstanceStatus, error) {
 	state, err := stateCode(value.State)
 	if err != nil {
 		return nil, err
