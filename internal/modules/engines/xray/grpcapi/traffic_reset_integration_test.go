@@ -20,6 +20,7 @@ import (
 	"github.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi"
 	xrayv1 "github.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi/proto/v1"
 	"github.com/PapilioVPN/node/internal/modules/engines/xray/infra/api"
+	nativeapi "github.com/PapilioVPN/node/internal/platform/engines/xray/api"
 	"github.com/PapilioVPN/node/internal/platform/grpcserver"
 	"github.com/PapilioVPN/node/internal/shared/testutil"
 )
@@ -46,11 +47,12 @@ func TestMTLSResetFailureCarriesUnknownOutcomeAfterNativeSwap(t *testing.T) {
 	nativeDone := make(chan struct{})
 	go func() { defer close(nativeDone); _ = nativeServer.Serve(listener) }()
 	t.Cleanup(func() { nativeServer.Stop(); nativeServer.GracefulStop(); <-nativeDone })
-	backend, err := api.NewClient(api.Config{Network: "tcp", Address: listener.Addr().String(), RequestTimeout: time.Second, MaxReceiveBytes: 1, MaxConcurrent: 1})
+	resource, err := nativeapi.NewClient(nativeapi.Config{Network: "tcp", Address: listener.Addr().String(), RequestTimeout: time.Second, MaxReceiveBytes: 1, MaxConcurrent: 1})
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() { _ = backend.Close() })
+	t.Cleanup(func() { _ = resource.Close() })
+	backend := &api.Adapter{API: resource}
 	service := services.NewTrafficCounterResetService(map[instances.InstanceID]services.TrafficCounterResetter{"edge": backend})
 	certificates := testutil.NewCertificates(t)
 	management, err := grpcserver.NewServer(certificates.Config().Communications.GRPC, nil)

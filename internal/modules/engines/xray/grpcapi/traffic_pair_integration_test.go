@@ -21,6 +21,7 @@ import (
 	"github.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi"
 	xrayv1 "github.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi/proto/v1"
 	"github.com/PapilioVPN/node/internal/modules/engines/xray/infra/api"
+	nativeapi "github.com/PapilioVPN/node/internal/platform/engines/xray/api"
 	"github.com/PapilioVPN/node/internal/platform/grpcserver"
 	"github.com/PapilioVPN/node/internal/shared/testutil"
 )
@@ -56,11 +57,12 @@ func TestMTLSPairResetPreservesUnknownEffectsAndIndependentMissingDirections(t *
 	done := make(chan struct{})
 	go func() { defer close(done); _ = nativeServer.Serve(listener) }()
 	t.Cleanup(func() { nativeServer.Stop(); nativeServer.GracefulStop(); <-done })
-	backend, err := api.NewClient(api.Config{Network: "tcp", Address: listener.Addr().String(), RequestTimeout: time.Second, MaxReceiveBytes: 4096, MaxConcurrent: 1})
+	resource, err := nativeapi.NewClient(nativeapi.Config{Network: "tcp", Address: listener.Addr().String(), RequestTimeout: time.Second, MaxReceiveBytes: 4096, MaxConcurrent: 1})
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() { _ = backend.Close() })
+	t.Cleanup(func() { _ = resource.Close() })
+	backend := &api.Adapter{API: resource}
 	reads := services.NewTrafficPairService(map[instances.InstanceID]services.TrafficPairReadBinding{"edge": {Reader: backend, Timeout: time.Second}})
 	resets := services.NewTrafficPairResetService(map[instances.InstanceID]services.TrafficPairResetBinding{"edge": {Resetter: backend, Timeout: time.Second}})
 	certificates := testutil.NewCertificates(t)

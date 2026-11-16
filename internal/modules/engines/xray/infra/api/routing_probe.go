@@ -14,23 +14,20 @@ import (
 
 // TestRoute invokes native selection once. Selection, DNS, webhook and publication
 // effects are engine-owned and may outlive RPC cancellation. Never replay a probe.
-func (c *Client) TestRoute(ctx context.Context, probe domain.RoutingProbe) (domain.RoutingProbeResult, error) {
+func (c *Adapter) TestRoute(ctx context.Context, probe domain.RoutingProbe) (domain.RoutingProbeResult, error) {
 	if err := ctx.Err(); err != nil {
 		return domain.RoutingProbeResult{}, err
 	}
-	select {
-	case c.slots <- struct{}{}:
-		defer func() { <-c.slots }()
-	default:
-		return domain.RoutingProbeResult{}, domain.ErrAPIBusy
+	ctx, done, err := c.API.Begin(ctx)
+	if err != nil {
+		return domain.RoutingProbeResult{}, err
 	}
-	ctx, cancel := context.WithTimeout(ctx, c.timeout)
-	defer cancel()
+	defer done()
 	request, err := encodeRoutingProbe(probe)
 	if err != nil {
 		return domain.RoutingProbeResult{}, err
 	}
-	client, err := c.routingClient()
+	client, err := c.API.RoutingClient()
 	if err != nil {
 		return domain.RoutingProbeResult{}, err
 	}

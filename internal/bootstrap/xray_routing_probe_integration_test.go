@@ -29,6 +29,7 @@ import (
 	"github.com/PapilioVPN/node/internal/modules/engines/xray/domain"
 	xrayv1 "github.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi/proto/v1"
 	xrayapi "github.com/PapilioVPN/node/internal/modules/engines/xray/infra/api"
+	nativeapi "github.com/PapilioVPN/node/internal/platform/engines/xray/api"
 	rpc "github.com/PapilioVPN/node/internal/platform/grpcserver"
 	"github.com/PapilioVPN/node/internal/settings"
 	"github.com/PapilioVPN/node/internal/shared/testutil"
@@ -255,10 +256,10 @@ func TestXrayRoutingProbePreservesNativeFieldsProjectionAndEffects(t *testing.T)
 	}
 }
 
-func nativeXrayAPIClient(t *testing.T, instance settings.Instance) *xrayapi.Client {
+func nativeXrayAPIClient(t *testing.T, instance settings.Instance) *xrayapi.Adapter {
 	t.Helper()
 	api := instance.Xray.API
-	client, err := xrayapi.NewClient(xrayapi.Config{Network: api.Network, Address: api.Address, RequestTimeout: api.RequestTimeout, MaxReceiveBytes: api.MaxReceiveBytes, MaxConcurrent: api.MaxConcurrent})
+	client, err := nativeapi.NewClient(nativeapi.Config{Network: api.Network, Address: api.Address, RequestTimeout: api.RequestTimeout, MaxReceiveBytes: api.MaxReceiveBytes, MaxConcurrent: api.MaxConcurrent})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -267,7 +268,7 @@ func nativeXrayAPIClient(t *testing.T, instance settings.Instance) *xrayapi.Clie
 			t.Error(err)
 		}
 	})
-	return client
+	return &xrayapi.Adapter{API: client}
 }
 
 func configureXrayProbeRouting(t *testing.T, instance settings.Instance, webhook string) []byte {

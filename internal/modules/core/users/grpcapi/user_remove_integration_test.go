@@ -22,7 +22,7 @@ import (
 	userxray "github.com/PapilioVPN/node/internal/modules/core/users/infra/xray"
 	"github.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi"
 	xrayv1 "github.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi/proto/v1"
-	"github.com/PapilioVPN/node/internal/modules/engines/xray/infra/api"
+	nativeapi "github.com/PapilioVPN/node/internal/platform/engines/xray/api"
 	"github.com/PapilioVPN/node/internal/platform/grpcserver"
 	"github.com/PapilioVPN/node/internal/shared/testutil"
 )
@@ -60,7 +60,7 @@ func TestMTLSUserRemovalFailureRetainsUnknownEffectWithoutReplay(t *testing.T) {
 	done := make(chan struct{})
 	go func() { defer close(done); _ = nativeServer.Serve(listener) }()
 	t.Cleanup(func() { nativeServer.Stop(); nativeServer.GracefulStop(); <-done })
-	channel, err := api.NewClient(api.Config{Network: "tcp", Address: listener.Addr().String(), RequestTimeout: time.Second, MaxReceiveBytes: 4096, MaxConcurrent: 1})
+	channel, err := nativeapi.NewClient(nativeapi.Config{Network: "tcp", Address: listener.Addr().String(), RequestTimeout: time.Second, MaxReceiveBytes: 4096, MaxConcurrent: 1})
 	if err != nil {
 		t.Fatal(err)
 	}

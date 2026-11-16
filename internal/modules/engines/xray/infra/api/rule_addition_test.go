@@ -3,7 +3,6 @@ package api
 import (
 	"context"
 	"testing"
-	"time"
 
 	native "github.com/xtls/xray-core/app/router/command"
 	"google.golang.org/grpc"
@@ -21,17 +20,9 @@ func (c completingRuleAdditionClient) AddRule(context.Context, *native.AddRuleRe
 }
 
 func TestRuleAdditionRetainsReceivedAcknowledgementAfterCancellation(t *testing.T) {
-	client, err := NewClient(Config{Network: "unix", Address: "/unused/api.sock", RequestTimeout: time.Second, MaxReceiveBytes: 4096, MaxConcurrent: 1})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer client.Close()
-	if _, err := client.routingClient(); err != nil {
-		t.Fatal(err)
-	}
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
-	client.routing = completingRuleAdditionClient{complete: func() (*native.AddRuleResponse, error) { cancel(); return &native.AddRuleResponse{}, nil }}
+	client := &Adapter{API: completingRoutingAPI{client: completingRuleAdditionClient{complete: func() (*native.AddRuleResponse, error) { cancel(); return &native.AddRuleResponse{}, nil }}}}
 	ack, err := client.ApplyRoutingRule(ctx, domain.PreparedRoutingRule{Config: []byte{1}}, domain.ReplaceRoutingRules)
 	if err != nil || ack.AcknowledgedAt.IsZero() {
 		t.Fatalf("late cancellation erased acknowledged replacement: %+v %v", ack, err)

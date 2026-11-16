@@ -13,22 +13,19 @@ import (
 
 // OverrideBalancerTarget performs one live assignment. Empty clears the override;
 // no membership preflight, strategy reset, config rewrite or retry is added.
-func (c *Client) OverrideBalancerTarget(ctx context.Context, selection domain.BalancerOverride) (domain.RoutingMutationAcknowledgement, error) {
+func (c *Adapter) OverrideBalancerTarget(ctx context.Context, selection domain.BalancerOverride) (domain.RoutingMutationAcknowledgement, error) {
 	if err := ctx.Err(); err != nil {
 		return domain.RoutingMutationAcknowledgement{}, err
 	}
-	select {
-	case c.slots <- struct{}{}:
-		defer func() { <-c.slots }()
-	default:
-		return domain.RoutingMutationAcknowledgement{}, domain.ErrAPIBusy
+	ctx, done, err := c.API.Begin(ctx)
+	if err != nil {
+		return domain.RoutingMutationAcknowledgement{}, err
 	}
-	ctx, cancel := context.WithTimeout(ctx, c.timeout)
-	defer cancel()
+	defer done()
 	if !utf8.ValidString(selection.BalancerTag) || !utf8.ValidString(selection.Target) {
 		return domain.RoutingMutationAcknowledgement{}, domain.ErrInvalidBalancerOverride
 	}
-	client, err := c.routingClient()
+	client, err := c.API.RoutingClient()
 	if err != nil {
 		return domain.RoutingMutationAcknowledgement{}, err
 	}

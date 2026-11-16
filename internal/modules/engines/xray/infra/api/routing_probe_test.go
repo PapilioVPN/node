@@ -18,6 +18,22 @@ type completingRoutingClient struct {
 	complete func() (*native.RoutingContext, error)
 }
 
+// Unused SDK accessors are deliberately absent: these unit tests exercise only
+// routing acknowledgement races, while native tests cover resource ownership.
+type completingRoutingAPI struct {
+	API
+	client native.RoutingServiceClient
+}
+
+func (a completingRoutingAPI) Begin(ctx context.Context) (context.Context, func(), error) {
+	ctx, cancel := context.WithTimeout(ctx, time.Second)
+	return ctx, cancel, nil
+}
+
+func (a completingRoutingAPI) RoutingClient() (native.RoutingServiceClient, error) {
+	return a.client, nil
+}
+
 func (c completingRoutingClient) TestRoute(context.Context, *native.TestRouteRequest, ...grpc.CallOption) (*native.RoutingContext, error) {
 	return c.complete()
 }
@@ -26,27 +42,15 @@ func (c completingRoutingClient) TestRoute(context.Context, *native.TestRouteReq
 // and uncertain remote effects are covered separately by native-service tests.
 func TestRoutingProbeRetainsAcknowledgementOrFailureCauseAfterLateCancellation(t *testing.T) {
 	for _, valid := range []bool{false, true} {
-		client, err := NewClient(Config{Network: "unix", Address: "/unused/api.sock", RequestTimeout: time.Second, MaxReceiveBytes: 4096, MaxConcurrent: 1})
-		if err != nil {
-			t.Fatal(err)
-		}
-		t.Cleanup(func() {
-			if err := client.Close(); err != nil {
-				t.Error(err)
-			}
-		})
-		if _, err := client.routingClient(); err != nil {
-			t.Fatal(err)
-		}
 		ctx, cancel := context.WithCancel(t.Context())
 		defer cancel()
-		client.routing = completingRoutingClient{complete: func() (*native.RoutingContext, error) {
+		client := &Adapter{API: completingRoutingAPI{client: completingRoutingClient{complete: func() (*native.RoutingContext, error) {
 			cancel()
 			if valid {
 				return &native.RoutingContext{OutboundTag: "confirmed"}, nil
 			}
 			return nil, nil
-		}}
+		}}}}
 		result, err := client.TestRoute(ctx, domain.RoutingProbe{})
 		if valid {
 			if err != nil || result.Route.OutboundTag != "confirmed" || result.AcknowledgedAt.IsZero() {

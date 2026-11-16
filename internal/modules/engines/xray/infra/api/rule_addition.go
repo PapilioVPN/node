@@ -15,7 +15,7 @@ import (
 
 // ApplyRoutingRule sends one prepared router.Config through the existing channel.
 // It adds no membership preflight, retry, configuration rewrite or compensation.
-func (c *Client) ApplyRoutingRule(ctx context.Context, rule domain.PreparedRoutingRule, mode domain.RoutingRuleMode) (domain.RoutingMutationAcknowledgement, error) {
+func (c *Adapter) ApplyRoutingRule(ctx context.Context, rule domain.PreparedRoutingRule, mode domain.RoutingRuleMode) (domain.RoutingMutationAcknowledgement, error) {
 	if err := ctx.Err(); err != nil {
 		return domain.RoutingMutationAcknowledgement{}, err
 	}
@@ -25,15 +25,12 @@ func (c *Client) ApplyRoutingRule(ctx context.Context, rule domain.PreparedRouti
 	if len(rule.Config) == 0 {
 		return domain.RoutingMutationAcknowledgement{}, domain.ErrInvalidPreparedRoutingRule
 	}
-	select {
-	case c.slots <- struct{}{}:
-		defer func() { <-c.slots }()
-	default:
-		return domain.RoutingMutationAcknowledgement{}, domain.ErrAPIBusy
+	ctx, done, err := c.API.Begin(ctx)
+	if err != nil {
+		return domain.RoutingMutationAcknowledgement{}, err
 	}
-	ctx, cancel := context.WithTimeout(ctx, c.timeout)
-	defer cancel()
-	client, err := c.routingClient()
+	defer done()
+	client, err := c.API.RoutingClient()
 	if err != nil {
 		return domain.RoutingMutationAcknowledgement{}, err
 	}

@@ -19,6 +19,7 @@ import (
 
 	"github.com/PapilioVPN/node/internal/modules/engines/xray/domain"
 	xrayapi "github.com/PapilioVPN/node/internal/modules/engines/xray/infra/api"
+	nativeapi "github.com/PapilioVPN/node/internal/platform/engines/xray/api"
 )
 
 // Controlled SDK servers exercise native channel contracts, not Xray behavior.
@@ -67,9 +68,15 @@ func apiServer(t *testing.T, service native.StatsServiceServer) (string, *connec
 	return listener.Addr().String(), counts
 }
 
-func apiClient(t *testing.T, address string, timeout time.Duration, limit int) *xrayapi.Client {
+// Both adapters borrow the same instance resource; only Client owns cleanup.
+type apiClientSet struct {
+	*nativeapi.Client
+	*xrayapi.Adapter
+}
+
+func apiClient(t *testing.T, address string, timeout time.Duration, limit int) *apiClientSet {
 	t.Helper()
-	client, err := xrayapi.NewClient(xrayapi.Config{Network: "tcp", Address: address, RequestTimeout: timeout, MaxReceiveBytes: limit, MaxConcurrent: 1})
+	client, err := nativeapi.NewClient(nativeapi.Config{Network: "tcp", Address: address, RequestTimeout: timeout, MaxReceiveBytes: limit, MaxConcurrent: 1})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -78,7 +85,7 @@ func apiClient(t *testing.T, address string, timeout time.Duration, limit int) *
 			t.Error(err)
 		}
 	})
-	return client
+	return &apiClientSet{Client: client, Adapter: &xrayapi.Adapter{API: client}}
 }
 
 func TestAPIReusesNativeChannelAndPreservesUnsignedCounters(t *testing.T) {

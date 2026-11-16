@@ -16,19 +16,16 @@ import (
 
 // ReadTrafficCounters uses one QueryStats, sharing the native channel and bounds
 // with other reads. Xray offers no pagination; its internal scan ignores context.
-func (c *Client) ReadTrafficCounters(ctx context.Context, scope domain.TrafficScope) (domain.TrafficCounters, error) {
+func (c *Adapter) ReadTrafficCounters(ctx context.Context, scope domain.TrafficScope) (domain.TrafficCounters, error) {
 	if err := ctx.Err(); err != nil {
 		return domain.TrafficCounters{}, err
 	}
-	select {
-	case c.slots <- struct{}{}:
-		defer func() { <-c.slots }()
-	default:
-		return domain.TrafficCounters{}, domain.ErrAPIBusy
+	ctx, done, err := c.API.Begin(ctx)
+	if err != nil {
+		return domain.TrafficCounters{}, err
 	}
-	ctx, cancel := context.WithTimeout(ctx, c.timeout)
-	defer cancel()
-	client, err := c.statsClient()
+	defer done()
+	client, err := c.API.StatsClient()
 	if err != nil {
 		return domain.TrafficCounters{}, err
 	}

@@ -1,3 +1,4 @@
+// Package api owns the shared native Xray channel, admission and deadlines.
 package api
 
 import (
@@ -15,11 +16,9 @@ import (
 	routingnative "github.com/xtls/xray-core/app/router/command"
 	native "github.com/xtls/xray-core/app/stats/command"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/grpc/status"
 
-	"github.com/PapilioVPN/node/internal/modules/engines/xray/domain"
+	"github.com/PapilioVPN/node/internal/shared/engineapi"
 )
 
 var ErrInvalidSettings = errors.New("invalid Xray API settings")
@@ -74,7 +73,8 @@ func NewClient(config Config) (*Client, error) {
 	return &Client{target: target, maxReceiveBytes: config.MaxReceiveBytes, timeout: config.RequestTimeout, slots: make(chan struct{}, config.MaxConcurrent)}, nil
 }
 
-func (c *Client) statsClient() (native.StatsServiceClient, error) {
+// StatsClient borrows the cached native statistics stub on the shared channel.
+func (c *Client) StatsClient() (native.StatsServiceClient, error) {
 	stats, _, err := c.nativeClients()
 	return stats, err
 }
@@ -104,46 +104,6 @@ func (c *Client) nativeClients() (native.StatsServiceClient, handlernative.Handl
 	return c.stats, c.handlers, nil
 }
 
-// ReadRuntimeInfo performs one bounded GetSysStats call with no application retry.
-func (c *Client) ReadRuntimeInfo(ctx context.Context) (domain.RuntimeInfo, error) {
-	if err := ctx.Err(); err != nil {
-		return domain.RuntimeInfo{}, err
-	}
-	select {
-	case c.slots <- struct{}{}:
-		defer func() { <-c.slots }()
-	default:
-		return domain.RuntimeInfo{}, domain.ErrAPIBusy
-	}
-	ctx, cancel := context.WithTimeout(ctx, c.timeout)
-	defer cancel()
-	client, err := c.statsClient()
-	if err != nil {
-		return domain.RuntimeInfo{}, err
-	}
-	value, err := client.GetSysStats(ctx, &native.SysStatsRequest{})
-	if cause := ctx.Err(); cause != nil {
-		return domain.RuntimeInfo{}, errors.Join(cause, err)
-	}
-	if err != nil {
-		switch status.Code(err) {
-		case codes.Unimplemented:
-			err = errors.Join(domain.ErrRuntimeInfoUnsupported, err)
-		case codes.ResourceExhausted:
-			err = errors.Join(domain.ErrAPIResourceLimit, err)
-		case codes.DeadlineExceeded:
-			err = errors.Join(context.DeadlineExceeded, err)
-		}
-		return domain.RuntimeInfo{}, fmt.Errorf("read Xray runtime information: %w", err)
-	}
-	return domain.RuntimeInfo{
-		Goroutines: value.NumGoroutine, GCCount: value.NumGC,
-		AllocatedBytes: value.Alloc, TotalAllocatedBytes: value.TotalAlloc, SysBytes: value.Sys,
-		Mallocs: value.Mallocs, Frees: value.Frees, LiveObjects: value.LiveObjects,
-		TotalGCPauseNS: value.PauseTotalNs, UptimeSeconds: value.Uptime, ObservedAt: time.Now().UTC(),
-	}, nil
-}
-
 // Close terminates the channel and interrupts active native calls. Request owners
 // join their callers; the management server is drained before final module cleanup.
 func (c *Client) Close() error {
@@ -168,7 +128,7 @@ func (c *Client) Begin(ctx context.Context) (context.Context, func(), error) {
 	select {
 	case c.slots <- struct{}{}:
 	default:
-		return nil, nil, domain.ErrAPIBusy
+		return nil, nil, engineapi.ErrBusy
 	}
 	ctx, cancel := context.WithTimeout(ctx, c.timeout)
 	return ctx, func() { cancel(); <-c.slots }, nil
@@ -178,4 +138,20 @@ func (c *Client) Begin(ctx context.Context) (context.Context, func(), error) {
 func (c *Client) HandlerClient() (handlernative.HandlerServiceClient, error) {
 	_, client, err := c.nativeClients()
 	return client, err
+}
+
+// RoutingClient borrows the cached native routing stub on the shared channel.
+func (c *Client) RoutingClient() (routingnative.RoutingServiceClient, error) {
+	if _, _, err := c.nativeClients(); err != nil {
+		return nil, err
+	}
+	return c.routing, nil
+}
+
+// ObservatoryClient borrows the cached native observatory stub on the shared channel.
+func (c *Client) ObservatoryClient() (observatorynative.ObservatoryServiceClient, error) {
+	if _, _, err := c.nativeClients(); err != nil {
+		return nil, err
+	}
+	return c.observatory, nil
 }

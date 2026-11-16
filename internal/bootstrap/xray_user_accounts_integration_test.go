@@ -28,7 +28,7 @@ import (
 	"github.com/PapilioVPN/node/internal/modules/core/users/domain"
 	userv1 "github.com/PapilioVPN/node/internal/modules/core/users/grpcapi/proto/v1"
 	userxray "github.com/PapilioVPN/node/internal/modules/core/users/infra/xray"
-	xrayapi "github.com/PapilioVPN/node/internal/modules/engines/xray/infra/api"
+	nativeapi "github.com/PapilioVPN/node/internal/platform/engines/xray/api"
 	rpc "github.com/PapilioVPN/node/internal/platform/grpcserver"
 	"github.com/PapilioVPN/node/internal/settings"
 	"github.com/PapilioVPN/node/internal/shared/testutil"
@@ -161,7 +161,7 @@ func TestLiveUserAdditionUpdatesEveryBaselineNativeUserManager(t *testing.T) {
 	}
 	defer connection.Close()
 	native := handlers.NewHandlerServiceClient(connection)
-	observer, err := xrayapi.NewClient(xrayapi.Config{Network: instance.Xray.API.Network, Address: instance.Xray.API.Address, RequestTimeout: instance.Xray.API.RequestTimeout, MaxReceiveBytes: instance.Xray.API.MaxReceiveBytes, MaxConcurrent: 1})
+	observer, err := nativeapi.NewClient(nativeapi.Config{Network: instance.Xray.API.Network, Address: instance.Xray.API.Address, RequestTimeout: instance.Xray.API.RequestTimeout, MaxReceiveBytes: instance.Xray.API.MaxReceiveBytes, MaxConcurrent: 1})
 	if err != nil {
 		t.Fatal(err)
 	}

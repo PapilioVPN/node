@@ -148,7 +148,7 @@ func TestXrayRuleRemovalOverMTLSChangesTrafficAndKeepsOtherState(t *testing.T) {
 	}
 }
 
-func awaitNativeRoutingRules(t *testing.T, ctx context.Context, client *xrayapi.Client) domain.RoutingRules {
+func awaitNativeRoutingRules(t *testing.T, ctx context.Context, client *xrayapi.Adapter) domain.RoutingRules {
 	t.Helper()
 	ticker := time.NewTicker(20 * time.Millisecond)
 	defer ticker.Stop()

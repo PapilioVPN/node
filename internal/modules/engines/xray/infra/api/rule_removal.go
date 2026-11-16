@@ -13,22 +13,19 @@ import (
 
 // RemoveRoutingRule invokes one native RemoveRule without a membership preflight,
 // configuration rewrite or retry. Native missing tags are acknowledged no-ops.
-func (c *Client) RemoveRoutingRule(ctx context.Context, tag string) (domain.RoutingMutationAcknowledgement, error) {
+func (c *Adapter) RemoveRoutingRule(ctx context.Context, tag string) (domain.RoutingMutationAcknowledgement, error) {
 	if err := ctx.Err(); err != nil {
 		return domain.RoutingMutationAcknowledgement{}, err
 	}
-	select {
-	case c.slots <- struct{}{}:
-		defer func() { <-c.slots }()
-	default:
-		return domain.RoutingMutationAcknowledgement{}, domain.ErrAPIBusy
+	ctx, done, err := c.API.Begin(ctx)
+	if err != nil {
+		return domain.RoutingMutationAcknowledgement{}, err
 	}
-	ctx, cancel := context.WithTimeout(ctx, c.timeout)
-	defer cancel()
+	defer done()
 	if !utf8.ValidString(tag) {
 		return domain.RoutingMutationAcknowledgement{}, domain.ErrInvalidRoutingRuleTag
 	}
-	client, err := c.routingClient()
+	client, err := c.API.RoutingClient()
 	if err != nil {
 		return domain.RoutingMutationAcknowledgement{}, err
 	}

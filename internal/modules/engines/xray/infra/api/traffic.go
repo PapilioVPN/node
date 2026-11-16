@@ -15,19 +15,16 @@ import (
 
 // ReadTrafficCounter makes one exact GetStats read, sharing runtime API capacity.
 // Selection is already validated by the caller's input boundary. Reset stays false.
-func (c *Client) ReadTrafficCounter(ctx context.Context, selection domain.TrafficSelection) (domain.TrafficCounter, error) {
+func (c *Adapter) ReadTrafficCounter(ctx context.Context, selection domain.TrafficSelection) (domain.TrafficCounter, error) {
 	if err := ctx.Err(); err != nil {
 		return domain.TrafficCounter{}, err
 	}
-	select {
-	case c.slots <- struct{}{}:
-		defer func() { <-c.slots }()
-	default:
-		return domain.TrafficCounter{}, domain.ErrAPIBusy
+	ctx, done, err := c.API.Begin(ctx)
+	if err != nil {
+		return domain.TrafficCounter{}, err
 	}
-	ctx, cancel := context.WithTimeout(ctx, c.timeout)
-	defer cancel()
-	client, err := c.statsClient()
+	defer done()
+	client, err := c.API.StatsClient()
 	if err != nil {
 		return domain.TrafficCounter{}, err
 	}

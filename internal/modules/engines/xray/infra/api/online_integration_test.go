@@ -17,7 +17,6 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/PapilioVPN/node/internal/modules/engines/xray/domain"
-	xrayapi "github.com/PapilioVPN/node/internal/modules/engines/xray/infra/api"
 )
 
 // Controlled native servers verify SDK behavior; real flows run in bootstrap.
@@ -138,27 +137,27 @@ func TestOnlineNativeCollectionsHaveOneCallAtEverySize(t *testing.T) {
 
 type onlineRead struct {
 	name string
-	call func(context.Context, *xrayapi.Client) error
+	call func(context.Context, *apiClientSet) error
 }
 
 func onlineReads(t *testing.T) []onlineRead {
 	t.Helper()
 	return []onlineRead{
-		{"count", func(ctx context.Context, c *xrayapi.Client) error {
+		{"count", func(ctx context.Context, c *apiClientSet) error {
 			v, err := c.ReadUserOnlineStats(ctx, "reader")
 			if err != nil && v != (domain.UserOnline{}) {
 				t.Errorf("partial count: %+v", v)
 			}
 			return err
 		}},
-		{"ips", func(ctx context.Context, c *xrayapi.Client) error {
+		{"ips", func(ctx context.Context, c *apiClientSet) error {
 			v, err := c.ReadUserOnlineIPs(ctx, "reader")
 			if err != nil && (v.Items != nil || !v.ObservedAt.IsZero()) {
 				t.Errorf("partial IPs: %+v", v)
 			}
 			return err
 		}},
-		{"users", func(ctx context.Context, c *xrayapi.Client) error {
+		{"users", func(ctx context.Context, c *apiClientSet) error {
 			v, err := c.ReadOnlineUsers(ctx)
 			if err != nil && (v.Emails != nil || !v.ObservedAt.IsZero()) {
 				t.Errorf("partial users: %+v", v)

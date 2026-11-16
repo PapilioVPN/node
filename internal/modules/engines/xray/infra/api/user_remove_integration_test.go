@@ -19,7 +19,6 @@ import (
 	userdomain "github.com/PapilioVPN/node/internal/modules/core/users/domain"
 	userxray "github.com/PapilioVPN/node/internal/modules/core/users/infra/xray"
 	"github.com/PapilioVPN/node/internal/modules/engines/xray/domain"
-	xrayapi "github.com/PapilioVPN/node/internal/modules/engines/xray/infra/api"
 )
 
 // Controlled native service validates the actual wire operation and models loss
@@ -150,11 +149,11 @@ func TestUserRemovalCancellationAfterEffectIsUnknownAndSharedAdmissionIsBounded(
 
 // Exercise user/stat interoperability through two adapters borrowing one owner.
 type userClientSet struct {
-	*xrayapi.Client
+	*apiClientSet
 	*userxray.Adapter
 }
 
 func userClient(t *testing.T, address string, timeout time.Duration, limit int) *userClientSet {
 	client := apiClient(t, address, timeout, limit)
-	return &userClientSet{Client: client, Adapter: &userxray.Adapter{API: client}}
+	return &userClientSet{apiClientSet: client, Adapter: &userxray.Adapter{API: client.Client}}
 }

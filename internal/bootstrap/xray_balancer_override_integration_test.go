@@ -79,7 +79,7 @@ func TestXrayBalancerOverrideAndClearPreserveStrategyIsolationAndConfig(t *testi
 			if err := xrayTraffic(ctx, healthA, healthB); err != nil {
 				t.Fatal(err)
 			}
-			clients := map[instances.InstanceID]*xrayapi.Client{
+			clients := map[instances.InstanceID]*xrayapi.Adapter{
 				"edge-a": nativeXrayAPIClient(t, first), "edge-b": nativeXrayAPIClient(t, second),
 			}
 			for _, client := range clients {
@@ -106,7 +106,7 @@ func TestXrayBalancerOverrideAndClearPreserveStrategyIsolationAndConfig(t *testi
 			}
 			service := services.NewBalancerOverrideService(map[instances.InstanceID]services.BalancerOverrider{"edge-a": firstAPI, "edge-b": secondAPI})
 			probe := domain.RoutingProbe{Context: domain.RoutingContext{Network: domain.RoutingTCP, TargetDomain: "pool.invalid"}}
-			assertRoute := func(client *xrayapi.Client, target string) {
+			assertRoute := func(client *xrayapi.Adapter, target string) {
 				t.Helper()
 				result, err := client.TestRoute(ctx, probe)
 				if err != nil || result.Route.OutboundTag != target {
@@ -194,7 +194,7 @@ func TestXrayBalancerOverrideAndClearPreserveStrategyIsolationAndConfig(t *testi
 			publicAssign("")
 			assertBalancedHTTP(t, ctx, balancedA, true)
 			for _, item := range []struct {
-				client *xrayapi.Client
+				client *xrayapi.Adapter
 				tag    string
 			}{{firstAPI, "other-pool"}, {secondAPI, "pool"}} {
 				info, err := item.client.ReadBalancerInfo(ctx, item.tag)

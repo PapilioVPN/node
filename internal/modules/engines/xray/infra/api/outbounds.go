@@ -15,22 +15,20 @@ import (
 )
 
 // ReadOutboundStatuses reads existing native observations without starting probes.
-func (c *Client) ReadOutboundStatuses(ctx context.Context) (domain.OutboundStatuses, error) {
+func (c *Adapter) ReadOutboundStatuses(ctx context.Context) (domain.OutboundStatuses, error) {
 	if err := ctx.Err(); err != nil {
 		return domain.OutboundStatuses{}, err
 	}
-	select {
-	case c.slots <- struct{}{}:
-		defer func() { <-c.slots }()
-	default:
-		return domain.OutboundStatuses{}, domain.ErrAPIBusy
-	}
-	ctx, cancel := context.WithTimeout(ctx, c.timeout)
-	defer cancel()
-	if _, _, err := c.nativeClients(); err != nil {
+	ctx, done, err := c.API.Begin(ctx)
+	if err != nil {
 		return domain.OutboundStatuses{}, err
 	}
-	response, err := c.observatory.GetOutboundStatus(ctx, &native.GetOutboundStatusRequest{})
+	defer done()
+	client, err := c.API.ObservatoryClient()
+	if err != nil {
+		return domain.OutboundStatuses{}, err
+	}
+	response, err := client.GetOutboundStatus(ctx, &native.GetOutboundStatusRequest{})
 	if cause := ctx.Err(); cause != nil {
 		return domain.OutboundStatuses{}, errors.Join(cause, err)
 	}

@@ -15,19 +15,16 @@ import (
 )
 
 // ReadUserOnlineStats performs one native observation, sharing channel and admission bounds.
-func (c *Client) ReadUserOnlineStats(ctx context.Context, email domain.UserEmail) (domain.UserOnline, error) {
+func (c *Adapter) ReadUserOnlineStats(ctx context.Context, email domain.UserEmail) (domain.UserOnline, error) {
 	if err := ctx.Err(); err != nil {
 		return domain.UserOnline{}, err
 	}
-	select {
-	case c.slots <- struct{}{}:
-		defer func() { <-c.slots }()
-	default:
-		return domain.UserOnline{}, domain.ErrAPIBusy
+	ctx, done, err := c.API.Begin(ctx)
+	if err != nil {
+		return domain.UserOnline{}, err
 	}
-	ctx, cancel := context.WithTimeout(ctx, c.timeout)
-	defer cancel()
-	client, err := c.statsClient()
+	defer done()
+	client, err := c.API.StatsClient()
 	if err != nil {
 		return domain.UserOnline{}, err
 	}
@@ -48,19 +45,16 @@ func (c *Client) ReadUserOnlineStats(ctx context.Context, email domain.UserEmail
 }
 
 // ReadUserOnlineIPs performs one native observation, sharing channel and admission bounds.
-func (c *Client) ReadUserOnlineIPs(ctx context.Context, email domain.UserEmail) (domain.UserOnlineIPs, error) {
+func (c *Adapter) ReadUserOnlineIPs(ctx context.Context, email domain.UserEmail) (domain.UserOnlineIPs, error) {
 	if err := ctx.Err(); err != nil {
 		return domain.UserOnlineIPs{}, err
 	}
-	select {
-	case c.slots <- struct{}{}:
-		defer func() { <-c.slots }()
-	default:
-		return domain.UserOnlineIPs{}, domain.ErrAPIBusy
+	ctx, done, err := c.API.Begin(ctx)
+	if err != nil {
+		return domain.UserOnlineIPs{}, err
 	}
-	ctx, cancel := context.WithTimeout(ctx, c.timeout)
-	defer cancel()
-	client, err := c.statsClient()
+	defer done()
+	client, err := c.API.StatsClient()
 	if err != nil {
 		return domain.UserOnlineIPs{}, err
 	}
@@ -91,19 +85,16 @@ func (c *Client) ReadUserOnlineIPs(ctx context.Context, email domain.UserEmail) 
 }
 
 // ReadOnlineUsers performs one native observation, sharing channel and admission bounds.
-func (c *Client) ReadOnlineUsers(ctx context.Context) (domain.OnlineUsers, error) {
+func (c *Adapter) ReadOnlineUsers(ctx context.Context) (domain.OnlineUsers, error) {
 	if err := ctx.Err(); err != nil {
 		return domain.OnlineUsers{}, err
 	}
-	select {
-	case c.slots <- struct{}{}:
-		defer func() { <-c.slots }()
-	default:
-		return domain.OnlineUsers{}, domain.ErrAPIBusy
+	ctx, done, err := c.API.Begin(ctx)
+	if err != nil {
+		return domain.OnlineUsers{}, err
 	}
-	ctx, cancel := context.WithTimeout(ctx, c.timeout)
-	defer cancel()
-	client, err := c.statsClient()
+	defer done()
+	client, err := c.API.StatsClient()
 	if err != nil {
 		return domain.OnlineUsers{}, err
 	}

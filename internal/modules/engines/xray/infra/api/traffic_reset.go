@@ -16,19 +16,16 @@ import (
 // ResetTrafficCounter swaps one counter with zero in one native GetStats call.
 // A valid acknowledgement is retained even if ctx is canceled just afterwards.
 // After dispatch, missing/malformed/lost replies can mean the effect already ran.
-func (c *Client) ResetTrafficCounter(ctx context.Context, selection domain.TrafficSelection) (domain.TrafficCounterReset, error) {
+func (c *Adapter) ResetTrafficCounter(ctx context.Context, selection domain.TrafficSelection) (domain.TrafficCounterReset, error) {
 	if err := ctx.Err(); err != nil {
 		return domain.TrafficCounterReset{}, err
 	}
-	select {
-	case c.slots <- struct{}{}:
-		defer func() { <-c.slots }()
-	default:
-		return domain.TrafficCounterReset{}, domain.ErrAPIBusy
+	ctx, done, err := c.API.Begin(ctx)
+	if err != nil {
+		return domain.TrafficCounterReset{}, err
 	}
-	ctx, cancel := context.WithTimeout(ctx, c.timeout)
-	defer cancel()
-	client, err := c.statsClient()
+	defer done()
+	client, err := c.API.StatsClient()
 	if err != nil {
 		return domain.TrafficCounterReset{}, err
 	}

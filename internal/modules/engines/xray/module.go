@@ -24,6 +24,7 @@ import (
 	xrayapi "github.com/PapilioVPN/node/internal/modules/engines/xray/infra/api"
 	xrayprocess "github.com/PapilioVPN/node/internal/modules/engines/xray/infra/process"
 	system "github.com/PapilioVPN/node/internal/modules/system/info/domain"
+	nativeapi "github.com/PapilioVPN/node/internal/platform/engines/xray/api"
 	"github.com/PapilioVPN/node/internal/settings"
 )
 
@@ -118,7 +119,7 @@ type apiResources struct {
 	ruleRemovers       map[instances.InstanceID]services.RoutingRuleRemover
 	ruleAppliers       map[instances.InstanceID]services.RoutingRuleApplier
 	outboundReaders    map[instances.InstanceID]services.OutboundStatusReader
-	clients            []*xrayapi.Client
+	clients            []*nativeapi.Client
 	userBindings       []userowner.BackendBinding
 }
 
@@ -153,26 +154,27 @@ func newAPIResources(config []settings.Instance) (*apiResources, error) {
 		resources.outboundReaders[instance.ID] = nil
 		binding := userowner.BackendBinding{InstanceID: instance.ID}
 		if api := instance.Xray.API; api != nil {
-			client, err := xrayapi.NewClient(xrayapi.Config{
+			client, err := nativeapi.NewClient(nativeapi.Config{
 				Network: api.Network, Address: api.Address, RequestTimeout: api.RequestTimeout,
 				MaxReceiveBytes: api.MaxReceiveBytes, MaxConcurrent: api.MaxConcurrent,
 			})
 			if err != nil {
 				return nil, errors.Join(fmt.Errorf("construct instance %q API: %w", instance.ID, err), resources.Close())
 			}
-			resources.runtimeReaders[instance.ID] = client
-			resources.trafficReaders[instance.ID] = client
-			resources.trafficResetters[instance.ID] = client
-			resources.collectionReaders[instance.ID] = client
-			resources.onlineReaders[instance.ID] = client
-			resources.routingReaders[instance.ID] = client
-			resources.routingProbers[instance.ID] = client
-			resources.balancerOverriders[instance.ID] = client
-			resources.ruleRemovers[instance.ID] = client
-			resources.ruleAppliers[instance.ID] = client
-			resources.outboundReaders[instance.ID] = client
-			adapter := &userxray.Adapter{API: client}
-			binding.Adder, binding.Remover, binding.Counter, binding.Observer = adapter, adapter, adapter, adapter
+			adapter := &xrayapi.Adapter{API: client}
+			resources.runtimeReaders[instance.ID] = adapter
+			resources.trafficReaders[instance.ID] = adapter
+			resources.trafficResetters[instance.ID] = adapter
+			resources.collectionReaders[instance.ID] = adapter
+			resources.onlineReaders[instance.ID] = adapter
+			resources.routingReaders[instance.ID] = adapter
+			resources.routingProbers[instance.ID] = adapter
+			resources.balancerOverriders[instance.ID] = adapter
+			resources.ruleRemovers[instance.ID] = adapter
+			resources.ruleAppliers[instance.ID] = adapter
+			resources.outboundReaders[instance.ID] = adapter
+			userAdapter := &userxray.Adapter{API: client}
+			binding.Adder, binding.Remover, binding.Counter, binding.Observer = userAdapter, userAdapter, userAdapter, userAdapter
 			resources.clients = append(resources.clients, client)
 		}
 		resources.userBindings = append(resources.userBindings, binding)
