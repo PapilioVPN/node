@@ -21,6 +21,7 @@ import (
 	"github.com/PapilioVPN/node/internal/modules/core/instances"
 	instancesv1 "github.com/PapilioVPN/node/internal/modules/core/instances/grpcapi/proto/v1"
 	xrayv1 "github.com/PapilioVPN/node/internal/modules/xray/grpcapi/proto/v1"
+	infov1 "github.com/PapilioVPN/node/internal/modules/xray/info/grpcapi/proto/v1"
 	routingv1 "github.com/PapilioVPN/node/internal/modules/xray/routing/grpcapi/proto/v1"
 	rpc "github.com/PapilioVPN/node/internal/platform/grpcserver"
 	"github.com/PapilioVPN/node/internal/settings"
@@ -93,12 +94,12 @@ func TestXrayBinaryInfoOverMTLSKeepsLiveInstancesUnchanged(t *testing.T) {
 	_, additionError := client.AddRoutingRule(ctx, &routingv1.AddRoutingRuleRequest{InstanceId: "edge-a", RuleJson: []byte(`{"network":"tcp","outboundTag":"out"}`), Mode: routingv1.RoutingRuleMode_ROUTING_RULE_MODE_APPEND})
 	assertRoutingMutationFailure(t, additionError, codes.FailedPrecondition, routingv1.RoutingMutationOutcome_ROUTING_MUTATION_OUTCOME_NOT_APPLIED)
 
-	if _, err := client.GetRuntimeInfo(ctx, &xrayv1.GetRuntimeInfoRequest{InstanceId: "edge-a"}); status.Code(err) != codes.FailedPrecondition {
+	if _, err := client.GetRuntimeInfo(ctx, &infov1.GetRuntimeInfoRequest{InstanceId: "edge-a"}); status.Code(err) != codes.FailedPrecondition {
 		t.Fatalf("absent API settings were ignored: %v", err)
 	}
 	verifyFailedUserViews(t, ctx, client, "edge-a", "in", codes.FailedPrecondition)
 	before := time.Now().UnixMilli()
-	response, err := client.GetBinaryInfo(ctx, &xrayv1.GetBinaryInfoRequest{InstanceId: "edge-a"})
+	response, err := client.GetBinaryInfo(ctx, &infov1.GetBinaryInfoRequest{InstanceId: "edge-a"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -107,7 +108,7 @@ func TestXrayBinaryInfoOverMTLSKeepsLiveInstancesUnchanged(t *testing.T) {
 		t.Fatalf("native Xray binary facts over mTLS: %v", response)
 	}
 	for id, expected := range map[string]codes.Code{"missing": codes.NotFound, "edge-b": codes.FailedPrecondition, " edge-a ": codes.NotFound, "": codes.InvalidArgument} {
-		if _, err := client.GetBinaryInfo(ctx, &xrayv1.GetBinaryInfoRequest{InstanceId: id}); status.Code(err) != expected || strings.Contains(err.Error(), certificates.Directory) {
+		if _, err := client.GetBinaryInfo(ctx, &infov1.GetBinaryInfoRequest{InstanceId: id}); status.Code(err) != expected || strings.Contains(err.Error(), certificates.Directory) {
 			t.Fatalf("selection failure: %v; want %v", err, expected)
 		}
 	}
@@ -151,10 +152,10 @@ func TestXrayBinaryInfoRequiresItsOwnGrant(t *testing.T) {
 	})
 	client := xrayClient(t, server, certificates)
 	for _, id := range []string{"unknown", ""} {
-		if _, err := client.GetBinaryInfo(t.Context(), &xrayv1.GetBinaryInfoRequest{InstanceId: id}); status.Code(err) != codes.PermissionDenied {
+		if _, err := client.GetBinaryInfo(t.Context(), &infov1.GetBinaryInfoRequest{InstanceId: id}); status.Code(err) != codes.PermissionDenied {
 			t.Fatalf("other instance grants must not authorize engine information: %v", err)
 		}
-		if _, err := client.GetRuntimeInfo(t.Context(), &xrayv1.GetRuntimeInfoRequest{InstanceId: id}); status.Code(err) != codes.PermissionDenied {
+		if _, err := client.GetRuntimeInfo(t.Context(), &infov1.GetRuntimeInfoRequest{InstanceId: id}); status.Code(err) != codes.PermissionDenied {
 			t.Fatalf("other instance grants must not authorize runtime information: %v", err)
 		}
 	}

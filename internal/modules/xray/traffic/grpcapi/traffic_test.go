@@ -14,6 +14,7 @@ import (
 
 	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
 	"github.com/PapilioVPN/node/internal/modules/xray/grpcapi"
+	infogrpc "github.com/PapilioVPN/node/internal/modules/xray/info/grpcapi"
 	"github.com/PapilioVPN/node/internal/modules/xray/traffic/domain"
 	trafficgrpc "github.com/PapilioVPN/node/internal/modules/xray/traffic/grpcapi"
 	trafficv1 "github.com/PapilioVPN/node/internal/modules/xray/traffic/grpcapi/proto/v1"
@@ -33,7 +34,7 @@ func TestTrafficIdentityGrantAndShapePrecedeApplication(t *testing.T) {
 	}{
 		{t.Context(), true, codes.Unauthenticated}, {verifiedContext(t), false, codes.PermissionDenied},
 	} {
-		h := grpcapi.Handler{AllowInfoRead: true, TrafficAPI: trafficgrpc.TrafficAPI{AllowStatsRead: test.grant}}
+		h := grpcapi.Handler{TrafficAPI: trafficgrpc.TrafficAPI{AllowStatsRead: test.grant}, InfoAPI: infogrpc.InfoAPI{AllowInfoRead: true}}
 		if _, err := h.GetTrafficCounter(test.ctx, nil); status.Code(err) != test.code {
 			t.Fatalf("authorization before shape: %v", err)
 		}

@@ -17,6 +17,7 @@ import (
 	"github.com/PapilioVPN/node/internal/modules/xray/domain"
 	"github.com/PapilioVPN/node/internal/modules/xray/grpcapi"
 	xrayv1 "github.com/PapilioVPN/node/internal/modules/xray/grpcapi/proto/v1"
+	infogrpc "github.com/PapilioVPN/node/internal/modules/xray/info/grpcapi"
 	trafficgrpc "github.com/PapilioVPN/node/internal/modules/xray/traffic/grpcapi"
 )
 
@@ -44,7 +45,7 @@ func TestOnlineIdentityGrantAndShapePrecedeApplication(t *testing.T) {
 	}{
 		{t.Context(), true, codes.Unauthenticated}, {verifiedContext(t), false, codes.PermissionDenied}, {verifiedContext(t), true, codes.InvalidArgument},
 	} {
-		h := grpcapi.Handler{AllowInfoRead: true, AllowOnlineRead: test.grant, TrafficAPI: trafficgrpc.TrafficAPI{AllowStatsRead: true}}
+		h := grpcapi.Handler{AllowOnlineRead: test.grant, TrafficAPI: trafficgrpc.TrafficAPI{AllowStatsRead: true}, InfoAPI: infogrpc.InfoAPI{AllowInfoRead: true}}
 		_, count := h.GetUserOnlineStats(test.ctx, nil)
 		_, ips := h.ListUserOnlineIPs(test.ctx, nil)
 		_, users := h.ListOnlineUsers(test.ctx, nil)

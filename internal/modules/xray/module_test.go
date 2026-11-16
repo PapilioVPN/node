@@ -11,6 +11,7 @@ import (
 	"google.golang.org/grpc"
 
 	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
+	infoservices "github.com/PapilioVPN/node/internal/modules/xray/info/app/services"
 	routingdomain "github.com/PapilioVPN/node/internal/modules/xray/routing/domain"
 	routingxray "github.com/PapilioVPN/node/internal/modules/xray/routing/infra/api"
 	trafficservices "github.com/PapilioVPN/node/internal/modules/xray/traffic/app/services"
@@ -49,7 +50,7 @@ func TestModuleClosesAPIAdmissionAndExportsFinalCleanup(t *testing.T) {
 	if !ok {
 		t.Fatal("API owner was not exported for final cleanup")
 	}
-	service := newRuntimeInfoService(resources)
+	service := infoservices.NewRuntimeInfoService(resources.runtimeReaders)
 	userAdapter := &userxray.Adapter{API: resources.clients[0]}
 	router := &routingxray.Router{API: resources.clients[0]}
 	traffic := newTrafficBindings(resources).Values[0]

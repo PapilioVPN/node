@@ -9,8 +9,8 @@ import (
 	"google.golang.org/grpc/status"
 
 	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
-	"github.com/PapilioVPN/node/internal/modules/xray/domain"
-	xrayv1 "github.com/PapilioVPN/node/internal/modules/xray/grpcapi/proto/v1"
+	"github.com/PapilioVPN/node/internal/modules/xray/info/domain"
+	xrayv1 "github.com/PapilioVPN/node/internal/modules/xray/info/grpcapi/proto/v1"
 	"github.com/PapilioVPN/node/internal/shared/grpcidentity"
 	"github.com/PapilioVPN/node/internal/shared/grpcresponse"
 )
@@ -19,7 +19,7 @@ type RuntimeInfoReader interface {
 	GetRuntimeInfo(context.Context, instances.InstanceID) (domain.InstanceRuntimeInfo, error)
 }
 
-func (h Handler) GetRuntimeInfo(ctx context.Context, request *xrayv1.GetRuntimeInfoRequest) (*xrayv1.GetRuntimeInfoResponse, error) {
+func (h InfoAPI) GetRuntimeInfo(ctx context.Context, request *xrayv1.GetRuntimeInfoRequest) (*xrayv1.GetRuntimeInfoResponse, error) {
 	if err := grpcidentity.VerifyClient(ctx); err != nil {
 		return nil, err
 	}

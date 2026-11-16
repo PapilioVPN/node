@@ -10,11 +10,11 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/PapilioVPN/node/internal/modules/xray/domain"
+	"github.com/PapilioVPN/node/internal/modules/xray/info/domain"
 )
 
 // ReadRuntimeInfo performs one bounded GetSysStats call with no application retry.
-func (c *Adapter) ReadRuntimeInfo(ctx context.Context) (domain.RuntimeInfo, error) {
+func (c *Reader) ReadRuntimeInfo(ctx context.Context) (domain.RuntimeInfo, error) {
 	if err := ctx.Err(); err != nil {
 		return domain.RuntimeInfo{}, err
 	}

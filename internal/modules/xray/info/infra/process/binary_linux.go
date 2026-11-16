@@ -11,7 +11,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/PapilioVPN/node/internal/modules/xray/domain"
+	"github.com/PapilioVPN/node/internal/modules/xray/info/domain"
 )
 
 var ErrInvalidInspectionSettings = errors.New("invalid Xray binary inspection settings")

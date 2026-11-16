@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PapilioVPN/node/internal/modules/xray/domain"
+	"github.com/PapilioVPN/node/internal/modules/xray/info/domain"
 )
 
 func TestVersionOutputPreservesNativeFields(t *testing.T) {

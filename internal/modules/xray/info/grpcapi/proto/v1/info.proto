@@ -1,0 +1,49 @@
+syntax = "proto3";
+
+package papilio.node.xray.v1;
+
+option go_package = "github.com/PapilioVPN/node/internal/modules/xray/info/grpcapi/proto/v1;infov1";
+
+message GetRuntimeInfoRequest {
+  string instance_id = 1;
+}
+
+message GetRuntimeInfoResponse {
+  string instance_id = 1;
+  RuntimeInfo runtime = 2;
+}
+
+message RuntimeInfo {
+  uint32 goroutines = 1;
+  uint32 gc_count = 2;
+  uint64 allocated_bytes = 3;
+  uint64 total_allocated_bytes = 4;
+  // Bytes obtained from the OS by Go's runtime (MemStats.Sys), not process RSS.
+  uint64 sys_bytes = 5;
+  uint64 mallocs = 6;
+  uint64 frees = 7;
+  uint64 live_objects = 8;
+  uint64 total_gc_pause_ns = 9;
+  // Seconds since the native StatsService was constructed, at native uint32 precision.
+  uint32 uptime_seconds = 10;
+  int64 observed_at_unix_ms = 11;
+}
+
+message GetBinaryInfoRequest {
+  string instance_id = 1;
+}
+
+message GetBinaryInfoResponse {
+  string instance_id = 1;
+  BinaryInfo binary = 2;
+}
+
+// Configured executable metadata, not process state, readiness or native API support.
+message BinaryInfo {
+  string version = 1;
+  string build = 2;
+  string go_version = 3;
+  string operating_system = 4;
+  string architecture = 5;
+  int64 observed_at_unix_ms = 6;
+}

@@ -24,6 +24,7 @@ import (
 	instancesv1 "github.com/PapilioVPN/node/internal/modules/core/instances/grpcapi/proto/v1"
 	xraydomain "github.com/PapilioVPN/node/internal/modules/xray/domain"
 	xrayv1 "github.com/PapilioVPN/node/internal/modules/xray/grpcapi/proto/v1"
+	infov1 "github.com/PapilioVPN/node/internal/modules/xray/info/grpcapi/proto/v1"
 	routingdomain "github.com/PapilioVPN/node/internal/modules/xray/routing/domain"
 	routingv1 "github.com/PapilioVPN/node/internal/modules/xray/routing/grpcapi/proto/v1"
 	trafficv1 "github.com/PapilioVPN/node/internal/modules/xray/traffic/grpcapi/proto/v1"
@@ -137,7 +138,7 @@ func TestXrayRuntimeInfoOverMTLSAndNativeReconnect(t *testing.T) {
 				t.Fatalf("native runtime facts: %v", response)
 			}
 			for id, expected := range map[string]codes.Code{"missing": codes.NotFound, " edge-a ": codes.NotFound, "": codes.InvalidArgument, "edge-b": codes.FailedPrecondition} {
-				if _, err := client.GetRuntimeInfo(ctx, &xrayv1.GetRuntimeInfoRequest{InstanceId: id}); status.Code(err) != expected || strings.Contains(err.Error(), certificates.Directory) {
+				if _, err := client.GetRuntimeInfo(ctx, &infov1.GetRuntimeInfoRequest{InstanceId: id}); status.Code(err) != expected || strings.Contains(err.Error(), certificates.Directory) {
 					t.Fatalf("instance selection: %v; want %v", err, expected)
 				}
 			}
@@ -145,7 +146,7 @@ func TestXrayRuntimeInfoOverMTLSAndNativeReconnect(t *testing.T) {
 			if _, err := controls.StopInstance(ctx, &instancesv1.StopInstanceRequest{InstanceId: "edge-a"}); err != nil {
 				t.Fatal(err)
 			}
-			if response, err := client.GetRuntimeInfo(ctx, &xrayv1.GetRuntimeInfoRequest{InstanceId: "edge-a"}); response != nil || status.Code(err) != codes.Unavailable {
+			if response, err := client.GetRuntimeInfo(ctx, &infov1.GetRuntimeInfoRequest{InstanceId: "edge-a"}); response != nil || status.Code(err) != codes.Unavailable {
 				t.Fatalf("stopped API became available: %v, %v", response, err)
 			}
 			if err := xrayTraffic(ctx, secondAddress); err != nil {
@@ -220,12 +221,12 @@ func configureXrayAPI(t *testing.T, instance *settings.Instance, network string,
 }
 
 // Only tests poll for observed API readiness; production reads never retry.
-func awaitRuntimeInfo(t *testing.T, ctx context.Context, client xrayv1.XrayServiceClient, id string) *xrayv1.GetRuntimeInfoResponse {
+func awaitRuntimeInfo(t *testing.T, ctx context.Context, client xrayv1.XrayServiceClient, id string) *infov1.GetRuntimeInfoResponse {
 	t.Helper()
 	ticker := time.NewTicker(20 * time.Millisecond)
 	defer ticker.Stop()
 	for {
-		response, err := client.GetRuntimeInfo(ctx, &xrayv1.GetRuntimeInfoRequest{InstanceId: id})
+		response, err := client.GetRuntimeInfo(ctx, &infov1.GetRuntimeInfoRequest{InstanceId: id})
 		if err == nil {
 			return response
 		}

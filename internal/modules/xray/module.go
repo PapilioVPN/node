@@ -18,6 +18,10 @@ import (
 	"github.com/PapilioVPN/node/internal/modules/xray/domain"
 	"github.com/PapilioVPN/node/internal/modules/xray/grpcapi"
 	xrayv1 "github.com/PapilioVPN/node/internal/modules/xray/grpcapi/proto/v1"
+	infoowner "github.com/PapilioVPN/node/internal/modules/xray/info"
+	infoservices "github.com/PapilioVPN/node/internal/modules/xray/info/app/services"
+	infogrpc "github.com/PapilioVPN/node/internal/modules/xray/info/grpcapi"
+	infoapi "github.com/PapilioVPN/node/internal/modules/xray/info/infra/api"
 	xrayapi "github.com/PapilioVPN/node/internal/modules/xray/infra/api"
 	xrayprocess "github.com/PapilioVPN/node/internal/modules/xray/infra/process"
 	routingowner "github.com/PapilioVPN/node/internal/modules/xray/routing"
@@ -41,14 +45,14 @@ import (
 // Module composes Xray capabilities and their shared native resource bindings.
 func Module(grpcEnabled bool) fx.Option {
 	options := []fx.Option{
-		userowner.Module(grpcEnabled), routingowner.Module(grpcEnabled), trafficowner.Module(grpcEnabled),
+		userowner.Module(grpcEnabled), routingowner.Module(grpcEnabled), trafficowner.Module(grpcEnabled), infoowner.Module(grpcEnabled),
 		fx.Provide(
-			newBinaryInfoService, newAPIResources, newRuntimeInfoService,
+			newAPIResources,
 			newOnlineService,
 			newOutboundStatusService,
 			fx.Private,
 		),
-		fx.Provide(capability, apiCleanup, newRuntimeBindings, newUserBindings, newRoutingBindings, newTrafficBindings), fx.Invoke(registerAPILifecycle),
+		fx.Provide(capability, apiCleanup, newRuntimeBindings, newUserBindings, newRoutingBindings, newTrafficBindings, newInfoBindings), fx.Invoke(registerAPILifecycle),
 	}
 	if grpcEnabled {
 		options = append(options, fx.Invoke(registerGRPC))
@@ -94,29 +98,8 @@ func newRuntimeBindings(config []settings.Instance) (runtimeBindingsResult, erro
 	return result, nil
 }
 
-func newBinaryInfoService(config []settings.Instance) (*services.BinaryInfoService, error) {
-	readers := make(map[instances.InstanceID]services.BinaryInfoReader)
-	for _, instance := range config {
-		if instance.Engine != instances.Xray {
-			continue
-		}
-		readers[instance.ID] = nil
-		if inspection := instance.Xray.Inspection; inspection != nil {
-			reader, err := xrayprocess.NewBinaryInspector(xrayprocess.BinaryInspectionConfig{
-				Binary: instance.Xray.Binary, Timeout: inspection.Timeout,
-				MaxOutputBytes: inspection.MaxOutputBytes, MaxConcurrent: inspection.MaxConcurrent,
-			})
-			if err != nil {
-				return nil, fmt.Errorf("construct instance %q binary inspector: %w", instance.ID, err)
-			}
-			readers[instance.ID] = reader
-		}
-	}
-	return services.NewBinaryInfoService(readers), nil
-}
-
 type apiResources struct {
-	runtimeReaders  map[instances.InstanceID]services.RuntimeInfoReader
+	runtimeReaders  map[instances.InstanceID]infoservices.RuntimeInfoReader
 	onlineReaders   map[instances.InstanceID]services.OnlineReader
 	outboundReaders map[instances.InstanceID]services.OutboundStatusReader
 	clients         []*nativeapi.Client
@@ -127,7 +110,7 @@ type apiResources struct {
 
 func newAPIResources(config []settings.Instance) (*apiResources, error) {
 	resources := &apiResources{
-		runtimeReaders:  make(map[instances.InstanceID]services.RuntimeInfoReader),
+		runtimeReaders:  make(map[instances.InstanceID]infoservices.RuntimeInfoReader),
 		onlineReaders:   make(map[instances.InstanceID]services.OnlineReader),
 		outboundReaders: make(map[instances.InstanceID]services.OutboundStatusReader),
 	}
@@ -150,7 +133,7 @@ func newAPIResources(config []settings.Instance) (*apiResources, error) {
 				return nil, errors.Join(fmt.Errorf("construct instance %q API: %w", instance.ID, err), resources.Close())
 			}
 			adapter := &xrayapi.Adapter{API: client}
-			resources.runtimeReaders[instance.ID] = adapter
+			resources.runtimeReaders[instance.ID] = &infoapi.Reader{API: client}
 			resources.onlineReaders[instance.ID] = adapter
 			resources.outboundReaders[instance.ID] = adapter
 			counters := &trafficxray.Counters{API: client}
@@ -172,10 +155,6 @@ func newAPIResources(config []settings.Instance) (*apiResources, error) {
 		resources.trafficBindings = append(resources.trafficBindings, traffic)
 	}
 	return resources, nil
-}
-
-func newRuntimeInfoService(resources *apiResources) *services.RuntimeInfoService {
-	return services.NewRuntimeInfoService(resources.runtimeReaders)
 }
 
 func newOnlineService(resources *apiResources) *services.OnlineService {
@@ -201,8 +180,7 @@ func (r *apiResources) Close() error {
 type grpcServices struct {
 	fx.In
 	Registrar   grpc.ServiceRegistrar
-	Info        *services.BinaryInfoService
-	Runtime     *services.RuntimeInfoService
+	InfoAPI     infogrpc.InfoAPI
 	Online      *services.OnlineService
 	Outbounds   *services.OutboundStatusService
 	UserAPI     usergrpc.UserAPI
@@ -213,11 +191,11 @@ type grpcServices struct {
 
 func registerGRPC(p grpcServices) {
 	xrayv1.RegisterXrayServiceServer(p.Registrar, grpcapi.Handler{
-		Info: p.Info, Runtime: p.Runtime, Online: p.Online, Outbounds: p.Outbounds,
+		Online: p.Online, Outbounds: p.Outbounds,
 		UserAPI: p.UserAPI, RoutingAPI: p.RoutingAPI, TrafficAPI: p.TrafficAPI,
-		AllowInfoRead:      p.Permissions.ReadEngineInfo,
 		AllowOnlineRead:    p.Permissions.ReadEngineOnline,
 		AllowOutboundsRead: p.Permissions.ReadEngineOutbounds,
+		InfoAPI:            p.InfoAPI,
 	})
 }
 
@@ -228,7 +206,6 @@ type capabilityResult struct {
 
 func capability() capabilityResult {
 	return capabilityResult{Values: []system.Capability{
-		domain.ReadBinaryInfo, domain.ReadRuntimeInfo,
 		trafficdomain.ReadTrafficCounter, trafficdomain.ListTrafficCounters, trafficdomain.ResetTrafficCounter, trafficdomain.ResetTrafficCounters,
 		trafficdomain.ReadTrafficPair, trafficdomain.ResetTrafficPair,
 		userdomain.AddInboundUser, userdomain.RemoveInboundUser, userdomain.ReadInboundUserCount,
@@ -295,4 +272,17 @@ type trafficBindingsResult struct {
 
 func newTrafficBindings(resources *apiResources) trafficBindingsResult {
 	return trafficBindingsResult{Values: resources.trafficBindings}
+}
+
+type infoBindingsResult struct {
+	fx.Out
+	Values []infoowner.BackendBinding `group:"xray_info_backends,flatten"`
+}
+
+func newInfoBindings(resources *apiResources) infoBindingsResult {
+	result := infoBindingsResult{}
+	for id, reader := range resources.runtimeReaders {
+		result.Values = append(result.Values, infoowner.BackendBinding{InstanceID: id, Reader: reader})
+	}
+	return result
 }

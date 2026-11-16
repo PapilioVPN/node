@@ -33,4 +33,5 @@ PATH="$tool_dir:$PATH" "$tool_dir/protoc" \
   internal/modules/xray/users/grpcapi/proto/v1/users.proto \
   internal/modules/xray/routing/grpcapi/proto/v1/routing.proto \
   internal/modules/xray/traffic/grpcapi/proto/v1/traffic.proto \
+  internal/modules/xray/info/grpcapi/proto/v1/info.proto \
   internal/modules/xray/grpcapi/proto/v1/xray.proto

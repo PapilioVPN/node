@@ -23,6 +23,7 @@ import (
 
 	"github.com/PapilioVPN/node/internal/bootstrap"
 	xrayv1 "github.com/PapilioVPN/node/internal/modules/xray/grpcapi/proto/v1"
+	infov1 "github.com/PapilioVPN/node/internal/modules/xray/info/grpcapi/proto/v1"
 	trafficv1 "github.com/PapilioVPN/node/internal/modules/xray/traffic/grpcapi/proto/v1"
 	rpc "github.com/PapilioVPN/node/internal/platform/grpcserver"
 	"github.com/PapilioVPN/node/internal/settings"
@@ -208,7 +209,7 @@ func TestOnlineObservationsOverMTLSFollowRealConnectionLifetimes(t *testing.T) {
 			if status.Code(err) != codes.NotFound {
 				t.Fatalf("other instance map created: %v", err)
 			}
-			_, err = client.GetRuntimeInfo(ctx, &xrayv1.GetRuntimeInfoRequest{InstanceId: "edge-a"})
+			_, err = client.GetRuntimeInfo(ctx, &infov1.GetRuntimeInfoRequest{InstanceId: "edge-a"})
 			if status.Code(err) != codes.PermissionDenied {
 				t.Fatalf("online grant expanded info: %v", err)
 			}

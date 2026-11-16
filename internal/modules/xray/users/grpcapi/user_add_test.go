@@ -15,6 +15,7 @@ import (
 
 	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
 	"github.com/PapilioVPN/node/internal/modules/xray/grpcapi"
+	infogrpc "github.com/PapilioVPN/node/internal/modules/xray/info/grpcapi"
 	trafficgrpc "github.com/PapilioVPN/node/internal/modules/xray/traffic/grpcapi"
 	"github.com/PapilioVPN/node/internal/modules/xray/users/domain"
 	usergrpc "github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi"
@@ -31,7 +32,7 @@ func TestUserAdditionChecksIdentityAndIndependentGrantBeforeShape(t *testing.T) 
 	if _, err := (grpcapi.Handler{UserAPI: usergrpc.UserAPI{AllowUserManagement: true}}).AddInboundUser(t.Context(), nil); status.Code(err) != codes.Unauthenticated {
 		t.Fatalf("unverified caller reached addition: %v", err)
 	}
-	if _, err := (grpcapi.Handler{AllowInfoRead: true, AllowOnlineRead: true, TrafficAPI: trafficgrpc.TrafficAPI{AllowStatsRead: true, AllowStatsReset: true}}).AddInboundUser(verifiedContext(t), nil); status.Code(err) != codes.PermissionDenied {
+	if _, err := (grpcapi.Handler{AllowOnlineRead: true, TrafficAPI: trafficgrpc.TrafficAPI{AllowStatsRead: true, AllowStatsReset: true}, InfoAPI: infogrpc.InfoAPI{AllowInfoRead: true}}).AddInboundUser(verifiedContext(t), nil); status.Code(err) != codes.PermissionDenied {
 		t.Fatalf("other grants enabled addition: %v", err)
 	}
 }

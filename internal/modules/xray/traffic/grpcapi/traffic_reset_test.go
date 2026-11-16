@@ -13,6 +13,7 @@ import (
 
 	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
 	"github.com/PapilioVPN/node/internal/modules/xray/grpcapi"
+	infogrpc "github.com/PapilioVPN/node/internal/modules/xray/info/grpcapi"
 	"github.com/PapilioVPN/node/internal/modules/xray/traffic/domain"
 	trafficgrpc "github.com/PapilioVPN/node/internal/modules/xray/traffic/grpcapi"
 	trafficv1 "github.com/PapilioVPN/node/internal/modules/xray/traffic/grpcapi/proto/v1"
@@ -32,7 +33,7 @@ func TestResetRequiresIdentityAndItsIndependentGrantBeforeShape(t *testing.T) {
 	if _, err := (trafficgrpc.TrafficAPI{AllowStatsReset: true}).ResetTrafficCounter(t.Context(), nil); status.Code(err) != codes.Unauthenticated {
 		t.Fatalf("reset without identity: %v", err)
 	}
-	if _, err := (grpcapi.Handler{AllowInfoRead: true, AllowOnlineRead: true, TrafficAPI: trafficgrpc.TrafficAPI{AllowStatsRead: true}}).ResetTrafficCounter(verifiedContext(t), nil); status.Code(err) != codes.PermissionDenied {
+	if _, err := (grpcapi.Handler{AllowOnlineRead: true, TrafficAPI: trafficgrpc.TrafficAPI{AllowStatsRead: true}, InfoAPI: infogrpc.InfoAPI{AllowInfoRead: true}}).ResetTrafficCounter(verifiedContext(t), nil); status.Code(err) != codes.PermissionDenied {
 		t.Fatalf("reads granted reset: %v", err)
 	}
 	h := trafficgrpc.TrafficAPI{AllowStatsReset: true}

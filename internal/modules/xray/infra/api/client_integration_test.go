@@ -18,6 +18,8 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/PapilioVPN/node/internal/modules/xray/domain"
+	infodomain "github.com/PapilioVPN/node/internal/modules/xray/info/domain"
+	infoapi "github.com/PapilioVPN/node/internal/modules/xray/info/infra/api"
 	xrayapi "github.com/PapilioVPN/node/internal/modules/xray/infra/api"
 	routingxray "github.com/PapilioVPN/node/internal/modules/xray/routing/infra/api"
 	trafficxray "github.com/PapilioVPN/node/internal/modules/xray/traffic/infra/api"
@@ -75,6 +77,7 @@ type apiClientSet struct {
 	*trafficxray.Counters
 	*nativeapi.Client
 	*xrayapi.Adapter
+	*infoapi.Reader
 	*routingxray.Router
 }
 
@@ -89,7 +92,7 @@ func apiClient(t *testing.T, address string, timeout time.Duration, limit int) *
 			t.Error(err)
 		}
 	})
-	return &apiClientSet{Counters: &trafficxray.Counters{API: client}, Client: client, Adapter: &xrayapi.Adapter{API: client}, Router: &routingxray.Router{API: client}}
+	return &apiClientSet{Counters: &trafficxray.Counters{API: client}, Client: client, Adapter: &xrayapi.Adapter{API: client}, Reader: &infoapi.Reader{API: client}, Router: &routingxray.Router{API: client}}
 }
 
 func TestAPIReusesNativeChannelAndPreservesUnsignedCounters(t *testing.T) {
@@ -115,7 +118,7 @@ func TestAPIReusesNativeChannelAndPreservesUnsignedCounters(t *testing.T) {
 	if err := client.Close(); err != nil {
 		t.Fatal(err)
 	}
-	if info, err := client.ReadRuntimeInfo(t.Context()); err == nil || info != (domain.RuntimeInfo{}) {
+	if info, err := client.ReadRuntimeInfo(t.Context()); err == nil || info != (infodomain.RuntimeInfo{}) {
 		t.Fatalf("closed channel accepted a read: %+v, %v", info, err)
 	}
 	if calls.Load() != 3 {
@@ -125,13 +128,13 @@ func TestAPIReusesNativeChannelAndPreservesUnsignedCounters(t *testing.T) {
 
 func TestAPINativeMethodAndResponseLimits(t *testing.T) {
 	missing, _ := apiServer(t, nil)
-	if _, err := apiClient(t, missing, time.Second, 1024).ReadRuntimeInfo(t.Context()); !errors.Is(err, domain.ErrRuntimeInfoUnsupported) || status.Code(err) != codes.Unimplemented {
+	if _, err := apiClient(t, missing, time.Second, 1024).ReadRuntimeInfo(t.Context()); !errors.Is(err, infodomain.ErrRuntimeInfoUnsupported) || status.Code(err) != codes.Unimplemented {
 		t.Fatalf("missing method cause: %v", err)
 	}
 	address, _ := apiServer(t, runtimeServer{read: func(context.Context) (*native.SysStatsResponse, error) {
 		return &native.SysStatsResponse{Alloc: math.MaxUint64}, nil
 	}})
-	if info, err := apiClient(t, address, time.Second, 1).ReadRuntimeInfo(t.Context()); !errors.Is(err, domain.ErrAPIResourceLimit) || status.Code(err) != codes.ResourceExhausted || info != (domain.RuntimeInfo{}) {
+	if info, err := apiClient(t, address, time.Second, 1).ReadRuntimeInfo(t.Context()); !errors.Is(err, domain.ErrAPIResourceLimit) || status.Code(err) != codes.ResourceExhausted || info != (infodomain.RuntimeInfo{}) {
 		t.Fatalf("native response limit: %+v, %v", info, err)
 	}
 }
@@ -148,7 +151,7 @@ func TestAPIAdmissionCancellationDeadlineAndClose(t *testing.T) {
 			client := apiClient(t, address, time.Second, 1024)
 			ctx, cancel := context.WithCancel(t.Context())
 			finished := make(chan struct{})
-			var result domain.RuntimeInfo
+			var result infodomain.RuntimeInfo
 			var callError error
 			go func() { result, callError = client.ReadRuntimeInfo(ctx); close(finished) }()
 			defer func() { cancel(); _ = client.Close(); <-finished }()
@@ -169,7 +172,7 @@ func TestAPIAdmissionCancellationDeadlineAndClose(t *testing.T) {
 				}
 			}
 			<-finished
-			if result != (domain.RuntimeInfo{}) || callError == nil {
+			if result != (infodomain.RuntimeInfo{}) || callError == nil {
 				t.Fatalf("interrupted read became facts: %+v, %v", result, callError)
 			}
 			if mode == "cancel" && !errors.Is(callError, context.Canceled) || mode == "timeout" && !errors.Is(callError, context.DeadlineExceeded) {

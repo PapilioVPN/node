@@ -18,6 +18,7 @@ import (
 
 	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
 	"github.com/PapilioVPN/node/internal/modules/xray/grpcapi"
+	infogrpc "github.com/PapilioVPN/node/internal/modules/xray/info/grpcapi"
 	"github.com/PapilioVPN/node/internal/modules/xray/routing/domain"
 	routinggrpc "github.com/PapilioVPN/node/internal/modules/xray/routing/grpcapi"
 	routingv1 "github.com/PapilioVPN/node/internal/modules/xray/routing/grpcapi/proto/v1"
@@ -46,7 +47,7 @@ func TestRoutingReadsRequireIdentityAndIndependentGrantBeforeShape(t *testing.T)
 	if _, err := h.GetBalancerInfo(t.Context(), nil); status.Code(err) != codes.Unauthenticated {
 		t.Fatalf("unverified balancer read reached shape/application: %v", err)
 	}
-	h = grpcapi.Handler{AllowInfoRead: true, AllowOnlineRead: true, UserAPI: usergrpc.UserAPI{AllowUsersRead: true, AllowUserManagement: true}, TrafficAPI: trafficgrpc.TrafficAPI{AllowStatsRead: true, AllowStatsReset: true}}
+	h = grpcapi.Handler{AllowOnlineRead: true, UserAPI: usergrpc.UserAPI{AllowUsersRead: true, AllowUserManagement: true}, TrafficAPI: trafficgrpc.TrafficAPI{AllowStatsRead: true, AllowStatsReset: true}, InfoAPI: infogrpc.InfoAPI{AllowInfoRead: true}}
 	if _, err := h.ListRoutingRules(verifiedContext(t), nil); status.Code(err) != codes.PermissionDenied {
 		t.Fatalf("other grants enabled routing list: %v", err)
 	}

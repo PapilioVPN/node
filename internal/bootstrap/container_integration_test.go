@@ -26,6 +26,7 @@ import (
 	nodev1 "github.com/PapilioVPN/node/internal/modules/core/instances/grpcapi/proto/v1"
 	systemv1 "github.com/PapilioVPN/node/internal/modules/system/info/grpcapi/proto/v1"
 	xrayv1 "github.com/PapilioVPN/node/internal/modules/xray/grpcapi/proto/v1"
+	infov1 "github.com/PapilioVPN/node/internal/modules/xray/info/grpcapi/proto/v1"
 	routingv1 "github.com/PapilioVPN/node/internal/modules/xray/routing/grpcapi/proto/v1"
 	trafficv1 "github.com/PapilioVPN/node/internal/modules/xray/traffic/grpcapi/proto/v1"
 	userv1 "github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi/proto/v1"
@@ -151,10 +152,10 @@ func TestContainer(t *testing.T) {
 	if _, err := nodev1.NewInstanceServiceClient(connection).ValidateInstanceConfig(request, &nodev1.ValidateInstanceConfigRequest{InstanceId: "unconfigured", Format: nodev1.ConfigFormat_CONFIG_FORMAT_JSON, Content: []byte("{}")}); status.Code(err) != codes.NotFound {
 		t.Fatalf("packaged validation grant/service failed: %v", err)
 	}
-	if _, err := xrayv1.NewXrayServiceClient(connection).GetBinaryInfo(request, &xrayv1.GetBinaryInfoRequest{InstanceId: "unconfigured"}); status.Code(err) != codes.NotFound {
+	if _, err := xrayv1.NewXrayServiceClient(connection).GetBinaryInfo(request, &infov1.GetBinaryInfoRequest{InstanceId: "unconfigured"}); status.Code(err) != codes.NotFound {
 		t.Fatalf("packaged Xray information grant/service failed: %v", err)
 	}
-	if _, err := xrayv1.NewXrayServiceClient(connection).GetRuntimeInfo(request, &xrayv1.GetRuntimeInfoRequest{InstanceId: "unconfigured"}); status.Code(err) != codes.NotFound {
+	if _, err := xrayv1.NewXrayServiceClient(connection).GetRuntimeInfo(request, &infov1.GetRuntimeInfoRequest{InstanceId: "unconfigured"}); status.Code(err) != codes.NotFound {
 		t.Fatalf("packaged Xray runtime grant/service failed: %v", err)
 	}
 	if _, err := xrayv1.NewXrayServiceClient(connection).GetTrafficCounter(request, &trafficv1.GetTrafficCounterRequest{

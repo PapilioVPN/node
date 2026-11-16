@@ -24,7 +24,7 @@ jobs:
       - name: Verify generated protocol source
         run: |
           make generate
-          git diff --exit-code -- internal/modules/system/info/grpcapi/proto/v1 internal/modules/core/instances/grpcapi/proto/v1 internal/modules/xray/users/grpcapi/proto/v1 internal/modules/xray/routing/grpcapi/proto/v1 internal/modules/xray/traffic/grpcapi/proto/v1 internal/modules/xray/grpcapi/proto/v1
+          git diff --exit-code -- internal/modules/system/info/grpcapi/proto/v1 internal/modules/core/instances/grpcapi/proto/v1 internal/modules/xray/users/grpcapi/proto/v1 internal/modules/xray/routing/grpcapi/proto/v1 internal/modules/xray/traffic/grpcapi/proto/v1 internal/modules/xray/info/grpcapi/proto/v1 internal/modules/xray/grpcapi/proto/v1
       - name: Check
         run: make check
       - name: Build and package runtime image

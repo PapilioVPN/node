@@ -16,9 +16,9 @@ import (
 	"google.golang.org/grpc/status"
 
 	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
-	"github.com/PapilioVPN/node/internal/modules/xray/domain"
-	"github.com/PapilioVPN/node/internal/modules/xray/grpcapi"
-	xrayv1 "github.com/PapilioVPN/node/internal/modules/xray/grpcapi/proto/v1"
+	"github.com/PapilioVPN/node/internal/modules/xray/info/domain"
+	"github.com/PapilioVPN/node/internal/modules/xray/info/grpcapi"
+	xrayv1 "github.com/PapilioVPN/node/internal/modules/xray/info/grpcapi/proto/v1"
 )
 
 type binaryReader func(context.Context, instances.InstanceID) (domain.InstanceBinaryInfo, error)
@@ -46,12 +46,12 @@ func TestBinaryInfoAuthenticationAndGrantPrecedeRequestAndLookup(t *testing.T) {
 		{verifiedContext(t), false, codes.PermissionDenied},
 	} {
 		// Nil Info fails immediately if authorization reaches the application.
-		handler := grpcapi.Handler{AllowInfoRead: test.grant}
+		handler := grpcapi.InfoAPI{AllowInfoRead: test.grant}
 		if response, err := handler.GetBinaryInfo(test.ctx, nil); response != nil || status.Code(err) != test.code {
 			t.Fatalf("authorization order: %v, %v; want %v", response, err, test.code)
 		}
 	}
-	handler := grpcapi.Handler{AllowInfoRead: true}
+	handler := grpcapi.InfoAPI{AllowInfoRead: true}
 	for _, request := range []*xrayv1.GetBinaryInfoRequest{nil, {}, {InstanceId: " "}} {
 		if _, err := handler.GetBinaryInfo(verifiedContext(t), request); status.Code(err) != codes.InvalidArgument {
 			t.Fatalf("invalid input reached application: %v", err)
@@ -62,7 +62,7 @@ func TestBinaryInfoAuthenticationAndGrantPrecedeRequestAndLookup(t *testing.T) {
 func TestBinaryInfoRetainsIdentityAndNativeFacts(t *testing.T) {
 	ctx := verifiedContext(t)
 	observed := time.UnixMilli(1700000000123).UTC()
-	handler := grpcapi.Handler{AllowInfoRead: true, Info: binaryReader(func(received context.Context, id instances.InstanceID) (domain.InstanceBinaryInfo, error) {
+	handler := grpcapi.InfoAPI{AllowInfoRead: true, Info: binaryReader(func(received context.Context, id instances.InstanceID) (domain.InstanceBinaryInfo, error) {
 		if received != ctx || id != " edge " {
 			t.Fatal("context or exact identity changed")
 		}
@@ -89,7 +89,7 @@ func TestBinaryInfoSanitizesErrorsAndDiscardsPartialFacts(t *testing.T) {
 		context.DeadlineExceeded:          codes.DeadlineExceeded,
 		errors.New("native private path"): codes.Unavailable,
 	} {
-		handler := grpcapi.Handler{AllowInfoRead: true, Info: binaryReader(func(context.Context, instances.InstanceID) (domain.InstanceBinaryInfo, error) {
+		handler := grpcapi.InfoAPI{AllowInfoRead: true, Info: binaryReader(func(context.Context, instances.InstanceID) (domain.InstanceBinaryInfo, error) {
 			return domain.InstanceBinaryInfo{Binary: domain.BinaryInfo{Version: "partial"}}, fmt.Errorf("private diagnostics: %w", cause)
 		})}
 		response, err := handler.GetBinaryInfo(verifiedContext(t), &xrayv1.GetBinaryInfoRequest{InstanceId: "edge"})
@@ -99,7 +99,7 @@ func TestBinaryInfoSanitizesErrorsAndDiscardsPartialFacts(t *testing.T) {
 	}
 	ctx, cancel := context.WithCancel(verifiedContext(t))
 	defer cancel()
-	handler := grpcapi.Handler{AllowInfoRead: true, Info: binaryReader(func(context.Context, instances.InstanceID) (domain.InstanceBinaryInfo, error) {
+	handler := grpcapi.InfoAPI{AllowInfoRead: true, Info: binaryReader(func(context.Context, instances.InstanceID) (domain.InstanceBinaryInfo, error) {
 		cancel()
 		return domain.InstanceBinaryInfo{Binary: domain.BinaryInfo{Version: "partial"}}, nil
 	})}

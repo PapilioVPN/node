@@ -13,9 +13,9 @@ import (
 	"google.golang.org/grpc/status"
 
 	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
-	"github.com/PapilioVPN/node/internal/modules/xray/domain"
-	"github.com/PapilioVPN/node/internal/modules/xray/grpcapi"
-	xrayv1 "github.com/PapilioVPN/node/internal/modules/xray/grpcapi/proto/v1"
+	"github.com/PapilioVPN/node/internal/modules/xray/info/domain"
+	"github.com/PapilioVPN/node/internal/modules/xray/info/grpcapi"
+	xrayv1 "github.com/PapilioVPN/node/internal/modules/xray/info/grpcapi/proto/v1"
 )
 
 type runtimeReader func(context.Context, instances.InstanceID) (domain.InstanceRuntimeInfo, error)
@@ -32,12 +32,12 @@ func TestRuntimeInfoChecksIdentityGrantAndShapeBeforeApplication(t *testing.T) {
 	}{
 		{t.Context(), true, codes.Unauthenticated}, {verifiedContext(t), false, codes.PermissionDenied},
 	} {
-		h := grpcapi.Handler{AllowInfoRead: test.grant}
+		h := grpcapi.InfoAPI{AllowInfoRead: test.grant}
 		if _, err := h.GetRuntimeInfo(test.ctx, nil); status.Code(err) != test.code {
 			t.Fatalf("authorization order: %v", err)
 		}
 	}
-	h := grpcapi.Handler{AllowInfoRead: true}
+	h := grpcapi.InfoAPI{AllowInfoRead: true}
 	for _, request := range []*xrayv1.GetRuntimeInfoRequest{nil, {}, {InstanceId: " "}} {
 		if _, err := h.GetRuntimeInfo(verifiedContext(t), request); status.Code(err) != codes.InvalidArgument {
 			t.Fatalf("shape reached application: %v", err)
@@ -48,7 +48,7 @@ func TestRuntimeInfoChecksIdentityGrantAndShapeBeforeApplication(t *testing.T) {
 func TestRuntimeInfoPreservesSelectionUnitsAndErrors(t *testing.T) {
 	ctx := verifiedContext(t)
 	observed := time.UnixMilli(1700000000123).UTC()
-	h := grpcapi.Handler{AllowInfoRead: true, Runtime: runtimeReader(func(received context.Context, id instances.InstanceID) (domain.InstanceRuntimeInfo, error) {
+	h := grpcapi.InfoAPI{AllowInfoRead: true, Runtime: runtimeReader(func(received context.Context, id instances.InstanceID) (domain.InstanceRuntimeInfo, error) {
 		if received != ctx || id != " edge " {
 			t.Fatal("identity/context changed")
 		}

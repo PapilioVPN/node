@@ -25,6 +25,7 @@ import (
 	"github.com/PapilioVPN/node/internal/modules/xray/app/services"
 	"github.com/PapilioVPN/node/internal/modules/xray/domain"
 	xrayv1 "github.com/PapilioVPN/node/internal/modules/xray/grpcapi/proto/v1"
+	infov1 "github.com/PapilioVPN/node/internal/modules/xray/info/grpcapi/proto/v1"
 	routingv1 "github.com/PapilioVPN/node/internal/modules/xray/routing/grpcapi/proto/v1"
 	rpc "github.com/PapilioVPN/node/internal/platform/grpcserver"
 	"github.com/PapilioVPN/node/internal/settings"
@@ -161,7 +162,7 @@ func TestXrayOutboundObservationsRetainOrdinaryAndBurstFactsWithoutNewProbes(t *
 				if _, err := public.GetOutboundStatus(ctx, &xrayv1.GetOutboundStatusRequest{InstanceId: "edge-a"}); status.Code(err) != codes.InvalidArgument {
 					t.Fatal("mTLS omitted tag selected anonymous observation")
 				}
-				if _, err := public.GetRuntimeInfo(ctx, &xrayv1.GetRuntimeInfoRequest{InstanceId: "edge-a"}); status.Code(err) != codes.PermissionDenied {
+				if _, err := public.GetRuntimeInfo(ctx, &infov1.GetRuntimeInfoRequest{InstanceId: "edge-a"}); status.Code(err) != codes.PermissionDenied {
 					t.Fatal("outbound grant enabled runtime reads")
 				}
 				if _, err := public.ListRoutingRules(ctx, &routingv1.ListRoutingRulesRequest{InstanceId: "edge-a"}); status.Code(err) != codes.PermissionDenied {

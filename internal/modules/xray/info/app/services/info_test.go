@@ -7,8 +7,8 @@ import (
 	"time"
 
 	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
-	"github.com/PapilioVPN/node/internal/modules/xray/app/services"
-	"github.com/PapilioVPN/node/internal/modules/xray/domain"
+	"github.com/PapilioVPN/node/internal/modules/xray/info/app/services"
+	"github.com/PapilioVPN/node/internal/modules/xray/info/domain"
 )
 
 type binaryReader func(context.Context) (domain.BinaryInfo, error)

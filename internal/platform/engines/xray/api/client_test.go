@@ -8,6 +8,7 @@ import (
 
 	"google.golang.org/grpc"
 
+	infoapi "github.com/PapilioVPN/node/internal/modules/xray/info/infra/api"
 	xrayapi "github.com/PapilioVPN/node/internal/modules/xray/infra/api"
 	routingdomain "github.com/PapilioVPN/node/internal/modules/xray/routing/domain"
 	routingxray "github.com/PapilioVPN/node/internal/modules/xray/routing/infra/api"
@@ -24,12 +25,13 @@ func TestAPIConstructionAndCanceledAdmissionCreateNoNativeChannel(t *testing.T) 
 	}
 	defer client.Close()
 	adapter := &xrayapi.Adapter{API: client}
+	info := &infoapi.Reader{API: client}
 	counters := &trafficxray.Counters{API: client}
 	router := &routingxray.Router{API: client}
 	users := &userxray.Adapter{API: client}
 	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
-	if _, err := adapter.ReadRuntimeInfo(ctx); !errors.Is(err, context.Canceled) {
+	if _, err := info.ReadRuntimeInfo(ctx); !errors.Is(err, context.Canceled) {
 		t.Fatalf("canceled admission: %v", err)
 	}
 	if client.connection != nil {
@@ -94,7 +96,7 @@ func TestAPIConstructionAndCanceledAdmissionCreateNoNativeChannel(t *testing.T) 
 	if err := client.Close(); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := adapter.ReadRuntimeInfo(t.Context()); !errors.Is(err, grpc.ErrClientConnClosing) {
+	if _, err := info.ReadRuntimeInfo(t.Context()); !errors.Is(err, grpc.ErrClientConnClosing) {
 		t.Fatalf("Close before first read: %v", err)
 	}
 	if client.connection != nil {

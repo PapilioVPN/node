@@ -17,6 +17,7 @@ import (
 	"github.com/PapilioVPN/node/internal/modules/xray/domain"
 	"github.com/PapilioVPN/node/internal/modules/xray/grpcapi"
 	xrayv1 "github.com/PapilioVPN/node/internal/modules/xray/grpcapi/proto/v1"
+	infogrpc "github.com/PapilioVPN/node/internal/modules/xray/info/grpcapi"
 	routinggrpc "github.com/PapilioVPN/node/internal/modules/xray/routing/grpcapi"
 	trafficgrpc "github.com/PapilioVPN/node/internal/modules/xray/traffic/grpcapi"
 	usergrpc "github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi"
@@ -45,7 +46,7 @@ func TestOutboundReadsRequireIdentityBeforeShape(t *testing.T) {
 }
 
 func TestOutboundReadsRequireIndependentGrantBeforeShape(t *testing.T) {
-	h := grpcapi.Handler{AllowInfoRead: true, AllowOnlineRead: true, UserAPI: usergrpc.UserAPI{AllowUserManagement: true, AllowUsersRead: true}, RoutingAPI: routinggrpc.RoutingAPI{AllowRoutingRead: true, AllowRoutingTest: true, AllowRoutingManagement: true}, TrafficAPI: trafficgrpc.TrafficAPI{AllowStatsRead: true, AllowStatsReset: true}}
+	h := grpcapi.Handler{AllowOnlineRead: true, UserAPI: usergrpc.UserAPI{AllowUserManagement: true, AllowUsersRead: true}, RoutingAPI: routinggrpc.RoutingAPI{AllowRoutingRead: true, AllowRoutingTest: true, AllowRoutingManagement: true}, TrafficAPI: trafficgrpc.TrafficAPI{AllowStatsRead: true, AllowStatsReset: true}, InfoAPI: infogrpc.InfoAPI{AllowInfoRead: true}}
 	if _, err := h.GetOutboundStatus(verifiedContext(t), nil); status.Code(err) != codes.PermissionDenied {
 		t.Fatal("other grants enabled outbound lookup")
 	}

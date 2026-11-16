@@ -12,6 +12,7 @@ import (
 
 	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
 	"github.com/PapilioVPN/node/internal/modules/xray/grpcapi"
+	infogrpc "github.com/PapilioVPN/node/internal/modules/xray/info/grpcapi"
 	"github.com/PapilioVPN/node/internal/modules/xray/routing/domain"
 	routinggrpc "github.com/PapilioVPN/node/internal/modules/xray/routing/grpcapi"
 	routingv1 "github.com/PapilioVPN/node/internal/modules/xray/routing/grpcapi/proto/v1"
@@ -31,7 +32,7 @@ func TestRuleAdditionRequiresIdentityBeforeShape(t *testing.T) {
 		t.Fatalf("unverified addition reached shape/application: %v", err)
 	}
 	requireRoutingMutationOutcome(t, err, routingv1.RoutingMutationOutcome_ROUTING_MUTATION_OUTCOME_NOT_APPLIED)
-	h := grpcapi.Handler{AllowInfoRead: true, AllowOnlineRead: true, UserAPI: usergrpc.UserAPI{AllowUsersRead: true, AllowUserManagement: true}, RoutingAPI: routinggrpc.RoutingAPI{AllowRoutingRead: true, AllowRoutingTest: true}, TrafficAPI: trafficgrpc.TrafficAPI{AllowStatsRead: true, AllowStatsReset: true}}
+	h := grpcapi.Handler{AllowOnlineRead: true, UserAPI: usergrpc.UserAPI{AllowUsersRead: true, AllowUserManagement: true}, RoutingAPI: routinggrpc.RoutingAPI{AllowRoutingRead: true, AllowRoutingTest: true}, TrafficAPI: trafficgrpc.TrafficAPI{AllowStatsRead: true, AllowStatsReset: true}, InfoAPI: infogrpc.InfoAPI{AllowInfoRead: true}}
 	_, err = h.AddRoutingRule(verifiedContext(t), nil)
 	if status.Code(err) != codes.PermissionDenied {
 		t.Fatalf("other grants enabled rule addition: %v", err)

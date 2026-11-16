@@ -13,6 +13,7 @@ import (
 
 	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
 	"github.com/PapilioVPN/node/internal/modules/xray/grpcapi"
+	infogrpc "github.com/PapilioVPN/node/internal/modules/xray/info/grpcapi"
 	"github.com/PapilioVPN/node/internal/modules/xray/traffic/domain"
 	trafficgrpc "github.com/PapilioVPN/node/internal/modules/xray/traffic/grpcapi"
 	trafficv1 "github.com/PapilioVPN/node/internal/modules/xray/traffic/grpcapi/proto/v1"
@@ -28,7 +29,7 @@ func TestScopeResetRequiresIndependentWriteGrantAndPositiveBoundBeforeSelection(
 	if _, err := (trafficgrpc.TrafficAPI{AllowStatsReset: true}).ResetTrafficCounters(t.Context(), nil); status.Code(err) != codes.Unauthenticated {
 		t.Fatalf("identity: %v", err)
 	}
-	if _, err := (grpcapi.Handler{AllowInfoRead: true, TrafficAPI: trafficgrpc.TrafficAPI{AllowStatsRead: true}}).ResetTrafficCounters(verifiedContext(t), nil); status.Code(err) != codes.PermissionDenied {
+	if _, err := (grpcapi.Handler{TrafficAPI: trafficgrpc.TrafficAPI{AllowStatsRead: true}, InfoAPI: infogrpc.InfoAPI{AllowInfoRead: true}}).ResetTrafficCounters(verifiedContext(t), nil); status.Code(err) != codes.PermissionDenied {
 		t.Fatalf("grant: %v", err)
 	}
 	h := trafficgrpc.TrafficAPI{AllowStatsReset: true}

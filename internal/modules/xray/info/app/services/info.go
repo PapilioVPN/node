@@ -7,7 +7,7 @@ import (
 	"maps"
 
 	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
-	"github.com/PapilioVPN/node/internal/modules/xray/domain"
+	"github.com/PapilioVPN/node/internal/modules/xray/info/domain"
 )
 
 // BinaryInfoReader observes a configured executable without controlling a runtime.
