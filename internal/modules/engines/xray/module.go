@@ -26,7 +26,7 @@ import (
 // Module owns Xray operations and API clients independently of instance runtimes.
 func Module(grpcEnabled bool) fx.Option {
 	options := []fx.Option{
-		fx.Provide(newBinaryInfoService, newAPIResources, newRuntimeInfoService, newTrafficCounterService, newTrafficCounterResetService, newTrafficCountersResetService, newTrafficCountersService, newTrafficPairServices, newUserRemovalService, newUserAdditionService, newUserCountService, newOnlineService, newRoutingService, newRoutingProbeService, fx.Private),
+		fx.Provide(newBinaryInfoService, newAPIResources, newRuntimeInfoService, newTrafficCounterService, newTrafficCounterResetService, newTrafficCountersResetService, newTrafficCountersService, newTrafficPairServices, newUserRemovalService, newUserAdditionService, newUserCountService, newOnlineService, newRoutingService, newRoutingProbeService, newBalancerOverrideService, fx.Private),
 		fx.Provide(capability, apiCleanup, newRuntimeBindings), fx.Invoke(registerAPILifecycle),
 	}
 	if grpcEnabled {
@@ -95,31 +95,33 @@ func newBinaryInfoService(config []settings.Instance) (*services.BinaryInfoServi
 }
 
 type apiResources struct {
-	runtimeReaders    map[instances.InstanceID]services.RuntimeInfoReader
-	trafficReaders    map[instances.InstanceID]services.TrafficCounterReader
-	trafficResetters  map[instances.InstanceID]services.TrafficCounterResetter
-	collectionReaders map[instances.InstanceID]services.TrafficCountersReader
-	onlineReaders     map[instances.InstanceID]services.OnlineReader
-	userRemovers      map[instances.InstanceID]services.InboundUserRemover
-	userAdders        map[instances.InstanceID]services.InboundUserAdder
-	userCountReaders  map[instances.InstanceID]services.InboundUserCountReader
-	routingReaders    map[instances.InstanceID]services.RoutingReader
-	routingProbers    map[instances.InstanceID]services.RoutingProber
-	clients           []*xrayapi.Client
+	runtimeReaders     map[instances.InstanceID]services.RuntimeInfoReader
+	trafficReaders     map[instances.InstanceID]services.TrafficCounterReader
+	trafficResetters   map[instances.InstanceID]services.TrafficCounterResetter
+	collectionReaders  map[instances.InstanceID]services.TrafficCountersReader
+	onlineReaders      map[instances.InstanceID]services.OnlineReader
+	userRemovers       map[instances.InstanceID]services.InboundUserRemover
+	userAdders         map[instances.InstanceID]services.InboundUserAdder
+	userCountReaders   map[instances.InstanceID]services.InboundUserCountReader
+	routingReaders     map[instances.InstanceID]services.RoutingReader
+	routingProbers     map[instances.InstanceID]services.RoutingProber
+	balancerOverriders map[instances.InstanceID]services.BalancerOverrider
+	clients            []*xrayapi.Client
 }
 
 func newAPIResources(config []settings.Instance) (*apiResources, error) {
 	resources := &apiResources{
-		runtimeReaders:    make(map[instances.InstanceID]services.RuntimeInfoReader),
-		trafficReaders:    make(map[instances.InstanceID]services.TrafficCounterReader),
-		trafficResetters:  make(map[instances.InstanceID]services.TrafficCounterResetter),
-		collectionReaders: make(map[instances.InstanceID]services.TrafficCountersReader),
-		onlineReaders:     make(map[instances.InstanceID]services.OnlineReader),
-		userRemovers:      make(map[instances.InstanceID]services.InboundUserRemover),
-		userAdders:        make(map[instances.InstanceID]services.InboundUserAdder),
-		userCountReaders:  make(map[instances.InstanceID]services.InboundUserCountReader),
-		routingReaders:    make(map[instances.InstanceID]services.RoutingReader),
-		routingProbers:    make(map[instances.InstanceID]services.RoutingProber),
+		runtimeReaders:     make(map[instances.InstanceID]services.RuntimeInfoReader),
+		trafficReaders:     make(map[instances.InstanceID]services.TrafficCounterReader),
+		trafficResetters:   make(map[instances.InstanceID]services.TrafficCounterResetter),
+		collectionReaders:  make(map[instances.InstanceID]services.TrafficCountersReader),
+		onlineReaders:      make(map[instances.InstanceID]services.OnlineReader),
+		userRemovers:       make(map[instances.InstanceID]services.InboundUserRemover),
+		userAdders:         make(map[instances.InstanceID]services.InboundUserAdder),
+		userCountReaders:   make(map[instances.InstanceID]services.InboundUserCountReader),
+		routingReaders:     make(map[instances.InstanceID]services.RoutingReader),
+		routingProbers:     make(map[instances.InstanceID]services.RoutingProber),
+		balancerOverriders: make(map[instances.InstanceID]services.BalancerOverrider),
 	}
 	for _, instance := range config {
 		if instance.Engine != instances.Xray {
@@ -135,6 +137,7 @@ func newAPIResources(config []settings.Instance) (*apiResources, error) {
 		resources.userCountReaders[instance.ID] = nil
 		resources.routingReaders[instance.ID] = nil
 		resources.routingProbers[instance.ID] = nil
+		resources.balancerOverriders[instance.ID] = nil
 		if api := instance.Xray.API; api != nil {
 			client, err := xrayapi.NewClient(xrayapi.Config{
 				Network: api.Network, Address: api.Address, RequestTimeout: api.RequestTimeout,
@@ -153,6 +156,7 @@ func newAPIResources(config []settings.Instance) (*apiResources, error) {
 			resources.userCountReaders[instance.ID] = client
 			resources.routingReaders[instance.ID] = client
 			resources.routingProbers[instance.ID] = client
+			resources.balancerOverriders[instance.ID] = client
 			resources.clients = append(resources.clients, client)
 		}
 	}
@@ -214,6 +218,10 @@ func newRoutingProbeService(resources *apiResources) *services.RoutingProbeServi
 	return services.NewRoutingProbeService(resources.routingProbers)
 }
 
+func newBalancerOverrideService(resources *apiResources) *services.BalancerOverrideService {
+	return services.NewBalancerOverrideService(resources.balancerOverriders)
+}
+
 func newTrafficPairServices(config []settings.Instance, resources *apiResources) (*services.TrafficPairService, *services.TrafficPairResetService) {
 	readers := make(map[instances.InstanceID]services.TrafficPairReadBinding)
 	resetters := make(map[instances.InstanceID]services.TrafficPairResetBinding)
@@ -245,22 +253,23 @@ func (r *apiResources) Close() error {
 
 type grpcServices struct {
 	fx.In
-	Registrar    grpc.ServiceRegistrar
-	Info         *services.BinaryInfoService
-	Runtime      *services.RuntimeInfoService
-	Traffic      *services.TrafficCounterService
-	Resets       *services.TrafficCounterResetService
-	ScopeResets  *services.TrafficCountersResetService
-	Pairs        *services.TrafficPairService
-	PairResets   *services.TrafficPairResetService
-	UserRemoval  *services.UserRemovalService
-	UserAddition *services.UserAdditionService
-	UserCounts   *services.UserCountService
-	Counters     *services.TrafficCountersService
-	Online       *services.OnlineService
-	Routing      *services.RoutingService
-	Probes       *services.RoutingProbeService
-	Permissions  settings.GRPCPermissions
+	Registrar         grpc.ServiceRegistrar
+	Info              *services.BinaryInfoService
+	Runtime           *services.RuntimeInfoService
+	Traffic           *services.TrafficCounterService
+	Resets            *services.TrafficCounterResetService
+	ScopeResets       *services.TrafficCountersResetService
+	Pairs             *services.TrafficPairService
+	PairResets        *services.TrafficPairResetService
+	UserRemoval       *services.UserRemovalService
+	UserAddition      *services.UserAdditionService
+	UserCounts        *services.UserCountService
+	Counters          *services.TrafficCountersService
+	Online            *services.OnlineService
+	Routing           *services.RoutingService
+	Probes            *services.RoutingProbeService
+	BalancerOverrides *services.BalancerOverrideService
+	Permissions       settings.GRPCPermissions
 }
 
 func registerGRPC(p grpcServices) {
@@ -271,6 +280,7 @@ func registerGRPC(p grpcServices) {
 		UserCounts: p.UserCounts, AllowUsersRead: p.Permissions.ReadEngineUsers,
 		Routing: p.Routing, AllowRoutingRead: p.Permissions.ReadEngineRouting,
 		Probes: p.Probes, AllowRoutingTest: p.Permissions.TestEngineRouting,
+		BalancerOverrides: p.BalancerOverrides, AllowRoutingManagement: p.Permissions.ManageEngineRouting,
 		AllowInfoRead: p.Permissions.ReadEngineInfo, AllowStatsRead: p.Permissions.ReadEngineStats,
 		AllowOnlineRead: p.Permissions.ReadEngineOnline, AllowStatsReset: p.Permissions.ResetEngineStats,
 	})
@@ -289,7 +299,7 @@ func capability() capabilityResult {
 		domain.RemoveInboundUser, domain.AddInboundUser,
 		domain.ReadInboundUserCount,
 		domain.ListRoutingRules, domain.ReadBalancerInfo,
-		domain.TestRoute,
+		domain.TestRoute, domain.OverrideBalancerTarget,
 		domain.ReadUserOnlineStats, domain.ListUserOnlineIPs, domain.ListOnlineUsers,
 	}}
 }

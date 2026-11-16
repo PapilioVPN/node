@@ -101,4 +101,8 @@ func TestModuleClosesAPIAdmissionAndExportsFinalCleanup(t *testing.T) {
 	if _, err := newRoutingProbeService(resources).TestRoute(t.Context(), "edge", domain.RoutingProbe{}); !errors.Is(err, grpc.ErrClientConnClosing) || errors.Is(err, domain.ErrRoutingProbeUnknown) {
 		t.Fatalf("closed native API admitted a probe or claimed effects: %v", err)
 	}
+	if _, err := newBalancerOverrideService(resources).OverrideBalancerTarget(t.Context(), "edge", domain.BalancerOverride{BalancerTag: "pool", Target: ""}); !errors.Is(err, grpc.ErrClientConnClosing) || errors.Is(err, domain.ErrRoutingMutationUnknown) {
+		t.Fatalf("closed native API admitted a routing change or claimed effects: %v", err)
+	}
+
 }

@@ -60,6 +60,7 @@ type GRPCPermissions struct {
 	ReadEngineOnline       bool `yaml:"read_engine_online"`
 	ReadEngineRouting      bool `yaml:"read_engine_routing"`
 	TestEngineRouting      bool `yaml:"test_engine_routing"`
+	ManageEngineRouting    bool `yaml:"manage_engine_routing"`
 }
 
 type TLS struct {

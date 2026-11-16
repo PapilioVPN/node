@@ -20,6 +20,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 
 	nodev1 "github.com/PapilioVPN/node/internal/modules/core/instances/grpcapi/proto/v1"
 	xrayv1 "github.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi/proto/v1"
@@ -57,6 +58,7 @@ func TestContainer(t *testing.T) {
 	cfg.Communications.GRPC.Permissions.ReadEngineOnline = true
 	cfg.Communications.GRPC.Permissions.ReadEngineRouting = true
 	cfg.Communications.GRPC.Permissions.TestEngineRouting = true
+	cfg.Communications.GRPC.Permissions.ManageEngineRouting = true
 	contents, err := yaml.Marshal(cfg)
 	if err != nil {
 		t.Fatal(err)
@@ -96,14 +98,17 @@ func TestContainer(t *testing.T) {
 		logs, _ := exec.CommandContext(ctx, "docker", "logs", containerID).CombinedOutput()
 		t.Fatalf("packaged operation failed: %v, %v; logs: %s", info, err, logs)
 	}
-	probeInstalled := false
+	probeInstalled, overrideInstalled := false, false
 	for _, capability := range info.GetCapabilities() {
 		if capability == "xray.routing.test" {
 			probeInstalled = true
 		}
+		if capability == "xray.routing.balancer.override" {
+			overrideInstalled = true
+		}
 	}
-	if !probeInstalled {
-		t.Fatal("packaged metadata omitted the installed routing probe")
+	if !probeInstalled || !overrideInstalled {
+		t.Fatal("packaged metadata omitted the installed routing probe or balancer override")
 	}
 	output, err = exec.CommandContext(ctx, "docker", "port", containerID, "9444/tcp").Output()
 	if err != nil {
@@ -188,6 +193,18 @@ func TestContainer(t *testing.T) {
 	probeFailure, ok := probeDetails[0].(*xrayv1.TestRouteFailure)
 	if !ok || probeFailure.Outcome != xrayv1.RoutingProbeOutcome_ROUTING_PROBE_OUTCOME_NOT_EXECUTED {
 		t.Fatalf("packaged routing probe outcome incorrect: %v", probeDetails)
+	}
+	_, overrideError := xrayv1.NewXrayServiceClient(connection).OverrideBalancerTarget(request, &xrayv1.OverrideBalancerTargetRequest{InstanceId: "unconfigured", BalancerTag: "pool", Target: proto.String("")})
+	if status.Code(overrideError) != codes.NotFound {
+		t.Fatalf("packaged balancer override not wired: %v", overrideError)
+	}
+	overrideDetails := status.Convert(overrideError).Details()
+	if len(overrideDetails) != 1 {
+		t.Fatalf("packaged routing mutation outcome missing: %v", overrideError)
+	}
+	overrideFailure, ok := overrideDetails[0].(*xrayv1.RoutingMutationFailure)
+	if !ok || overrideFailure.Outcome != xrayv1.RoutingMutationOutcome_ROUTING_MUTATION_OUTCOME_NOT_APPLIED {
+		t.Fatalf("packaged routing mutation outcome incorrect: %v", overrideDetails)
 	}
 	if _, err := xrayv1.NewXrayServiceClient(connection).AddInboundUser(request, &xrayv1.AddInboundUserRequest{InstanceId: "unconfigured", InboundTag: "in", User: &xrayv1.InboundUser{Email: "user", Account: &xrayv1.InboundUser_Vless{Vless: &xrayv1.VLESSAccount{Id: "test-only"}}}}); status.Code(err) != codes.NotFound {
 		t.Fatalf("packaged user addition not wired: %v", err)

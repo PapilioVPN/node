@@ -17,6 +17,7 @@ import (
 	"go.uber.org/fx"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/PapilioVPN/node/internal/bootstrap"
 	"github.com/PapilioVPN/node/internal/modules/core/instances"
@@ -48,6 +49,7 @@ func TestXrayRuntimeInfoOverMTLSAndNativeReconnect(t *testing.T) {
 			cfg.Communications.GRPC.Permissions.ReadEngineUsers = true
 			cfg.Communications.GRPC.Permissions.ReadEngineRouting = true
 			cfg.Communications.GRPC.Permissions.TestEngineRouting = true
+			cfg.Communications.GRPC.Permissions.ManageEngineRouting = true
 			cfg.Communications.GRPC.Permissions.ControlInstances = true
 			if err := cfg.Validate(); err != nil {
 				t.Fatal(err)
@@ -88,6 +90,8 @@ func TestXrayRuntimeInfoOverMTLSAndNativeReconnect(t *testing.T) {
 			}
 			_, probeError := client.TestRoute(ctx, &xrayv1.TestRouteRequest{InstanceId: "edge-b", Context: &xrayv1.RoutingContext{}})
 			assertRoutingProbeFailure(t, probeError, codes.FailedPrecondition, xrayv1.RoutingProbeOutcome_ROUTING_PROBE_OUTCOME_NOT_EXECUTED)
+			_, overrideError := client.OverrideBalancerTarget(ctx, &xrayv1.OverrideBalancerTargetRequest{InstanceId: "edge-b", BalancerTag: "pool", Target: proto.String("")})
+			assertRoutingMutationFailure(t, overrideError, codes.FailedPrecondition, xrayv1.RoutingMutationOutcome_ROUTING_MUTATION_OUTCOME_NOT_APPLIED)
 			if result, err := client.ListRoutingRules(ctx, &xrayv1.ListRoutingRulesRequest{InstanceId: "edge-b"}); result != nil || status.Code(err) != codes.FailedPrecondition {
 				t.Fatalf("absent native RoutingService became successful rules: %v %v", result, err)
 			}

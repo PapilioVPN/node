@@ -22,28 +22,30 @@ type BinaryInfoReader interface {
 
 type Handler struct {
 	xrayv1.UnimplementedXrayServiceServer
-	Info                BinaryInfoReader
-	Runtime             RuntimeInfoReader
-	Traffic             TrafficCounterReader
-	Resets              TrafficCounterResetter
-	ScopeResets         TrafficCountersResetter
-	Pairs               TrafficPairReader
-	PairResets          TrafficPairResetter
-	UserRemoval         InboundUserRemover
-	UserAddition        InboundUserAdder
-	UserCounts          InboundUserCountReader
-	TrafficCounters     TrafficCountersReader
-	Online              OnlineReader
-	Routing             RoutingReader
-	Probes              RoutingProber
-	AllowInfoRead       bool
-	AllowStatsRead      bool
-	AllowStatsReset     bool
-	AllowOnlineRead     bool
-	AllowUserManagement bool
-	AllowUsersRead      bool
-	AllowRoutingRead    bool
-	AllowRoutingTest    bool
+	Info                   BinaryInfoReader
+	Runtime                RuntimeInfoReader
+	Traffic                TrafficCounterReader
+	Resets                 TrafficCounterResetter
+	ScopeResets            TrafficCountersResetter
+	Pairs                  TrafficPairReader
+	PairResets             TrafficPairResetter
+	UserRemoval            InboundUserRemover
+	UserAddition           InboundUserAdder
+	UserCounts             InboundUserCountReader
+	TrafficCounters        TrafficCountersReader
+	Online                 OnlineReader
+	Routing                RoutingReader
+	Probes                 RoutingProber
+	BalancerOverrides      BalancerOverrider
+	AllowInfoRead          bool
+	AllowStatsRead         bool
+	AllowStatsReset        bool
+	AllowOnlineRead        bool
+	AllowUserManagement    bool
+	AllowUsersRead         bool
+	AllowRoutingRead       bool
+	AllowRoutingTest       bool
+	AllowRoutingManagement bool
 }
 
 func (h Handler) GetBinaryInfo(ctx context.Context, request *xrayv1.GetBinaryInfoRequest) (*xrayv1.GetBinaryInfoResponse, error) {

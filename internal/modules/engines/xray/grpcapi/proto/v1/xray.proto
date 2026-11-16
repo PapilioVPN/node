@@ -46,6 +46,9 @@ service XrayService {
   // Native route selection can advance balancers, resolve DNS and fire webhooks.
   // A lost reply may follow effects. Never replay automatically.
   rpc TestRoute(TestRouteRequest) returns (TestRouteResponse);
+  // One native assignment; an explicitly empty target clears the override.
+  // Completion does not establish outbound existence or persistence. No retry.
+  rpc OverrideBalancerTarget(OverrideBalancerTargetRequest) returns (OverrideBalancerTargetResponse);
 }
 
 enum TrafficScope {
@@ -491,3 +494,27 @@ enum RoutingProbeOutcome {
 // Missing details or an undelivered response never prove that a probe had no
 // effects. NOT_EXECUTED denotes known rejection before any supported native probe.
 message TestRouteFailure { RoutingProbeOutcome outcome = 1; }
+
+message OverrideBalancerTargetRequest {
+  string instance_id = 1;
+  string balancer_tag = 2;
+  // Required presence. Only present empty clears; whitespace is an opaque target.
+  optional string target = 3;
+}
+
+message OverrideBalancerTargetResponse {
+  string instance_id = 1;
+  string balancer_tag = 2;
+  // Acknowledged assignment, not a fenced observation of the current target.
+  string target = 3;
+  int64 acknowledged_at_unix_ms = 4;
+}
+
+enum RoutingMutationOutcome {
+  ROUTING_MUTATION_OUTCOME_UNSPECIFIED = 0;
+  ROUTING_MUTATION_OUTCOME_NOT_APPLIED = 1;
+  ROUTING_MUTATION_OUTCOME_UNKNOWN = 2;
+}
+
+// Missing details or an undelivered reply never establish NOT_APPLIED.
+message RoutingMutationFailure { RoutingMutationOutcome outcome = 1; }

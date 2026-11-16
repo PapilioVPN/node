@@ -19,13 +19,16 @@ import (
 	"time"
 
 	"go.uber.org/fx"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/PapilioVPN/node/internal/bootstrap"
 	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
 	"github.com/PapilioVPN/node/internal/modules/engines/xray/app/services"
 	"github.com/PapilioVPN/node/internal/modules/engines/xray/domain"
+	xrayv1 "github.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi/proto/v1"
 	xrayapi "github.com/PapilioVPN/node/internal/modules/engines/xray/infra/api"
 	rpc "github.com/PapilioVPN/node/internal/platform/grpcserver"
 	"github.com/PapilioVPN/node/internal/settings"
@@ -44,6 +47,7 @@ func TestXrayBalancerOverrideAndClearPreserveStrategyIsolationAndConfig(t *testi
 			balancedB, configB := configureXrayBalancerOverride(t, second)
 			cfg := certificates.Config()
 			cfg.Instances = []settings.Instance{first, second}
+			cfg.Communications.GRPC.Permissions.ManageEngineRouting = true
 			var server *rpc.Server
 			var cleanup struct {
 				fx.In
@@ -143,6 +147,52 @@ func TestXrayBalancerOverrideAndClearPreserveStrategyIsolationAndConfig(t *testi
 			if err == nil || !errors.Is(err, domain.ErrRoutingMutationUnknown) || !ack.AcknowledgedAt.IsZero() {
 				t.Fatalf("generic missing tag became success/known no-effect: %+v %v", ack, err)
 			}
+
+			// Exercise the process-owned module binding through a real mTLS client.
+			// Only the write grant is enabled; readback is an independent native witness.
+			public := xrayClient(t, server, certificates)
+			publicAssign := func(target string) {
+				t.Helper()
+				before := time.Now().UnixMilli()
+				response, err := public.OverrideBalancerTarget(ctx, &xrayv1.OverrideBalancerTargetRequest{InstanceId: "edge-a", BalancerTag: "pool", Target: proto.String(target)})
+				if err != nil || response.InstanceId != "edge-a" || response.BalancerTag != "pool" || response.Target != target || response.AcknowledgedAtUnixMs < before || response.AcknowledgedAtUnixMs > time.Now().UnixMilli() {
+					t.Fatalf("public override acknowledgement changed: %v %v", response, err)
+				}
+				info, err := firstAPI.ReadBalancerInfo(ctx, "pool")
+				if err != nil || info.OverrideTarget == nil || *info.OverrideTarget != target {
+					t.Fatalf("public override not applied natively: %+v %v", info, err)
+				}
+			}
+			publicAssign("blocked")
+			assertBalancedHTTP(t, ctx, balancedA, false)
+			_, omitted := public.OverrideBalancerTarget(ctx, &xrayv1.OverrideBalancerTargetRequest{InstanceId: "edge-a", BalancerTag: "pool"})
+			assertRoutingMutationFailure(t, omitted, codes.InvalidArgument, xrayv1.RoutingMutationOutcome_ROUTING_MUTATION_OUTCOME_NOT_APPLIED)
+			info, err := firstAPI.ReadBalancerInfo(ctx, "pool")
+			if err != nil || info.OverrideTarget == nil || *info.OverrideTarget != "blocked" {
+				t.Fatalf("omitted target cleared an override: %+v %v", info, err)
+			}
+			publicAssign("") // Presence survives protobuf encoding even when empty.
+			assertBalancedHTTP(t, ctx, balancedA, true)
+			for _, target := range []string{"missing-outbound", "   ", " exact>>>outside "} {
+				publicAssign(target)
+				assertRoute(firstAPI, target)
+			}
+			publicAssign("")
+			_, missing := public.OverrideBalancerTarget(ctx, &xrayv1.OverrideBalancerTargetRequest{InstanceId: "edge-a", BalancerTag: "missing", Target: proto.String("blocked")})
+			assertRoutingMutationFailure(t, missing, codes.Unavailable, xrayv1.RoutingMutationOutcome_ROUTING_MUTATION_OUTCOME_UNKNOWN)
+			// Discard a completed response at the external caller's receive boundary.
+			// Its local error cannot establish NOT_APPLIED or justify a retry.
+			response, lost := public.OverrideBalancerTarget(ctx, &xrayv1.OverrideBalancerTargetRequest{InstanceId: "edge-a", BalancerTag: "pool", Target: proto.String("blocked")}, grpc.MaxCallRecvMsgSize(1))
+			if response != nil || status.Code(lost) != codes.ResourceExhausted {
+				t.Fatalf("test failed to discard the public acknowledgement: %v %v", response, lost)
+			}
+			info, err = firstAPI.ReadBalancerInfo(ctx, "pool")
+			if err != nil || info.OverrideTarget == nil || *info.OverrideTarget != "blocked" {
+				t.Fatalf("lost acknowledgement did not follow actual execution: %+v %v", info, err)
+			}
+			assertBalancedHTTP(t, ctx, balancedA, false)
+			publicAssign("")
+			assertBalancedHTTP(t, ctx, balancedA, true)
 			for _, item := range []struct {
 				client *xrayapi.Client
 				tag    string

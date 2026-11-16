@@ -64,6 +64,8 @@ communications:
       read_engine_routing: false
       # Native route probes can advance balancers, resolve DNS and fire webhooks.
       test_engine_routing: false
+      # Set/clear balancer overrides; independent of routing reads and probes.
+      manage_engine_routing: false
     tls:
       certificate_file: ""
       private_key_file: ""

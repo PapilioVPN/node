@@ -15,6 +15,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/PapilioVPN/node/internal/bootstrap"
 	"github.com/PapilioVPN/node/internal/modules/core/instances"
@@ -48,6 +49,7 @@ func TestXrayBinaryInfoOverMTLSKeepsLiveInstancesUnchanged(t *testing.T) {
 	cfg.Instances = []settings.Instance{first, second}
 	cfg.Communications.GRPC.Permissions.ReadEngineInfo = true
 	cfg.Communications.GRPC.Permissions.TestEngineRouting = true
+	cfg.Communications.GRPC.Permissions.ManageEngineRouting = true
 	var server *rpc.Server
 	var resources *instances.Resources
 	application := bootstrap.New(cfg, "test", fx.NopLogger, fx.Populate(&server, &resources))
@@ -74,6 +76,8 @@ func TestXrayBinaryInfoOverMTLSKeepsLiveInstancesUnchanged(t *testing.T) {
 	client := xrayClient(t, server, certificates)
 	_, probeError := client.TestRoute(ctx, &xrayv1.TestRouteRequest{InstanceId: "edge-a", Context: &xrayv1.RoutingContext{}})
 	assertRoutingProbeFailure(t, probeError, codes.FailedPrecondition, xrayv1.RoutingProbeOutcome_ROUTING_PROBE_OUTCOME_NOT_EXECUTED)
+	_, overrideError := client.OverrideBalancerTarget(ctx, &xrayv1.OverrideBalancerTargetRequest{InstanceId: "edge-a", BalancerTag: "pool", Target: proto.String("")})
+	assertRoutingMutationFailure(t, overrideError, codes.FailedPrecondition, xrayv1.RoutingMutationOutcome_ROUTING_MUTATION_OUTCOME_NOT_APPLIED)
 	if _, err := client.GetRuntimeInfo(ctx, &xrayv1.GetRuntimeInfoRequest{InstanceId: "edge-a"}); status.Code(err) != codes.FailedPrecondition {
 		t.Fatalf("absent API settings were ignored: %v", err)
 	}

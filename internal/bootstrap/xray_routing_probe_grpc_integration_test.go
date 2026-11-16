@@ -39,6 +39,7 @@ func TestRoutingProbeGrantOverMTLSIsIndependent(t *testing.T) {
 			cfg := certificates.Config()
 			p := &cfg.Communications.GRPC.Permissions
 			p.TestEngineRouting = granted
+			p.ManageEngineRouting = !granted
 			p.ReadEngineInfo, p.ReadEngineStats, p.ReadEngineOnline, p.ReadEngineUsers, p.ReadEngineRouting = !granted, !granted, !granted, !granted, !granted
 			p.ReadInstanceStatus, p.ControlInstances, p.ValidateInstanceConfig, p.ResetEngineStats, p.ManageEngineUsers = !granted, !granted, !granted, !granted, !granted
 			var server *rpc.Server
