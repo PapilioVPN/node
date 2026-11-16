@@ -43,10 +43,10 @@ func TestXrayOutboundObservationsRetainOrdinaryAndBurstFactsWithoutNewProbes(t *
 				}))
 				t.Cleanup(probe.Close)
 				certificates := testutil.NewCertificates(t)
-				first, firstAddress := configuredXray(t, certificates.Directory, "edge-a")
-				second, secondAddress := configuredXray(t, certificates.Directory, "edge-b")
-				configureXrayAPI(t, &first, network, []string{"ObservatoryService"})
-				configureXrayAPI(t, &second, network, []string{"ObservatoryService"})
+				first, firstAddress := testutil.ConfiguredXray(t, certificates.Directory, "edge-a")
+				second, secondAddress := testutil.ConfiguredXray(t, certificates.Directory, "edge-b")
+				testutil.ConfigureXrayAPI(t, &first, network, []string{"ObservatoryService"})
+				testutil.ConfigureXrayAPI(t, &second, network, []string{"ObservatoryService"})
 				originalA := configureXrayObservatory(t, first, probe.URL, burst, []string{"edge-a-"})
 				originalB := configureXrayObservatory(t, second, probe.URL, burst, []string{})
 				cfg := certificates.Config()
@@ -73,9 +73,9 @@ func TestXrayOutboundObservationsRetainOrdinaryAndBurstFactsWithoutNewProbes(t *
 							t.Error(err)
 						}
 					}
-					assertInstancePortsReleased(t, firstAddress, secondAddress)
+					testutil.AssertTCPPortsReleased(t, firstAddress, secondAddress)
 					if network == "tcp" {
-						assertInstancePortsReleased(t, first.Xray.API.Address, second.Xray.API.Address)
+						testutil.AssertTCPPortsReleased(t, first.Xray.API.Address, second.Xray.API.Address)
 					}
 				})
 				// Independent test-owned native clients remain observation oracles;
@@ -180,7 +180,7 @@ func TestXrayOutboundObservationsRetainOrdinaryAndBurstFactsWithoutNewProbes(t *
 						t.Fatal("missing/exact-tag/cross-instance observation became zero delay")
 					}
 				}
-				if err := xrayTraffic(ctx, firstAddress, secondAddress); err != nil {
+				if err := testutil.XrayTraffic(ctx, firstAddress, secondAddress); err != nil {
 					t.Fatal(err)
 				}
 				for _, item := range []struct {

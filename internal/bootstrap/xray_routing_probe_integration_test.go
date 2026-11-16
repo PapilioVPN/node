@@ -66,10 +66,10 @@ func TestXrayRoutingProbePreservesNativeFieldsProjectionAndEffects(t *testing.T)
 			}))
 			t.Cleanup(webhook.Close)
 			certificates := testutil.NewCertificates(t)
-			first, firstAddress := configuredXray(t, certificates.Directory, "edge-a")
-			second, secondAddress := configuredXray(t, certificates.Directory, "edge-b")
-			configureXrayAPI(t, &first, network, []string{"RoutingService"})
-			configureXrayAPI(t, &second, network, []string{"RoutingService"})
+			first, firstAddress := testutil.ConfiguredXray(t, certificates.Directory, "edge-a")
+			second, secondAddress := testutil.ConfiguredXray(t, certificates.Directory, "edge-b")
+			testutil.ConfigureXrayAPI(t, &first, network, []string{"RoutingService"})
+			testutil.ConfigureXrayAPI(t, &second, network, []string{"RoutingService"})
 			firstConfig := configureXrayProbeRouting(t, first, webhook.URL)
 			secondConfig := configureXrayProbeRouting(t, second, webhook.URL)
 			cfg := certificates.Config()
@@ -96,14 +96,14 @@ func TestXrayRoutingProbePreservesNativeFieldsProjectionAndEffects(t *testing.T)
 						t.Error(err)
 					}
 				}
-				assertInstancePortsReleased(t, firstAddress, secondAddress)
+				testutil.AssertTCPPortsReleased(t, firstAddress, secondAddress)
 				if network == "tcp" {
-					assertInstancePortsReleased(t, first.Xray.API.Address, second.Xray.API.Address)
+					testutil.AssertTCPPortsReleased(t, first.Xray.API.Address, second.Xray.API.Address)
 				}
 			})
 			ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 			defer cancel()
-			if err := xrayTraffic(ctx, firstAddress, secondAddress); err != nil {
+			if err := testutil.XrayTraffic(ctx, firstAddress, secondAddress); err != nil {
 				t.Fatal(err)
 			}
 			bindings := make(map[instances.InstanceID]services.RoutingProber)
@@ -244,7 +244,7 @@ func TestXrayRoutingProbePreservesNativeFieldsProjectionAndEffects(t *testing.T)
 			} else {
 				assertRoutingProbeFailure(t, err, codes.Unavailable, routingv1.RoutingProbeOutcome_ROUTING_PROBE_OUTCOME_UNKNOWN)
 			}
-			if err := xrayTraffic(ctx, firstAddress, secondAddress); err != nil {
+			if err := testutil.XrayTraffic(ctx, firstAddress, secondAddress); err != nil {
 				t.Fatal(err)
 			}
 			for _, item := range []struct {

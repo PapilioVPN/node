@@ -52,8 +52,8 @@ func TestConfigValidationRequiresItsOwnGrantOverMTLS(t *testing.T) {
 
 func TestConfigValidationOverMTLSKeepsBothInstancesAndFilesUnchanged(t *testing.T) {
 	certificates := testutil.NewCertificates(t)
-	first, firstAddress := configuredXray(t, certificates.Directory, "edge-a")
-	second, secondAddress := configuredXray(t, certificates.Directory, "edge-b")
+	first, firstAddress := testutil.ConfiguredXray(t, certificates.Directory, "edge-a")
+	second, secondAddress := testutil.ConfiguredXray(t, certificates.Directory, "edge-b")
 	work := t.TempDir()
 	first.Validation = &settings.ConfigValidation{WorkDir: work, Timeout: 2 * time.Second, MaxBytes: 1024, MaxConcurrent: 1}
 	original, err := os.ReadFile(first.Xray.ConfigFile)
@@ -84,7 +84,7 @@ func TestConfigValidationOverMTLSKeepsBothInstancesAndFilesUnchanged(t *testing.
 	client := instanceClient(t, server, certificates)
 	ctx, cancel := context.WithTimeout(t.Context(), 8*time.Second)
 	defer cancel()
-	if err := xrayTraffic(ctx, firstAddress, secondAddress); err != nil {
+	if err := testutil.XrayTraffic(ctx, firstAddress, secondAddress); err != nil {
 		t.Fatal(err)
 	}
 	_, port, err := net.SplitHostPort(firstAddress)
@@ -123,7 +123,7 @@ func TestConfigValidationOverMTLSKeepsBothInstancesAndFilesUnchanged(t *testing.
 	if _, err := client.GetInstanceStatus(ctx, &instancesv1.GetInstanceStatusRequest{InstanceId: "edge-a"}); status.Code(err) != codes.PermissionDenied {
 		t.Fatalf("validation granted status access: %v", err)
 	}
-	if err := xrayTraffic(ctx, firstAddress, secondAddress); err != nil {
+	if err := testutil.XrayTraffic(ctx, firstAddress, secondAddress); err != nil {
 		t.Fatalf("validation interrupted live traffic: %v", err)
 	}
 	current, err := os.ReadFile(first.Xray.ConfigFile)

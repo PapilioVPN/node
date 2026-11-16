@@ -1,6 +1,6 @@
 //go:build integration
 
-package bootstrap_test
+package grpcapi_test
 
 import (
 	"bytes"

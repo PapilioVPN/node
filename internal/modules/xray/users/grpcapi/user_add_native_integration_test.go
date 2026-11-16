@@ -1,6 +1,6 @@
 //go:build integration && linux
 
-package bootstrap_test
+package grpcapi_test
 
 import (
 	"bytes"
@@ -32,14 +32,14 @@ func TestLiveUserAdditionOverMTLSEnablesVLESSWithoutRemovingExistingUsers(t *tes
 	for _, network := range []string{"unix", "tcp"} {
 		t.Run(network, func(t *testing.T) {
 			certificates := testutil.NewCertificates(t)
-			first, healthA := configuredXray(t, certificates.Directory, "edge-a")
-			second, healthB := configuredXray(t, certificates.Directory, "edge-b")
+			first, healthA := testutil.ConfiguredXray(t, certificates.Directory, "edge-a")
+			second, healthB := testutil.ConfiguredXray(t, certificates.Directory, "edge-b")
 			selectedID, otherID, replacementID := "8e781ad6-dae6-4ed4-9d7b-8c247f735869", "4caa3ce4-39ab-49df-bc05-624befa32996", "c4fe8bca-4ce5-4d42-84c5-552b3923ced6"
 			firstPorts := userTestVLESSInbounds(t, &first, selectedID, otherID)
 			secondPorts := userTestVLESSInbounds(t, &second, selectedID, otherID)
 			withoutSeededVLESSUser(t, first.Xray.ConfigFile)
 			for _, instance := range []*settings.Instance{&first, &second} {
-				configureXrayAPI(t, instance, network, []string{"HandlerService"})
+				testutil.ConfigureXrayAPI(t, instance, network, []string{"HandlerService"})
 			}
 			original, err := os.ReadFile(first.Xray.ConfigFile)
 			if err != nil {
@@ -74,29 +74,29 @@ func TestLiveUserAdditionOverMTLSEnablesVLESSWithoutRemovingExistingUsers(t *tes
 						t.Error(err)
 					}
 				}
-				assertInstancePortsReleased(t, healthA, healthB)
+				testutil.AssertTCPPortsReleased(t, healthA, healthB)
 				for _, port := range append(firstPorts, secondPorts...) {
-					assertInstancePortsReleased(t, net.JoinHostPort("127.0.0.1", fmt.Sprint(port)))
+					testutil.AssertTCPPortsReleased(t, net.JoinHostPort("127.0.0.1", fmt.Sprint(port)))
 				}
 				if network == "tcp" {
-					assertInstancePortsReleased(t, first.Xray.API.Address, second.Xray.API.Address)
+					testutil.AssertTCPPortsReleased(t, first.Xray.API.Address, second.Xray.API.Address)
 				}
 			})
 			proxy, err := xrayprocess.New(xrayprocess.Config{Binary: first.Xray.Binary, ConfigFile: clientConfig, StopTimeout: time.Second})
 			if err != nil {
 				t.Fatal(err)
 			}
-			t.Cleanup(func() { _ = proxy.Close(); assertInstancePortsReleased(t, proxies...) })
+			t.Cleanup(func() { _ = proxy.Close(); testutil.AssertTCPPortsReleased(t, proxies...) })
 			if err := proxy.Start(t.Context()); err != nil {
 				t.Fatal(err)
 			}
 			ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 			defer cancel()
-			if err := xrayTraffic(ctx, healthA, healthB, proxies[1], proxies[2], proxies[3]); err != nil {
+			if err := testutil.XrayTraffic(ctx, healthA, healthB, proxies[1], proxies[2], proxies[3]); err != nil {
 				t.Fatal(err)
 			}
 			blocked, release := context.WithTimeout(ctx, 400*time.Millisecond)
-			err = xrayTraffic(blocked, proxies[0])
+			err = testutil.XrayTraffic(blocked, proxies[0])
 			release()
 			if err == nil {
 				t.Fatal("unprovisioned user authenticated before addition")
@@ -123,7 +123,7 @@ func TestLiveUserAdditionOverMTLSEnablesVLESSWithoutRemovingExistingUsers(t *tes
 			if result, err := client.AddInboundUsers(ctx, batch); err != nil || len(result.Items) != 1 || result.Items[0].State != userv1.UserAdditionState_USER_ADDITION_STATE_ACKNOWLEDGED {
 				t.Fatal("real native TCP/Unix collection failed")
 			}
-			if err := xrayTraffic(ctx, proxies[0]); err != nil {
+			if err := testutil.XrayTraffic(ctx, proxies[0]); err != nil {
 				t.Fatal("collection-added user could not authenticate")
 			}
 			if _, err := client.RemoveInboundUser(ctx, &userv1.RemoveInboundUserRequest{InstanceId: "edge-a", InboundTag: "target", Email: request.User.Email}); err != nil {
@@ -135,7 +135,7 @@ func TestLiveUserAdditionOverMTLSEnablesVLESSWithoutRemovingExistingUsers(t *tes
 			if err != nil || ack.InstanceId != "edge-a" || ack.InboundTag != "target" || ack.Email != "selected@local" || ack.AcknowledgedAtUnixMs < started {
 				t.Fatalf("addition acknowledgement: %v %v", ack, err)
 			}
-			if err := xrayTraffic(ctx, proxies[0]); err != nil {
+			if err := testutil.XrayTraffic(ctx, proxies[0]); err != nil {
 				t.Fatalf("added user cannot authenticate: %v", err)
 			}
 			for _, selection := range []struct{ instance, tag string }{{"edge-a", "target"}, {"edge-a", "other"}, {"edge-b", "target"}} {
@@ -169,12 +169,12 @@ func TestLiveUserAdditionOverMTLSEnablesVLESSWithoutRemovingExistingUsers(t *tes
 				t.Fatal("generic native error was relabeled as proof of no effect")
 			}
 			blocked, release = context.WithTimeout(ctx, 400*time.Millisecond)
-			err = xrayTraffic(blocked, proxies[4])
+			err = testutil.XrayTraffic(blocked, proxies[4])
 			release()
 			if err == nil {
 				t.Fatal("duplicate attempt silently replaced the original credential")
 			}
-			if err := xrayTraffic(ctx, proxies[0], proxies[1], proxies[2], proxies[3], healthA, healthB); err != nil {
+			if err := testutil.XrayTraffic(ctx, proxies[0], proxies[1], proxies[2], proxies[3], healthA, healthB); err != nil {
 				t.Fatalf("addition/duplicate removed existing users or crossed ownership: %v", err)
 			}
 			current, err := os.ReadFile(first.Xray.ConfigFile)

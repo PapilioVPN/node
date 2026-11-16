@@ -41,8 +41,8 @@ func xrayClient(t *testing.T, server *rpc.Server, certificates testutil.Certific
 
 func TestXrayBinaryInfoOverMTLSKeepsLiveInstancesUnchanged(t *testing.T) {
 	certificates := testutil.NewCertificates(t)
-	first, firstAddress := configuredXray(t, certificates.Directory, "edge-a")
-	second, secondAddress := configuredXray(t, certificates.Directory, "edge-b")
+	first, firstAddress := testutil.ConfiguredXray(t, certificates.Directory, "edge-a")
+	second, secondAddress := testutil.ConfiguredXray(t, certificates.Directory, "edge-b")
 	first.Xray.Inspection = &settings.BinaryInspection{Timeout: time.Second, MaxOutputBytes: 1024, MaxConcurrent: 1}
 	original, err := os.ReadFile(first.Xray.ConfigFile)
 	if err != nil {
@@ -72,11 +72,11 @@ func TestXrayBinaryInfoOverMTLSKeepsLiveInstancesUnchanged(t *testing.T) {
 		if err := resources.Close(); err != nil {
 			t.Error(err)
 		}
-		assertInstancePortsReleased(t, firstAddress, secondAddress)
+		testutil.AssertTCPPortsReleased(t, firstAddress, secondAddress)
 	})
 	ctx, cancel := context.WithTimeout(t.Context(), 8*time.Second)
 	defer cancel()
-	if err := xrayTraffic(ctx, firstAddress, secondAddress); err != nil {
+	if err := testutil.XrayTraffic(ctx, firstAddress, secondAddress); err != nil {
 		t.Fatal(err)
 	}
 	client := xrayClient(t, server, certificates)
@@ -98,7 +98,6 @@ func TestXrayBinaryInfoOverMTLSKeepsLiveInstancesUnchanged(t *testing.T) {
 	if _, err := client.GetRuntimeInfo(ctx, &infov1.GetRuntimeInfoRequest{InstanceId: "edge-a"}); status.Code(err) != codes.FailedPrecondition {
 		t.Fatalf("absent API settings were ignored: %v", err)
 	}
-	verifyFailedUserViews(t, ctx, client, "edge-a", "in", codes.FailedPrecondition)
 	before := time.Now().UnixMilli()
 	response, err := client.GetBinaryInfo(ctx, &infov1.GetBinaryInfoRequest{InstanceId: "edge-a"})
 	if err != nil {
@@ -123,7 +122,7 @@ func TestXrayBinaryInfoOverMTLSKeepsLiveInstancesUnchanged(t *testing.T) {
 	if _, err := controls.ValidateInstanceConfig(ctx, &instancesv1.ValidateInstanceConfigRequest{InstanceId: "edge-a"}); status.Code(err) != codes.PermissionDenied {
 		t.Fatalf("engine information granted config validation: %v", err)
 	}
-	if err := xrayTraffic(ctx, firstAddress, secondAddress); err != nil {
+	if err := testutil.XrayTraffic(ctx, firstAddress, secondAddress); err != nil {
 		t.Fatalf("binary inspection interrupted traffic: %v", err)
 	}
 	current, err := os.ReadFile(first.Xray.ConfigFile)

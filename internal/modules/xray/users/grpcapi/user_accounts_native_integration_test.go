@@ -1,6 +1,6 @@
 //go:build integration && linux
 
-package bootstrap_test
+package grpcapi_test
 
 import (
 	"bytes"
@@ -12,6 +12,7 @@ import (
 	"io"
 	"net"
 	"os"
+	"strconv"
 	"testing"
 	"time"
 
@@ -25,6 +26,7 @@ import (
 
 	"github.com/PapilioVPN/node/internal/bootstrap"
 	xrayv1 "github.com/PapilioVPN/node/internal/bootstrap/xrayapi/proto/v1"
+	lifecycle "github.com/PapilioVPN/node/internal/modules/core/instances"
 	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
 	"github.com/PapilioVPN/node/internal/modules/xray/users/app/services"
 	"github.com/PapilioVPN/node/internal/modules/xray/users/domain"
@@ -40,18 +42,44 @@ import (
 // End-to-end protocol authentication/traffic is verified separately from registry state.
 func TestLiveUserAdditionUpdatesEveryBaselineNativeUserManager(t *testing.T) {
 	certificates := testutil.NewCertificates(t)
-	instance, health := configuredXray(t, certificates.Directory, "edge")
-	port := func(network string) int {
+	instance, health := testutil.ConfiguredXray(t, certificates.Directory, "edge")
+	// Keep child endpoints reserved while choosing later listeners. A spawned
+	// process is not necessarily listening when Node binds its management port.
+	var reservations []io.Closer
+	reserve := func(network, address string) string {
+		var listener io.Closer
+		var bound net.Addr
 		if network == "tcp" {
-			return userTestPort(t)
+			value, err := net.Listen("tcp", address)
+			if err != nil {
+				t.Fatal(err)
+			}
+			listener, bound = value, value.Addr()
+		} else {
+			value, err := net.ListenPacket("udp", address)
+			if err != nil {
+				t.Fatal(err)
+			}
+			listener, bound = value, value.LocalAddr()
 		}
-		listener, err := net.ListenPacket("udp", "127.0.0.1:0")
+		reservations = append(reservations, listener)
+		t.Cleanup(func() { _ = listener.Close() })
+		return bound.String()
+	}
+	reserve("tcp", health)
+	port := func(network string) int {
+		address := reserve(network, "127.0.0.1:0")
+		_, text, err := net.SplitHostPort(address)
 		if err != nil {
 			t.Fatal(err)
 		}
-		defer listener.Close()
-		return listener.LocalAddr().(*net.UDPAddr).Port
+		value, err := strconv.Atoi(text)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return value
 	}
+
 	key := bytes.Repeat([]byte{7}, 16)
 	seed := base64.StdEncoding.EncodeToString(bytes.Repeat([]byte{8}, 16))
 	serverKey := base64.StdEncoding.EncodeToString(bytes.Repeat([]byte{9}, 16))
@@ -99,6 +127,13 @@ func TestLiveUserAdditionUpdatesEveryBaselineNativeUserManager(t *testing.T) {
 		}
 		config["inbounds"] = append(config["inbounds"].([]any), inbound)
 		listeners = append(listeners, boundListener{tc.network, net.JoinHostPort("127.0.0.1", fmt.Sprint(listenPort))})
+		if tc.tag == "shadowsocks" || tc.tag == "ss2022" {
+			// Both native Shadowsocks listeners also bind UDP at this port.
+			address := net.JoinHostPort("127.0.0.1", fmt.Sprint(listenPort))
+			reserve("udp", address)
+			listeners = append(listeners, boundListener{"udp", address})
+		}
+
 	}
 	content, err = json.Marshal(config)
 	if err != nil {
@@ -107,7 +142,7 @@ func TestLiveUserAdditionUpdatesEveryBaselineNativeUserManager(t *testing.T) {
 	if err := os.WriteFile(instance.Xray.ConfigFile, content, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	configureXrayAPI(t, &instance, "unix", []string{"HandlerService"})
+	testutil.ConfigureXrayAPI(t, &instance, "unix", []string{"HandlerService"})
 	instance.Xray.API.MaxReceiveBytes = 64 * 1024
 	instance.Xray.Users = &settings.XrayUsers{MaxBatchUsers: 3}
 	original, err := os.ReadFile(instance.Xray.ConfigFile)
@@ -115,6 +150,7 @@ func TestLiveUserAdditionUpdatesEveryBaselineNativeUserManager(t *testing.T) {
 		t.Fatal(err)
 	}
 	cfg := certificates.Config()
+	cfg.Communications.GRPC.Listen = reserve("tcp", cfg.Communications.GRPC.Listen)
 	cfg.Instances = []settings.Instance{instance}
 	cfg.Communications.GRPC.Permissions.ManageEngineUsers = true
 	cfg.Communications.GRPC.Permissions.ReadEngineUsers = true
@@ -126,6 +162,11 @@ func TestLiveUserAdditionUpdatesEveryBaselineNativeUserManager(t *testing.T) {
 		Closers []io.Closer `group:"module_resources"`
 	}
 	application := bootstrap.New(cfg, "test", fx.NopLogger, fx.Populate(&server, &cleanup))
+	for _, listener := range reservations {
+		if err := listener.Close(); err != nil {
+			t.Fatal(err)
+		}
+	}
 	if err := application.Start(t.Context()); err != nil {
 		t.Fatal(err)
 	}
@@ -139,10 +180,10 @@ func TestLiveUserAdditionUpdatesEveryBaselineNativeUserManager(t *testing.T) {
 				t.Error(err)
 			}
 		}
-		assertInstancePortsReleased(t, health)
+		testutil.AssertTCPPortsReleased(t, health)
 		for _, binding := range listeners {
 			if binding.network == "tcp" {
-				assertInstancePortsReleased(t, binding.address)
+				testutil.AssertTCPPortsReleased(t, binding.address)
 			} else {
 				listener, err := net.ListenPacket("udp", binding.address)
 				if err != nil {
@@ -155,7 +196,7 @@ func TestLiveUserAdditionUpdatesEveryBaselineNativeUserManager(t *testing.T) {
 	})
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	defer cancel()
-	if err := xrayTraffic(ctx, health); err != nil {
+	if err := testutil.XrayTraffic(ctx, health); err != nil {
 		t.Fatalf("all-family native configuration failed to become ready: %v", err)
 	}
 	connection, err := grpc.NewClient("unix://"+instance.Xray.API.Address, grpc.WithTransportCredentials(insecure.NewCredentials()))
@@ -402,5 +443,44 @@ func verifyPublicUserAdditionCollection(t *testing.T, ctx context.Context, clien
 	count, err = client.GetInboundUserCount(ctx, &userv1.GetInboundUserCountRequest{InstanceId: "edge", InboundTag: tag})
 	if err != nil || count.Count != initialCount {
 		t.Fatal("public collection did not restore the original membership")
+	}
+}
+
+// Missing and unsupported native APIs must not become empty user observations.
+func TestUserObservationsRejectMissingNativeCapabilitiesOverMTLS(t *testing.T) {
+	for _, mode := range []string{"disabled", "unsupported"} {
+		t.Run(mode, func(t *testing.T) {
+			certificates := testutil.NewCertificates(t)
+			instance, address := testutil.ConfiguredXray(t, certificates.Directory, "edge-a")
+			if mode == "unsupported" {
+				testutil.ConfigureXrayAPI(t, &instance, "unix", []string{})
+			}
+			cfg := certificates.Config()
+			cfg.Instances = []settings.Instance{instance}
+			cfg.Communications.GRPC.Permissions.ReadEngineUserMetadata = true
+			cfg.Communications.GRPC.Permissions.ReadEngineUserAccounts = true
+			var server *rpc.Server
+			var resources *lifecycle.Resources
+			application := bootstrap.New(cfg, "test", fx.NopLogger, fx.Populate(&server, &resources))
+			if err := application.Start(t.Context()); err != nil {
+				t.Fatal(err)
+			}
+			t.Cleanup(func() {
+				if err := application.Stop(context.Background()); err != nil {
+					t.Error(err)
+				}
+				if err := server.Close(); err != nil {
+					t.Error(err)
+				}
+				if err := resources.Close(); err != nil {
+					t.Error(err)
+				}
+				testutil.AssertTCPPortsReleased(t, address)
+			})
+			if err := testutil.XrayTraffic(t.Context(), address); err != nil {
+				t.Fatal(err)
+			}
+			verifyFailedUserViews(t, t.Context(), xrayClient(t, server, certificates), "edge-a", "in", codes.FailedPrecondition)
+		})
 	}
 }

@@ -102,12 +102,12 @@ func TestTrafficCountersAndResetOverMTLSPreserveNativeUsageAndInstanceIsolation(
 				t.Cleanup(func() { _ = listener.Close() })
 				return listener.Addr().String()
 			}
-			first, firstAddress := configuredXray(t, certificates.Directory, "edge-a")
+			first, firstAddress := testutil.ConfiguredXray(t, certificates.Directory, "edge-a")
 			reserve(firstAddress)
-			second, secondAddress := configuredXray(t, certificates.Directory, "edge-b")
+			second, secondAddress := testutil.ConfiguredXray(t, certificates.Directory, "edge-b")
 			reserve(secondAddress)
 			for _, instance := range []*settings.Instance{&first, &second} {
-				configureXrayAPI(t, instance, network, []string{"StatsService"})
+				testutil.ConfigureXrayAPI(t, instance, network, []string{"StatsService"})
 				if network == "tcp" {
 					reserve(instance.Xray.API.Address)
 				}
@@ -151,9 +151,9 @@ func TestTrafficCountersAndResetOverMTLSPreserveNativeUsageAndInstanceIsolation(
 						t.Error(err)
 					}
 				}
-				assertInstancePortsReleased(t, firstAddress, secondAddress)
+				testutil.AssertTCPPortsReleased(t, firstAddress, secondAddress)
 				if network == "tcp" {
-					assertInstancePortsReleased(t, first.Xray.API.Address, second.Xray.API.Address)
+					testutil.AssertTCPPortsReleased(t, first.Xray.API.Address, second.Xray.API.Address)
 				}
 			})
 			ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
@@ -208,7 +208,7 @@ func TestTrafficCountersAndResetOverMTLSPreserveNativeUsageAndInstanceIsolation(
 			if _, err := client.GetTrafficCounter(ctx, request); status.Code(err) != codes.NotFound {
 				t.Fatalf("pair reset created a missing counter: %v", err)
 			}
-			if err := xrayTraffic(ctx, url.UserPassword("reader@local", "test-password").String()+"@"+firstAddress); err != nil {
+			if err := testutil.XrayTraffic(ctx, url.UserPassword("reader@local", "test-password").String()+"@"+firstAddress); err != nil {
 				t.Fatal(err)
 			}
 			for scope, name := range map[trafficv1.TrafficScope]string{
@@ -282,7 +282,7 @@ func TestTrafficCountersAndResetOverMTLSPreserveNativeUsageAndInstanceIsolation(
 				}
 			}
 			// Seed usage in the other real engine before resetting the selected instance.
-			if err := xrayTraffic(ctx, url.UserPassword("reader@local", "test-password").String()+"@"+secondAddress); err != nil {
+			if err := testutil.XrayTraffic(ctx, url.UserPassword("reader@local", "test-password").String()+"@"+secondAddress); err != nil {
 				t.Fatal(err)
 			}
 			for scope, name := range map[trafficv1.TrafficScope]string{
@@ -322,7 +322,7 @@ func TestTrafficCountersAndResetOverMTLSPreserveNativeUsageAndInstanceIsolation(
 					}
 				}
 			}
-			if err := xrayTraffic(ctx, url.UserPassword("reader@local", "test-password").String()+"@"+firstAddress); err != nil {
+			if err := testutil.XrayTraffic(ctx, url.UserPassword("reader@local", "test-password").String()+"@"+firstAddress); err != nil {
 				t.Fatal(err)
 			}
 			request.InstanceId, request.Scope, request.Name, request.Direction = "edge-a", trafficv1.TrafficScope_TRAFFIC_SCOPE_USER, "reader@local", trafficv1.TrafficDirection_TRAFFIC_DIRECTION_UPLINK
@@ -385,7 +385,7 @@ func TestTrafficCountersAndResetOverMTLSPreserveNativeUsageAndInstanceIsolation(
 					}
 				}
 			}
-			if err := xrayTraffic(ctx, url.UserPassword("reader@local", "test-password").String()+"@"+firstAddress); err != nil {
+			if err := testutil.XrayTraffic(ctx, url.UserPassword("reader@local", "test-password").String()+"@"+firstAddress); err != nil {
 				t.Fatalf("traffic did not continue after scope reset: %v", err)
 			}
 			for scope, name := range map[trafficv1.TrafficScope]string{trafficv1.TrafficScope_TRAFFIC_SCOPE_USER: "reader@local", trafficv1.TrafficScope_TRAFFIC_SCOPE_INBOUND: "proxy", trafficv1.TrafficScope_TRAFFIC_SCOPE_OUTBOUND: "direct"} {
@@ -419,7 +419,7 @@ func TestTrafficCountersAndResetOverMTLSPreserveNativeUsageAndInstanceIsolation(
 					t.Fatalf("pair reset was not applied: %v %v", after, err)
 				}
 			}
-			if err := xrayTraffic(ctx, url.UserPassword("reader@local", "test-password").String()+"@"+firstAddress); err != nil {
+			if err := testutil.XrayTraffic(ctx, url.UserPassword("reader@local", "test-password").String()+"@"+firstAddress); err != nil {
 				t.Fatalf("traffic did not continue after pair reset: %v", err)
 			}
 

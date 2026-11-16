@@ -5,11 +5,8 @@ package bootstrap_test
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
-	"net"
 	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -39,11 +36,11 @@ func TestXrayRuntimeInfoOverMTLSAndNativeReconnect(t *testing.T) {
 	for _, network := range []string{"unix", "tcp"} {
 		t.Run(network, func(t *testing.T) {
 			certificates := testutil.NewCertificates(t)
-			first, firstAddress := configuredXray(t, certificates.Directory, "edge-a")
-			second, secondAddress := configuredXray(t, certificates.Directory, "edge-b")
-			configureXrayAPI(t, &first, network, []string{"StatsService"})
+			first, firstAddress := testutil.ConfiguredXray(t, certificates.Directory, "edge-a")
+			second, secondAddress := testutil.ConfiguredXray(t, certificates.Directory, "edge-b")
+			testutil.ConfigureXrayAPI(t, &first, network, []string{"StatsService"})
 			// A real API without StatsService must not become successful empty facts.
-			configureXrayAPI(t, &second, network, []string{})
+			testutil.ConfigureXrayAPI(t, &second, network, []string{})
 			second.Xray.RoutingRules = &settings.RoutingRulePreparation{WorkDir: t.TempDir(), MaxInputBytes: 1024, MaxOutputBytes: 65536, MaxConcurrent: 1}
 			original, err := os.ReadFile(first.Xray.ConfigFile)
 			if err != nil {
@@ -80,14 +77,14 @@ func TestXrayRuntimeInfoOverMTLSAndNativeReconnect(t *testing.T) {
 				if err := resources.Close(); err != nil {
 					t.Error(err)
 				}
-				assertInstancePortsReleased(t, firstAddress, secondAddress)
+				testutil.AssertTCPPortsReleased(t, firstAddress, secondAddress)
 				if network == "tcp" {
-					assertInstancePortsReleased(t, first.Xray.API.Address, second.Xray.API.Address)
+					testutil.AssertTCPPortsReleased(t, first.Xray.API.Address, second.Xray.API.Address)
 				}
 			})
 			ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 			defer cancel()
-			if err := xrayTraffic(ctx, firstAddress, secondAddress); err != nil {
+			if err := testutil.XrayTraffic(ctx, firstAddress, secondAddress); err != nil {
 				t.Fatal(err)
 			}
 			client := xrayClient(t, server, certificates)
@@ -133,7 +130,6 @@ func TestXrayRuntimeInfoOverMTLSAndNativeReconnect(t *testing.T) {
 			}); result != nil || status.Code(err) != codes.FailedPrecondition {
 				t.Fatalf("absent native StatsService became zero usage: %v, %v", result, err)
 			}
-			verifyFailedUserViews(t, ctx, client, "edge-b", "in", codes.FailedPrecondition)
 			info := response.GetRuntime()
 			if response.InstanceId != "edge-a" || info.GetGoroutines() == 0 || info.AllocatedBytes == 0 || info.SysBytes < info.AllocatedBytes || info.Mallocs < info.Frees || info.LiveObjects != info.Mallocs-info.Frees || info.ObservedAtUnixMs <= 0 {
 				t.Fatalf("native runtime facts: %v", response)
@@ -150,14 +146,14 @@ func TestXrayRuntimeInfoOverMTLSAndNativeReconnect(t *testing.T) {
 			if response, err := client.GetRuntimeInfo(ctx, &infov1.GetRuntimeInfoRequest{InstanceId: "edge-a"}); response != nil || status.Code(err) != codes.Unavailable {
 				t.Fatalf("stopped API became available: %v, %v", response, err)
 			}
-			if err := xrayTraffic(ctx, secondAddress); err != nil {
+			if err := testutil.XrayTraffic(ctx, secondAddress); err != nil {
 				t.Fatalf("other instance affected: %v", err)
 			}
 			if _, err := controls.StartInstance(ctx, &instancesv1.StartInstanceRequest{InstanceId: "edge-a"}); err != nil {
 				t.Fatal(err)
 			}
 			awaitRuntimeInfo(t, ctx, client, "edge-a")
-			if err := xrayTraffic(ctx, firstAddress, secondAddress); err != nil {
+			if err := testutil.XrayTraffic(ctx, firstAddress, secondAddress); err != nil {
 				t.Fatal(err)
 			}
 			current, err := os.ReadFile(first.Xray.ConfigFile)
@@ -166,59 +162,6 @@ func TestXrayRuntimeInfoOverMTLSAndNativeReconnect(t *testing.T) {
 			}
 		})
 	}
-}
-
-func configureXrayAPI(t *testing.T, instance *settings.Instance, network string, services []string) {
-	t.Helper()
-	var address string
-	if network == "unix" {
-		// A short owned directory also respects Linux's Unix-address length bound.
-		directory, err := os.MkdirTemp("", "xray-api-")
-		if err != nil {
-			t.Fatal(err)
-		}
-		t.Cleanup(func() {
-			if err := os.RemoveAll(directory); err != nil {
-				t.Error(err)
-			}
-		})
-		address = filepath.Join(directory, "api.sock")
-	} else {
-		listener, err := net.Listen("tcp", "127.0.0.1:0")
-		if err != nil {
-			t.Fatal(err)
-		}
-		address = listener.Addr().String()
-		if err := listener.Close(); err != nil {
-			t.Fatal(err)
-		}
-	}
-	content, err := os.ReadFile(instance.Xray.ConfigFile)
-	if err != nil {
-		t.Fatal(err)
-	}
-	var configuration map[string]json.RawMessage
-	if err := json.Unmarshal(content, &configuration); err != nil {
-		t.Fatal(err)
-	}
-	api, err := json.Marshal(struct {
-		Tag      string   `json:"tag"`
-		Listen   string   `json:"listen"`
-		Services []string `json:"services"`
-	}{"api", address, services})
-	if err != nil {
-		t.Fatal(err)
-	}
-	configuration["api"] = api
-	configuration["stats"] = json.RawMessage("{}")
-	content, err = json.Marshal(configuration)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(instance.Xray.ConfigFile, content, 0o600); err != nil {
-		t.Fatal(err)
-	}
-	instance.Xray.API = &settings.XrayAPI{Network: network, Address: address, RequestTimeout: time.Second, MaxReceiveBytes: 4096, MaxConcurrent: 2}
 }
 
 // Only tests poll for observed API readiness; production reads never retry.

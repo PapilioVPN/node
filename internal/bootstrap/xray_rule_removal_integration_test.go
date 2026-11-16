@@ -29,10 +29,10 @@ func TestXrayRuleRemovalOverMTLSChangesTrafficAndKeepsOtherState(t *testing.T) {
 	for _, network := range []string{"unix", "tcp"} {
 		t.Run(network, func(t *testing.T) {
 			certificates := testutil.NewCertificates(t)
-			first, healthA := configuredXray(t, certificates.Directory, "edge-a")
-			second, healthB := configuredXray(t, certificates.Directory, "edge-b")
-			configureXrayAPI(t, &first, network, []string{"RoutingService"})
-			configureXrayAPI(t, &second, network, []string{"RoutingService"})
+			first, healthA := testutil.ConfiguredXray(t, certificates.Directory, "edge-a")
+			second, healthB := testutil.ConfiguredXray(t, certificates.Directory, "edge-b")
+			testutil.ConfigureXrayAPI(t, &first, network, []string{"RoutingService"})
+			testutil.ConfigureXrayAPI(t, &second, network, []string{"RoutingService"})
 			balancedA, configA := configureXrayRuleRemoval(t, first)
 			balancedB, configB := configureXrayRuleRemoval(t, second)
 			cfg := certificates.Config()
@@ -59,14 +59,14 @@ func TestXrayRuleRemovalOverMTLSChangesTrafficAndKeepsOtherState(t *testing.T) {
 						t.Error(err)
 					}
 				}
-				assertInstancePortsReleased(t, healthA, healthB, balancedA, balancedB)
+				testutil.AssertTCPPortsReleased(t, healthA, healthB, balancedA, balancedB)
 				if network == "tcp" {
-					assertInstancePortsReleased(t, first.Xray.API.Address, second.Xray.API.Address)
+					testutil.AssertTCPPortsReleased(t, first.Xray.API.Address, second.Xray.API.Address)
 				}
 			})
 			ctx, cancel := context.WithTimeout(t.Context(), 12*time.Second)
 			defer cancel()
-			if err := xrayTraffic(ctx, healthA, healthB); err != nil {
+			if err := testutil.XrayTraffic(ctx, healthA, healthB); err != nil {
 				t.Fatal(err)
 			}
 			firstAPI, secondAPI := nativeXrayAPIClient(t, first), nativeXrayAPIClient(t, second)
@@ -131,7 +131,7 @@ func TestXrayRuleRemovalOverMTLSChangesTrafficAndKeepsOtherState(t *testing.T) {
 			}
 			assertBalancedHTTP(t, ctx, balancedA, true)
 			assertBalancedHTTP(t, ctx, balancedB, true)
-			if err := xrayTraffic(ctx, healthA, healthB); err != nil {
+			if err := testutil.XrayTraffic(ctx, healthA, healthB); err != nil {
 				t.Fatal(err)
 			}
 			for _, item := range []struct {

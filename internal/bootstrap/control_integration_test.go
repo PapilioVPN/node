@@ -118,8 +118,8 @@ func TestControlPermissionsRemainIndependentOverMTLS(t *testing.T) {
 
 func TestControlRestartsOnlySelectedXrayAndRetainsShutdownOwnership(t *testing.T) {
 	certificates := testutil.NewCertificates(t)
-	first, firstAddress := configuredXray(t, certificates.Directory, "edge-a")
-	second, secondAddress := configuredXray(t, certificates.Directory, "edge-b")
+	first, firstAddress := testutil.ConfiguredXray(t, certificates.Directory, "edge-a")
+	second, secondAddress := testutil.ConfiguredXray(t, certificates.Directory, "edge-b")
 	cfg := certificates.Config()
 	cfg.Instances = []settings.Instance{first, second}
 	cfg.Communications.GRPC.Permissions = settings.GRPCPermissions{ReadInstanceStatus: true, ControlInstances: true}
@@ -143,7 +143,7 @@ func TestControlRestartsOnlySelectedXrayAndRetainsShutdownOwnership(t *testing.T
 	client := instanceClient(t, server, certificates)
 	ctx, cancel := context.WithTimeout(t.Context(), 8*time.Second)
 	defer cancel()
-	if err := xrayTraffic(ctx, firstAddress, secondAddress); err != nil {
+	if err := testutil.XrayTraffic(ctx, firstAddress, secondAddress); err != nil {
 		t.Fatal(err)
 	}
 	for range 2 {
@@ -152,12 +152,12 @@ func TestControlRestartsOnlySelectedXrayAndRetainsShutdownOwnership(t *testing.T
 			t.Fatalf("selected stop: %v, %v", stopped, err)
 		}
 	}
-	assertInstancePortsReleased(t, firstAddress)
+	testutil.AssertTCPPortsReleased(t, firstAddress)
 	other, err := client.GetInstanceStatus(ctx, &instancesv1.GetInstanceStatusRequest{InstanceId: "edge-b"})
 	if err != nil || other.GetState() != instancesv1.InstanceState_INSTANCE_STATE_RUNNING || other.Failure != nil {
 		t.Fatalf("unselected instance changed: %v, %v", other, err)
 	}
-	if err := xrayTraffic(ctx, secondAddress); err != nil {
+	if err := testutil.XrayTraffic(ctx, secondAddress); err != nil {
 		t.Fatal(err)
 	}
 	for range 2 {
@@ -166,7 +166,7 @@ func TestControlRestartsOnlySelectedXrayAndRetainsShutdownOwnership(t *testing.T
 			t.Fatalf("selected start: %v, %v", started, err)
 		}
 	}
-	if err := xrayTraffic(ctx, firstAddress, secondAddress); err != nil {
+	if err := testutil.XrayTraffic(ctx, firstAddress, secondAddress); err != nil {
 		t.Fatal(err)
 	}
 	canceled, cancelStop := context.WithCancel(ctx)
@@ -174,18 +174,18 @@ func TestControlRestartsOnlySelectedXrayAndRetainsShutdownOwnership(t *testing.T
 	if _, err := client.StopInstance(canceled, &instancesv1.StopInstanceRequest{InstanceId: "edge-a"}); status.Code(err) != codes.Canceled {
 		t.Fatalf("canceled request: %v", err)
 	}
-	if err := xrayTraffic(ctx, firstAddress, secondAddress); err != nil {
+	if err := testutil.XrayTraffic(ctx, firstAddress, secondAddress); err != nil {
 		t.Fatal(err)
 	}
 	if err := application.Stop(ctx); err != nil {
 		t.Fatal(err)
 	}
-	assertInstancePortsReleased(t, firstAddress, secondAddress)
+	testutil.AssertTCPPortsReleased(t, firstAddress, secondAddress)
 }
 
 func TestControlFailureTransmitsPartialNativeOutcome(t *testing.T) {
 	certificates := testutil.NewCertificates(t)
-	instance, address := configuredXray(t, certificates.Directory, "failed")
+	instance, address := testutil.ConfiguredXray(t, certificates.Directory, "failed")
 	if err := os.WriteFile(instance.Xray.ConfigFile, []byte(`{"inbounds":`), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -240,5 +240,5 @@ func TestControlFailureTransmitsPartialNativeOutcome(t *testing.T) {
 	if err := application.Stop(ctx); !errors.As(err, &nativeExit) || nativeExit.ExitCode() != 23 {
 		t.Fatalf("native owner lost the exit cause: %v", err)
 	}
-	assertInstancePortsReleased(t, address)
+	testutil.AssertTCPPortsReleased(t, address)
 }

@@ -1,6 +1,6 @@
 //go:build integration && linux
 
-package bootstrap_test
+package grpcapi_test
 
 import (
 	"bytes"
@@ -31,13 +31,13 @@ func TestLiveUserRemovalOverMTLSDeniesNewVLESSSessionsWithoutCrossingOwnership(t
 	for _, network := range []string{"unix", "tcp"} {
 		t.Run(network, func(t *testing.T) {
 			certificates := testutil.NewCertificates(t)
-			first, healthA := configuredXray(t, certificates.Directory, "edge-a")
-			second, healthB := configuredXray(t, certificates.Directory, "edge-b")
+			first, healthA := testutil.ConfiguredXray(t, certificates.Directory, "edge-a")
+			second, healthB := testutil.ConfiguredXray(t, certificates.Directory, "edge-b")
 			selectedID, otherID := "8e781ad6-dae6-4ed4-9d7b-8c247f735869", "4caa3ce4-39ab-49df-bc05-624befa32996"
 			firstPorts := userTestVLESSInbounds(t, &first, selectedID, otherID)
 			secondPorts := userTestVLESSInbounds(t, &second, selectedID, otherID)
 			for _, instance := range []*settings.Instance{&first, &second} {
-				configureXrayAPI(t, instance, network, []string{"HandlerService"})
+				testutil.ConfigureXrayAPI(t, instance, network, []string{"HandlerService"})
 			}
 			original, err := os.ReadFile(first.Xray.ConfigFile)
 			if err != nil {
@@ -66,12 +66,12 @@ func TestLiveUserRemovalOverMTLSDeniesNewVLESSSessionsWithoutCrossingOwnership(t
 						t.Error(err)
 					}
 				}
-				assertInstancePortsReleased(t, healthA, healthB)
+				testutil.AssertTCPPortsReleased(t, healthA, healthB)
 				for _, port := range append(firstPorts, secondPorts...) {
-					assertInstancePortsReleased(t, net.JoinHostPort("127.0.0.1", fmt.Sprint(port)))
+					testutil.AssertTCPPortsReleased(t, net.JoinHostPort("127.0.0.1", fmt.Sprint(port)))
 				}
 				if network == "tcp" {
-					assertInstancePortsReleased(t, first.Xray.API.Address, second.Xray.API.Address)
+					testutil.AssertTCPPortsReleased(t, first.Xray.API.Address, second.Xray.API.Address)
 				}
 			})
 			proxy, err := xrayprocess.New(xrayprocess.Config{Binary: first.Xray.Binary, ConfigFile: clientConfig, StopTimeout: time.Second})
@@ -82,17 +82,17 @@ func TestLiveUserRemovalOverMTLSDeniesNewVLESSSessionsWithoutCrossingOwnership(t
 				if err := proxy.Close(); err != nil {
 					t.Error(err)
 				}
-				assertInstancePortsReleased(t, proxies...)
+				testutil.AssertTCPPortsReleased(t, proxies...)
 			})
 			if err := proxy.Start(t.Context()); err != nil {
 				t.Fatal(err)
 			}
 			ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 			defer cancel()
-			if err := xrayTraffic(ctx, healthA, healthB); err != nil {
+			if err := testutil.XrayTraffic(ctx, healthA, healthB); err != nil {
 				t.Fatalf("server readiness: %v", err)
 			}
-			if err := xrayTraffic(ctx, proxies...); err != nil {
+			if err := testutil.XrayTraffic(ctx, proxies...); err != nil {
 				state, failure := proxy.Observe()
 				t.Fatalf("all isolated credentials must work before removal: %v; client=%v/%v", err, state, failure)
 			}
@@ -103,12 +103,12 @@ func TestLiveUserRemovalOverMTLSDeniesNewVLESSSessionsWithoutCrossingOwnership(t
 				t.Fatalf("native removal acknowledgement: %v %v", ack, err)
 			}
 			blocked, release := context.WithTimeout(ctx, 400*time.Millisecond)
-			err = xrayTraffic(blocked, proxies[0])
+			err = testutil.XrayTraffic(blocked, proxies[0])
 			release()
 			if err == nil {
 				t.Fatal("removed credential still authenticated a new VLESS connection")
 			}
-			if err := xrayTraffic(ctx, proxies[1], proxies[2], proxies[3], healthA, healthB); err != nil {
+			if err := testutil.XrayTraffic(ctx, proxies[1], proxies[2], proxies[3], healthA, healthB); err != nil {
 				t.Fatalf("removal crossed user/inbound/instance ownership or stopped an engine: %v", err)
 			}
 			if _, err := client.GetRuntimeInfo(ctx, &xrayv1.GetRuntimeInfoRequest{InstanceId: "edge-a"}); status.Code(err) != codes.PermissionDenied {

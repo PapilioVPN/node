@@ -12,16 +12,17 @@ import (
 	"testing"
 	"time"
 
+	"github.com/nats-io/nats.go"
+	"go.uber.org/fx"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
+
 	"github.com/PapilioVPN/node/internal/bootstrap"
 	nodev1 "github.com/PapilioVPN/node/internal/modules/system/info/grpcapi/proto/v1"
 	rpc "github.com/PapilioVPN/node/internal/platform/grpcserver"
 	"github.com/PapilioVPN/node/internal/platform/httpserver"
 	"github.com/PapilioVPN/node/internal/settings"
 	"github.com/PapilioVPN/node/internal/shared/testutil"
-	"github.com/nats-io/nats.go"
-	"go.uber.org/fx"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
 )
 
 func TestNATSOnlyAndAllTransportsShareNodeInfo(t *testing.T) {
@@ -148,7 +149,7 @@ func TestCanceledStartupClosesThreeTransportsAndInstance(t *testing.T) {
 	cfg := httpConfig(broker.Certificates)
 	cfg.Communications.GRPC.Enabled = true
 	cfg.Communications.NATS = broker.Config()
-	instance, engineAddress := configuredXray(t, t.TempDir(), "owned-engine")
+	instance, engineAddress := testutil.ConfiguredXray(t, t.TempDir(), "owned-engine")
 	cfg.Instances = []settings.Instance{instance}
 	client := broker.Client(t, "controller")
 	ctx, cancel := context.WithCancel(context.Background())
@@ -157,7 +158,7 @@ func TestCanceledStartupClosesThreeTransportsAndInstance(t *testing.T) {
 	err := bootstrap.Run(ctx, cfg, "test", fx.NopLogger, fx.Invoke(func(lifecycle fx.Lifecycle, httpServer *httpserver.Server, grpcServer *rpc.Server) {
 		lifecycle.Append(fx.Hook{OnStart: func(startup context.Context) error {
 			addresses = append(addresses, httpServer.Addr().String(), grpcServer.Addr().String())
-			if err := xrayTraffic(startup, engineAddress); err != nil {
+			if err := testutil.XrayTraffic(startup, engineAddress); err != nil {
 				return err
 			}
 			if _, err := client.RequestWithContext(startup, cfg.Communications.NATS.SubjectPrefix+".node.info.get", []byte("{}")); err != nil {
@@ -177,7 +178,7 @@ func TestCanceledStartupClosesThreeTransportsAndInstance(t *testing.T) {
 		}
 		listener.Close()
 	}
-	assertInstancePortsReleased(t, engineAddress)
+	testutil.AssertTCPPortsReleased(t, engineAddress)
 	request, release := context.WithTimeout(context.Background(), time.Second)
 	defer release()
 	if _, err := client.RequestWithContext(request, cfg.Communications.NATS.SubjectPrefix+".node.info.get", []byte("{}")); !errors.Is(err, nats.ErrNoResponders) {

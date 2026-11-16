@@ -22,8 +22,8 @@ import (
 
 func TestStatusPagesDiscoverSortedInstancesAndObserveCurrentState(t *testing.T) {
 	certificates := testutil.NewCertificates(t)
-	first, firstAddress := configuredXray(t, certificates.Directory, "edge-b")
-	second, secondAddress := configuredXray(t, certificates.Directory, "edge-a")
+	first, firstAddress := testutil.ConfiguredXray(t, certificates.Directory, "edge-b")
+	second, secondAddress := testutil.ConfiguredXray(t, certificates.Directory, "edge-a")
 	cfg := certificates.Config()
 	// Startup order is deliberately different from list order.
 	cfg.Instances = []settings.Instance{first, second}
@@ -48,7 +48,7 @@ func TestStatusPagesDiscoverSortedInstancesAndObserveCurrentState(t *testing.T) 
 	client := instanceClient(t, server, certificates)
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()
-	if err := xrayTraffic(ctx, firstAddress, secondAddress); err != nil {
+	if err := testutil.XrayTraffic(ctx, firstAddress, secondAddress); err != nil {
 		t.Fatal(err)
 	}
 	firstPage, err := client.ListInstanceStatuses(ctx, &instancesv1.ListInstanceStatusesRequest{PageSize: 1})
@@ -80,8 +80,8 @@ func TestStatusPagesDiscoverSortedInstancesAndObserveCurrentState(t *testing.T) 
 	if _, err := client.ListInstanceStatuses(canceled, &instancesv1.ListInstanceStatusesRequest{PageSize: 1}); status.Code(err) != codes.Canceled {
 		t.Fatalf("read cancellation: %v", err)
 	}
-	if err := xrayTraffic(ctx, secondAddress); err != nil {
+	if err := testutil.XrayTraffic(ctx, secondAddress); err != nil {
 		t.Fatal(err)
 	}
-	assertInstancePortsReleased(t, firstAddress)
+	testutil.AssertTCPPortsReleased(t, firstAddress)
 }

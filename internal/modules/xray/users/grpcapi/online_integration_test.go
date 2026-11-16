@@ -1,6 +1,6 @@
 //go:build integration && linux
 
-package bootstrap_test
+package grpcapi_test
 
 import (
 	"bytes"
@@ -64,17 +64,26 @@ func TestOnlineObservationsOverMTLSFollowRealConnectionLifetimes(t *testing.T) {
 	for _, network := range []string{"tcp", "unix"} {
 		t.Run(network, func(t *testing.T) {
 			certificates := testutil.NewCertificates(t)
-			first, firstAddress := configuredXray(t, certificates.Directory, "edge-a")
-			second, secondAddress := configuredXray(t, certificates.Directory, "edge-b")
+			first, firstAddress := testutil.ConfiguredXray(t, certificates.Directory, "edge-a")
+			second, secondAddress := testutil.ConfiguredXray(t, certificates.Directory, "edge-b")
 			for _, instance := range []*settings.Instance{&first, &second} {
-				configureXrayAPI(t, instance, network, []string{"StatsService"})
-				configureTrafficCounters(t, instance)
+				testutil.ConfigureXrayAPI(t, instance, network, []string{"StatsService"})
 				content, err := os.ReadFile(instance.Xray.ConfigFile)
 				if err != nil {
 					t.Fatal(err)
 				}
 				var config map[string]json.RawMessage
 				if err := json.Unmarshal(content, &config); err != nil {
+					t.Fatal(err)
+				}
+				var inbounds []map[string]json.RawMessage
+				if err := json.Unmarshal(config["inbounds"], &inbounds); err != nil {
+					t.Fatal(err)
+				}
+				inbounds[0]["tag"] = json.RawMessage(`"proxy"`)
+				inbounds[0]["settings"] = json.RawMessage(`{"accounts":[{"user":"reader@local","pass":"test-password"}]}`)
+				config["inbounds"], err = json.Marshal(inbounds)
+				if err != nil {
 					t.Fatal(err)
 				}
 				config["policy"] = json.RawMessage(`{"levels":{"0":{"statsUserUplink":true,"statsUserDownlink":true,"statsUserOnline":true}}}`)
@@ -114,9 +123,9 @@ func TestOnlineObservationsOverMTLSFollowRealConnectionLifetimes(t *testing.T) {
 						t.Error(err)
 					}
 				}
-				assertInstancePortsReleased(t, firstAddress, secondAddress)
+				testutil.AssertTCPPortsReleased(t, firstAddress, secondAddress)
 				if network == "tcp" {
-					assertInstancePortsReleased(t, first.Xray.API.Address, second.Xray.API.Address)
+					testutil.AssertTCPPortsReleased(t, first.Xray.API.Address, second.Xray.API.Address)
 				}
 			})
 			client := xrayClient(t, server, certificates)

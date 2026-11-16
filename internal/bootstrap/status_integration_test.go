@@ -52,8 +52,8 @@ func TestInstanceStatusDeniedByDefault(t *testing.T) {
 
 func TestInstanceStatusReportsRealExitWithoutAffectingOtherInstance(t *testing.T) {
 	certificates := testutil.NewCertificates(t)
-	first, firstAddress := configuredXray(t, certificates.Directory, "edge-a")
-	second, secondAddress := configuredXray(t, certificates.Directory, "edge-b")
+	first, firstAddress := testutil.ConfiguredXray(t, certificates.Directory, "edge-a")
+	second, secondAddress := testutil.ConfiguredXray(t, certificates.Directory, "edge-b")
 	if err := os.WriteFile(second.Xray.ConfigFile, []byte(`{"inbounds":`), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -113,10 +113,10 @@ func TestInstanceStatusReportsRealExitWithoutAffectingOtherInstance(t *testing.T
 	if err != nil || len(page.GetItems()) != 2 || page.Items[0].InstanceId != "edge-a" || page.Items[0].State != nodev1.InstanceState_INSTANCE_STATE_RUNNING || page.Items[1].InstanceId != "edge-b" || page.Items[1].State != nodev1.InstanceState_INSTANCE_STATE_EXITED || page.Items[1].Failure == nil || page.Items[1].Failure.ExitCode == nil || page.Items[1].Failure.GetExitCode() != 23 || page.NextAfterInstanceId != "" || strings.Contains(page.String(), certificates.Directory) {
 		t.Fatalf("failed execution was not a readable collection item: %v, %v", page, err)
 	}
-	if err := xrayTraffic(ctx, firstAddress); err != nil {
+	if err := testutil.XrayTraffic(ctx, firstAddress); err != nil {
 		t.Fatal(err)
 	}
-	assertInstancePortsReleased(t, secondAddress)
+	testutil.AssertTCPPortsReleased(t, secondAddress)
 	for id, code := range map[string]codes.Code{"missing": codes.NotFound, "": codes.InvalidArgument} {
 		if _, err := client.GetInstanceStatus(ctx, &nodev1.GetInstanceStatusRequest{InstanceId: id}); status.Code(err) != code {
 			t.Fatalf("identity %q mapping = %v", id, err)
@@ -139,7 +139,7 @@ func TestInstanceStatusReportsRealExitWithoutAffectingOtherInstance(t *testing.T
 	if err := application.Stop(ctx); !errors.As(err, &nativeExit) || nativeExit.ExitCode() != 23 {
 		t.Fatalf("native cleanup cause lost: %v", err)
 	}
-	assertInstancePortsReleased(t, firstAddress)
+	testutil.AssertTCPPortsReleased(t, firstAddress)
 }
 
 func TestStatusGrantDoesNotBypassMutualTLS(t *testing.T) {

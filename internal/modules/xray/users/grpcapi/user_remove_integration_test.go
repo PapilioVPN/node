@@ -28,7 +28,7 @@ import (
 )
 
 // This controlled native server models a removal followed by a lost reply.
-// Real Xray authentication effects are verified separately in bootstrap.
+// Real Xray authentication effects are verified in user_remove_native_integration_test.go.
 type lostUserRemovalServer struct {
 	native.UnimplementedHandlerServiceServer
 	removed atomic.Bool
