@@ -15,15 +15,6 @@ type InboundUserAdditions struct {
 	Users      []InboundUser
 }
 
-type UserMutationState uint8
-
-const (
-	UserMutationNotAttempted UserMutationState = iota
-	UserMutationAcknowledged
-	UserMutationNotApplied
-	UserMutationUnknown
-)
-
 // UserAdditionResult contains no account data. Failure is a private native cause,
 // never a public error message. An acknowledgement is not durable configuration.
 type UserAdditionResult struct {

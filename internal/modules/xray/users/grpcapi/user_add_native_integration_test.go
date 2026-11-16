@@ -24,6 +24,7 @@ import (
 	xrayprocess "github.com/PapilioVPN/node/internal/modules/core/instances/infra/xray/process"
 	"github.com/PapilioVPN/node/internal/modules/xray/users/domain"
 	userv1 "github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi/proto/v1"
+	userapi "github.com/PapilioVPN/node/internal/modules/xray/users/infra/api"
 	rpc "github.com/PapilioVPN/node/internal/platform/grpcserver"
 	"github.com/PapilioVPN/node/internal/settings"
 	"github.com/PapilioVPN/node/internal/shared/testutil"
@@ -177,6 +178,23 @@ func TestLiveUserAdditionOverMTLSEnablesVLESSWithoutRemovingExistingUsers(t *tes
 			}
 			if err := testutil.XrayTraffic(ctx, proxies[0], proxies[1], proxies[2], proxies[3], healthA, healthB); err != nil {
 				t.Fatalf("addition/duplicate removed existing users or crossed ownership: %v", err)
+			}
+
+			// A real replacement must disable the old credential and admit its successor
+			// while the other user, inbound and instance keep accepting their sessions.
+			delta := &userapi.Adapter{API: testutil.XrayAPIClient(t, first.Xray.API)}
+			progress, err := delta.ApplyInboundUserDelta(ctx, domain.InboundUserDelta{InboundTag: "target", Users: []domain.InboundUser{{Email: "selected@local", Account: domain.UserAccount{Protocol: domain.VLESS, VLESS: &domain.VLESSAccount{ID: replacementID}}}}})
+			if err != nil || len(progress.Steps) != 2 || progress.Steps[0].State != domain.UserMutationAcknowledged || progress.Steps[1].State != domain.UserMutationAcknowledged {
+				t.Fatal("native replacement did not acknowledge removal and addition")
+			}
+			blocked, release = context.WithTimeout(ctx, 400*time.Millisecond)
+			err = testutil.XrayTraffic(blocked, proxies[0])
+			release()
+			if err == nil {
+				t.Fatal("replaced VLESS credential still authenticated a new session")
+			}
+			if err := testutil.XrayTraffic(ctx, proxies[4], proxies[1], proxies[2], proxies[3], healthA, healthB); err != nil {
+				t.Fatal("replacement failed authentication or crossed selected ownership")
 			}
 			current, err := os.ReadFile(first.Xray.ConfigFile)
 			if err != nil || !bytes.Equal(current, original) {

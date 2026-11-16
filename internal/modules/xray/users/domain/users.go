@@ -27,3 +27,15 @@ type InstanceInboundUserMutation struct {
 	Selection       InboundUserSelection
 	Acknowledgement UserMutationAcknowledgement
 }
+
+type UserMutationState uint8
+
+const (
+	UserMutationNotAttempted UserMutationState = iota
+	UserMutationAcknowledged
+	UserMutationNotApplied
+	UserMutationUnknown
+	// UserMutationNotRequired records absence observed before a removal request.
+	// It is not an acknowledgement and carries no execution receipt time.
+	UserMutationNotRequired
+)

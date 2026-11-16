@@ -21,7 +21,7 @@ func (c *Adapter) AddInboundUser(ctx context.Context, addition domain.InboundUse
 	if err := ctx.Err(); err != nil {
 		return domain.UserMutationAcknowledgement{}, err
 	}
-	ctx, done, err := c.API.Begin(ctx)
+	ctx, done, err := c.beginMutation(ctx)
 	if err != nil {
 		return domain.UserMutationAcknowledgement{}, err
 	}
@@ -38,7 +38,7 @@ func (c *Adapter) AddInboundUser(ctx context.Context, addition domain.InboundUse
 	if err != nil {
 		return domain.UserMutationAcknowledgement{}, err
 	}
-	if err := inspectUserInbound(ctx, client, addition.InboundTag, expectedType); err != nil {
+	if _, err := userInboundType(ctx, client, addition.InboundTag, expectedType); err != nil {
 		return domain.UserMutationAcknowledgement{}, err
 	}
 	if err := ctx.Err(); err != nil {
@@ -51,9 +51,9 @@ func (c *Adapter) AddInboundUser(ctx context.Context, addition domain.InboundUse
 	return domain.UserMutationAcknowledgement{AcknowledgedAt: time.Now().UTC()}, nil
 }
 
-// inspectUserInbound is the shared native preflight for single and collection
-// additions. The pinned API has no targeted inbound-type lookup.
-func inspectUserInbound(ctx context.Context, client native.HandlerServiceClient, tag, expectedType string) error {
+// userInboundType uses the pinned API's complete listing because no targeted
+// tag/type read exists. An empty expected type is a removal-only delta lookup.
+func userInboundType(ctx context.Context, client native.HandlerServiceClient, tag, expectedType string) (string, error) {
 	listing, err := client.ListInbounds(ctx, &native.ListInboundsRequest{IsOnlyTags: false})
 	if err != nil || ctx.Err() != nil {
 		var cause error
@@ -67,31 +67,33 @@ func inspectUserInbound(ctx context.Context, client native.HandlerServiceClient,
 		case codes.DeadlineExceeded:
 			cause = context.DeadlineExceeded
 		}
-		return fmt.Errorf("inspect Xray inbound before addition: %w", errors.Join(cause, ctx.Err(), err))
+		return "", fmt.Errorf("inspect Xray inbound before mutation: %w", errors.Join(cause, ctx.Err(), err))
 	}
 	if listing == nil {
-		return domain.ErrInvalidInboundResponse
+		return "", domain.ErrInvalidInboundResponse
 	}
 	matches := 0
+	var observedType string
 	for _, inbound := range listing.Inbounds {
 		if inbound == nil {
-			return domain.ErrInvalidInboundResponse
+			return "", domain.ErrInvalidInboundResponse
 		}
 		if inbound.Tag == tag {
 			matches++
-			if inbound.ProxySettings == nil {
-				return domain.ErrInvalidInboundResponse
+			if inbound.ProxySettings == nil || expectedType == "" && inbound.ProxySettings.Type == "" {
+				return "", domain.ErrInvalidInboundResponse
 			}
-			if inbound.ProxySettings.Type != expectedType {
-				return domain.ErrInboundProtocolMismatch
+			observedType = inbound.ProxySettings.Type
+			if expectedType != "" && observedType != expectedType {
+				return "", domain.ErrInboundProtocolMismatch
 			}
 		}
 	}
 	if matches == 0 {
-		return domain.ErrInboundNotFound
+		return "", domain.ErrInboundNotFound
 	}
 	if matches != 1 {
-		return domain.ErrInvalidInboundResponse
+		return "", domain.ErrInvalidInboundResponse
 	}
-	return nil
+	return observedType, nil
 }

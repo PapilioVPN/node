@@ -17,7 +17,7 @@ func (c *Adapter) RemoveInboundUser(ctx context.Context, selection domain.Inboun
 	if err := ctx.Err(); err != nil {
 		return domain.UserMutationAcknowledgement{}, err
 	}
-	ctx, done, err := c.API.Begin(ctx)
+	ctx, done, err := c.beginMutation(ctx)
 	if err != nil {
 		return domain.UserMutationAcknowledgement{}, err
 	}

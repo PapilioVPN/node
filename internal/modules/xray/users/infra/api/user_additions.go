@@ -25,7 +25,7 @@ func (c *Adapter) AddInboundUsers(ctx context.Context, input domain.InboundUserA
 		// An empty addition has no effects and makes no engine-availability claim.
 		return domain.UserAdditionsReport{Items: []domain.UserAdditionResult{}}, nil
 	}
-	ctx, done, err := c.API.Begin(ctx)
+	ctx, done, err := c.beginMutation(ctx)
 	if err != nil {
 		return domain.UserAdditionsReport{}, err
 	}
@@ -59,7 +59,7 @@ func (c *Adapter) AddInboundUsers(ctx context.Context, input domain.InboundUserA
 	if err != nil {
 		return report, err
 	}
-	if err := inspectUserInbound(ctx, client, input.InboundTag, expectedType); err != nil {
+	if _, err := userInboundType(ctx, client, input.InboundTag, expectedType); err != nil {
 		return report, err
 	}
 	for i, operation := range operations {
