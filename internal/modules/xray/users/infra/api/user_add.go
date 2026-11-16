@@ -38,6 +38,22 @@ func (c *Adapter) AddInboundUser(ctx context.Context, addition domain.InboundUse
 	if err != nil {
 		return domain.UserMutationAcknowledgement{}, err
 	}
+	if err := inspectUserInbound(ctx, client, addition.InboundTag, expectedType); err != nil {
+		return domain.UserMutationAcknowledgement{}, err
+	}
+	if err := ctx.Err(); err != nil {
+		return domain.UserMutationAcknowledgement{}, err
+	}
+	_, err = client.AlterInbound(ctx, &native.AlterInboundRequest{Tag: addition.InboundTag, Operation: operation})
+	if err != nil {
+		return domain.UserMutationAcknowledgement{}, fmt.Errorf("add Xray inbound user: %w", userMutationCause(ctx, err))
+	}
+	return domain.UserMutationAcknowledgement{AcknowledgedAt: time.Now().UTC()}, nil
+}
+
+// inspectUserInbound is the shared native preflight for single and collection
+// additions. The pinned API has no targeted inbound-type lookup.
+func inspectUserInbound(ctx context.Context, client native.HandlerServiceClient, tag, expectedType string) error {
 	listing, err := client.ListInbounds(ctx, &native.ListInboundsRequest{IsOnlyTags: false})
 	if err != nil || ctx.Err() != nil {
 		var cause error
@@ -51,38 +67,31 @@ func (c *Adapter) AddInboundUser(ctx context.Context, addition domain.InboundUse
 		case codes.DeadlineExceeded:
 			cause = context.DeadlineExceeded
 		}
-		return domain.UserMutationAcknowledgement{}, fmt.Errorf("inspect Xray inbound before addition: %w", errors.Join(cause, ctx.Err(), err))
+		return fmt.Errorf("inspect Xray inbound before addition: %w", errors.Join(cause, ctx.Err(), err))
 	}
 	if listing == nil {
-		return domain.UserMutationAcknowledgement{}, domain.ErrInvalidInboundResponse
+		return domain.ErrInvalidInboundResponse
 	}
 	matches := 0
 	for _, inbound := range listing.Inbounds {
 		if inbound == nil {
-			return domain.UserMutationAcknowledgement{}, domain.ErrInvalidInboundResponse
+			return domain.ErrInvalidInboundResponse
 		}
-		if inbound.Tag == addition.InboundTag {
+		if inbound.Tag == tag {
 			matches++
 			if inbound.ProxySettings == nil {
-				return domain.UserMutationAcknowledgement{}, domain.ErrInvalidInboundResponse
+				return domain.ErrInvalidInboundResponse
 			}
 			if inbound.ProxySettings.Type != expectedType {
-				return domain.UserMutationAcknowledgement{}, domain.ErrInboundProtocolMismatch
+				return domain.ErrInboundProtocolMismatch
 			}
 		}
 	}
 	if matches == 0 {
-		return domain.UserMutationAcknowledgement{}, domain.ErrInboundNotFound
+		return domain.ErrInboundNotFound
 	}
 	if matches != 1 {
-		return domain.UserMutationAcknowledgement{}, domain.ErrInvalidInboundResponse
+		return domain.ErrInvalidInboundResponse
 	}
-	if err := ctx.Err(); err != nil {
-		return domain.UserMutationAcknowledgement{}, err
-	}
-	_, err = client.AlterInbound(ctx, &native.AlterInboundRequest{Tag: addition.InboundTag, Operation: operation})
-	if err != nil {
-		return domain.UserMutationAcknowledgement{}, fmt.Errorf("add Xray inbound user: %w", userMutationCause(ctx, err))
-	}
-	return domain.UserMutationAcknowledgement{AcknowledgedAt: time.Now().UTC()}, nil
+	return nil
 }

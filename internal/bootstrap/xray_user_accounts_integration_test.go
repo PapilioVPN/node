@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -249,6 +250,9 @@ func TestLiveUserAdditionUpdatesEveryBaselineNativeUserManager(t *testing.T) {
 				t.Fatal("removed native user still appeared in observations")
 			}
 			verifySingleUserViews(t, ctx, client, "edge", tc.tag, "added@local", nil)
+			if tc.tag == "vless" {
+				verifyNativeUserAdditionCollection(t, ctx, &userxray.Adapter{API: observer}, native, tc.tag, before.Count)
+			}
 		})
 	}
 	current, err := os.ReadFile(instance.Xray.ConfigFile)
@@ -261,5 +265,57 @@ func TestLiveUserAdditionUpdatesEveryBaselineNativeUserManager(t *testing.T) {
 		if response != nil || status.Code(err) != codes.Unavailable {
 			t.Fatalf("generic native missing/non-user-manager error became a successful count: %v", err)
 		}
+	}
+}
+
+func verifyNativeUserAdditionCollection(t *testing.T, ctx context.Context, adapter *userxray.Adapter, native handlers.HandlerServiceClient, tag string, initialCount int64) {
+	t.Helper()
+	input := domain.InboundUserAdditions{InboundTag: tag, Users: []domain.InboundUser{
+		{Email: "collection-first@local", Level: 31, Account: domain.UserAccount{Protocol: domain.VLESS, VLESS: &domain.VLESSAccount{ID: "8e781ad6-dae6-4ed4-9d7b-8c247f735869"}}},
+		{Email: "collection-next@local", Level: 32, Account: domain.UserAccount{Protocol: domain.VLESS, VLESS: &domain.VLESSAccount{ID: "9e781ad6-dae6-4ed4-9d7b-8c247f735869"}}},
+	}}
+	report, err := adapter.AddInboundUsers(ctx, input)
+	if err != nil || len(report.Items) != 2 {
+		t.Fatal("real Xray collection failed; credentials withheld")
+	}
+	for i, item := range report.Items {
+		if item.Email != input.Users[i].Email || item.State != domain.UserMutationAcknowledged || item.AcknowledgedAt.IsZero() || item.Failure != nil {
+			t.Fatal("real collection acknowledgement lost its exact input position")
+		}
+		stored, err := adapter.ReadInboundUser(ctx, domain.InboundUserSelection{InboundTag: tag, Email: item.Email})
+		if err != nil || stored.User == nil || stored.User.Email != item.Email || stored.User.Level != input.Users[i].Level {
+			t.Fatal("real collection acknowledgement did not produce native membership")
+		}
+	}
+	count, err := native.GetInboundUsersCount(ctx, &handlers.GetInboundUserRequest{Tag: tag})
+	if err != nil || count.Count != initialCount+2 {
+		t.Fatal("real collection changed unrelated membership")
+	}
+	for _, user := range input.Users {
+		if _, err := adapter.RemoveInboundUser(ctx, domain.InboundUserSelection{InboundTag: tag, Email: user.Email}); err != nil {
+			t.Fatal("real collection cleanup failed")
+		}
+	}
+	// VLESS rejects an existing email. Preserve the first applied addition, report
+	// the ambiguous native failure, and do not dispatch the following distinct user.
+	input.Users = []domain.InboundUser{input.Users[0], input.Users[0], input.Users[1]}
+	report, err = adapter.AddInboundUsers(ctx, input)
+	if !errors.Is(err, domain.ErrUserMutationUnknown) || len(report.Items) != 3 || report.Items[0].State != domain.UserMutationAcknowledged || report.Items[1].State != domain.UserMutationUnknown || report.Items[2].State != domain.UserMutationNotAttempted {
+		t.Fatal("real duplicate failure hid partial collection effects")
+	}
+	absent, err := adapter.ReadInboundUser(ctx, domain.InboundUserSelection{InboundTag: tag, Email: input.Users[2].Email})
+	if err != nil || absent.User != nil {
+		t.Fatal("real failed collection submitted a trailing user")
+	}
+	count, err = native.GetInboundUsersCount(ctx, &handlers.GetInboundUserRequest{Tag: tag})
+	if err != nil || count.Count != initialCount+1 {
+		t.Fatal("real partial collection did not retain exactly its first addition")
+	}
+	if _, err := adapter.RemoveInboundUser(ctx, domain.InboundUserSelection{InboundTag: tag, Email: input.Users[0].Email}); err != nil {
+		t.Fatal("real partial collection cleanup failed")
+	}
+	count, err = native.GetInboundUsersCount(ctx, &handlers.GetInboundUserRequest{Tag: tag})
+	if err != nil || count.Count != initialCount {
+		t.Fatal("real collection failed to restore original membership")
 	}
 }

@@ -1,0 +1,34 @@
+package domain
+
+import "time"
+
+// InboundUserAdditions borrows an ordered collection for one exact inbound.
+// Repeated identities retain the native protocol's duplicate/upsert semantics.
+type InboundUserAdditions struct {
+	InboundTag string
+	Users      []InboundUser
+}
+
+type UserMutationState uint8
+
+const (
+	UserMutationNotAttempted UserMutationState = iota
+	UserMutationAcknowledged
+	UserMutationNotApplied
+	UserMutationUnknown
+)
+
+// UserAdditionResult contains no account data. Failure is a private native cause,
+// never a public error message. An acknowledgement is not durable configuration.
+type UserAdditionResult struct {
+	Email          string
+	State          UserMutationState
+	AcknowledgedAt time.Time
+	Failure        error
+}
+
+// UserAdditionsReport retains input order, including effects preceding a failure.
+// A missing report on pre-admission failure never implies partial execution.
+type UserAdditionsReport struct {
+	Items []UserAdditionResult
+}
