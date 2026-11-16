@@ -2,6 +2,7 @@ package settings
 
 import (
 	"fmt"
+	"math"
 	"net/netip"
 	"strings"
 	"time"
@@ -28,11 +29,21 @@ type ConfigValidation struct {
 
 // Xray contains native execution settings; Xray itself parses ConfigFile.
 type Xray struct {
-	Binary      string            `yaml:"binary"`
-	ConfigFile  string            `yaml:"config_file"`
-	StopTimeout time.Duration     `yaml:"stop_timeout"`
-	Inspection  *BinaryInspection `yaml:"inspection,omitempty"`
-	API         *XrayAPI          `yaml:"api,omitempty"`
+	Binary       string                  `yaml:"binary"`
+	ConfigFile   string                  `yaml:"config_file"`
+	StopTimeout  time.Duration           `yaml:"stop_timeout"`
+	Inspection   *BinaryInspection       `yaml:"inspection,omitempty"`
+	API          *XrayAPI                `yaml:"api,omitempty"`
+	RoutingRules *RoutingRulePreparation `yaml:"routing_rules,omitempty"`
+}
+
+// RoutingRulePreparation enables single-rule changes through the configured API.
+// The API request_timeout bounds the whole preparation/application operation.
+type RoutingRulePreparation struct {
+	WorkDir        string `yaml:"work_dir"`
+	MaxInputBytes  int    `yaml:"max_input_bytes"`
+	MaxOutputBytes int    `yaml:"max_output_bytes"`
+	MaxConcurrent  int    `yaml:"max_concurrent"`
 }
 
 // XrayAPI connects to an explicitly provisioned local native API endpoint.
@@ -90,6 +101,11 @@ func validateInstances(instances []Instance) error {
 				}
 			default:
 				return fmt.Errorf("%w: instances[%d].xray.api requires unix or tcp network", ErrInvalidConfig, i)
+			}
+		}
+		if rules := xray.RoutingRules; rules != nil {
+			if xray.API == nil || strings.TrimSpace(rules.WorkDir) == "" || rules.MaxInputBytes <= 0 || rules.MaxOutputBytes <= 0 || rules.MaxOutputBytes == math.MaxInt || rules.MaxConcurrent <= 0 {
+				return fmt.Errorf("%w: instances[%d].xray.routing_rules requires an API, work_dir and positive bounded input/output/concurrency limits", ErrInvalidConfig, i)
 			}
 		}
 		if validation := instance.Validation; validation != nil {

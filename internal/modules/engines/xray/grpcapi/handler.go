@@ -38,6 +38,7 @@ type Handler struct {
 	Probes                 RoutingProber
 	BalancerOverrides      BalancerOverrider
 	RuleRemoval            RoutingRuleRemover
+	RuleAddition           RoutingRuleAdder
 	AllowInfoRead          bool
 	AllowStatsRead         bool
 	AllowStatsReset        bool

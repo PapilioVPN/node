@@ -38,6 +38,7 @@ func TestXrayRuntimeInfoOverMTLSAndNativeReconnect(t *testing.T) {
 			configureXrayAPI(t, &first, network, []string{"StatsService"})
 			// A real API without StatsService must not become successful empty facts.
 			configureXrayAPI(t, &second, network, []string{})
+			second.Xray.RoutingRules = &settings.RoutingRulePreparation{WorkDir: t.TempDir(), MaxInputBytes: 1024, MaxOutputBytes: 65536, MaxConcurrent: 1}
 			original, err := os.ReadFile(first.Xray.ConfigFile)
 			if err != nil {
 				t.Fatal(err)
@@ -94,6 +95,11 @@ func TestXrayRuntimeInfoOverMTLSAndNativeReconnect(t *testing.T) {
 			assertRoutingMutationFailure(t, overrideError, codes.FailedPrecondition, xrayv1.RoutingMutationOutcome_ROUTING_MUTATION_OUTCOME_NOT_APPLIED)
 			_, removalError := client.RemoveRoutingRule(ctx, &xrayv1.RemoveRoutingRuleRequest{InstanceId: "edge-b", RuleTag: "rule"})
 			assertRoutingMutationFailure(t, removalError, codes.FailedPrecondition, xrayv1.RoutingMutationOutcome_ROUTING_MUTATION_OUTCOME_NOT_APPLIED)
+			for _, id := range []string{"edge-a", "edge-b"} {
+				_, additionError := client.AddRoutingRule(ctx, &xrayv1.AddRoutingRuleRequest{InstanceId: id, RuleJson: []byte(`{"network":"tcp","outboundTag":"out"}`), Mode: xrayv1.RoutingRuleMode_ROUTING_RULE_MODE_APPEND})
+				assertRoutingMutationFailure(t, additionError, codes.FailedPrecondition, xrayv1.RoutingMutationOutcome_ROUTING_MUTATION_OUTCOME_NOT_APPLIED)
+			}
+
 			if result, err := client.ListRoutingRules(ctx, &xrayv1.ListRoutingRulesRequest{InstanceId: "edge-b"}); result != nil || status.Code(err) != codes.FailedPrecondition {
 				t.Fatalf("absent native RoutingService became successful rules: %v %v", result, err)
 			}

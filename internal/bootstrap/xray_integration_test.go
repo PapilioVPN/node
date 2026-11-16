@@ -80,6 +80,9 @@ func TestXrayBinaryInfoOverMTLSKeepsLiveInstancesUnchanged(t *testing.T) {
 	assertRoutingMutationFailure(t, overrideError, codes.FailedPrecondition, xrayv1.RoutingMutationOutcome_ROUTING_MUTATION_OUTCOME_NOT_APPLIED)
 	_, removalError := client.RemoveRoutingRule(ctx, &xrayv1.RemoveRoutingRuleRequest{InstanceId: "edge-a", RuleTag: "rule"})
 	assertRoutingMutationFailure(t, removalError, codes.FailedPrecondition, xrayv1.RoutingMutationOutcome_ROUTING_MUTATION_OUTCOME_NOT_APPLIED)
+	_, additionError := client.AddRoutingRule(ctx, &xrayv1.AddRoutingRuleRequest{InstanceId: "edge-a", RuleJson: []byte(`{"network":"tcp","outboundTag":"out"}`), Mode: xrayv1.RoutingRuleMode_ROUTING_RULE_MODE_APPEND})
+	assertRoutingMutationFailure(t, additionError, codes.FailedPrecondition, xrayv1.RoutingMutationOutcome_ROUTING_MUTATION_OUTCOME_NOT_APPLIED)
+
 	if _, err := client.GetRuntimeInfo(ctx, &xrayv1.GetRuntimeInfoRequest{InstanceId: "edge-a"}); status.Code(err) != codes.FailedPrecondition {
 		t.Fatalf("absent API settings were ignored: %v", err)
 	}

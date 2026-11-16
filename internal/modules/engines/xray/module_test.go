@@ -108,4 +108,8 @@ func TestModuleClosesAPIAdmissionAndExportsFinalCleanup(t *testing.T) {
 	if _, err := newRoutingRuleRemovalService(resources).RemoveRoutingRule(t.Context(), "edge", "rule"); !errors.Is(err, grpc.ErrClientConnClosing) || errors.Is(err, domain.ErrRoutingMutationUnknown) {
 		t.Fatalf("closed module admitted rule removal/claimed effects: %v", err)
 	}
+	if _, err := resources.ruleAppliers["edge"].ApplyRoutingRule(t.Context(), domain.PreparedRoutingRule{Config: []byte{1}}, domain.AppendRoutingRule); !errors.Is(err, grpc.ErrClientConnClosing) || errors.Is(err, domain.ErrRoutingMutationUnknown) {
+		t.Fatalf("module close admitted rule addition/claimed effects: %v", err)
+	}
+
 }

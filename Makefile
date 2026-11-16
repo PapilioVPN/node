@@ -3,6 +3,8 @@
 VULN_DB ?= https://vuln.go.dev
 VERSION ?= $(shell git describe --always --dirty)
 IMAGE ?= papilio-node:$(VERSION)
+# make check prepares the pinned fixture; an explicit test binary can override it.
+export XRAY_TEST_BINARY ?= $(CURDIR)/.local/native-tests/xray
 
 check:
 	./scripts/ci/check.sh "$(VULN_DB)"

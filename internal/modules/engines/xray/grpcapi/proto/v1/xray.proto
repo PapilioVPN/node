@@ -52,6 +52,9 @@ service XrayService {
   // Removes exact-tag rules live. Missing tags are acknowledged native no-ops;
   // no count, persistence or established-session termination is promised.
   rpc RemoveRoutingRule(RemoveRoutingRuleRequest) returns (RemoveRoutingRuleResponse);
+  // Builds one native routing.rules[] object with the selected instance binary,
+  // then applies once. Replace drops previous rules and balancers. No retry.
+  rpc AddRoutingRule(AddRoutingRuleRequest) returns (AddRoutingRuleResponse);
 }
 
 enum TrafficScope {
@@ -533,4 +536,26 @@ message RemoveRoutingRuleResponse {
   string rule_tag = 2;
   // Native completion, not proof of previous membership or durable configuration.
   int64 acknowledged_at_unix_ms = 3;
+}
+
+enum RoutingRuleMode {
+  ROUTING_RULE_MODE_UNSPECIFIED = 0;
+  ROUTING_RULE_MODE_APPEND = 1;
+  ROUTING_RULE_MODE_REPLACE = 2;
+}
+
+message AddRoutingRuleRequest {
+  string instance_id = 1;
+  // One native JSON object, retaining the engine's complete rule schema.
+  bytes rule_json = 2;
+  // Required explicit intent. Replace is not prepend and removes old balancers.
+  RoutingRuleMode mode = 3;
+}
+
+message AddRoutingRuleResponse {
+  string instance_id = 1;
+  // Native tag; empty is a valid anonymous rule, not a missing acknowledgement.
+  string rule_tag = 2;
+  RoutingRuleMode mode = 3;
+  int64 acknowledged_at_unix_ms = 4;
 }

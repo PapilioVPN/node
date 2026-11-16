@@ -114,6 +114,9 @@ func Load(path string) (Config, error) {
 		if api := xray.API; api != nil && api.Network == "unix" {
 			resolvePath(filepath.Dir(location), &api.Address)
 		}
+		if rules := xray.RoutingRules; rules != nil {
+			resolvePath(filepath.Dir(location), &rules.WorkDir)
+		}
 		if validation := config.Instances[i].Validation; validation != nil {
 			resolvePath(filepath.Dir(location), &validation.WorkDir)
 		}

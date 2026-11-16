@@ -64,6 +64,12 @@ func TestRoutingManagementGrantOverMTLSIsIndependent(t *testing.T) {
 				t.Fatal("missing/unauthorized rule removal returned success")
 			}
 			assertRoutingMutationFailure(t, removalError, code, xrayv1.RoutingMutationOutcome_ROUTING_MUTATION_OUTCOME_NOT_APPLIED)
+
+			added, additionError := client.AddRoutingRule(t.Context(), &xrayv1.AddRoutingRuleRequest{InstanceId: "missing", RuleJson: []byte(`{"network":"tcp","outboundTag":"out"}`), Mode: xrayv1.RoutingRuleMode_ROUTING_RULE_MODE_APPEND})
+			if added != nil {
+				t.Fatal("missing/unauthorized addition returned success")
+			}
+			assertRoutingMutationFailure(t, additionError, code, xrayv1.RoutingMutationOutcome_ROUTING_MUTATION_OUTCOME_NOT_APPLIED)
 			_, err = client.OverrideBalancerTarget(t.Context(), &xrayv1.OverrideBalancerTargetRequest{})
 			shapeCode := codes.PermissionDenied
 			if granted {
@@ -72,6 +78,8 @@ func TestRoutingManagementGrantOverMTLSIsIndependent(t *testing.T) {
 			assertRoutingMutationFailure(t, err, shapeCode, xrayv1.RoutingMutationOutcome_ROUTING_MUTATION_OUTCOME_NOT_APPLIED)
 			_, removalError = client.RemoveRoutingRule(t.Context(), &xrayv1.RemoveRoutingRuleRequest{})
 			assertRoutingMutationFailure(t, removalError, shapeCode, xrayv1.RoutingMutationOutcome_ROUTING_MUTATION_OUTCOME_NOT_APPLIED)
+			_, additionError = client.AddRoutingRule(t.Context(), &xrayv1.AddRoutingRuleRequest{InstanceId: "missing", RuleJson: []byte(`{}`)})
+			assertRoutingMutationFailure(t, additionError, shapeCode, xrayv1.RoutingMutationOutcome_ROUTING_MUTATION_OUTCOME_NOT_APPLIED)
 
 			if granted {
 				_, err = client.OverrideBalancerTarget(t.Context(), &xrayv1.OverrideBalancerTargetRequest{InstanceId: "missing", BalancerTag: "pool"})

@@ -488,6 +488,55 @@ func (RoutingMutationOutcome) EnumDescriptor() ([]byte, []int) {
 	return file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_rawDescGZIP(), []int{8}
 }
 
+type RoutingRuleMode int32
+
+const (
+	RoutingRuleMode_ROUTING_RULE_MODE_UNSPECIFIED RoutingRuleMode = 0
+	RoutingRuleMode_ROUTING_RULE_MODE_APPEND      RoutingRuleMode = 1
+	RoutingRuleMode_ROUTING_RULE_MODE_REPLACE     RoutingRuleMode = 2
+)
+
+// Enum value maps for RoutingRuleMode.
+var (
+	RoutingRuleMode_name = map[int32]string{
+		0: "ROUTING_RULE_MODE_UNSPECIFIED",
+		1: "ROUTING_RULE_MODE_APPEND",
+		2: "ROUTING_RULE_MODE_REPLACE",
+	}
+	RoutingRuleMode_value = map[string]int32{
+		"ROUTING_RULE_MODE_UNSPECIFIED": 0,
+		"ROUTING_RULE_MODE_APPEND":      1,
+		"ROUTING_RULE_MODE_REPLACE":     2,
+	}
+)
+
+func (x RoutingRuleMode) Enum() *RoutingRuleMode {
+	p := new(RoutingRuleMode)
+	*p = x
+	return p
+}
+
+func (x RoutingRuleMode) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (RoutingRuleMode) Descriptor() protoreflect.EnumDescriptor {
+	return file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_enumTypes[9].Descriptor()
+}
+
+func (RoutingRuleMode) Type() protoreflect.EnumType {
+	return &file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_enumTypes[9]
+}
+
+func (x RoutingRuleMode) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use RoutingRuleMode.Descriptor instead.
+func (RoutingRuleMode) EnumDescriptor() ([]byte, []int) {
+	return file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_rawDescGZIP(), []int{9}
+}
+
 type GetTrafficCounterRequest struct {
 	state      protoimpl.MessageState `protogen:"open.v1"`
 	InstanceId string                 `protobuf:"bytes,1,opt,name=instance_id,json=instanceId,proto3" json:"instance_id,omitempty"`
@@ -4477,6 +4526,137 @@ func (x *RemoveRoutingRuleResponse) GetAcknowledgedAtUnixMs() int64 {
 	return 0
 }
 
+type AddRoutingRuleRequest struct {
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	InstanceId string                 `protobuf:"bytes,1,opt,name=instance_id,json=instanceId,proto3" json:"instance_id,omitempty"`
+	// One native JSON object, retaining the engine's complete rule schema.
+	RuleJson []byte `protobuf:"bytes,2,opt,name=rule_json,json=ruleJson,proto3" json:"rule_json,omitempty"`
+	// Required explicit intent. Replace is not prepend and removes old balancers.
+	Mode          RoutingRuleMode `protobuf:"varint,3,opt,name=mode,proto3,enum=papilio.node.xray.v1.RoutingRuleMode" json:"mode,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AddRoutingRuleRequest) Reset() {
+	*x = AddRoutingRuleRequest{}
+	mi := &file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes[63]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddRoutingRuleRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddRoutingRuleRequest) ProtoMessage() {}
+
+func (x *AddRoutingRuleRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes[63]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddRoutingRuleRequest.ProtoReflect.Descriptor instead.
+func (*AddRoutingRuleRequest) Descriptor() ([]byte, []int) {
+	return file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_rawDescGZIP(), []int{63}
+}
+
+func (x *AddRoutingRuleRequest) GetInstanceId() string {
+	if x != nil {
+		return x.InstanceId
+	}
+	return ""
+}
+
+func (x *AddRoutingRuleRequest) GetRuleJson() []byte {
+	if x != nil {
+		return x.RuleJson
+	}
+	return nil
+}
+
+func (x *AddRoutingRuleRequest) GetMode() RoutingRuleMode {
+	if x != nil {
+		return x.Mode
+	}
+	return RoutingRuleMode_ROUTING_RULE_MODE_UNSPECIFIED
+}
+
+type AddRoutingRuleResponse struct {
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	InstanceId string                 `protobuf:"bytes,1,opt,name=instance_id,json=instanceId,proto3" json:"instance_id,omitempty"`
+	// Native tag; empty is a valid anonymous rule, not a missing acknowledgement.
+	RuleTag              string          `protobuf:"bytes,2,opt,name=rule_tag,json=ruleTag,proto3" json:"rule_tag,omitempty"`
+	Mode                 RoutingRuleMode `protobuf:"varint,3,opt,name=mode,proto3,enum=papilio.node.xray.v1.RoutingRuleMode" json:"mode,omitempty"`
+	AcknowledgedAtUnixMs int64           `protobuf:"varint,4,opt,name=acknowledged_at_unix_ms,json=acknowledgedAtUnixMs,proto3" json:"acknowledged_at_unix_ms,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
+}
+
+func (x *AddRoutingRuleResponse) Reset() {
+	*x = AddRoutingRuleResponse{}
+	mi := &file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes[64]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddRoutingRuleResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddRoutingRuleResponse) ProtoMessage() {}
+
+func (x *AddRoutingRuleResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes[64]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddRoutingRuleResponse.ProtoReflect.Descriptor instead.
+func (*AddRoutingRuleResponse) Descriptor() ([]byte, []int) {
+	return file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_rawDescGZIP(), []int{64}
+}
+
+func (x *AddRoutingRuleResponse) GetInstanceId() string {
+	if x != nil {
+		return x.InstanceId
+	}
+	return ""
+}
+
+func (x *AddRoutingRuleResponse) GetRuleTag() string {
+	if x != nil {
+		return x.RuleTag
+	}
+	return ""
+}
+
+func (x *AddRoutingRuleResponse) GetMode() RoutingRuleMode {
+	if x != nil {
+		return x.Mode
+	}
+	return RoutingRuleMode_ROUTING_RULE_MODE_UNSPECIFIED
+}
+
+func (x *AddRoutingRuleResponse) GetAcknowledgedAtUnixMs() int64 {
+	if x != nil {
+		return x.AcknowledgedAtUnixMs
+	}
+	return 0
+}
+
 var File_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto protoreflect.FileDescriptor
 
 const file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_rawDesc = "" +
@@ -4812,7 +4992,18 @@ const file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_rawDesc = "
 	"\vinstance_id\x18\x01 \x01(\tR\n" +
 	"instanceId\x12\x19\n" +
 	"\brule_tag\x18\x02 \x01(\tR\aruleTag\x125\n" +
-	"\x17acknowledged_at_unix_ms\x18\x03 \x01(\x03R\x14acknowledgedAtUnixMs*|\n" +
+	"\x17acknowledged_at_unix_ms\x18\x03 \x01(\x03R\x14acknowledgedAtUnixMs\"\x90\x01\n" +
+	"\x15AddRoutingRuleRequest\x12\x1f\n" +
+	"\vinstance_id\x18\x01 \x01(\tR\n" +
+	"instanceId\x12\x1b\n" +
+	"\trule_json\x18\x02 \x01(\fR\bruleJson\x129\n" +
+	"\x04mode\x18\x03 \x01(\x0e2%.papilio.node.xray.v1.RoutingRuleModeR\x04mode\"\xc6\x01\n" +
+	"\x16AddRoutingRuleResponse\x12\x1f\n" +
+	"\vinstance_id\x18\x01 \x01(\tR\n" +
+	"instanceId\x12\x19\n" +
+	"\brule_tag\x18\x02 \x01(\tR\aruleTag\x129\n" +
+	"\x04mode\x18\x03 \x01(\x0e2%.papilio.node.xray.v1.RoutingRuleModeR\x04mode\x125\n" +
+	"\x17acknowledged_at_unix_ms\x18\x04 \x01(\x03R\x14acknowledgedAtUnixMs*|\n" +
 	"\fTrafficScope\x12\x1d\n" +
 	"\x19TRAFFIC_SCOPE_UNSPECIFIED\x10\x00\x12\x16\n" +
 	"\x12TRAFFIC_SCOPE_USER\x10\x01\x12\x19\n" +
@@ -4856,7 +5047,11 @@ const file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_rawDesc = "
 	"\x16RoutingMutationOutcome\x12(\n" +
 	"$ROUTING_MUTATION_OUTCOME_UNSPECIFIED\x10\x00\x12(\n" +
 	"$ROUTING_MUTATION_OUTCOME_NOT_APPLIED\x10\x01\x12$\n" +
-	" ROUTING_MUTATION_OUTCOME_UNKNOWN\x10\x022\xac\x11\n" +
+	" ROUTING_MUTATION_OUTCOME_UNKNOWN\x10\x02*q\n" +
+	"\x0fRoutingRuleMode\x12!\n" +
+	"\x1dROUTING_RULE_MODE_UNSPECIFIED\x10\x00\x12\x1c\n" +
+	"\x18ROUTING_RULE_MODE_APPEND\x10\x01\x12\x1d\n" +
+	"\x19ROUTING_RULE_MODE_REPLACE\x10\x022\x99\x12\n" +
 	"\vXrayService\x12k\n" +
 	"\x0eAddInboundUser\x12+.papilio.node.xray.v1.AddInboundUserRequest\x1a,.papilio.node.xray.v1.AddInboundUserResponse\x12t\n" +
 	"\x11RemoveInboundUser\x12..papilio.node.xray.v1.RemoveInboundUserRequest\x1a/.papilio.node.xray.v1.RemoveInboundUserResponse\x12h\n" +
@@ -4876,7 +5071,8 @@ const file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_rawDesc = "
 	"\x0fGetBalancerInfo\x12,.papilio.node.xray.v1.GetBalancerInfoRequest\x1a-.papilio.node.xray.v1.GetBalancerInfoResponse\x12\\\n" +
 	"\tTestRoute\x12&.papilio.node.xray.v1.TestRouteRequest\x1a'.papilio.node.xray.v1.TestRouteResponse\x12\x83\x01\n" +
 	"\x16OverrideBalancerTarget\x123.papilio.node.xray.v1.OverrideBalancerTargetRequest\x1a4.papilio.node.xray.v1.OverrideBalancerTargetResponse\x12t\n" +
-	"\x11RemoveRoutingRule\x12..papilio.node.xray.v1.RemoveRoutingRuleRequest\x1a/.papilio.node.xray.v1.RemoveRoutingRuleResponseBRZPgithub.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi/proto/v1;xrayv1b\x06proto3"
+	"\x11RemoveRoutingRule\x12..papilio.node.xray.v1.RemoveRoutingRuleRequest\x1a/.papilio.node.xray.v1.RemoveRoutingRuleResponse\x12k\n" +
+	"\x0eAddRoutingRule\x12+.papilio.node.xray.v1.AddRoutingRuleRequest\x1a,.papilio.node.xray.v1.AddRoutingRuleResponseBRZPgithub.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi/proto/v1;xrayv1b\x06proto3"
 
 var (
 	file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_rawDescOnce sync.Once
@@ -4890,8 +5086,8 @@ func file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_rawDescGZIP(
 	return file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_rawDescData
 }
 
-var file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_enumTypes = make([]protoimpl.EnumInfo, 9)
-var file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes = make([]protoimpl.MessageInfo, 64)
+var file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_enumTypes = make([]protoimpl.EnumInfo, 10)
+var file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_msgTypes = make([]protoimpl.MessageInfo, 66)
 var file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_goTypes = []any{
 	(TrafficScope)(0),                          // 0: papilio.node.xray.v1.TrafficScope
 	(TrafficDirection)(0),                      // 1: papilio.node.xray.v1.TrafficDirection
@@ -4902,83 +5098,86 @@ var file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_goTypes = []a
 	(RoutingNetwork)(0),                        // 6: papilio.node.xray.v1.RoutingNetwork
 	(RoutingProbeOutcome)(0),                   // 7: papilio.node.xray.v1.RoutingProbeOutcome
 	(RoutingMutationOutcome)(0),                // 8: papilio.node.xray.v1.RoutingMutationOutcome
-	(*GetTrafficCounterRequest)(nil),           // 9: papilio.node.xray.v1.GetTrafficCounterRequest
-	(*GetTrafficCounterResponse)(nil),          // 10: papilio.node.xray.v1.GetTrafficCounterResponse
-	(*GetRuntimeInfoRequest)(nil),              // 11: papilio.node.xray.v1.GetRuntimeInfoRequest
-	(*GetRuntimeInfoResponse)(nil),             // 12: papilio.node.xray.v1.GetRuntimeInfoResponse
-	(*RuntimeInfo)(nil),                        // 13: papilio.node.xray.v1.RuntimeInfo
-	(*GetBinaryInfoRequest)(nil),               // 14: papilio.node.xray.v1.GetBinaryInfoRequest
-	(*GetBinaryInfoResponse)(nil),              // 15: papilio.node.xray.v1.GetBinaryInfoResponse
-	(*BinaryInfo)(nil),                         // 16: papilio.node.xray.v1.BinaryInfo
-	(*ListTrafficCountersRequest)(nil),         // 17: papilio.node.xray.v1.ListTrafficCountersRequest
-	(*ListTrafficCountersResponse)(nil),        // 18: papilio.node.xray.v1.ListTrafficCountersResponse
-	(*TrafficCounterEntry)(nil),                // 19: papilio.node.xray.v1.TrafficCounterEntry
-	(*GetUserOnlineStatsRequest)(nil),          // 20: papilio.node.xray.v1.GetUserOnlineStatsRequest
-	(*GetUserOnlineStatsResponse)(nil),         // 21: papilio.node.xray.v1.GetUserOnlineStatsResponse
-	(*ListUserOnlineIPsRequest)(nil),           // 22: papilio.node.xray.v1.ListUserOnlineIPsRequest
-	(*ListUserOnlineIPsResponse)(nil),          // 23: papilio.node.xray.v1.ListUserOnlineIPsResponse
-	(*OnlineIP)(nil),                           // 24: papilio.node.xray.v1.OnlineIP
-	(*ListOnlineUsersRequest)(nil),             // 25: papilio.node.xray.v1.ListOnlineUsersRequest
-	(*ListOnlineUsersResponse)(nil),            // 26: papilio.node.xray.v1.ListOnlineUsersResponse
-	(*ResetTrafficCounterRequest)(nil),         // 27: papilio.node.xray.v1.ResetTrafficCounterRequest
-	(*ResetTrafficCounterResponse)(nil),        // 28: papilio.node.xray.v1.ResetTrafficCounterResponse
-	(*TrafficCounterResetFailure)(nil),         // 29: papilio.node.xray.v1.TrafficCounterResetFailure
-	(*ResetTrafficCountersRequest)(nil),        // 30: papilio.node.xray.v1.ResetTrafficCountersRequest
-	(*TrafficCounterResetAcknowledgement)(nil), // 31: papilio.node.xray.v1.TrafficCounterResetAcknowledgement
-	(*TrafficCounterResetEntry)(nil),           // 32: papilio.node.xray.v1.TrafficCounterResetEntry
-	(*ResetTrafficCountersResponse)(nil),       // 33: papilio.node.xray.v1.ResetTrafficCountersResponse
-	(*TrafficCountersResetFailure)(nil),        // 34: papilio.node.xray.v1.TrafficCountersResetFailure
-	(*GetTrafficPairRequest)(nil),              // 35: papilio.node.xray.v1.GetTrafficPairRequest
-	(*TrafficCounterObservation)(nil),          // 36: papilio.node.xray.v1.TrafficCounterObservation
-	(*GetTrafficPairResponse)(nil),             // 37: papilio.node.xray.v1.GetTrafficPairResponse
-	(*ResetTrafficPairRequest)(nil),            // 38: papilio.node.xray.v1.ResetTrafficPairRequest
-	(*ResetTrafficPairResponse)(nil),           // 39: papilio.node.xray.v1.ResetTrafficPairResponse
-	(*TrafficPairResetFailure)(nil),            // 40: papilio.node.xray.v1.TrafficPairResetFailure
-	(*RemoveInboundUserRequest)(nil),           // 41: papilio.node.xray.v1.RemoveInboundUserRequest
-	(*RemoveInboundUserResponse)(nil),          // 42: papilio.node.xray.v1.RemoveInboundUserResponse
-	(*UserMutationFailure)(nil),                // 43: papilio.node.xray.v1.UserMutationFailure
-	(*AddInboundUserRequest)(nil),              // 44: papilio.node.xray.v1.AddInboundUserRequest
-	(*InboundUser)(nil),                        // 45: papilio.node.xray.v1.InboundUser
-	(*VLESSAccount)(nil),                       // 46: papilio.node.xray.v1.VLESSAccount
-	(*VMessAccount)(nil),                       // 47: papilio.node.xray.v1.VMessAccount
-	(*PasswordAccount)(nil),                    // 48: papilio.node.xray.v1.PasswordAccount
-	(*HysteriaAccount)(nil),                    // 49: papilio.node.xray.v1.HysteriaAccount
-	(*ShadowsocksAccount)(nil),                 // 50: papilio.node.xray.v1.ShadowsocksAccount
-	(*Shadowsocks2022Account)(nil),             // 51: papilio.node.xray.v1.Shadowsocks2022Account
-	(*WireGuardAccount)(nil),                   // 52: papilio.node.xray.v1.WireGuardAccount
-	(*AddInboundUserResponse)(nil),             // 53: papilio.node.xray.v1.AddInboundUserResponse
-	(*GetInboundUserCountRequest)(nil),         // 54: papilio.node.xray.v1.GetInboundUserCountRequest
-	(*GetInboundUserCountResponse)(nil),        // 55: papilio.node.xray.v1.GetInboundUserCountResponse
-	(*ListRoutingRulesRequest)(nil),            // 56: papilio.node.xray.v1.ListRoutingRulesRequest
-	(*RoutingRuleReference)(nil),               // 57: papilio.node.xray.v1.RoutingRuleReference
-	(*ListRoutingRulesResponse)(nil),           // 58: papilio.node.xray.v1.ListRoutingRulesResponse
-	(*GetBalancerInfoRequest)(nil),             // 59: papilio.node.xray.v1.GetBalancerInfoRequest
-	(*BalancerPrincipalTargets)(nil),           // 60: papilio.node.xray.v1.BalancerPrincipalTargets
-	(*GetBalancerInfoResponse)(nil),            // 61: papilio.node.xray.v1.GetBalancerInfoResponse
-	(*RoutingContext)(nil),                     // 62: papilio.node.xray.v1.RoutingContext
-	(*TestRouteRequest)(nil),                   // 63: papilio.node.xray.v1.TestRouteRequest
-	(*RoutingResult)(nil),                      // 64: papilio.node.xray.v1.RoutingResult
-	(*TestRouteResponse)(nil),                  // 65: papilio.node.xray.v1.TestRouteResponse
-	(*TestRouteFailure)(nil),                   // 66: papilio.node.xray.v1.TestRouteFailure
-	(*OverrideBalancerTargetRequest)(nil),      // 67: papilio.node.xray.v1.OverrideBalancerTargetRequest
-	(*OverrideBalancerTargetResponse)(nil),     // 68: papilio.node.xray.v1.OverrideBalancerTargetResponse
-	(*RoutingMutationFailure)(nil),             // 69: papilio.node.xray.v1.RoutingMutationFailure
-	(*RemoveRoutingRuleRequest)(nil),           // 70: papilio.node.xray.v1.RemoveRoutingRuleRequest
-	(*RemoveRoutingRuleResponse)(nil),          // 71: papilio.node.xray.v1.RemoveRoutingRuleResponse
-	nil,                                        // 72: papilio.node.xray.v1.RoutingContext.AttributesEntry
+	(RoutingRuleMode)(0),                       // 9: papilio.node.xray.v1.RoutingRuleMode
+	(*GetTrafficCounterRequest)(nil),           // 10: papilio.node.xray.v1.GetTrafficCounterRequest
+	(*GetTrafficCounterResponse)(nil),          // 11: papilio.node.xray.v1.GetTrafficCounterResponse
+	(*GetRuntimeInfoRequest)(nil),              // 12: papilio.node.xray.v1.GetRuntimeInfoRequest
+	(*GetRuntimeInfoResponse)(nil),             // 13: papilio.node.xray.v1.GetRuntimeInfoResponse
+	(*RuntimeInfo)(nil),                        // 14: papilio.node.xray.v1.RuntimeInfo
+	(*GetBinaryInfoRequest)(nil),               // 15: papilio.node.xray.v1.GetBinaryInfoRequest
+	(*GetBinaryInfoResponse)(nil),              // 16: papilio.node.xray.v1.GetBinaryInfoResponse
+	(*BinaryInfo)(nil),                         // 17: papilio.node.xray.v1.BinaryInfo
+	(*ListTrafficCountersRequest)(nil),         // 18: papilio.node.xray.v1.ListTrafficCountersRequest
+	(*ListTrafficCountersResponse)(nil),        // 19: papilio.node.xray.v1.ListTrafficCountersResponse
+	(*TrafficCounterEntry)(nil),                // 20: papilio.node.xray.v1.TrafficCounterEntry
+	(*GetUserOnlineStatsRequest)(nil),          // 21: papilio.node.xray.v1.GetUserOnlineStatsRequest
+	(*GetUserOnlineStatsResponse)(nil),         // 22: papilio.node.xray.v1.GetUserOnlineStatsResponse
+	(*ListUserOnlineIPsRequest)(nil),           // 23: papilio.node.xray.v1.ListUserOnlineIPsRequest
+	(*ListUserOnlineIPsResponse)(nil),          // 24: papilio.node.xray.v1.ListUserOnlineIPsResponse
+	(*OnlineIP)(nil),                           // 25: papilio.node.xray.v1.OnlineIP
+	(*ListOnlineUsersRequest)(nil),             // 26: papilio.node.xray.v1.ListOnlineUsersRequest
+	(*ListOnlineUsersResponse)(nil),            // 27: papilio.node.xray.v1.ListOnlineUsersResponse
+	(*ResetTrafficCounterRequest)(nil),         // 28: papilio.node.xray.v1.ResetTrafficCounterRequest
+	(*ResetTrafficCounterResponse)(nil),        // 29: papilio.node.xray.v1.ResetTrafficCounterResponse
+	(*TrafficCounterResetFailure)(nil),         // 30: papilio.node.xray.v1.TrafficCounterResetFailure
+	(*ResetTrafficCountersRequest)(nil),        // 31: papilio.node.xray.v1.ResetTrafficCountersRequest
+	(*TrafficCounterResetAcknowledgement)(nil), // 32: papilio.node.xray.v1.TrafficCounterResetAcknowledgement
+	(*TrafficCounterResetEntry)(nil),           // 33: papilio.node.xray.v1.TrafficCounterResetEntry
+	(*ResetTrafficCountersResponse)(nil),       // 34: papilio.node.xray.v1.ResetTrafficCountersResponse
+	(*TrafficCountersResetFailure)(nil),        // 35: papilio.node.xray.v1.TrafficCountersResetFailure
+	(*GetTrafficPairRequest)(nil),              // 36: papilio.node.xray.v1.GetTrafficPairRequest
+	(*TrafficCounterObservation)(nil),          // 37: papilio.node.xray.v1.TrafficCounterObservation
+	(*GetTrafficPairResponse)(nil),             // 38: papilio.node.xray.v1.GetTrafficPairResponse
+	(*ResetTrafficPairRequest)(nil),            // 39: papilio.node.xray.v1.ResetTrafficPairRequest
+	(*ResetTrafficPairResponse)(nil),           // 40: papilio.node.xray.v1.ResetTrafficPairResponse
+	(*TrafficPairResetFailure)(nil),            // 41: papilio.node.xray.v1.TrafficPairResetFailure
+	(*RemoveInboundUserRequest)(nil),           // 42: papilio.node.xray.v1.RemoveInboundUserRequest
+	(*RemoveInboundUserResponse)(nil),          // 43: papilio.node.xray.v1.RemoveInboundUserResponse
+	(*UserMutationFailure)(nil),                // 44: papilio.node.xray.v1.UserMutationFailure
+	(*AddInboundUserRequest)(nil),              // 45: papilio.node.xray.v1.AddInboundUserRequest
+	(*InboundUser)(nil),                        // 46: papilio.node.xray.v1.InboundUser
+	(*VLESSAccount)(nil),                       // 47: papilio.node.xray.v1.VLESSAccount
+	(*VMessAccount)(nil),                       // 48: papilio.node.xray.v1.VMessAccount
+	(*PasswordAccount)(nil),                    // 49: papilio.node.xray.v1.PasswordAccount
+	(*HysteriaAccount)(nil),                    // 50: papilio.node.xray.v1.HysteriaAccount
+	(*ShadowsocksAccount)(nil),                 // 51: papilio.node.xray.v1.ShadowsocksAccount
+	(*Shadowsocks2022Account)(nil),             // 52: papilio.node.xray.v1.Shadowsocks2022Account
+	(*WireGuardAccount)(nil),                   // 53: papilio.node.xray.v1.WireGuardAccount
+	(*AddInboundUserResponse)(nil),             // 54: papilio.node.xray.v1.AddInboundUserResponse
+	(*GetInboundUserCountRequest)(nil),         // 55: papilio.node.xray.v1.GetInboundUserCountRequest
+	(*GetInboundUserCountResponse)(nil),        // 56: papilio.node.xray.v1.GetInboundUserCountResponse
+	(*ListRoutingRulesRequest)(nil),            // 57: papilio.node.xray.v1.ListRoutingRulesRequest
+	(*RoutingRuleReference)(nil),               // 58: papilio.node.xray.v1.RoutingRuleReference
+	(*ListRoutingRulesResponse)(nil),           // 59: papilio.node.xray.v1.ListRoutingRulesResponse
+	(*GetBalancerInfoRequest)(nil),             // 60: papilio.node.xray.v1.GetBalancerInfoRequest
+	(*BalancerPrincipalTargets)(nil),           // 61: papilio.node.xray.v1.BalancerPrincipalTargets
+	(*GetBalancerInfoResponse)(nil),            // 62: papilio.node.xray.v1.GetBalancerInfoResponse
+	(*RoutingContext)(nil),                     // 63: papilio.node.xray.v1.RoutingContext
+	(*TestRouteRequest)(nil),                   // 64: papilio.node.xray.v1.TestRouteRequest
+	(*RoutingResult)(nil),                      // 65: papilio.node.xray.v1.RoutingResult
+	(*TestRouteResponse)(nil),                  // 66: papilio.node.xray.v1.TestRouteResponse
+	(*TestRouteFailure)(nil),                   // 67: papilio.node.xray.v1.TestRouteFailure
+	(*OverrideBalancerTargetRequest)(nil),      // 68: papilio.node.xray.v1.OverrideBalancerTargetRequest
+	(*OverrideBalancerTargetResponse)(nil),     // 69: papilio.node.xray.v1.OverrideBalancerTargetResponse
+	(*RoutingMutationFailure)(nil),             // 70: papilio.node.xray.v1.RoutingMutationFailure
+	(*RemoveRoutingRuleRequest)(nil),           // 71: papilio.node.xray.v1.RemoveRoutingRuleRequest
+	(*RemoveRoutingRuleResponse)(nil),          // 72: papilio.node.xray.v1.RemoveRoutingRuleResponse
+	(*AddRoutingRuleRequest)(nil),              // 73: papilio.node.xray.v1.AddRoutingRuleRequest
+	(*AddRoutingRuleResponse)(nil),             // 74: papilio.node.xray.v1.AddRoutingRuleResponse
+	nil,                                        // 75: papilio.node.xray.v1.RoutingContext.AttributesEntry
 }
 var file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_depIdxs = []int32{
 	0,  // 0: papilio.node.xray.v1.GetTrafficCounterRequest.scope:type_name -> papilio.node.xray.v1.TrafficScope
 	1,  // 1: papilio.node.xray.v1.GetTrafficCounterRequest.direction:type_name -> papilio.node.xray.v1.TrafficDirection
 	0,  // 2: papilio.node.xray.v1.GetTrafficCounterResponse.scope:type_name -> papilio.node.xray.v1.TrafficScope
 	1,  // 3: papilio.node.xray.v1.GetTrafficCounterResponse.direction:type_name -> papilio.node.xray.v1.TrafficDirection
-	13, // 4: papilio.node.xray.v1.GetRuntimeInfoResponse.runtime:type_name -> papilio.node.xray.v1.RuntimeInfo
-	16, // 5: papilio.node.xray.v1.GetBinaryInfoResponse.binary:type_name -> papilio.node.xray.v1.BinaryInfo
+	14, // 4: papilio.node.xray.v1.GetRuntimeInfoResponse.runtime:type_name -> papilio.node.xray.v1.RuntimeInfo
+	17, // 5: papilio.node.xray.v1.GetBinaryInfoResponse.binary:type_name -> papilio.node.xray.v1.BinaryInfo
 	0,  // 6: papilio.node.xray.v1.ListTrafficCountersRequest.scope:type_name -> papilio.node.xray.v1.TrafficScope
 	0,  // 7: papilio.node.xray.v1.ListTrafficCountersResponse.scope:type_name -> papilio.node.xray.v1.TrafficScope
-	19, // 8: papilio.node.xray.v1.ListTrafficCountersResponse.items:type_name -> papilio.node.xray.v1.TrafficCounterEntry
+	20, // 8: papilio.node.xray.v1.ListTrafficCountersResponse.items:type_name -> papilio.node.xray.v1.TrafficCounterEntry
 	1,  // 9: papilio.node.xray.v1.TrafficCounterEntry.direction:type_name -> papilio.node.xray.v1.TrafficDirection
-	24, // 10: papilio.node.xray.v1.ListUserOnlineIPsResponse.items:type_name -> papilio.node.xray.v1.OnlineIP
+	25, // 10: papilio.node.xray.v1.ListUserOnlineIPsResponse.items:type_name -> papilio.node.xray.v1.OnlineIP
 	0,  // 11: papilio.node.xray.v1.ResetTrafficCounterRequest.scope:type_name -> papilio.node.xray.v1.TrafficScope
 	1,  // 12: papilio.node.xray.v1.ResetTrafficCounterRequest.direction:type_name -> papilio.node.xray.v1.TrafficDirection
 	0,  // 13: papilio.node.xray.v1.ResetTrafficCounterResponse.scope:type_name -> papilio.node.xray.v1.TrafficScope
@@ -4987,81 +5186,85 @@ var file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_depIdxs = []i
 	0,  // 16: papilio.node.xray.v1.ResetTrafficCountersRequest.scope:type_name -> papilio.node.xray.v1.TrafficScope
 	1,  // 17: papilio.node.xray.v1.TrafficCounterResetEntry.direction:type_name -> papilio.node.xray.v1.TrafficDirection
 	3,  // 18: papilio.node.xray.v1.TrafficCounterResetEntry.state:type_name -> papilio.node.xray.v1.TrafficCounterResetState
-	31, // 19: papilio.node.xray.v1.TrafficCounterResetEntry.acknowledgement:type_name -> papilio.node.xray.v1.TrafficCounterResetAcknowledgement
+	32, // 19: papilio.node.xray.v1.TrafficCounterResetEntry.acknowledgement:type_name -> papilio.node.xray.v1.TrafficCounterResetAcknowledgement
 	0,  // 20: papilio.node.xray.v1.ResetTrafficCountersResponse.scope:type_name -> papilio.node.xray.v1.TrafficScope
-	32, // 21: papilio.node.xray.v1.ResetTrafficCountersResponse.items:type_name -> papilio.node.xray.v1.TrafficCounterResetEntry
-	33, // 22: papilio.node.xray.v1.TrafficCountersResetFailure.progress:type_name -> papilio.node.xray.v1.ResetTrafficCountersResponse
+	33, // 21: papilio.node.xray.v1.ResetTrafficCountersResponse.items:type_name -> papilio.node.xray.v1.TrafficCounterResetEntry
+	34, // 22: papilio.node.xray.v1.TrafficCountersResetFailure.progress:type_name -> papilio.node.xray.v1.ResetTrafficCountersResponse
 	0,  // 23: papilio.node.xray.v1.GetTrafficPairRequest.scope:type_name -> papilio.node.xray.v1.TrafficScope
 	0,  // 24: papilio.node.xray.v1.GetTrafficPairResponse.scope:type_name -> papilio.node.xray.v1.TrafficScope
-	36, // 25: papilio.node.xray.v1.GetTrafficPairResponse.uplink:type_name -> papilio.node.xray.v1.TrafficCounterObservation
-	36, // 26: papilio.node.xray.v1.GetTrafficPairResponse.downlink:type_name -> papilio.node.xray.v1.TrafficCounterObservation
+	37, // 25: papilio.node.xray.v1.GetTrafficPairResponse.uplink:type_name -> papilio.node.xray.v1.TrafficCounterObservation
+	37, // 26: papilio.node.xray.v1.GetTrafficPairResponse.downlink:type_name -> papilio.node.xray.v1.TrafficCounterObservation
 	0,  // 27: papilio.node.xray.v1.ResetTrafficPairRequest.scope:type_name -> papilio.node.xray.v1.TrafficScope
 	0,  // 28: papilio.node.xray.v1.ResetTrafficPairResponse.scope:type_name -> papilio.node.xray.v1.TrafficScope
-	32, // 29: papilio.node.xray.v1.ResetTrafficPairResponse.items:type_name -> papilio.node.xray.v1.TrafficCounterResetEntry
-	39, // 30: papilio.node.xray.v1.TrafficPairResetFailure.progress:type_name -> papilio.node.xray.v1.ResetTrafficPairResponse
+	33, // 29: papilio.node.xray.v1.ResetTrafficPairResponse.items:type_name -> papilio.node.xray.v1.TrafficCounterResetEntry
+	40, // 30: papilio.node.xray.v1.TrafficPairResetFailure.progress:type_name -> papilio.node.xray.v1.ResetTrafficPairResponse
 	4,  // 31: papilio.node.xray.v1.UserMutationFailure.outcome:type_name -> papilio.node.xray.v1.UserMutationOutcome
-	45, // 32: papilio.node.xray.v1.AddInboundUserRequest.user:type_name -> papilio.node.xray.v1.InboundUser
-	46, // 33: papilio.node.xray.v1.InboundUser.vless:type_name -> papilio.node.xray.v1.VLESSAccount
-	47, // 34: papilio.node.xray.v1.InboundUser.vmess:type_name -> papilio.node.xray.v1.VMessAccount
-	48, // 35: papilio.node.xray.v1.InboundUser.trojan:type_name -> papilio.node.xray.v1.PasswordAccount
-	50, // 36: papilio.node.xray.v1.InboundUser.shadowsocks:type_name -> papilio.node.xray.v1.ShadowsocksAccount
-	51, // 37: papilio.node.xray.v1.InboundUser.shadowsocks_2022:type_name -> papilio.node.xray.v1.Shadowsocks2022Account
-	49, // 38: papilio.node.xray.v1.InboundUser.hysteria:type_name -> papilio.node.xray.v1.HysteriaAccount
-	48, // 39: papilio.node.xray.v1.InboundUser.masque:type_name -> papilio.node.xray.v1.PasswordAccount
-	52, // 40: papilio.node.xray.v1.InboundUser.wireguard:type_name -> papilio.node.xray.v1.WireGuardAccount
+	46, // 32: papilio.node.xray.v1.AddInboundUserRequest.user:type_name -> papilio.node.xray.v1.InboundUser
+	47, // 33: papilio.node.xray.v1.InboundUser.vless:type_name -> papilio.node.xray.v1.VLESSAccount
+	48, // 34: papilio.node.xray.v1.InboundUser.vmess:type_name -> papilio.node.xray.v1.VMessAccount
+	49, // 35: papilio.node.xray.v1.InboundUser.trojan:type_name -> papilio.node.xray.v1.PasswordAccount
+	51, // 36: papilio.node.xray.v1.InboundUser.shadowsocks:type_name -> papilio.node.xray.v1.ShadowsocksAccount
+	52, // 37: papilio.node.xray.v1.InboundUser.shadowsocks_2022:type_name -> papilio.node.xray.v1.Shadowsocks2022Account
+	50, // 38: papilio.node.xray.v1.InboundUser.hysteria:type_name -> papilio.node.xray.v1.HysteriaAccount
+	49, // 39: papilio.node.xray.v1.InboundUser.masque:type_name -> papilio.node.xray.v1.PasswordAccount
+	53, // 40: papilio.node.xray.v1.InboundUser.wireguard:type_name -> papilio.node.xray.v1.WireGuardAccount
 	5,  // 41: papilio.node.xray.v1.ShadowsocksAccount.cipher:type_name -> papilio.node.xray.v1.ShadowsocksCipher
-	57, // 42: papilio.node.xray.v1.ListRoutingRulesResponse.rules:type_name -> papilio.node.xray.v1.RoutingRuleReference
-	60, // 43: papilio.node.xray.v1.GetBalancerInfoResponse.principal_targets:type_name -> papilio.node.xray.v1.BalancerPrincipalTargets
+	58, // 42: papilio.node.xray.v1.ListRoutingRulesResponse.rules:type_name -> papilio.node.xray.v1.RoutingRuleReference
+	61, // 43: papilio.node.xray.v1.GetBalancerInfoResponse.principal_targets:type_name -> papilio.node.xray.v1.BalancerPrincipalTargets
 	6,  // 44: papilio.node.xray.v1.RoutingContext.network:type_name -> papilio.node.xray.v1.RoutingNetwork
-	72, // 45: papilio.node.xray.v1.RoutingContext.attributes:type_name -> papilio.node.xray.v1.RoutingContext.AttributesEntry
-	62, // 46: papilio.node.xray.v1.TestRouteRequest.context:type_name -> papilio.node.xray.v1.RoutingContext
-	62, // 47: papilio.node.xray.v1.RoutingResult.context:type_name -> papilio.node.xray.v1.RoutingContext
-	64, // 48: papilio.node.xray.v1.TestRouteResponse.route:type_name -> papilio.node.xray.v1.RoutingResult
+	75, // 45: papilio.node.xray.v1.RoutingContext.attributes:type_name -> papilio.node.xray.v1.RoutingContext.AttributesEntry
+	63, // 46: papilio.node.xray.v1.TestRouteRequest.context:type_name -> papilio.node.xray.v1.RoutingContext
+	63, // 47: papilio.node.xray.v1.RoutingResult.context:type_name -> papilio.node.xray.v1.RoutingContext
+	65, // 48: papilio.node.xray.v1.TestRouteResponse.route:type_name -> papilio.node.xray.v1.RoutingResult
 	7,  // 49: papilio.node.xray.v1.TestRouteFailure.outcome:type_name -> papilio.node.xray.v1.RoutingProbeOutcome
 	8,  // 50: papilio.node.xray.v1.RoutingMutationFailure.outcome:type_name -> papilio.node.xray.v1.RoutingMutationOutcome
-	44, // 51: papilio.node.xray.v1.XrayService.AddInboundUser:input_type -> papilio.node.xray.v1.AddInboundUserRequest
-	41, // 52: papilio.node.xray.v1.XrayService.RemoveInboundUser:input_type -> papilio.node.xray.v1.RemoveInboundUserRequest
-	14, // 53: papilio.node.xray.v1.XrayService.GetBinaryInfo:input_type -> papilio.node.xray.v1.GetBinaryInfoRequest
-	11, // 54: papilio.node.xray.v1.XrayService.GetRuntimeInfo:input_type -> papilio.node.xray.v1.GetRuntimeInfoRequest
-	9,  // 55: papilio.node.xray.v1.XrayService.GetTrafficCounter:input_type -> papilio.node.xray.v1.GetTrafficCounterRequest
-	27, // 56: papilio.node.xray.v1.XrayService.ResetTrafficCounter:input_type -> papilio.node.xray.v1.ResetTrafficCounterRequest
-	30, // 57: papilio.node.xray.v1.XrayService.ResetTrafficCounters:input_type -> papilio.node.xray.v1.ResetTrafficCountersRequest
-	35, // 58: papilio.node.xray.v1.XrayService.GetTrafficPair:input_type -> papilio.node.xray.v1.GetTrafficPairRequest
-	38, // 59: papilio.node.xray.v1.XrayService.ResetTrafficPair:input_type -> papilio.node.xray.v1.ResetTrafficPairRequest
-	17, // 60: papilio.node.xray.v1.XrayService.ListTrafficCounters:input_type -> papilio.node.xray.v1.ListTrafficCountersRequest
-	20, // 61: papilio.node.xray.v1.XrayService.GetUserOnlineStats:input_type -> papilio.node.xray.v1.GetUserOnlineStatsRequest
-	22, // 62: papilio.node.xray.v1.XrayService.ListUserOnlineIPs:input_type -> papilio.node.xray.v1.ListUserOnlineIPsRequest
-	25, // 63: papilio.node.xray.v1.XrayService.ListOnlineUsers:input_type -> papilio.node.xray.v1.ListOnlineUsersRequest
-	54, // 64: papilio.node.xray.v1.XrayService.GetInboundUserCount:input_type -> papilio.node.xray.v1.GetInboundUserCountRequest
-	56, // 65: papilio.node.xray.v1.XrayService.ListRoutingRules:input_type -> papilio.node.xray.v1.ListRoutingRulesRequest
-	59, // 66: papilio.node.xray.v1.XrayService.GetBalancerInfo:input_type -> papilio.node.xray.v1.GetBalancerInfoRequest
-	63, // 67: papilio.node.xray.v1.XrayService.TestRoute:input_type -> papilio.node.xray.v1.TestRouteRequest
-	67, // 68: papilio.node.xray.v1.XrayService.OverrideBalancerTarget:input_type -> papilio.node.xray.v1.OverrideBalancerTargetRequest
-	70, // 69: papilio.node.xray.v1.XrayService.RemoveRoutingRule:input_type -> papilio.node.xray.v1.RemoveRoutingRuleRequest
-	53, // 70: papilio.node.xray.v1.XrayService.AddInboundUser:output_type -> papilio.node.xray.v1.AddInboundUserResponse
-	42, // 71: papilio.node.xray.v1.XrayService.RemoveInboundUser:output_type -> papilio.node.xray.v1.RemoveInboundUserResponse
-	15, // 72: papilio.node.xray.v1.XrayService.GetBinaryInfo:output_type -> papilio.node.xray.v1.GetBinaryInfoResponse
-	12, // 73: papilio.node.xray.v1.XrayService.GetRuntimeInfo:output_type -> papilio.node.xray.v1.GetRuntimeInfoResponse
-	10, // 74: papilio.node.xray.v1.XrayService.GetTrafficCounter:output_type -> papilio.node.xray.v1.GetTrafficCounterResponse
-	28, // 75: papilio.node.xray.v1.XrayService.ResetTrafficCounter:output_type -> papilio.node.xray.v1.ResetTrafficCounterResponse
-	33, // 76: papilio.node.xray.v1.XrayService.ResetTrafficCounters:output_type -> papilio.node.xray.v1.ResetTrafficCountersResponse
-	37, // 77: papilio.node.xray.v1.XrayService.GetTrafficPair:output_type -> papilio.node.xray.v1.GetTrafficPairResponse
-	39, // 78: papilio.node.xray.v1.XrayService.ResetTrafficPair:output_type -> papilio.node.xray.v1.ResetTrafficPairResponse
-	18, // 79: papilio.node.xray.v1.XrayService.ListTrafficCounters:output_type -> papilio.node.xray.v1.ListTrafficCountersResponse
-	21, // 80: papilio.node.xray.v1.XrayService.GetUserOnlineStats:output_type -> papilio.node.xray.v1.GetUserOnlineStatsResponse
-	23, // 81: papilio.node.xray.v1.XrayService.ListUserOnlineIPs:output_type -> papilio.node.xray.v1.ListUserOnlineIPsResponse
-	26, // 82: papilio.node.xray.v1.XrayService.ListOnlineUsers:output_type -> papilio.node.xray.v1.ListOnlineUsersResponse
-	55, // 83: papilio.node.xray.v1.XrayService.GetInboundUserCount:output_type -> papilio.node.xray.v1.GetInboundUserCountResponse
-	58, // 84: papilio.node.xray.v1.XrayService.ListRoutingRules:output_type -> papilio.node.xray.v1.ListRoutingRulesResponse
-	61, // 85: papilio.node.xray.v1.XrayService.GetBalancerInfo:output_type -> papilio.node.xray.v1.GetBalancerInfoResponse
-	65, // 86: papilio.node.xray.v1.XrayService.TestRoute:output_type -> papilio.node.xray.v1.TestRouteResponse
-	68, // 87: papilio.node.xray.v1.XrayService.OverrideBalancerTarget:output_type -> papilio.node.xray.v1.OverrideBalancerTargetResponse
-	71, // 88: papilio.node.xray.v1.XrayService.RemoveRoutingRule:output_type -> papilio.node.xray.v1.RemoveRoutingRuleResponse
-	70, // [70:89] is the sub-list for method output_type
-	51, // [51:70] is the sub-list for method input_type
-	51, // [51:51] is the sub-list for extension type_name
-	51, // [51:51] is the sub-list for extension extendee
-	0,  // [0:51] is the sub-list for field type_name
+	9,  // 51: papilio.node.xray.v1.AddRoutingRuleRequest.mode:type_name -> papilio.node.xray.v1.RoutingRuleMode
+	9,  // 52: papilio.node.xray.v1.AddRoutingRuleResponse.mode:type_name -> papilio.node.xray.v1.RoutingRuleMode
+	45, // 53: papilio.node.xray.v1.XrayService.AddInboundUser:input_type -> papilio.node.xray.v1.AddInboundUserRequest
+	42, // 54: papilio.node.xray.v1.XrayService.RemoveInboundUser:input_type -> papilio.node.xray.v1.RemoveInboundUserRequest
+	15, // 55: papilio.node.xray.v1.XrayService.GetBinaryInfo:input_type -> papilio.node.xray.v1.GetBinaryInfoRequest
+	12, // 56: papilio.node.xray.v1.XrayService.GetRuntimeInfo:input_type -> papilio.node.xray.v1.GetRuntimeInfoRequest
+	10, // 57: papilio.node.xray.v1.XrayService.GetTrafficCounter:input_type -> papilio.node.xray.v1.GetTrafficCounterRequest
+	28, // 58: papilio.node.xray.v1.XrayService.ResetTrafficCounter:input_type -> papilio.node.xray.v1.ResetTrafficCounterRequest
+	31, // 59: papilio.node.xray.v1.XrayService.ResetTrafficCounters:input_type -> papilio.node.xray.v1.ResetTrafficCountersRequest
+	36, // 60: papilio.node.xray.v1.XrayService.GetTrafficPair:input_type -> papilio.node.xray.v1.GetTrafficPairRequest
+	39, // 61: papilio.node.xray.v1.XrayService.ResetTrafficPair:input_type -> papilio.node.xray.v1.ResetTrafficPairRequest
+	18, // 62: papilio.node.xray.v1.XrayService.ListTrafficCounters:input_type -> papilio.node.xray.v1.ListTrafficCountersRequest
+	21, // 63: papilio.node.xray.v1.XrayService.GetUserOnlineStats:input_type -> papilio.node.xray.v1.GetUserOnlineStatsRequest
+	23, // 64: papilio.node.xray.v1.XrayService.ListUserOnlineIPs:input_type -> papilio.node.xray.v1.ListUserOnlineIPsRequest
+	26, // 65: papilio.node.xray.v1.XrayService.ListOnlineUsers:input_type -> papilio.node.xray.v1.ListOnlineUsersRequest
+	55, // 66: papilio.node.xray.v1.XrayService.GetInboundUserCount:input_type -> papilio.node.xray.v1.GetInboundUserCountRequest
+	57, // 67: papilio.node.xray.v1.XrayService.ListRoutingRules:input_type -> papilio.node.xray.v1.ListRoutingRulesRequest
+	60, // 68: papilio.node.xray.v1.XrayService.GetBalancerInfo:input_type -> papilio.node.xray.v1.GetBalancerInfoRequest
+	64, // 69: papilio.node.xray.v1.XrayService.TestRoute:input_type -> papilio.node.xray.v1.TestRouteRequest
+	68, // 70: papilio.node.xray.v1.XrayService.OverrideBalancerTarget:input_type -> papilio.node.xray.v1.OverrideBalancerTargetRequest
+	71, // 71: papilio.node.xray.v1.XrayService.RemoveRoutingRule:input_type -> papilio.node.xray.v1.RemoveRoutingRuleRequest
+	73, // 72: papilio.node.xray.v1.XrayService.AddRoutingRule:input_type -> papilio.node.xray.v1.AddRoutingRuleRequest
+	54, // 73: papilio.node.xray.v1.XrayService.AddInboundUser:output_type -> papilio.node.xray.v1.AddInboundUserResponse
+	43, // 74: papilio.node.xray.v1.XrayService.RemoveInboundUser:output_type -> papilio.node.xray.v1.RemoveInboundUserResponse
+	16, // 75: papilio.node.xray.v1.XrayService.GetBinaryInfo:output_type -> papilio.node.xray.v1.GetBinaryInfoResponse
+	13, // 76: papilio.node.xray.v1.XrayService.GetRuntimeInfo:output_type -> papilio.node.xray.v1.GetRuntimeInfoResponse
+	11, // 77: papilio.node.xray.v1.XrayService.GetTrafficCounter:output_type -> papilio.node.xray.v1.GetTrafficCounterResponse
+	29, // 78: papilio.node.xray.v1.XrayService.ResetTrafficCounter:output_type -> papilio.node.xray.v1.ResetTrafficCounterResponse
+	34, // 79: papilio.node.xray.v1.XrayService.ResetTrafficCounters:output_type -> papilio.node.xray.v1.ResetTrafficCountersResponse
+	38, // 80: papilio.node.xray.v1.XrayService.GetTrafficPair:output_type -> papilio.node.xray.v1.GetTrafficPairResponse
+	40, // 81: papilio.node.xray.v1.XrayService.ResetTrafficPair:output_type -> papilio.node.xray.v1.ResetTrafficPairResponse
+	19, // 82: papilio.node.xray.v1.XrayService.ListTrafficCounters:output_type -> papilio.node.xray.v1.ListTrafficCountersResponse
+	22, // 83: papilio.node.xray.v1.XrayService.GetUserOnlineStats:output_type -> papilio.node.xray.v1.GetUserOnlineStatsResponse
+	24, // 84: papilio.node.xray.v1.XrayService.ListUserOnlineIPs:output_type -> papilio.node.xray.v1.ListUserOnlineIPsResponse
+	27, // 85: papilio.node.xray.v1.XrayService.ListOnlineUsers:output_type -> papilio.node.xray.v1.ListOnlineUsersResponse
+	56, // 86: papilio.node.xray.v1.XrayService.GetInboundUserCount:output_type -> papilio.node.xray.v1.GetInboundUserCountResponse
+	59, // 87: papilio.node.xray.v1.XrayService.ListRoutingRules:output_type -> papilio.node.xray.v1.ListRoutingRulesResponse
+	62, // 88: papilio.node.xray.v1.XrayService.GetBalancerInfo:output_type -> papilio.node.xray.v1.GetBalancerInfoResponse
+	66, // 89: papilio.node.xray.v1.XrayService.TestRoute:output_type -> papilio.node.xray.v1.TestRouteResponse
+	69, // 90: papilio.node.xray.v1.XrayService.OverrideBalancerTarget:output_type -> papilio.node.xray.v1.OverrideBalancerTargetResponse
+	72, // 91: papilio.node.xray.v1.XrayService.RemoveRoutingRule:output_type -> papilio.node.xray.v1.RemoveRoutingRuleResponse
+	74, // 92: papilio.node.xray.v1.XrayService.AddRoutingRule:output_type -> papilio.node.xray.v1.AddRoutingRuleResponse
+	73, // [73:93] is the sub-list for method output_type
+	53, // [53:73] is the sub-list for method input_type
+	53, // [53:53] is the sub-list for extension type_name
+	53, // [53:53] is the sub-list for extension extendee
+	0,  // [0:53] is the sub-list for field type_name
 }
 
 func init() { file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_init() }
@@ -5088,8 +5291,8 @@ func file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_rawDesc), len(file_internal_modules_engines_xray_grpcapi_proto_v1_xray_proto_rawDesc)),
-			NumEnums:      9,
-			NumMessages:   64,
+			NumEnums:      10,
+			NumMessages:   66,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

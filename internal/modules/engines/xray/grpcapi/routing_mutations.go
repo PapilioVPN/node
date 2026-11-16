@@ -24,6 +24,16 @@ func routingMutationError(ctx context.Context, cause error) error {
 		code, message, unknown = codes.FailedPrecondition, "Xray API is not enabled", false
 	case errors.Is(cause, domain.ErrRoutingManagementUnsupported):
 		code, message, unknown = codes.FailedPrecondition, "Xray routing management is not supported", false
+	case errors.Is(cause, domain.ErrRoutingRulePreparationDisabled):
+		code, message, unknown = codes.FailedPrecondition, "Xray routing rule preparation is not enabled", false
+	case errors.Is(cause, domain.ErrInvalidRoutingRuleMode), errors.Is(cause, domain.ErrInvalidRoutingRule):
+		code, message, unknown = codes.InvalidArgument, "invalid native routing rule or mode", false
+	case errors.Is(cause, domain.ErrInvalidPreparedRoutingRule):
+		code, message, unknown = codes.FailedPrecondition, "unrecognized native routing build output", false
+	case errors.Is(cause, domain.ErrRoutingRulePreparationBusy):
+		code, message, unknown = codes.ResourceExhausted, "Xray routing rule preparation is busy", false
+	case errors.Is(cause, domain.ErrRoutingRuleInputLimit), errors.Is(cause, domain.ErrRoutingRuleOutputLimit):
+		code, message, unknown = codes.ResourceExhausted, "Xray routing rule preparation resource limit exceeded", false
 	case errors.Is(cause, domain.ErrInvalidBalancerOverride):
 		code, message, unknown = codes.InvalidArgument, "invalid Xray balancer override", false
 	case errors.Is(cause, domain.ErrInvalidRoutingRuleTag):
@@ -35,6 +45,9 @@ func routingMutationError(ctx context.Context, cause error) error {
 	case errors.Is(cause, grpc.ErrClientConnClosing):
 		unknown = false
 	case errors.Is(cause, context.Canceled), errors.Is(cause, context.DeadlineExceeded):
+		unknown = false
+	}
+	if errors.Is(cause, domain.ErrRoutingRulePreparationFailed) {
 		unknown = false
 	}
 	if errors.Is(cause, domain.ErrRoutingMutationUnknown) {

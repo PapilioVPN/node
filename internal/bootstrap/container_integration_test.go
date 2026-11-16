@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -59,6 +60,7 @@ func TestContainer(t *testing.T) {
 	cfg.Communications.GRPC.Permissions.ReadEngineRouting = true
 	cfg.Communications.GRPC.Permissions.TestEngineRouting = true
 	cfg.Communications.GRPC.Permissions.ManageEngineRouting = true
+	runtimeDirectory, originalXrayConfig := configureContainerRouting(t, &cfg, certificates.Directory)
 	contents, err := yaml.Marshal(cfg)
 	if err != nil {
 		t.Fatal(err)
@@ -70,7 +72,8 @@ func TestContainer(t *testing.T) {
 	defer cancel()
 	output, err := exec.CommandContext(ctx, "docker", "run", "--detach", "--read-only",
 		"--user", fmt.Sprintf("%d:%d", os.Getuid(), os.Getgid()),
-		"--publish", "127.0.0.1::9443", "--publish", "127.0.0.1::9444", "--mount", "type=bind,src="+certificates.Directory+",dst=/app,readonly", *image).Output()
+		"--publish", "127.0.0.1::9443", "--publish", "127.0.0.1::9444", "--mount", "type=bind,src="+certificates.Directory+",dst=/app,readonly",
+		"--mount", "type=bind,src="+runtimeDirectory+",dst=/runtime", *image).Output()
 	if err != nil {
 		t.Fatalf("start isolated runtime: %v", err)
 	}
@@ -98,20 +101,10 @@ func TestContainer(t *testing.T) {
 		logs, _ := exec.CommandContext(ctx, "docker", "logs", containerID).CombinedOutput()
 		t.Fatalf("packaged operation failed: %v, %v; logs: %s", info, err, logs)
 	}
-	probeInstalled, overrideInstalled, removalInstalled := false, false, false
-	for _, capability := range info.GetCapabilities() {
-		if capability == "xray.routing.test" {
-			probeInstalled = true
+	for _, capability := range []string{"xray.routing.test", "xray.routing.balancer.override", "xray.routing.rule.remove", "xray.routing.rule.add"} {
+		if !slices.Contains(info.GetCapabilities(), capability) {
+			t.Fatalf("packaged metadata omitted %s", capability)
 		}
-		if capability == "xray.routing.balancer.override" {
-			overrideInstalled = true
-		}
-		if capability == "xray.routing.rule.remove" {
-			removalInstalled = true
-		}
-	}
-	if !probeInstalled || !overrideInstalled || !removalInstalled {
-		t.Fatal("packaged metadata omitted an installed routing operation")
 	}
 	output, err = exec.CommandContext(ctx, "docker", "port", containerID, "9444/tcp").Output()
 	if err != nil {
@@ -140,7 +133,7 @@ func TestContainer(t *testing.T) {
 		t.Fatalf("packaged status grant/service failed: %v", err)
 	}
 	page, err := nodev1.NewInstanceServiceClient(connection).ListInstanceStatuses(request, &nodev1.ListInstanceStatusesRequest{PageSize: 1})
-	if err != nil || len(page.GetItems()) != 0 || page.NextAfterInstanceId != "" {
+	if err != nil || len(page.GetItems()) != 1 || page.GetItems()[0].GetInstanceId() != "packaged-xray" || page.NextAfterInstanceId != "" {
 		t.Fatalf("packaged collection grant/service failed: %v, %v", page, err)
 	}
 	if _, err := nodev1.NewInstanceServiceClient(connection).StartInstance(request, &nodev1.StartInstanceRequest{InstanceId: "unconfigured"}); status.Code(err) != codes.NotFound {
@@ -243,6 +236,7 @@ func TestContainer(t *testing.T) {
 	if _, err := xrayv1.NewXrayServiceClient(connection).ListOnlineUsers(request, &xrayv1.ListOnlineUsersRequest{InstanceId: "unconfigured"}); status.Code(err) != codes.NotFound {
 		t.Fatalf("packaged online users grant/service: %v", err)
 	}
+	verifyContainerRouting(t, request, xrayv1.NewXrayServiceClient(connection), certificates.Directory, runtimeDirectory, originalXrayConfig)
 	if output, err := exec.CommandContext(ctx, "docker", "stop", "--time", "5", containerID).CombinedOutput(); err != nil {
 		t.Fatalf("stop runtime: %s, %v", output, err)
 	}
