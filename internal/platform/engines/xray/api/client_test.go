@@ -8,13 +8,13 @@ import (
 
 	"google.golang.org/grpc"
 
-	routingdomain "github.com/PapilioVPN/node/internal/modules/core/routing/domain"
-	routingxray "github.com/PapilioVPN/node/internal/modules/core/routing/infra/xray/api"
-	"github.com/PapilioVPN/node/internal/modules/core/traffic/domain"
-	trafficxray "github.com/PapilioVPN/node/internal/modules/core/traffic/infra/xray/api"
-	userdomain "github.com/PapilioVPN/node/internal/modules/core/users/domain"
-	userxray "github.com/PapilioVPN/node/internal/modules/core/users/infra/xray"
-	xrayapi "github.com/PapilioVPN/node/internal/modules/engines/xray/infra/api"
+	xrayapi "github.com/PapilioVPN/node/internal/modules/xray/infra/api"
+	routingdomain "github.com/PapilioVPN/node/internal/modules/xray/routing/domain"
+	routingxray "github.com/PapilioVPN/node/internal/modules/xray/routing/infra/api"
+	"github.com/PapilioVPN/node/internal/modules/xray/traffic/domain"
+	trafficxray "github.com/PapilioVPN/node/internal/modules/xray/traffic/infra/api"
+	userdomain "github.com/PapilioVPN/node/internal/modules/xray/users/domain"
+	userxray "github.com/PapilioVPN/node/internal/modules/xray/users/infra/api"
 )
 
 func TestAPIConstructionAndCanceledAdmissionCreateNoNativeChannel(t *testing.T) {

@@ -10,8 +10,8 @@ import (
 	"go.uber.org/fx/fxevent"
 
 	"github.com/PapilioVPN/node/internal/modules/core"
-	"github.com/PapilioVPN/node/internal/modules/engines"
 	"github.com/PapilioVPN/node/internal/modules/system"
+	"github.com/PapilioVPN/node/internal/modules/xray"
 	"github.com/PapilioVPN/node/internal/settings"
 )
 
@@ -22,7 +22,7 @@ func New(cfg settings.Config, version string, options ...fx.Option) *fx.App {
 	return fx.New(
 		fx.Supply(cfg.Node, cfg.Instances),
 		system.Module(version, cfg.Communications), core.Module(cfg.Communications.GRPC.Enabled),
-		engines.Module(cfg.Communications.GRPC.Enabled),
+		xray.Module(cfg.Communications.GRPC.Enabled),
 		communications(cfg.Communications),
 		fx.StartTimeout(cfg.Runtime.StartupTimeout), fx.StopTimeout(cfg.Runtime.ShutdownTimeout),
 		fx.WithLogger(func() fxevent.Logger { return &fxevent.SlogLogger{Logger: slog.Default()} }),

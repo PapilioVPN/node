@@ -10,8 +10,8 @@ import (
 	"github.com/xtls/xray-core/proxy/trojan"
 	"google.golang.org/protobuf/proto"
 
-	userv1 "github.com/PapilioVPN/node/internal/modules/core/users/grpcapi/proto/v1"
-	xrayv1 "github.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi/proto/v1"
+	xrayv1 "github.com/PapilioVPN/node/internal/modules/xray/grpcapi/proto/v1"
+	userv1 "github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi/proto/v1"
 )
 
 func verifyContainerUserViews(t *testing.T, ctx context.Context, client xrayv1.XrayServiceClient) {

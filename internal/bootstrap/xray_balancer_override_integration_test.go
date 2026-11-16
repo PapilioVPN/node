@@ -26,9 +26,9 @@ import (
 
 	"github.com/PapilioVPN/node/internal/bootstrap"
 	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
-	"github.com/PapilioVPN/node/internal/modules/core/routing/app/services"
-	"github.com/PapilioVPN/node/internal/modules/core/routing/domain"
-	routingv1 "github.com/PapilioVPN/node/internal/modules/core/routing/grpcapi/proto/v1"
+	"github.com/PapilioVPN/node/internal/modules/xray/routing/app/services"
+	"github.com/PapilioVPN/node/internal/modules/xray/routing/domain"
+	routingv1 "github.com/PapilioVPN/node/internal/modules/xray/routing/grpcapi/proto/v1"
 	rpc "github.com/PapilioVPN/node/internal/platform/grpcserver"
 	"github.com/PapilioVPN/node/internal/settings"
 	"github.com/PapilioVPN/node/internal/shared/testutil"
