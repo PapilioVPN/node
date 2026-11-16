@@ -16,6 +16,7 @@ import (
 
 	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
 	routinggrpc "github.com/PapilioVPN/node/internal/modules/core/routing/grpcapi"
+	trafficgrpc "github.com/PapilioVPN/node/internal/modules/core/traffic/grpcapi"
 	"github.com/PapilioVPN/node/internal/modules/core/users/domain"
 	usergrpc "github.com/PapilioVPN/node/internal/modules/core/users/grpcapi"
 	userv1 "github.com/PapilioVPN/node/internal/modules/core/users/grpcapi/proto/v1"
@@ -69,9 +70,9 @@ var userReadCalls = []struct {
 func TestUserViewsRequireIndependentGrants(t *testing.T) {
 	for i, op := range userReadCalls {
 		t.Run(op.name, func(t *testing.T) {
-			h := grpcapi.Handler{AllowInfoRead: true, AllowStatsRead: true, AllowStatsReset: true, AllowOnlineRead: true, AllowOutboundsRead: true, UserAPI:
+			h := grpcapi.Handler{AllowInfoRead: true, AllowOnlineRead: true, AllowOutboundsRead: true, UserAPI:
 			// Also grant the opposite view: it must not enable this operation.
-			usergrpc.UserAPI{AllowUsersRead: true, AllowUserManagement: true}, RoutingAPI: routinggrpc.RoutingAPI{AllowRoutingRead: true, AllowRoutingTest: true, AllowRoutingManagement: true}}
+			usergrpc.UserAPI{AllowUsersRead: true, AllowUserManagement: true}, RoutingAPI: routinggrpc.RoutingAPI{AllowRoutingRead: true, AllowRoutingTest: true, AllowRoutingManagement: true}, TrafficAPI: trafficgrpc.TrafficAPI{AllowStatsRead: true, AllowStatsReset: true}}
 
 			if i < 2 {
 				h.AllowUserAccountsRead = true

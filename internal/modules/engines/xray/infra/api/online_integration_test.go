@@ -16,6 +16,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	trafficdomain "github.com/PapilioVPN/node/internal/modules/core/traffic/domain"
 	"github.com/PapilioVPN/node/internal/modules/engines/xray/domain"
 )
 
@@ -261,7 +262,7 @@ func TestOnlineNativeSharedAdmissionCancellationDeadlineAndClose(t *testing.T) {
 				if _, err := client.ReadRuntimeInfo(t.Context()); !errors.Is(err, domain.ErrAPIBusy) {
 					t.Fatalf("runtime bypassed online admission: %v", err)
 				}
-				if _, err := client.ReadTrafficCounters(t.Context(), domain.UserTraffic); !errors.Is(err, domain.ErrAPIBusy) {
+				if _, err := client.ReadTrafficCounters(t.Context(), trafficdomain.UserTraffic); !errors.Is(err, domain.ErrAPIBusy) {
 					t.Fatalf("traffic bypassed online admission: %v", err)
 				}
 				for _, other := range onlineReads(t) {

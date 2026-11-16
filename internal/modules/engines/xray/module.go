@@ -19,6 +19,10 @@ import (
 	routinggrpc "github.com/PapilioVPN/node/internal/modules/core/routing/grpcapi"
 	routingxray "github.com/PapilioVPN/node/internal/modules/core/routing/infra/xray/api"
 	routingprocess "github.com/PapilioVPN/node/internal/modules/core/routing/infra/xray/process"
+	trafficowner "github.com/PapilioVPN/node/internal/modules/core/traffic"
+	trafficdomain "github.com/PapilioVPN/node/internal/modules/core/traffic/domain"
+	trafficgrpc "github.com/PapilioVPN/node/internal/modules/core/traffic/grpcapi"
+	trafficxray "github.com/PapilioVPN/node/internal/modules/core/traffic/infra/xray/api"
 	userowner "github.com/PapilioVPN/node/internal/modules/core/users"
 	userdomain "github.com/PapilioVPN/node/internal/modules/core/users/domain"
 	usergrpc "github.com/PapilioVPN/node/internal/modules/core/users/grpcapi"
@@ -39,13 +43,11 @@ func Module(grpcEnabled bool) fx.Option {
 	options := []fx.Option{
 		fx.Provide(
 			newBinaryInfoService, newAPIResources, newRuntimeInfoService,
-			newTrafficCounterService, newTrafficCounterResetService, newTrafficCountersResetService,
-			newTrafficCountersService, newTrafficPairServices,
 			newOnlineService,
 			newOutboundStatusService,
 			fx.Private,
 		),
-		fx.Provide(capability, apiCleanup, newRuntimeBindings, newUserBindings, newRoutingBindings), fx.Invoke(registerAPILifecycle),
+		fx.Provide(capability, apiCleanup, newRuntimeBindings, newUserBindings, newRoutingBindings, newTrafficBindings), fx.Invoke(registerAPILifecycle),
 	}
 	if grpcEnabled {
 		options = append(options, fx.Invoke(registerGRPC))
@@ -113,38 +115,31 @@ func newBinaryInfoService(config []settings.Instance) (*services.BinaryInfoServi
 }
 
 type apiResources struct {
-	runtimeReaders    map[instances.InstanceID]services.RuntimeInfoReader
-	trafficReaders    map[instances.InstanceID]services.TrafficCounterReader
-	trafficResetters  map[instances.InstanceID]services.TrafficCounterResetter
-	collectionReaders map[instances.InstanceID]services.TrafficCountersReader
-	onlineReaders     map[instances.InstanceID]services.OnlineReader
-	outboundReaders   map[instances.InstanceID]services.OutboundStatusReader
-	clients           []*nativeapi.Client
-	userBindings      []userowner.BackendBinding
-	routingBindings   []routingowner.BackendBinding
+	runtimeReaders  map[instances.InstanceID]services.RuntimeInfoReader
+	onlineReaders   map[instances.InstanceID]services.OnlineReader
+	outboundReaders map[instances.InstanceID]services.OutboundStatusReader
+	clients         []*nativeapi.Client
+	userBindings    []userowner.BackendBinding
+	routingBindings []routingowner.BackendBinding
+	trafficBindings []trafficowner.BackendBinding
 }
 
 func newAPIResources(config []settings.Instance) (*apiResources, error) {
 	resources := &apiResources{
-		runtimeReaders:    make(map[instances.InstanceID]services.RuntimeInfoReader),
-		trafficReaders:    make(map[instances.InstanceID]services.TrafficCounterReader),
-		trafficResetters:  make(map[instances.InstanceID]services.TrafficCounterResetter),
-		collectionReaders: make(map[instances.InstanceID]services.TrafficCountersReader),
-		onlineReaders:     make(map[instances.InstanceID]services.OnlineReader),
-		outboundReaders:   make(map[instances.InstanceID]services.OutboundStatusReader),
+		runtimeReaders:  make(map[instances.InstanceID]services.RuntimeInfoReader),
+		onlineReaders:   make(map[instances.InstanceID]services.OnlineReader),
+		outboundReaders: make(map[instances.InstanceID]services.OutboundStatusReader),
 	}
 	for _, instance := range config {
 		if instance.Engine != instances.Xray {
 			continue
 		}
 		resources.runtimeReaders[instance.ID] = nil
-		resources.trafficReaders[instance.ID] = nil
-		resources.trafficResetters[instance.ID] = nil
-		resources.collectionReaders[instance.ID] = nil
 		resources.onlineReaders[instance.ID] = nil
 		resources.outboundReaders[instance.ID] = nil
 		binding := userowner.BackendBinding{InstanceID: instance.ID}
 		routing := routingowner.BackendBinding{InstanceID: instance.ID}
+		traffic := trafficowner.BackendBinding{InstanceID: instance.ID}
 		if api := instance.Xray.API; api != nil {
 			client, err := nativeapi.NewClient(nativeapi.Config{
 				Network: api.Network, Address: api.Address, RequestTimeout: api.RequestTimeout,
@@ -155,11 +150,11 @@ func newAPIResources(config []settings.Instance) (*apiResources, error) {
 			}
 			adapter := &xrayapi.Adapter{API: client}
 			resources.runtimeReaders[instance.ID] = adapter
-			resources.trafficReaders[instance.ID] = adapter
-			resources.trafficResetters[instance.ID] = adapter
-			resources.collectionReaders[instance.ID] = adapter
 			resources.onlineReaders[instance.ID] = adapter
 			resources.outboundReaders[instance.ID] = adapter
+			counters := &trafficxray.Counters{API: client}
+			traffic.Reader, traffic.Collection, traffic.Resetter = counters, counters, counters
+			traffic.Timeout = api.RequestTimeout
 			router := &routingxray.Router{API: client}
 			routing.Reader, routing.Prober, routing.Overrider, routing.Remover = router, router, router, router
 			routing.Addition = routingservices.RoutingRuleBinding{Applier: router, Timeout: api.RequestTimeout}
@@ -169,6 +164,7 @@ func newAPIResources(config []settings.Instance) (*apiResources, error) {
 		}
 		resources.userBindings = append(resources.userBindings, binding)
 		resources.routingBindings = append(resources.routingBindings, routing)
+		resources.trafficBindings = append(resources.trafficBindings, traffic)
 	}
 	return resources, nil
 }
@@ -177,56 +173,12 @@ func newRuntimeInfoService(resources *apiResources) *services.RuntimeInfoService
 	return services.NewRuntimeInfoService(resources.runtimeReaders)
 }
 
-func newTrafficCounterService(resources *apiResources) *services.TrafficCounterService {
-	return services.NewTrafficCounterService(resources.trafficReaders)
-}
-
-func newTrafficCounterResetService(resources *apiResources) *services.TrafficCounterResetService {
-	return services.NewTrafficCounterResetService(resources.trafficResetters)
-}
-
-func newTrafficCountersService(resources *apiResources) *services.TrafficCountersService {
-	return services.NewTrafficCountersService(resources.collectionReaders)
-}
-
-func newTrafficCountersResetService(config []settings.Instance, resources *apiResources) *services.TrafficCountersResetService {
-	bindings := make(map[instances.InstanceID]services.TrafficResetBinding)
-	for _, instance := range config {
-		if instance.Engine != instances.Xray {
-			continue
-		}
-		binding := services.TrafficResetBinding{Reader: resources.collectionReaders[instance.ID], Resetter: resources.trafficResetters[instance.ID]}
-		if api := instance.Xray.API; api != nil {
-			binding.Timeout = api.RequestTimeout
-		}
-		bindings[instance.ID] = binding
-	}
-	return services.NewTrafficCountersResetService(bindings)
-}
-
 func newOnlineService(resources *apiResources) *services.OnlineService {
 	return services.NewOnlineService(resources.onlineReaders)
 }
 
 func newOutboundStatusService(resources *apiResources) *services.OutboundStatusService {
 	return services.NewOutboundStatusService(resources.outboundReaders)
-}
-
-func newTrafficPairServices(config []settings.Instance, resources *apiResources) (*services.TrafficPairService, *services.TrafficPairResetService) {
-	readers := make(map[instances.InstanceID]services.TrafficPairReadBinding)
-	resetters := make(map[instances.InstanceID]services.TrafficPairResetBinding)
-	for _, instance := range config {
-		if instance.Engine != instances.Xray {
-			continue
-		}
-		reader := services.TrafficPairReadBinding{Reader: resources.trafficReaders[instance.ID]}
-		resetter := services.TrafficPairResetBinding{Resetter: resources.trafficResetters[instance.ID]}
-		if api := instance.Xray.API; api != nil {
-			reader.Timeout, resetter.Timeout = api.RequestTimeout, api.RequestTimeout
-		}
-		readers[instance.ID], resetters[instance.ID] = reader, resetter
-	}
-	return services.NewTrafficPairService(readers), services.NewTrafficPairResetService(resetters)
 }
 
 func registerAPILifecycle(lifecycle fx.Lifecycle, resources *apiResources) {
@@ -246,27 +198,21 @@ type grpcServices struct {
 	Registrar   grpc.ServiceRegistrar
 	Info        *services.BinaryInfoService
 	Runtime     *services.RuntimeInfoService
-	Traffic     *services.TrafficCounterService
-	Resets      *services.TrafficCounterResetService
-	ScopeResets *services.TrafficCountersResetService
-	Pairs       *services.TrafficPairService
-	PairResets  *services.TrafficPairResetService
-	Counters    *services.TrafficCountersService
 	Online      *services.OnlineService
 	Outbounds   *services.OutboundStatusService
 	UserAPI     usergrpc.UserAPI
 	RoutingAPI  routinggrpc.RoutingAPI
+	TrafficAPI  trafficgrpc.TrafficAPI
 	Permissions settings.GRPCPermissions
 }
 
 func registerGRPC(p grpcServices) {
 	xrayv1.RegisterXrayServiceServer(p.Registrar, grpcapi.Handler{
-		Info: p.Info, Runtime: p.Runtime, Traffic: p.Traffic, Resets: p.Resets, ScopeResets: p.ScopeResets,
-		Pairs: p.Pairs, PairResets: p.PairResets, TrafficCounters: p.Counters, Online: p.Online,
-		UserAPI: p.UserAPI, RoutingAPI: p.RoutingAPI,
-		Outbounds: p.Outbounds, AllowOutboundsRead: p.Permissions.ReadEngineOutbounds,
-		AllowInfoRead: p.Permissions.ReadEngineInfo, AllowStatsRead: p.Permissions.ReadEngineStats,
-		AllowOnlineRead: p.Permissions.ReadEngineOnline, AllowStatsReset: p.Permissions.ResetEngineStats,
+		Info: p.Info, Runtime: p.Runtime, Online: p.Online, Outbounds: p.Outbounds,
+		UserAPI: p.UserAPI, RoutingAPI: p.RoutingAPI, TrafficAPI: p.TrafficAPI,
+		AllowInfoRead:      p.Permissions.ReadEngineInfo,
+		AllowOnlineRead:    p.Permissions.ReadEngineOnline,
+		AllowOutboundsRead: p.Permissions.ReadEngineOutbounds,
 	})
 }
 
@@ -278,8 +224,8 @@ type capabilityResult struct {
 func capability() capabilityResult {
 	return capabilityResult{Values: []system.Capability{
 		domain.ReadBinaryInfo, domain.ReadRuntimeInfo,
-		domain.ReadTrafficCounter, domain.ListTrafficCounters, domain.ResetTrafficCounter, domain.ResetTrafficCounters,
-		domain.ReadTrafficPair, domain.ResetTrafficPair,
+		trafficdomain.ReadTrafficCounter, trafficdomain.ListTrafficCounters, trafficdomain.ResetTrafficCounter, trafficdomain.ResetTrafficCounters,
+		trafficdomain.ReadTrafficPair, trafficdomain.ResetTrafficPair,
 		userdomain.AddInboundUser, userdomain.RemoveInboundUser, userdomain.ReadInboundUserCount,
 		userdomain.ReadInboundUser, userdomain.ListInboundUsers,
 		userdomain.ReadInboundUserMetadata, userdomain.ListInboundUserMetadata,
@@ -335,4 +281,13 @@ func newRoutingBindings(config []settings.Instance, resources *apiResources) (ro
 		}
 	}
 	return result, nil
+}
+
+type trafficBindingsResult struct {
+	fx.Out
+	Values []trafficowner.BackendBinding `group:"traffic_backends,flatten"`
+}
+
+func newTrafficBindings(resources *apiResources) trafficBindingsResult {
+	return trafficBindingsResult{Values: resources.trafficBindings}
 }

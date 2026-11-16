@@ -22,6 +22,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/PapilioVPN/node/internal/bootstrap"
+	trafficv1 "github.com/PapilioVPN/node/internal/modules/core/traffic/grpcapi/proto/v1"
 	xrayv1 "github.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi/proto/v1"
 	rpc "github.com/PapilioVPN/node/internal/platform/grpcserver"
 	"github.com/PapilioVPN/node/internal/settings"
@@ -211,7 +212,7 @@ func TestOnlineObservationsOverMTLSFollowRealConnectionLifetimes(t *testing.T) {
 			if status.Code(err) != codes.PermissionDenied {
 				t.Fatalf("online grant expanded info: %v", err)
 			}
-			_, err = client.ListTrafficCounters(ctx, &xrayv1.ListTrafficCountersRequest{InstanceId: "edge-a", Scope: xrayv1.TrafficScope_TRAFFIC_SCOPE_USER})
+			_, err = client.ListTrafficCounters(ctx, &trafficv1.ListTrafficCountersRequest{InstanceId: "edge-a", Scope: trafficv1.TrafficScope_TRAFFIC_SCOPE_USER})
 			if status.Code(err) != codes.PermissionDenied {
 				t.Fatalf("online grant expanded traffic: %v", err)
 			}

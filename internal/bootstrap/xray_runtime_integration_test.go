@@ -24,6 +24,7 @@ import (
 	instancesv1 "github.com/PapilioVPN/node/internal/modules/core/instances/grpcapi/proto/v1"
 	routingdomain "github.com/PapilioVPN/node/internal/modules/core/routing/domain"
 	routingv1 "github.com/PapilioVPN/node/internal/modules/core/routing/grpcapi/proto/v1"
+	trafficv1 "github.com/PapilioVPN/node/internal/modules/core/traffic/grpcapi/proto/v1"
 	userv1 "github.com/PapilioVPN/node/internal/modules/core/users/grpcapi/proto/v1"
 	xraydomain "github.com/PapilioVPN/node/internal/modules/engines/xray/domain"
 	xrayv1 "github.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi/proto/v1"
@@ -124,9 +125,9 @@ func TestXrayRuntimeInfoOverMTLSAndNativeReconnect(t *testing.T) {
 			if result, err := client.GetInboundUserCount(ctx, &userv1.GetInboundUserCountRequest{InstanceId: "edge-b", InboundTag: "in"}); result != nil || status.Code(err) != codes.FailedPrecondition {
 				t.Fatalf("absent native HandlerService became successful count: %v %v", result, err)
 			}
-			if result, err := client.GetTrafficCounter(ctx, &xrayv1.GetTrafficCounterRequest{
-				InstanceId: "edge-b", Scope: xrayv1.TrafficScope_TRAFFIC_SCOPE_INBOUND,
-				Name: "proxy", Direction: xrayv1.TrafficDirection_TRAFFIC_DIRECTION_UPLINK,
+			if result, err := client.GetTrafficCounter(ctx, &trafficv1.GetTrafficCounterRequest{
+				InstanceId: "edge-b", Scope: trafficv1.TrafficScope_TRAFFIC_SCOPE_INBOUND,
+				Name: "proxy", Direction: trafficv1.TrafficDirection_TRAFFIC_DIRECTION_UPLINK,
 			}); result != nil || status.Code(err) != codes.FailedPrecondition {
 				t.Fatalf("absent native StatsService became zero usage: %v, %v", result, err)
 			}

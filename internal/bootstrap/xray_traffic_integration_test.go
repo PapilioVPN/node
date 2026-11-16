@@ -18,6 +18,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/PapilioVPN/node/internal/bootstrap"
+	trafficv1 "github.com/PapilioVPN/node/internal/modules/core/traffic/grpcapi/proto/v1"
 	xrayv1 "github.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi/proto/v1"
 	rpc "github.com/PapilioVPN/node/internal/platform/grpcserver"
 	"github.com/PapilioVPN/node/internal/settings"
@@ -45,9 +46,9 @@ func TestTrafficCounterRPCRequiresIndependentGrant(t *testing.T) {
 				}
 			})
 			client := xrayClient(t, server, certificates)
-			_, err := client.GetTrafficCounter(t.Context(), &xrayv1.GetTrafficCounterRequest{
-				InstanceId: "missing", Scope: xrayv1.TrafficScope_TRAFFIC_SCOPE_INBOUND,
-				Name: "proxy", Direction: xrayv1.TrafficDirection_TRAFFIC_DIRECTION_UPLINK,
+			_, err := client.GetTrafficCounter(t.Context(), &trafficv1.GetTrafficCounterRequest{
+				InstanceId: "missing", Scope: trafficv1.TrafficScope_TRAFFIC_SCOPE_INBOUND,
+				Name: "proxy", Direction: trafficv1.TrafficDirection_TRAFFIC_DIRECTION_UPLINK,
 			})
 			expected := codes.PermissionDenied
 			if granted {
@@ -56,23 +57,23 @@ func TestTrafficCounterRPCRequiresIndependentGrant(t *testing.T) {
 			if status.Code(err) != expected {
 				t.Fatalf("independent stats grant: %v; want %v", err, expected)
 			}
-			_, err = client.ListTrafficCounters(t.Context(), &xrayv1.ListTrafficCountersRequest{
-				InstanceId: "missing", Scope: xrayv1.TrafficScope_TRAFFIC_SCOPE_INBOUND,
+			_, err = client.ListTrafficCounters(t.Context(), &trafficv1.ListTrafficCountersRequest{
+				InstanceId: "missing", Scope: trafficv1.TrafficScope_TRAFFIC_SCOPE_INBOUND,
 			})
 			if status.Code(err) != expected {
 				t.Fatalf("independent collection grant: %v; want %v", err, expected)
 			}
-			if _, err := client.GetTrafficPair(t.Context(), &xrayv1.GetTrafficPairRequest{InstanceId: "missing", Scope: xrayv1.TrafficScope_TRAFFIC_SCOPE_USER, Name: "user"}); status.Code(err) != expected {
+			if _, err := client.GetTrafficPair(t.Context(), &trafficv1.GetTrafficPairRequest{InstanceId: "missing", Scope: trafficv1.TrafficScope_TRAFFIC_SCOPE_USER, Name: "user"}); status.Code(err) != expected {
 				t.Fatalf("independent pair read grant: %v", err)
 			}
-			if _, err := client.ResetTrafficPair(t.Context(), &xrayv1.ResetTrafficPairRequest{InstanceId: "missing", Scope: xrayv1.TrafficScope_TRAFFIC_SCOPE_USER, Name: "user"}); status.Code(err) != codes.PermissionDenied {
+			if _, err := client.ResetTrafficPair(t.Context(), &trafficv1.ResetTrafficPairRequest{InstanceId: "missing", Scope: trafficv1.TrafficScope_TRAFFIC_SCOPE_USER, Name: "user"}); status.Code(err) != codes.PermissionDenied {
 				t.Fatalf("read grant expanded to pair reset: %v", err)
 			}
-			_, err = client.ResetTrafficCounter(t.Context(), &xrayv1.ResetTrafficCounterRequest{InstanceId: "missing", Scope: xrayv1.TrafficScope_TRAFFIC_SCOPE_INBOUND, Name: "proxy", Direction: xrayv1.TrafficDirection_TRAFFIC_DIRECTION_UPLINK})
+			_, err = client.ResetTrafficCounter(t.Context(), &trafficv1.ResetTrafficCounterRequest{InstanceId: "missing", Scope: trafficv1.TrafficScope_TRAFFIC_SCOPE_INBOUND, Name: "proxy", Direction: trafficv1.TrafficDirection_TRAFFIC_DIRECTION_UPLINK})
 			if status.Code(err) != codes.PermissionDenied {
 				t.Fatalf("read grant expanded to reset: %v", err)
 			}
-			if _, err := client.ResetTrafficCounters(t.Context(), &xrayv1.ResetTrafficCountersRequest{InstanceId: "missing", Scope: xrayv1.TrafficScope_TRAFFIC_SCOPE_USER, MaxCounters: 1}); status.Code(err) != codes.PermissionDenied {
+			if _, err := client.ResetTrafficCounters(t.Context(), &trafficv1.ResetTrafficCountersRequest{InstanceId: "missing", Scope: trafficv1.TrafficScope_TRAFFIC_SCOPE_USER, MaxCounters: 1}); status.Code(err) != codes.PermissionDenied {
 				t.Fatalf("read grant expanded to scope reset: %v", err)
 			}
 		})
@@ -150,7 +151,7 @@ func TestTrafficCountersAndResetOverMTLSPreserveNativeUsageAndInstanceIsolation(
 			ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 			defer cancel()
 			client := xrayClient(t, server, certificates)
-			request := &xrayv1.GetTrafficCounterRequest{InstanceId: "edge-a", Scope: xrayv1.TrafficScope_TRAFFIC_SCOPE_INBOUND, Name: "proxy", Direction: xrayv1.TrafficDirection_TRAFFIC_DIRECTION_UPLINK}
+			request := &trafficv1.GetTrafficCounterRequest{InstanceId: "edge-a", Scope: trafficv1.TrafficScope_TRAFFIC_SCOPE_INBOUND, Name: "proxy", Direction: trafficv1.TrafficDirection_TRAFFIC_DIRECTION_UPLINK}
 			// Only this isolated test polls readiness. Production makes one RPC.
 			ticker := time.NewTicker(20 * time.Millisecond)
 			defer ticker.Stop()
@@ -175,24 +176,24 @@ func TestTrafficCountersAndResetOverMTLSPreserveNativeUsageAndInstanceIsolation(
 				}
 			}
 			request.InstanceId = "edge-a"
-			request.Scope, request.Name = xrayv1.TrafficScope_TRAFFIC_SCOPE_USER, "reader@local"
+			request.Scope, request.Name = trafficv1.TrafficScope_TRAFFIC_SCOPE_USER, "reader@local"
 			if result, err := client.GetTrafficCounter(ctx, request); result != nil || status.Code(err) != codes.NotFound {
 				t.Fatalf("absent user counter became zero: %v, %v", result, err)
 			}
-			emptyUsers, err := client.ListTrafficCounters(ctx, &xrayv1.ListTrafficCountersRequest{InstanceId: "edge-a", Scope: xrayv1.TrafficScope_TRAFFIC_SCOPE_USER})
+			emptyUsers, err := client.ListTrafficCounters(ctx, &trafficv1.ListTrafficCountersRequest{InstanceId: "edge-a", Scope: trafficv1.TrafficScope_TRAFFIC_SCOPE_USER})
 			if err != nil || len(emptyUsers.GetItems()) != 0 || emptyUsers.InstanceId != "edge-a" || emptyUsers.ObservedAtUnixMs == 0 {
 				t.Fatalf("absent users must be a successful empty collection: %v, %v", emptyUsers, err)
 			}
-			absentPair, err := client.GetTrafficPair(ctx, &xrayv1.GetTrafficPairRequest{InstanceId: "edge-a", Scope: xrayv1.TrafficScope_TRAFFIC_SCOPE_USER, Name: "reader@local"})
+			absentPair, err := client.GetTrafficPair(ctx, &trafficv1.GetTrafficPairRequest{InstanceId: "edge-a", Scope: trafficv1.TrafficScope_TRAFFIC_SCOPE_USER, Name: "reader@local"})
 			if err != nil || absentPair.Uplink != nil || absentPair.Downlink != nil {
 				t.Fatalf("absent pair became usage: %v %v", absentPair, err)
 			}
-			missingReset, err := client.ResetTrafficPair(ctx, &xrayv1.ResetTrafficPairRequest{InstanceId: "edge-a", Scope: xrayv1.TrafficScope_TRAFFIC_SCOPE_USER, Name: "reader@local"})
+			missingReset, err := client.ResetTrafficPair(ctx, &trafficv1.ResetTrafficPairRequest{InstanceId: "edge-a", Scope: trafficv1.TrafficScope_TRAFFIC_SCOPE_USER, Name: "reader@local"})
 			if err != nil || len(missingReset.Items) != 2 {
 				t.Fatalf("missing pair reset: %v %v", missingReset, err)
 			}
 			for _, item := range missingReset.Items {
-				if item.State != xrayv1.TrafficCounterResetState_TRAFFIC_COUNTER_RESET_STATE_MISSING || item.Acknowledgement != nil {
+				if item.State != trafficv1.TrafficCounterResetState_TRAFFIC_COUNTER_RESET_STATE_MISSING || item.Acknowledgement != nil {
 					t.Fatalf("missing native pair fabricated facts: %v", item)
 				}
 			}
@@ -202,18 +203,18 @@ func TestTrafficCountersAndResetOverMTLSPreserveNativeUsageAndInstanceIsolation(
 			if err := xrayTraffic(ctx, url.UserPassword("reader@local", "test-password").String()+"@"+firstAddress); err != nil {
 				t.Fatal(err)
 			}
-			for scope, name := range map[xrayv1.TrafficScope]string{
-				xrayv1.TrafficScope_TRAFFIC_SCOPE_USER:     "reader@local",
-				xrayv1.TrafficScope_TRAFFIC_SCOPE_INBOUND:  "proxy",
-				xrayv1.TrafficScope_TRAFFIC_SCOPE_OUTBOUND: "direct",
+			for scope, name := range map[trafficv1.TrafficScope]string{
+				trafficv1.TrafficScope_TRAFFIC_SCOPE_USER:     "reader@local",
+				trafficv1.TrafficScope_TRAFFIC_SCOPE_INBOUND:  "proxy",
+				trafficv1.TrafficScope_TRAFFIC_SCOPE_OUTBOUND: "direct",
 			} {
-				collectionRequest := &xrayv1.ListTrafficCountersRequest{InstanceId: "edge-a", Scope: scope}
+				collectionRequest := &trafficv1.ListTrafficCountersRequest{InstanceId: "edge-a", Scope: scope}
 				before := time.Now().UnixMilli()
 				collection, err := client.ListTrafficCounters(ctx, collectionRequest)
 				if err != nil || collection.InstanceId != "edge-a" || collection.Scope != scope || collection.ObservedAtUnixMs < before {
 					t.Fatalf("native collection metadata: %v, %v", collection, err)
 				}
-				for _, direction := range []xrayv1.TrafficDirection{xrayv1.TrafficDirection_TRAFFIC_DIRECTION_UPLINK, xrayv1.TrafficDirection_TRAFFIC_DIRECTION_DOWNLINK} {
+				for _, direction := range []trafficv1.TrafficDirection{trafficv1.TrafficDirection_TRAFFIC_DIRECTION_UPLINK, trafficv1.TrafficDirection_TRAFFIC_DIRECTION_DOWNLINK} {
 					found := false
 					for _, item := range collection.Items {
 						if item.Name == name && item.Direction == direction {
@@ -242,7 +243,7 @@ func TestTrafficCountersAndResetOverMTLSPreserveNativeUsageAndInstanceIsolation(
 				if err != nil {
 					t.Fatal(err)
 				}
-				if scope == xrayv1.TrafficScope_TRAFFIC_SCOPE_USER && len(untouched.Items) != 0 {
+				if scope == trafficv1.TrafficScope_TRAFFIC_SCOPE_USER && len(untouched.Items) != 0 {
 					t.Fatalf("other users affected: %v", untouched)
 				}
 				for _, item := range untouched.Items {
@@ -250,7 +251,7 @@ func TestTrafficCountersAndResetOverMTLSPreserveNativeUsageAndInstanceIsolation(
 						t.Fatalf("collection crossed instance isolation: %v", untouched)
 					}
 				}
-				for _, direction := range []xrayv1.TrafficDirection{xrayv1.TrafficDirection_TRAFFIC_DIRECTION_UPLINK, xrayv1.TrafficDirection_TRAFFIC_DIRECTION_DOWNLINK} {
+				for _, direction := range []trafficv1.TrafficDirection{trafficv1.TrafficDirection_TRAFFIC_DIRECTION_UPLINK, trafficv1.TrafficDirection_TRAFFIC_DIRECTION_DOWNLINK} {
 					request.Scope, request.Name, request.Direction, request.InstanceId = scope, name, direction, "edge-a"
 					before := time.Now().UnixMilli()
 					result, err := client.GetTrafficCounter(ctx, request)
@@ -263,7 +264,7 @@ func TestTrafficCountersAndResetOverMTLSPreserveNativeUsageAndInstanceIsolation(
 					}
 					request.InstanceId = "edge-b"
 					other, err := client.GetTrafficCounter(ctx, request)
-					if scope == xrayv1.TrafficScope_TRAFFIC_SCOPE_USER {
+					if scope == trafficv1.TrafficScope_TRAFFIC_SCOPE_USER {
 						if other != nil || status.Code(err) != codes.NotFound {
 							t.Fatalf("other instance user affected: %v, %v", other, err)
 						}
@@ -276,12 +277,12 @@ func TestTrafficCountersAndResetOverMTLSPreserveNativeUsageAndInstanceIsolation(
 			if err := xrayTraffic(ctx, url.UserPassword("reader@local", "test-password").String()+"@"+secondAddress); err != nil {
 				t.Fatal(err)
 			}
-			for scope, name := range map[xrayv1.TrafficScope]string{
-				xrayv1.TrafficScope_TRAFFIC_SCOPE_USER:     "reader@local",
-				xrayv1.TrafficScope_TRAFFIC_SCOPE_INBOUND:  "proxy",
-				xrayv1.TrafficScope_TRAFFIC_SCOPE_OUTBOUND: "direct",
+			for scope, name := range map[trafficv1.TrafficScope]string{
+				trafficv1.TrafficScope_TRAFFIC_SCOPE_USER:     "reader@local",
+				trafficv1.TrafficScope_TRAFFIC_SCOPE_INBOUND:  "proxy",
+				trafficv1.TrafficScope_TRAFFIC_SCOPE_OUTBOUND: "direct",
 			} {
-				for _, direction := range []xrayv1.TrafficDirection{xrayv1.TrafficDirection_TRAFFIC_DIRECTION_UPLINK, xrayv1.TrafficDirection_TRAFFIC_DIRECTION_DOWNLINK} {
+				for _, direction := range []trafficv1.TrafficDirection{trafficv1.TrafficDirection_TRAFFIC_DIRECTION_UPLINK, trafficv1.TrafficDirection_TRAFFIC_DIRECTION_DOWNLINK} {
 					request.Scope, request.Name, request.Direction, request.InstanceId = scope, name, direction, "edge-b"
 					untouched, err := client.GetTrafficCounter(ctx, request)
 					if err != nil || untouched.GetBytes() <= 0 {
@@ -292,7 +293,7 @@ func TestTrafficCountersAndResetOverMTLSPreserveNativeUsageAndInstanceIsolation(
 					if err != nil || before.GetBytes() <= 0 {
 						t.Fatalf("earlier reset crossed counter identity: %v %v", before, err)
 					}
-					resetRequest := &xrayv1.ResetTrafficCounterRequest{InstanceId: request.InstanceId, Scope: scope, Name: name, Direction: direction}
+					resetRequest := &trafficv1.ResetTrafficCounterRequest{InstanceId: request.InstanceId, Scope: scope, Name: name, Direction: direction}
 					started := time.Now().UnixMilli()
 					acknowledgement, err := client.ResetTrafficCounter(ctx, resetRequest)
 					if err != nil || acknowledgement.InstanceId != "edge-a" || acknowledgement.Scope != scope || acknowledgement.Name != name || acknowledgement.Direction != direction || acknowledgement.PreviousBytes < before.Bytes || acknowledgement.AcknowledgedAtUnixMs < started {
@@ -316,19 +317,19 @@ func TestTrafficCountersAndResetOverMTLSPreserveNativeUsageAndInstanceIsolation(
 			if err := xrayTraffic(ctx, url.UserPassword("reader@local", "test-password").String()+"@"+firstAddress); err != nil {
 				t.Fatal(err)
 			}
-			request.InstanceId, request.Scope, request.Name, request.Direction = "edge-a", xrayv1.TrafficScope_TRAFFIC_SCOPE_USER, "reader@local", xrayv1.TrafficDirection_TRAFFIC_DIRECTION_UPLINK
+			request.InstanceId, request.Scope, request.Name, request.Direction = "edge-a", trafficv1.TrafficScope_TRAFFIC_SCOPE_USER, "reader@local", trafficv1.TrafficDirection_TRAFFIC_DIRECTION_UPLINK
 			resumed, err := client.GetTrafficCounter(ctx, request)
 			if err != nil || resumed.GetBytes() <= 0 {
 				t.Fatalf("traffic did not continue after reset: %v %v", resumed, err)
 			}
 			// Complete each selected scope in the same two real engine processes.
-			for _, scope := range []xrayv1.TrafficScope{xrayv1.TrafficScope_TRAFFIC_SCOPE_USER, xrayv1.TrafficScope_TRAFFIC_SCOPE_INBOUND, xrayv1.TrafficScope_TRAFFIC_SCOPE_OUTBOUND} {
-				collectionRequest := &xrayv1.ListTrafficCountersRequest{InstanceId: "edge-a", Scope: scope}
+			for _, scope := range []trafficv1.TrafficScope{trafficv1.TrafficScope_TRAFFIC_SCOPE_USER, trafficv1.TrafficScope_TRAFFIC_SCOPE_INBOUND, trafficv1.TrafficScope_TRAFFIC_SCOPE_OUTBOUND} {
+				collectionRequest := &trafficv1.ListTrafficCountersRequest{InstanceId: "edge-a", Scope: scope}
 				before, err := client.ListTrafficCounters(ctx, collectionRequest)
 				if err != nil || len(before.Items) < 2 {
 					t.Fatalf("real scope unavailable: %v %v", before, err)
 				}
-				resetRequest := &xrayv1.ResetTrafficCountersRequest{InstanceId: "edge-a", Scope: scope, MaxCounters: uint32(len(before.Items) - 1)}
+				resetRequest := &trafficv1.ResetTrafficCountersRequest{InstanceId: "edge-a", Scope: scope, MaxCounters: uint32(len(before.Items) - 1)}
 				if _, err := client.ResetTrafficCounters(ctx, resetRequest); status.Code(err) != codes.ResourceExhausted {
 					t.Fatalf("scope cap not enforced: %v", err)
 				}
@@ -352,7 +353,7 @@ func TestTrafficCountersAndResetOverMTLSPreserveNativeUsageAndInstanceIsolation(
 					t.Fatalf("scope reset: %v %v", report, err)
 				}
 				for i, item := range report.Items {
-					if item.Name != before.Items[i].Name || item.Direction != before.Items[i].Direction || item.State != xrayv1.TrafficCounterResetState_TRAFFIC_COUNTER_RESET_STATE_ACKNOWLEDGED || item.Acknowledgement == nil || item.Acknowledgement.PreviousBytes != before.Items[i].Bytes {
+					if item.Name != before.Items[i].Name || item.Direction != before.Items[i].Direction || item.State != trafficv1.TrafficCounterResetState_TRAFFIC_COUNTER_RESET_STATE_ACKNOWLEDGED || item.Acknowledgement == nil || item.Acknowledgement.PreviousBytes != before.Items[i].Bytes {
 						t.Fatalf("scope reset acknowledgement: %v", item)
 					}
 				}
@@ -379,8 +380,8 @@ func TestTrafficCountersAndResetOverMTLSPreserveNativeUsageAndInstanceIsolation(
 			if err := xrayTraffic(ctx, url.UserPassword("reader@local", "test-password").String()+"@"+firstAddress); err != nil {
 				t.Fatalf("traffic did not continue after scope reset: %v", err)
 			}
-			for scope, name := range map[xrayv1.TrafficScope]string{xrayv1.TrafficScope_TRAFFIC_SCOPE_USER: "reader@local", xrayv1.TrafficScope_TRAFFIC_SCOPE_INBOUND: "proxy", xrayv1.TrafficScope_TRAFFIC_SCOPE_OUTBOUND: "direct"} {
-				pairRequest := &xrayv1.GetTrafficPairRequest{InstanceId: "edge-a", Scope: scope, Name: name}
+			for scope, name := range map[trafficv1.TrafficScope]string{trafficv1.TrafficScope_TRAFFIC_SCOPE_USER: "reader@local", trafficv1.TrafficScope_TRAFFIC_SCOPE_INBOUND: "proxy", trafficv1.TrafficScope_TRAFFIC_SCOPE_OUTBOUND: "direct"} {
+				pairRequest := &trafficv1.GetTrafficPairRequest{InstanceId: "edge-a", Scope: scope, Name: name}
 				before, err := client.GetTrafficPair(ctx, pairRequest)
 				if err != nil || before.Uplink == nil || before.Downlink == nil || before.Uplink.Bytes <= 0 || before.Downlink.Bytes <= 0 || before.Uplink.ObservedAtUnixMs <= 0 || before.Downlink.ObservedAtUnixMs <= 0 {
 					t.Fatalf("real pair unavailable: %v %v", before, err)
@@ -390,13 +391,13 @@ func TestTrafficCountersAndResetOverMTLSPreserveNativeUsageAndInstanceIsolation(
 				if err != nil || other.Uplink == nil || other.Downlink == nil {
 					t.Fatalf("other pair unavailable: %v %v", other, err)
 				}
-				report, err := client.ResetTrafficPair(ctx, &xrayv1.ResetTrafficPairRequest{InstanceId: "edge-a", Scope: scope, Name: name})
+				report, err := client.ResetTrafficPair(ctx, &trafficv1.ResetTrafficPairRequest{InstanceId: "edge-a", Scope: scope, Name: name})
 				if err != nil || report.InstanceId != "edge-a" || report.Scope != scope || report.Name != name || len(report.Items) != 2 {
 					t.Fatalf("real pair reset: %v %v", report, err)
 				}
 				for i, item := range report.Items {
-					expected := []*xrayv1.TrafficCounterObservation{before.Uplink, before.Downlink}[i]
-					if item.Direction != []xrayv1.TrafficDirection{xrayv1.TrafficDirection_TRAFFIC_DIRECTION_UPLINK, xrayv1.TrafficDirection_TRAFFIC_DIRECTION_DOWNLINK}[i] || item.State != xrayv1.TrafficCounterResetState_TRAFFIC_COUNTER_RESET_STATE_ACKNOWLEDGED || item.Acknowledgement == nil || item.Acknowledgement.PreviousBytes != expected.Bytes {
+					expected := []*trafficv1.TrafficCounterObservation{before.Uplink, before.Downlink}[i]
+					if item.Direction != []trafficv1.TrafficDirection{trafficv1.TrafficDirection_TRAFFIC_DIRECTION_UPLINK, trafficv1.TrafficDirection_TRAFFIC_DIRECTION_DOWNLINK}[i] || item.State != trafficv1.TrafficCounterResetState_TRAFFIC_COUNTER_RESET_STATE_ACKNOWLEDGED || item.Acknowledgement == nil || item.Acknowledgement.PreviousBytes != expected.Bytes {
 						t.Fatalf("pair acknowledgement lost: %v", item)
 					}
 				}
@@ -474,7 +475,7 @@ func TestResetRPCUsesIndependentGrantAndNoEffectDetails(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = application.Stop(context.Background()); _ = server.Close() })
 	client := xrayClient(t, server, certificates)
-	_, err := client.ResetTrafficCounter(t.Context(), &xrayv1.ResetTrafficCounterRequest{InstanceId: "missing", Scope: xrayv1.TrafficScope_TRAFFIC_SCOPE_INBOUND, Name: "proxy", Direction: xrayv1.TrafficDirection_TRAFFIC_DIRECTION_UPLINK})
+	_, err := client.ResetTrafficCounter(t.Context(), &trafficv1.ResetTrafficCounterRequest{InstanceId: "missing", Scope: trafficv1.TrafficScope_TRAFFIC_SCOPE_INBOUND, Name: "proxy", Direction: trafficv1.TrafficDirection_TRAFFIC_DIRECTION_UPLINK})
 	if status.Code(err) != codes.NotFound {
 		t.Fatalf("reset grant was not wired: %v", err)
 	}
@@ -482,14 +483,14 @@ func TestResetRPCUsesIndependentGrantAndNoEffectDetails(t *testing.T) {
 	if len(details) != 1 {
 		t.Fatalf("no-effect detail missing: %v", err)
 	}
-	failure, ok := details[0].(*xrayv1.TrafficCounterResetFailure)
-	if !ok || failure.Outcome != xrayv1.TrafficCounterResetOutcome_TRAFFIC_COUNTER_RESET_OUTCOME_NOT_APPLIED {
+	failure, ok := details[0].(*trafficv1.TrafficCounterResetFailure)
+	if !ok || failure.Outcome != trafficv1.TrafficCounterResetOutcome_TRAFFIC_COUNTER_RESET_OUTCOME_NOT_APPLIED {
 		t.Fatalf("wrong effect detail: %v", details)
 	}
-	if _, err := client.GetTrafficCounter(t.Context(), &xrayv1.GetTrafficCounterRequest{}); status.Code(err) != codes.PermissionDenied {
+	if _, err := client.GetTrafficCounter(t.Context(), &trafficv1.GetTrafficCounterRequest{}); status.Code(err) != codes.PermissionDenied {
 		t.Fatalf("reset expanded to reads: %v", err)
 	}
-	_, err = client.ResetTrafficCounters(t.Context(), &xrayv1.ResetTrafficCountersRequest{InstanceId: "missing", Scope: xrayv1.TrafficScope_TRAFFIC_SCOPE_USER, MaxCounters: 1})
+	_, err = client.ResetTrafficCounters(t.Context(), &trafficv1.ResetTrafficCountersRequest{InstanceId: "missing", Scope: trafficv1.TrafficScope_TRAFFIC_SCOPE_USER, MaxCounters: 1})
 	if status.Code(err) != codes.NotFound {
 		t.Fatalf("scope reset grant not wired: %v", err)
 	}
@@ -497,14 +498,14 @@ func TestResetRPCUsesIndependentGrantAndNoEffectDetails(t *testing.T) {
 	if len(details) != 1 {
 		t.Fatalf("scope progress detail missing: %v", err)
 	}
-	progress, ok := details[0].(*xrayv1.TrafficCountersResetFailure)
+	progress, ok := details[0].(*trafficv1.TrafficCountersResetFailure)
 	if !ok || progress.Progress == nil || len(progress.Progress.Items) != 0 || progress.Progress.SelectedAtUnixMs != nil {
 		t.Fatalf("scope preflight invented effects: %v", details)
 	}
-	if _, err := client.GetTrafficPair(t.Context(), &xrayv1.GetTrafficPairRequest{InstanceId: "missing", Scope: xrayv1.TrafficScope_TRAFFIC_SCOPE_USER, Name: "user"}); status.Code(err) != codes.PermissionDenied {
+	if _, err := client.GetTrafficPair(t.Context(), &trafficv1.GetTrafficPairRequest{InstanceId: "missing", Scope: trafficv1.TrafficScope_TRAFFIC_SCOPE_USER, Name: "user"}); status.Code(err) != codes.PermissionDenied {
 		t.Fatalf("reset grant expanded to pair read: %v", err)
 	}
-	_, err = client.ResetTrafficPair(t.Context(), &xrayv1.ResetTrafficPairRequest{InstanceId: "missing", Scope: xrayv1.TrafficScope_TRAFFIC_SCOPE_USER, Name: "user"})
+	_, err = client.ResetTrafficPair(t.Context(), &trafficv1.ResetTrafficPairRequest{InstanceId: "missing", Scope: trafficv1.TrafficScope_TRAFFIC_SCOPE_USER, Name: "user"})
 	if status.Code(err) != codes.NotFound {
 		t.Fatalf("pair reset was not wired: %v", err)
 	}
@@ -512,12 +513,12 @@ func TestResetRPCUsesIndependentGrantAndNoEffectDetails(t *testing.T) {
 	if len(details) != 1 {
 		t.Fatalf("pair progress detail absent: %v", err)
 	}
-	pairFailure, ok := details[0].(*xrayv1.TrafficPairResetFailure)
+	pairFailure, ok := details[0].(*trafficv1.TrafficPairResetFailure)
 	if !ok || pairFailure.Progress == nil || len(pairFailure.Progress.Items) != 2 {
 		t.Fatalf("pair progress: %v", details)
 	}
 	for _, item := range pairFailure.Progress.Items {
-		if item.State != xrayv1.TrafficCounterResetState_TRAFFIC_COUNTER_RESET_STATE_NOT_ATTEMPTED || item.Acknowledgement != nil {
+		if item.State != trafficv1.TrafficCounterResetState_TRAFFIC_COUNTER_RESET_STATE_NOT_ATTEMPTED || item.Acknowledgement != nil {
 			t.Fatalf("missing instance fabricated pair effects: %v", item)
 		}
 	}

@@ -10,9 +10,10 @@ import (
 
 	routingdomain "github.com/PapilioVPN/node/internal/modules/core/routing/domain"
 	routingxray "github.com/PapilioVPN/node/internal/modules/core/routing/infra/xray/api"
+	"github.com/PapilioVPN/node/internal/modules/core/traffic/domain"
+	trafficxray "github.com/PapilioVPN/node/internal/modules/core/traffic/infra/xray/api"
 	userdomain "github.com/PapilioVPN/node/internal/modules/core/users/domain"
 	userxray "github.com/PapilioVPN/node/internal/modules/core/users/infra/xray"
-	"github.com/PapilioVPN/node/internal/modules/engines/xray/domain"
 	xrayapi "github.com/PapilioVPN/node/internal/modules/engines/xray/infra/api"
 )
 
@@ -23,6 +24,7 @@ func TestAPIConstructionAndCanceledAdmissionCreateNoNativeChannel(t *testing.T) 
 	}
 	defer client.Close()
 	adapter := &xrayapi.Adapter{API: client}
+	counters := &trafficxray.Counters{API: client}
 	router := &routingxray.Router{API: client}
 	users := &userxray.Adapter{API: client}
 	ctx, cancel := context.WithCancel(t.Context())
@@ -86,7 +88,7 @@ func TestAPIConstructionAndCanceledAdmissionCreateNoNativeChannel(t *testing.T) 
 		t.Fatal("canceled user collection created native workers")
 	}
 	selection := domain.TrafficSelection{Scope: domain.InboundTraffic, Name: "proxy", Direction: domain.Uplink}
-	if _, err := adapter.ReadTrafficCounter(ctx, selection); !errors.Is(err, context.Canceled) || client.connection != nil {
+	if _, err := counters.ReadTrafficCounter(ctx, selection); !errors.Is(err, context.Canceled) || client.connection != nil {
 		t.Fatalf("canceled traffic admission created a channel: %v", err)
 	}
 	if err := client.Close(); err != nil {
@@ -133,7 +135,7 @@ func TestAPIConstructionAndCanceledAdmissionCreateNoNativeChannel(t *testing.T) 
 	if _, err := users.ReadInboundUsers(t.Context(), "in"); !errors.Is(err, grpc.ErrClientConnClosing) || client.connection != nil {
 		t.Fatal("closed user collection created native workers")
 	}
-	if _, err := adapter.ReadTrafficCounter(t.Context(), selection); !errors.Is(err, grpc.ErrClientConnClosing) || client.connection != nil {
+	if _, err := counters.ReadTrafficCounter(t.Context(), selection); !errors.Is(err, grpc.ErrClientConnClosing) || client.connection != nil {
 		t.Fatalf("closed traffic admission created a channel: %v", err)
 	}
 }

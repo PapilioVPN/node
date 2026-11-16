@@ -14,6 +14,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
+	trafficgrpc "github.com/PapilioVPN/node/internal/modules/core/traffic/grpcapi"
 	"github.com/PapilioVPN/node/internal/modules/engines/xray/domain"
 	"github.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi"
 	xrayv1 "github.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi/proto/v1"
@@ -43,7 +44,7 @@ func TestOnlineIdentityGrantAndShapePrecedeApplication(t *testing.T) {
 	}{
 		{t.Context(), true, codes.Unauthenticated}, {verifiedContext(t), false, codes.PermissionDenied}, {verifiedContext(t), true, codes.InvalidArgument},
 	} {
-		h := grpcapi.Handler{AllowInfoRead: true, AllowStatsRead: true, AllowOnlineRead: test.grant}
+		h := grpcapi.Handler{AllowInfoRead: true, AllowOnlineRead: test.grant, TrafficAPI: trafficgrpc.TrafficAPI{AllowStatsRead: true}}
 		_, count := h.GetUserOnlineStats(test.ctx, nil)
 		_, ips := h.ListUserOnlineIPs(test.ctx, nil)
 		_, users := h.ListOnlineUsers(test.ctx, nil)

@@ -16,8 +16,8 @@ import (
 	"google.golang.org/grpc/status"
 
 	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
-	"github.com/PapilioVPN/node/internal/modules/engines/xray/app/services"
-	"github.com/PapilioVPN/node/internal/modules/engines/xray/domain"
+	"github.com/PapilioVPN/node/internal/modules/core/traffic/app/services"
+	"github.com/PapilioVPN/node/internal/modules/core/traffic/domain"
 )
 
 // The official manager/service executes real atomic swaps; controlled wrappers

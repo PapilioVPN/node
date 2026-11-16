@@ -19,6 +19,7 @@ import (
 	"github.com/PapilioVPN/node/internal/modules/core/routing/domain"
 	routinggrpc "github.com/PapilioVPN/node/internal/modules/core/routing/grpcapi"
 	routingv1 "github.com/PapilioVPN/node/internal/modules/core/routing/grpcapi/proto/v1"
+	trafficgrpc "github.com/PapilioVPN/node/internal/modules/core/traffic/grpcapi"
 	usergrpc "github.com/PapilioVPN/node/internal/modules/core/users/grpcapi"
 	"github.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi"
 )
@@ -45,7 +46,7 @@ func TestRouteRequiresIdentityAndIndependentGrantBeforeShape(t *testing.T) {
 	if _, err := (grpcapi.Handler{}).TestRoute(t.Context(), nil); status.Code(err) != codes.Unauthenticated {
 		t.Fatalf("unverified probe reached shape/application: %v", err)
 	}
-	h := grpcapi.Handler{AllowInfoRead: true, AllowStatsRead: true, AllowStatsReset: true, AllowOnlineRead: true, UserAPI: usergrpc.UserAPI{AllowUsersRead: true, AllowUserManagement: true}, RoutingAPI: routinggrpc.RoutingAPI{AllowRoutingRead: true}}
+	h := grpcapi.Handler{AllowInfoRead: true, AllowOnlineRead: true, UserAPI: usergrpc.UserAPI{AllowUsersRead: true, AllowUserManagement: true}, RoutingAPI: routinggrpc.RoutingAPI{AllowRoutingRead: true}, TrafficAPI: trafficgrpc.TrafficAPI{AllowStatsRead: true, AllowStatsReset: true}}
 	if _, err := h.TestRoute(verifiedContext(t), nil); status.Code(err) != codes.PermissionDenied {
 		t.Fatalf("other grants enabled routing probes: %v", err)
 	}

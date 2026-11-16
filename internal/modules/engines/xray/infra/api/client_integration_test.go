@@ -18,6 +18,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	routingxray "github.com/PapilioVPN/node/internal/modules/core/routing/infra/xray/api"
+	trafficxray "github.com/PapilioVPN/node/internal/modules/core/traffic/infra/xray/api"
 	"github.com/PapilioVPN/node/internal/modules/engines/xray/domain"
 	xrayapi "github.com/PapilioVPN/node/internal/modules/engines/xray/infra/api"
 	nativeapi "github.com/PapilioVPN/node/internal/platform/engines/xray/api"
@@ -69,8 +70,9 @@ func apiServer(t *testing.T, service native.StatsServiceServer) (string, *connec
 	return listener.Addr().String(), counts
 }
 
-// Both adapters borrow the same instance resource; only Client owns cleanup.
+// All adapters borrow the same instance resource; only Client owns cleanup.
 type apiClientSet struct {
+	*trafficxray.Counters
 	*nativeapi.Client
 	*xrayapi.Adapter
 	*routingxray.Router
@@ -87,7 +89,7 @@ func apiClient(t *testing.T, address string, timeout time.Duration, limit int) *
 			t.Error(err)
 		}
 	})
-	return &apiClientSet{Client: client, Adapter: &xrayapi.Adapter{API: client}, Router: &routingxray.Router{API: client}}
+	return &apiClientSet{Counters: &trafficxray.Counters{API: client}, Client: client, Adapter: &xrayapi.Adapter{API: client}, Router: &routingxray.Router{API: client}}
 }
 
 func TestAPIReusesNativeChannelAndPreservesUnsignedCounters(t *testing.T) {

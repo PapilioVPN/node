@@ -11,6 +11,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
+	trafficgrpc "github.com/PapilioVPN/node/internal/modules/core/traffic/grpcapi"
 	"github.com/PapilioVPN/node/internal/modules/core/users/domain"
 	usergrpc "github.com/PapilioVPN/node/internal/modules/core/users/grpcapi"
 	userv1 "github.com/PapilioVPN/node/internal/modules/core/users/grpcapi/proto/v1"
@@ -27,7 +28,7 @@ func TestUserRemovalChecksIdentityAndIndependentGrantBeforeShape(t *testing.T) {
 	if _, err := (grpcapi.Handler{UserAPI: usergrpc.UserAPI{AllowUserManagement: true}}).RemoveInboundUser(t.Context(), nil); status.Code(err) != codes.Unauthenticated {
 		t.Fatal(err)
 	}
-	if _, err := (grpcapi.Handler{AllowInfoRead: true, AllowStatsRead: true, AllowStatsReset: true, AllowOnlineRead: true}).RemoveInboundUser(verifiedContext(t), nil); status.Code(err) != codes.PermissionDenied {
+	if _, err := (grpcapi.Handler{AllowInfoRead: true, AllowOnlineRead: true, TrafficAPI: trafficgrpc.TrafficAPI{AllowStatsRead: true, AllowStatsReset: true}}).RemoveInboundUser(verifiedContext(t), nil); status.Code(err) != codes.PermissionDenied {
 		t.Fatal(err)
 	}
 	h := grpcapi.Handler{UserAPI: usergrpc.UserAPI{AllowUserManagement: true}}

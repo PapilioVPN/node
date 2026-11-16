@@ -25,6 +25,7 @@ import (
 
 	nodev1 "github.com/PapilioVPN/node/internal/modules/core/instances/grpcapi/proto/v1"
 	routingv1 "github.com/PapilioVPN/node/internal/modules/core/routing/grpcapi/proto/v1"
+	trafficv1 "github.com/PapilioVPN/node/internal/modules/core/traffic/grpcapi/proto/v1"
 	userv1 "github.com/PapilioVPN/node/internal/modules/core/users/grpcapi/proto/v1"
 	xrayv1 "github.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi/proto/v1"
 	systemv1 "github.com/PapilioVPN/node/internal/modules/system/info/grpcapi/proto/v1"
@@ -156,22 +157,22 @@ func TestContainer(t *testing.T) {
 	if _, err := xrayv1.NewXrayServiceClient(connection).GetRuntimeInfo(request, &xrayv1.GetRuntimeInfoRequest{InstanceId: "unconfigured"}); status.Code(err) != codes.NotFound {
 		t.Fatalf("packaged Xray runtime grant/service failed: %v", err)
 	}
-	if _, err := xrayv1.NewXrayServiceClient(connection).GetTrafficCounter(request, &xrayv1.GetTrafficCounterRequest{
-		InstanceId: "unconfigured", Scope: xrayv1.TrafficScope_TRAFFIC_SCOPE_INBOUND,
-		Name: "proxy", Direction: xrayv1.TrafficDirection_TRAFFIC_DIRECTION_UPLINK,
+	if _, err := xrayv1.NewXrayServiceClient(connection).GetTrafficCounter(request, &trafficv1.GetTrafficCounterRequest{
+		InstanceId: "unconfigured", Scope: trafficv1.TrafficScope_TRAFFIC_SCOPE_INBOUND,
+		Name: "proxy", Direction: trafficv1.TrafficDirection_TRAFFIC_DIRECTION_UPLINK,
 	}); status.Code(err) != codes.NotFound {
 		t.Fatalf("packaged Xray traffic grant/service failed: %v", err)
 	}
-	if _, err := xrayv1.NewXrayServiceClient(connection).ResetTrafficCounter(request, &xrayv1.ResetTrafficCounterRequest{InstanceId: "unconfigured", Scope: xrayv1.TrafficScope_TRAFFIC_SCOPE_INBOUND, Name: "proxy", Direction: xrayv1.TrafficDirection_TRAFFIC_DIRECTION_UPLINK}); status.Code(err) != codes.NotFound {
+	if _, err := xrayv1.NewXrayServiceClient(connection).ResetTrafficCounter(request, &trafficv1.ResetTrafficCounterRequest{InstanceId: "unconfigured", Scope: trafficv1.TrafficScope_TRAFFIC_SCOPE_INBOUND, Name: "proxy", Direction: trafficv1.TrafficDirection_TRAFFIC_DIRECTION_UPLINK}); status.Code(err) != codes.NotFound {
 		t.Fatalf("packaged reset grant/service failed: %v", err)
 	}
-	if _, err := xrayv1.NewXrayServiceClient(connection).ResetTrafficCounters(request, &xrayv1.ResetTrafficCountersRequest{InstanceId: "unconfigured", Scope: xrayv1.TrafficScope_TRAFFIC_SCOPE_USER, MaxCounters: 1}); status.Code(err) != codes.NotFound {
+	if _, err := xrayv1.NewXrayServiceClient(connection).ResetTrafficCounters(request, &trafficv1.ResetTrafficCountersRequest{InstanceId: "unconfigured", Scope: trafficv1.TrafficScope_TRAFFIC_SCOPE_USER, MaxCounters: 1}); status.Code(err) != codes.NotFound {
 		t.Fatalf("packaged scope reset grant/service failed: %v", err)
 	}
-	if _, err := xrayv1.NewXrayServiceClient(connection).GetTrafficPair(request, &xrayv1.GetTrafficPairRequest{InstanceId: "unconfigured", Scope: xrayv1.TrafficScope_TRAFFIC_SCOPE_USER, Name: "user"}); status.Code(err) != codes.NotFound {
+	if _, err := xrayv1.NewXrayServiceClient(connection).GetTrafficPair(request, &trafficv1.GetTrafficPairRequest{InstanceId: "unconfigured", Scope: trafficv1.TrafficScope_TRAFFIC_SCOPE_USER, Name: "user"}); status.Code(err) != codes.NotFound {
 		t.Fatalf("packaged pair read failed: %v", err)
 	}
-	if _, err := xrayv1.NewXrayServiceClient(connection).ResetTrafficPair(request, &xrayv1.ResetTrafficPairRequest{InstanceId: "unconfigured", Scope: xrayv1.TrafficScope_TRAFFIC_SCOPE_USER, Name: "user"}); status.Code(err) != codes.NotFound {
+	if _, err := xrayv1.NewXrayServiceClient(connection).ResetTrafficPair(request, &trafficv1.ResetTrafficPairRequest{InstanceId: "unconfigured", Scope: trafficv1.TrafficScope_TRAFFIC_SCOPE_USER, Name: "user"}); status.Code(err) != codes.NotFound {
 		t.Fatalf("packaged pair reset failed: %v", err)
 	}
 	if _, err := xrayv1.NewXrayServiceClient(connection).GetInboundUserCount(request, &userv1.GetInboundUserCountRequest{InstanceId: "unconfigured", InboundTag: "in"}); status.Code(err) != codes.NotFound {
@@ -227,8 +228,8 @@ func TestContainer(t *testing.T) {
 		t.Fatalf("packaged user removal grant/service failed: %v", err)
 	}
 
-	if _, err := xrayv1.NewXrayServiceClient(connection).ListTrafficCounters(request, &xrayv1.ListTrafficCountersRequest{
-		InstanceId: "unconfigured", Scope: xrayv1.TrafficScope_TRAFFIC_SCOPE_USER,
+	if _, err := xrayv1.NewXrayServiceClient(connection).ListTrafficCounters(request, &trafficv1.ListTrafficCountersRequest{
+		InstanceId: "unconfigured", Scope: trafficv1.TrafficScope_TRAFFIC_SCOPE_USER,
 	}); status.Code(err) != codes.NotFound {
 		t.Fatalf("packaged Xray traffic collection grant/service failed: %v", err)
 	}

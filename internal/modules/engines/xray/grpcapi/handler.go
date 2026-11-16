@@ -11,6 +11,7 @@ import (
 
 	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
 	routinggrpc "github.com/PapilioVPN/node/internal/modules/core/routing/grpcapi"
+	trafficgrpc "github.com/PapilioVPN/node/internal/modules/core/traffic/grpcapi"
 	usergrpc "github.com/PapilioVPN/node/internal/modules/core/users/grpcapi"
 	"github.com/PapilioVPN/node/internal/modules/engines/xray/domain"
 	xrayv1 "github.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi/proto/v1"
@@ -25,19 +26,12 @@ type BinaryInfoReader interface {
 type Handler struct {
 	usergrpc.UserAPI
 	routinggrpc.RoutingAPI
+	trafficgrpc.TrafficAPI
 	Info               BinaryInfoReader
 	Runtime            RuntimeInfoReader
-	Traffic            TrafficCounterReader
-	Resets             TrafficCounterResetter
-	ScopeResets        TrafficCountersResetter
-	Pairs              TrafficPairReader
-	PairResets         TrafficPairResetter
-	TrafficCounters    TrafficCountersReader
 	Online             OnlineReader
 	Outbounds          OutboundStatusReader
 	AllowInfoRead      bool
-	AllowStatsRead     bool
-	AllowStatsReset    bool
 	AllowOnlineRead    bool
 	AllowOutboundsRead bool
 }

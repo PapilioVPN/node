@@ -18,10 +18,12 @@ import (
 	"google.golang.org/grpc/status"
 
 	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
-	"github.com/PapilioVPN/node/internal/modules/engines/xray/app/services"
+	"github.com/PapilioVPN/node/internal/modules/core/traffic/app/services"
+	trafficgrpc "github.com/PapilioVPN/node/internal/modules/core/traffic/grpcapi"
+	trafficv1 "github.com/PapilioVPN/node/internal/modules/core/traffic/grpcapi/proto/v1"
+	"github.com/PapilioVPN/node/internal/modules/core/traffic/infra/xray/api"
 	"github.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi"
 	xrayv1 "github.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi/proto/v1"
-	"github.com/PapilioVPN/node/internal/modules/engines/xray/infra/api"
 	nativeapi "github.com/PapilioVPN/node/internal/platform/engines/xray/api"
 	"github.com/PapilioVPN/node/internal/platform/grpcserver"
 	"github.com/PapilioVPN/node/internal/shared/testutil"
@@ -65,7 +67,7 @@ func TestMTLSScopeResetRetainsAppliedUnknownAndUnattemptedEffects(t *testing.T) 
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = resource.Close() })
-	backend := &api.Adapter{API: resource}
+	backend := &api.Counters{API: resource}
 	service := services.NewTrafficCountersResetService(map[instances.InstanceID]services.TrafficResetBinding{"edge": {Reader: backend, Resetter: backend, Timeout: time.Second}})
 	certificates := testutil.NewCertificates(t)
 	management, err := grpcserver.NewServer(certificates.Config().Communications.GRPC, nil)
@@ -73,7 +75,7 @@ func TestMTLSScopeResetRetainsAppliedUnknownAndUnattemptedEffects(t *testing.T) 
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = management.Close() })
-	xrayv1.RegisterXrayServiceServer(management.Registrar(), grpcapi.Handler{AllowStatsReset: true, ScopeResets: service})
+	xrayv1.RegisterXrayServiceServer(management.Registrar(), grpcapi.Handler{TrafficAPI: trafficgrpc.TrafficAPI{AllowStatsReset: true, ScopeResets: service}})
 	if err := management.Start(t.Context()); err != nil {
 		t.Fatal(err)
 	}
@@ -84,7 +86,7 @@ func TestMTLSScopeResetRetainsAppliedUnknownAndUnattemptedEffects(t *testing.T) 
 	t.Cleanup(func() { _ = connection.Close() })
 	request, release := context.WithTimeout(t.Context(), 3*time.Second)
 	defer release()
-	result, err := xrayv1.NewXrayServiceClient(connection).ResetTrafficCounters(request, &xrayv1.ResetTrafficCountersRequest{InstanceId: "edge", Scope: xrayv1.TrafficScope_TRAFFIC_SCOPE_USER, MaxCounters: size})
+	result, err := xrayv1.NewXrayServiceClient(connection).ResetTrafficCounters(request, &trafficv1.ResetTrafficCountersRequest{InstanceId: "edge", Scope: trafficv1.TrafficScope_TRAFFIC_SCOPE_USER, MaxCounters: size})
 	if result != nil || status.Code(err) != codes.Unavailable || swaps.Load() != 2 {
 		t.Fatalf("native failure changed/retried: %v %v", result, err)
 	}
@@ -92,17 +94,17 @@ func TestMTLSScopeResetRetainsAppliedUnknownAndUnattemptedEffects(t *testing.T) 
 	if len(details) != 1 {
 		t.Fatalf("partial report missing: %v", err)
 	}
-	failure, ok := details[0].(*xrayv1.TrafficCountersResetFailure)
+	failure, ok := details[0].(*trafficv1.TrafficCountersResetFailure)
 	if !ok || failure.Progress == nil || len(failure.Progress.Items) != size || failure.Progress.SelectedAtUnixMs == nil {
 		t.Fatalf("partial wire report: %v", details)
 	}
 	for i, item := range failure.Progress.Items {
-		state := xrayv1.TrafficCounterResetState_TRAFFIC_COUNTER_RESET_STATE_NOT_ATTEMPTED
+		state := trafficv1.TrafficCounterResetState_TRAFFIC_COUNTER_RESET_STATE_NOT_ATTEMPTED
 		if i == 0 {
-			state = xrayv1.TrafficCounterResetState_TRAFFIC_COUNTER_RESET_STATE_ACKNOWLEDGED
+			state = trafficv1.TrafficCounterResetState_TRAFFIC_COUNTER_RESET_STATE_ACKNOWLEDGED
 		}
 		if i == 1 {
-			state = xrayv1.TrafficCounterResetState_TRAFFIC_COUNTER_RESET_STATE_UNKNOWN
+			state = trafficv1.TrafficCounterResetState_TRAFFIC_COUNTER_RESET_STATE_UNKNOWN
 		}
 		if item.State != state || item.Name != fmt.Sprintf("user-%04d", i) || (item.Acknowledgement != nil) != (i == 0) {
 			t.Fatalf("wire progress changed: %v", item)

@@ -13,9 +13,10 @@ import (
 	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
 	routingdomain "github.com/PapilioVPN/node/internal/modules/core/routing/domain"
 	routingxray "github.com/PapilioVPN/node/internal/modules/core/routing/infra/xray/api"
+	trafficservices "github.com/PapilioVPN/node/internal/modules/core/traffic/app/services"
+	"github.com/PapilioVPN/node/internal/modules/core/traffic/domain"
 	userdomain "github.com/PapilioVPN/node/internal/modules/core/users/domain"
 	userxray "github.com/PapilioVPN/node/internal/modules/core/users/infra/xray"
-	"github.com/PapilioVPN/node/internal/modules/engines/xray/domain"
 	"github.com/PapilioVPN/node/internal/settings"
 )
 
@@ -51,6 +52,13 @@ func TestModuleClosesAPIAdmissionAndExportsFinalCleanup(t *testing.T) {
 	service := newRuntimeInfoService(resources)
 	userAdapter := &userxray.Adapter{API: resources.clients[0]}
 	router := &routingxray.Router{API: resources.clients[0]}
+	traffic := newTrafficBindings(resources).Values[0]
+	trafficReads := trafficservices.NewTrafficCounterService(map[instances.InstanceID]trafficservices.TrafficCounterReader{traffic.InstanceID: traffic.Reader})
+	trafficResets := trafficservices.NewTrafficCounterResetService(map[instances.InstanceID]trafficservices.TrafficCounterResetter{traffic.InstanceID: traffic.Resetter})
+	trafficCollections := trafficservices.NewTrafficCountersService(map[instances.InstanceID]trafficservices.TrafficCountersReader{traffic.InstanceID: traffic.Collection})
+	scopeResets := trafficservices.NewTrafficCountersResetService(map[instances.InstanceID]trafficservices.TrafficResetBinding{traffic.InstanceID: {Reader: traffic.Collection, Resetter: traffic.Resetter, Timeout: traffic.Timeout}})
+	pairedReads := trafficservices.NewTrafficPairService(map[instances.InstanceID]trafficservices.TrafficPairReadBinding{traffic.InstanceID: {Reader: traffic.Reader, Timeout: traffic.Timeout}})
+	pairedResets := trafficservices.NewTrafficPairResetService(map[instances.InstanceID]trafficservices.TrafficPairResetBinding{traffic.InstanceID: {Resetter: traffic.Resetter, Timeout: traffic.Timeout}})
 	if err := application.Stop(t.Context()); err != nil {
 		t.Fatal(err)
 	}
@@ -63,19 +71,18 @@ func TestModuleClosesAPIAdmissionAndExportsFinalCleanup(t *testing.T) {
 	if _, err := newOutboundStatusService(resources).GetOutboundStatus(t.Context(), "edge", "out"); !errors.Is(err, grpc.ErrClientConnClosing) {
 		t.Fatalf("closed module admitted outbound lookup: %v", err)
 	}
-	if _, err := newTrafficCounterService(resources).GetTrafficCounter(t.Context(), "edge", domain.TrafficSelection{Scope: domain.InboundTraffic, Name: "proxy", Direction: domain.Uplink}); !errors.Is(err, grpc.ErrClientConnClosing) {
+	if _, err := trafficReads.GetTrafficCounter(t.Context(), "edge", domain.TrafficSelection{Scope: domain.InboundTraffic, Name: "proxy", Direction: domain.Uplink}); !errors.Is(err, grpc.ErrClientConnClosing) {
 		t.Fatalf("OnStop did not close traffic admission: %v", err)
 	}
-	if _, err := newTrafficCounterResetService(resources).ResetTrafficCounter(t.Context(), "edge", domain.TrafficSelection{Scope: domain.InboundTraffic, Name: "proxy", Direction: domain.Uplink}); !errors.Is(err, grpc.ErrClientConnClosing) || errors.Is(err, domain.ErrTrafficResetUnknown) {
+	if _, err := trafficResets.ResetTrafficCounter(t.Context(), "edge", domain.TrafficSelection{Scope: domain.InboundTraffic, Name: "proxy", Direction: domain.Uplink}); !errors.Is(err, grpc.ErrClientConnClosing) || errors.Is(err, domain.ErrTrafficResetUnknown) {
 		t.Fatalf("OnStop did not close reset admission before effects: %v", err)
 	}
-	if _, err := newTrafficCountersService(resources).ListTrafficCounters(t.Context(), "edge", domain.UserTraffic); !errors.Is(err, grpc.ErrClientConnClosing) {
+	if _, err := trafficCollections.ListTrafficCounters(t.Context(), "edge", domain.UserTraffic); !errors.Is(err, grpc.ErrClientConnClosing) {
 		t.Fatalf("OnStop did not close collection admission: %v", err)
 	}
-	if report, err := newTrafficCountersResetService(configuration, resources).ResetTrafficCounters(t.Context(), "edge", domain.UserTraffic, 1); !errors.Is(err, grpc.ErrClientConnClosing) || len(report.Reset.Items) != 0 {
+	if report, err := scopeResets.ResetTrafficCounters(t.Context(), "edge", domain.UserTraffic, 1); !errors.Is(err, grpc.ErrClientConnClosing) || len(report.Reset.Items) != 0 {
 		t.Fatalf("OnStop did not close collection reset admission before effects: %+v %v", report, err)
 	}
-	pairedReads, pairedResets := newTrafficPairServices(configuration, resources)
 	if _, err := pairedReads.GetTrafficPair(t.Context(), "edge", domain.TrafficPairSelection{Scope: domain.UserTraffic, Name: "user"}); !errors.Is(err, grpc.ErrClientConnClosing) {
 		t.Fatalf("pair read admission after close: %v", err)
 	}

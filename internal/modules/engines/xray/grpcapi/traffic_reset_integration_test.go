@@ -16,10 +16,12 @@ import (
 	"google.golang.org/grpc/status"
 
 	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
-	"github.com/PapilioVPN/node/internal/modules/engines/xray/app/services"
+	"github.com/PapilioVPN/node/internal/modules/core/traffic/app/services"
+	trafficgrpc "github.com/PapilioVPN/node/internal/modules/core/traffic/grpcapi"
+	trafficv1 "github.com/PapilioVPN/node/internal/modules/core/traffic/grpcapi/proto/v1"
+	"github.com/PapilioVPN/node/internal/modules/core/traffic/infra/xray/api"
 	"github.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi"
 	xrayv1 "github.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi/proto/v1"
-	"github.com/PapilioVPN/node/internal/modules/engines/xray/infra/api"
 	nativeapi "github.com/PapilioVPN/node/internal/platform/engines/xray/api"
 	"github.com/PapilioVPN/node/internal/platform/grpcserver"
 	"github.com/PapilioVPN/node/internal/shared/testutil"
@@ -52,7 +54,7 @@ func TestMTLSResetFailureCarriesUnknownOutcomeAfterNativeSwap(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = resource.Close() })
-	backend := &api.Adapter{API: resource}
+	backend := &api.Counters{API: resource}
 	service := services.NewTrafficCounterResetService(map[instances.InstanceID]services.TrafficCounterResetter{"edge": backend})
 	certificates := testutil.NewCertificates(t)
 	management, err := grpcserver.NewServer(certificates.Config().Communications.GRPC, nil)
@@ -60,7 +62,7 @@ func TestMTLSResetFailureCarriesUnknownOutcomeAfterNativeSwap(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = management.Close() })
-	xrayv1.RegisterXrayServiceServer(management.Registrar(), grpcapi.Handler{AllowStatsReset: true, Resets: service})
+	xrayv1.RegisterXrayServiceServer(management.Registrar(), grpcapi.Handler{TrafficAPI: trafficgrpc.TrafficAPI{AllowStatsReset: true, Resets: service}})
 	if err := management.Start(t.Context()); err != nil {
 		t.Fatal(err)
 	}
@@ -71,7 +73,9 @@ func TestMTLSResetFailureCarriesUnknownOutcomeAfterNativeSwap(t *testing.T) {
 	t.Cleanup(func() { _ = connection.Close() })
 	request, release := context.WithTimeout(t.Context(), 3*time.Second)
 	defer release()
-	result, err := xrayv1.NewXrayServiceClient(connection).ResetTrafficCounter(request, resetRequest())
+	result, err := xrayv1.NewXrayServiceClient(connection).ResetTrafficCounter(request, &trafficv1.ResetTrafficCounterRequest{
+		InstanceId: "edge", Scope: trafficv1.TrafficScope_TRAFFIC_SCOPE_USER, Name: "user", Direction: trafficv1.TrafficDirection_TRAFFIC_DIRECTION_UPLINK,
+	})
 	if result != nil || status.Code(err) != codes.ResourceExhausted {
 		t.Fatalf("oversized native acknowledgement became successful: %v %v", result, err)
 	}
@@ -79,8 +83,8 @@ func TestMTLSResetFailureCarriesUnknownOutcomeAfterNativeSwap(t *testing.T) {
 	if len(details) != 1 {
 		t.Fatalf("unknown-effect detail did not cross real mTLS: %v", err)
 	}
-	failure, ok := details[0].(*xrayv1.TrafficCounterResetFailure)
-	if !ok || failure.Outcome != xrayv1.TrafficCounterResetOutcome_TRAFFIC_COUNTER_RESET_OUTCOME_UNKNOWN {
+	failure, ok := details[0].(*trafficv1.TrafficCounterResetFailure)
+	if !ok || failure.Outcome != trafficv1.TrafficCounterResetOutcome_TRAFFIC_COUNTER_RESET_OUTCOME_UNKNOWN {
 		t.Fatalf("wire falsely asserted no effect: %v", details)
 	}
 	if counter.Value() != 0 {

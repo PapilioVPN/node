@@ -14,6 +14,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
+	trafficgrpc "github.com/PapilioVPN/node/internal/modules/core/traffic/grpcapi"
 	"github.com/PapilioVPN/node/internal/modules/core/users/domain"
 	usergrpc "github.com/PapilioVPN/node/internal/modules/core/users/grpcapi"
 	userv1 "github.com/PapilioVPN/node/internal/modules/core/users/grpcapi/proto/v1"
@@ -30,7 +31,7 @@ func TestUserAdditionChecksIdentityAndIndependentGrantBeforeShape(t *testing.T) 
 	if _, err := (grpcapi.Handler{UserAPI: usergrpc.UserAPI{AllowUserManagement: true}}).AddInboundUser(t.Context(), nil); status.Code(err) != codes.Unauthenticated {
 		t.Fatalf("unverified caller reached addition: %v", err)
 	}
-	if _, err := (grpcapi.Handler{AllowInfoRead: true, AllowStatsRead: true, AllowStatsReset: true, AllowOnlineRead: true}).AddInboundUser(verifiedContext(t), nil); status.Code(err) != codes.PermissionDenied {
+	if _, err := (grpcapi.Handler{AllowInfoRead: true, AllowOnlineRead: true, TrafficAPI: trafficgrpc.TrafficAPI{AllowStatsRead: true, AllowStatsReset: true}}).AddInboundUser(verifiedContext(t), nil); status.Code(err) != codes.PermissionDenied {
 		t.Fatalf("other grants enabled addition: %v", err)
 	}
 }

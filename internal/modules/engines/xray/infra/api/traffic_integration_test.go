@@ -14,6 +14,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	trafficdomain "github.com/PapilioVPN/node/internal/modules/core/traffic/domain"
 	"github.com/PapilioVPN/node/internal/modules/engines/xray/domain"
 )
 
@@ -44,14 +45,14 @@ func TestTrafficReadsOneExactCounterWithoutResetAndSharesRuntimeChannel(t *testi
 	}})
 	client := apiClient(t, address, time.Second, 4096)
 	for _, scope := range []struct {
-		value domain.TrafficScope
+		value trafficdomain.TrafficScope
 		name  string
-	}{{domain.UserTraffic, "user>>> Mixed@Example >>>traffic>>>"}, {domain.InboundTraffic, "inbound>>> Mixed@Example >>>traffic>>>"}, {domain.OutboundTraffic, "outbound>>> Mixed@Example >>>traffic>>>"}} {
-		for _, direction := range []domain.TrafficDirection{domain.Uplink, domain.Downlink} {
+	}{{trafficdomain.UserTraffic, "user>>> Mixed@Example >>>traffic>>>"}, {trafficdomain.InboundTraffic, "inbound>>> Mixed@Example >>>traffic>>>"}, {trafficdomain.OutboundTraffic, "outbound>>> Mixed@Example >>>traffic>>>"}} {
+		for _, direction := range []trafficdomain.TrafficDirection{trafficdomain.Uplink, trafficdomain.Downlink} {
 			for _, value := range []int64{0, math.MaxInt64, math.MinInt64} {
 				expected.Store(&native.Stat{Name: scope.name + string(direction), Value: value})
 				before := time.Now()
-				counter, err := client.ReadTrafficCounter(t.Context(), domain.TrafficSelection{Scope: scope.value, Name: " Mixed@Example ", Direction: direction})
+				counter, err := client.ReadTrafficCounter(t.Context(), trafficdomain.TrafficSelection{Scope: scope.value, Name: " Mixed@Example ", Direction: direction})
 				if err != nil || counter.Bytes != value || counter.ObservedAt.Before(before) || counter.ObservedAt.After(time.Now()) {
 					t.Fatalf("counter facts: %+v, %v", counter, err)
 				}
@@ -75,18 +76,18 @@ func TestTrafficNativeAbsenceUnsupportedMalformedAndBoundedResponses(t *testing.
 		cause       error
 		code        codes.Code
 	}{
-		{"missing", nil, status.Error(codes.NotFound, "private counter"), 4096, domain.ErrTrafficCounterNotFound, codes.NotFound},
-		{"unsupported", nil, status.Error(codes.Unimplemented, "private method"), 4096, domain.ErrTrafficUnsupported, codes.Unimplemented},
-		{"empty", &native.GetStatsResponse{}, nil, 4096, domain.ErrInvalidTrafficResponse, codes.Unknown},
-		{"wrong-name", &native.GetStatsResponse{Stat: &native.Stat{Name: "another counter", Value: 99}}, nil, 4096, domain.ErrInvalidTrafficResponse, codes.Unknown},
+		{"missing", nil, status.Error(codes.NotFound, "private counter"), 4096, trafficdomain.ErrTrafficCounterNotFound, codes.NotFound},
+		{"unsupported", nil, status.Error(codes.Unimplemented, "private method"), 4096, trafficdomain.ErrTrafficUnsupported, codes.Unimplemented},
+		{"empty", &native.GetStatsResponse{}, nil, 4096, trafficdomain.ErrInvalidTrafficResponse, codes.Unknown},
+		{"wrong-name", &native.GetStatsResponse{Stat: &native.Stat{Name: "another counter", Value: 99}}, nil, 4096, trafficdomain.ErrInvalidTrafficResponse, codes.Unknown},
 		{"limit", &native.GetStatsResponse{Stat: &native.Stat{Name: "inbound>>>proxy>>>traffic>>>uplink", Value: 99}}, nil, 1, domain.ErrAPIResourceLimit, codes.ResourceExhausted},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			address, _ := apiServer(t, trafficServer{read: func(context.Context, *native.GetStatsRequest) (*native.GetStatsResponse, error) {
 				return test.response, test.nativeError
 			}})
-			counter, err := apiClient(t, address, time.Second, test.limit).ReadTrafficCounter(t.Context(), domain.TrafficSelection{Scope: domain.InboundTraffic, Name: "proxy", Direction: domain.Uplink})
-			if counter != (domain.TrafficCounter{}) || !errors.Is(err, test.cause) || status.Code(err) != test.code {
+			counter, err := apiClient(t, address, time.Second, test.limit).ReadTrafficCounter(t.Context(), trafficdomain.TrafficSelection{Scope: trafficdomain.InboundTraffic, Name: "proxy", Direction: trafficdomain.Uplink})
+			if counter != (trafficdomain.TrafficCounter{}) || !errors.Is(err, test.cause) || status.Code(err) != test.code {
 				t.Fatalf("native failure changed: %+v, %v", counter, err)
 			}
 		})
@@ -105,7 +106,7 @@ func TestTrafficSharesAdmissionAndReleasesItAfterCancellation(t *testing.T) {
 	finished := make(chan struct{})
 	var readError error
 	go func() {
-		_, readError = client.ReadTrafficCounter(ctx, domain.TrafficSelection{Scope: domain.UserTraffic, Name: "test", Direction: domain.Uplink})
+		_, readError = client.ReadTrafficCounter(ctx, trafficdomain.TrafficSelection{Scope: trafficdomain.UserTraffic, Name: "test", Direction: trafficdomain.Uplink})
 		close(finished)
 	}()
 	defer func() { cancel(); _ = client.Close(); <-finished }()
@@ -147,10 +148,10 @@ func TestTrafficNativeDeadlineAndCloseDiscardFacts(t *testing.T) {
 				ctx, cancel = context.WithTimeout(t.Context(), time.Second)
 			}
 			finished := make(chan struct{})
-			var counter domain.TrafficCounter
+			var counter trafficdomain.TrafficCounter
 			var readError error
 			go func() {
-				counter, readError = client.ReadTrafficCounter(ctx, domain.TrafficSelection{Scope: domain.InboundTraffic, Name: "proxy", Direction: domain.Uplink})
+				counter, readError = client.ReadTrafficCounter(ctx, trafficdomain.TrafficSelection{Scope: trafficdomain.InboundTraffic, Name: "proxy", Direction: trafficdomain.Uplink})
 				close(finished)
 			}()
 			defer func() { cancel(); _ = client.Close(); <-finished }()
@@ -165,7 +166,7 @@ func TestTrafficNativeDeadlineAndCloseDiscardFacts(t *testing.T) {
 				}
 			}
 			<-finished
-			if counter != (domain.TrafficCounter{}) || readError == nil || mode != "close" && !errors.Is(readError, context.DeadlineExceeded) {
+			if counter != (trafficdomain.TrafficCounter{}) || readError == nil || mode != "close" && !errors.Is(readError, context.DeadlineExceeded) {
 				t.Fatalf("interrupted read became facts: %+v, %v", counter, readError)
 			}
 		})

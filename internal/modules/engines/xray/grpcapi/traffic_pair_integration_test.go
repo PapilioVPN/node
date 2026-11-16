@@ -17,10 +17,12 @@ import (
 	"google.golang.org/grpc/status"
 
 	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
-	"github.com/PapilioVPN/node/internal/modules/engines/xray/app/services"
+	"github.com/PapilioVPN/node/internal/modules/core/traffic/app/services"
+	trafficgrpc "github.com/PapilioVPN/node/internal/modules/core/traffic/grpcapi"
+	trafficv1 "github.com/PapilioVPN/node/internal/modules/core/traffic/grpcapi/proto/v1"
+	"github.com/PapilioVPN/node/internal/modules/core/traffic/infra/xray/api"
 	"github.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi"
 	xrayv1 "github.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi/proto/v1"
-	"github.com/PapilioVPN/node/internal/modules/engines/xray/infra/api"
 	nativeapi "github.com/PapilioVPN/node/internal/platform/engines/xray/api"
 	"github.com/PapilioVPN/node/internal/platform/grpcserver"
 	"github.com/PapilioVPN/node/internal/shared/testutil"
@@ -62,7 +64,7 @@ func TestMTLSPairResetPreservesUnknownEffectsAndIndependentMissingDirections(t *
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = resource.Close() })
-	backend := &api.Adapter{API: resource}
+	backend := &api.Counters{API: resource}
 	reads := services.NewTrafficPairService(map[instances.InstanceID]services.TrafficPairReadBinding{"edge": {Reader: backend, Timeout: time.Second}})
 	resets := services.NewTrafficPairResetService(map[instances.InstanceID]services.TrafficPairResetBinding{"edge": {Resetter: backend, Timeout: time.Second}})
 	certificates := testutil.NewCertificates(t)
@@ -71,7 +73,7 @@ func TestMTLSPairResetPreservesUnknownEffectsAndIndependentMissingDirections(t *
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = management.Close() })
-	xrayv1.RegisterXrayServiceServer(management.Registrar(), grpcapi.Handler{AllowStatsRead: true, AllowStatsReset: true, Pairs: reads, PairResets: resets})
+	xrayv1.RegisterXrayServiceServer(management.Registrar(), grpcapi.Handler{TrafficAPI: trafficgrpc.TrafficAPI{AllowStatsRead: true, AllowStatsReset: true, Pairs: reads, PairResets: resets}})
 	if err := management.Start(t.Context()); err != nil {
 		t.Fatal(err)
 	}
@@ -83,12 +85,12 @@ func TestMTLSPairResetPreservesUnknownEffectsAndIndependentMissingDirections(t *
 	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	defer cancel()
 	client := xrayv1.NewXrayServiceClient(connection)
-	query := &xrayv1.GetTrafficPairRequest{InstanceId: "edge", Scope: xrayv1.TrafficScope_TRAFFIC_SCOPE_USER, Name: "user"}
+	query := &trafficv1.GetTrafficPairRequest{InstanceId: "edge", Scope: trafficv1.TrafficScope_TRAFFIC_SCOPE_USER, Name: "user"}
 	read, err := client.GetTrafficPair(ctx, query)
 	if err != nil || read.Uplink == nil || read.Downlink == nil || read.Uplink.Bytes != 123 || read.Downlink.Bytes != 123 || swaps.Load() != 0 {
 		t.Fatalf("read changed native usage: %v %v", read, err)
 	}
-	request := &xrayv1.ResetTrafficPairRequest{InstanceId: query.InstanceId, Scope: query.Scope, Name: query.Name}
+	request := &trafficv1.ResetTrafficPairRequest{InstanceId: query.InstanceId, Scope: query.Scope, Name: query.Name}
 	response, err := client.ResetTrafficPair(ctx, request)
 	if response != nil || status.Code(err) != codes.Unavailable || swaps.Load() != 2 {
 		t.Fatalf("lost pair reply changed/replayed: %v %v", response, err)
@@ -97,12 +99,12 @@ func TestMTLSPairResetPreservesUnknownEffectsAndIndependentMissingDirections(t *
 	if len(details) != 1 {
 		t.Fatalf("pair progress absent over mTLS: %v", err)
 	}
-	failure, ok := details[0].(*xrayv1.TrafficPairResetFailure)
+	failure, ok := details[0].(*trafficv1.TrafficPairResetFailure)
 	if !ok || failure.Progress == nil || len(failure.Progress.Items) != 2 {
 		t.Fatalf("pair progress: %v", details)
 	}
 	items := failure.Progress.Items
-	if items[0].State != xrayv1.TrafficCounterResetState_TRAFFIC_COUNTER_RESET_STATE_ACKNOWLEDGED || items[0].Acknowledgement == nil || items[0].Acknowledgement.PreviousBytes != 123 || items[1].State != xrayv1.TrafficCounterResetState_TRAFFIC_COUNTER_RESET_STATE_UNKNOWN || items[1].Acknowledgement != nil {
+	if items[0].State != trafficv1.TrafficCounterResetState_TRAFFIC_COUNTER_RESET_STATE_ACKNOWLEDGED || items[0].Acknowledgement == nil || items[0].Acknowledgement.PreviousBytes != 123 || items[1].State != trafficv1.TrafficCounterResetState_TRAFFIC_COUNTER_RESET_STATE_UNKNOWN || items[1].Acknowledgement != nil {
 		t.Fatalf("pair report erased effects: %v", failure)
 	}
 	for _, direction := range []string{"uplink", "downlink"} {
@@ -134,10 +136,10 @@ func TestMTLSPairResetPreservesUnknownEffectsAndIndependentMissingDirections(t *
 		for i, direction := range []string{"uplink", "downlink"} {
 			item := response.Items[i]
 			if direction == absent {
-				if item.State != xrayv1.TrafficCounterResetState_TRAFFIC_COUNTER_RESET_STATE_MISSING || item.Acknowledgement != nil || manager.GetCounter("user>>>user>>>traffic>>>"+absent) != nil {
+				if item.State != trafficv1.TrafficCounterResetState_TRAFFIC_COUNTER_RESET_STATE_MISSING || item.Acknowledgement != nil || manager.GetCounter("user>>>user>>>traffic>>>"+absent) != nil {
 					t.Fatalf("missing counter fabricated: %v", item)
 				}
-			} else if item.State != xrayv1.TrafficCounterResetState_TRAFFIC_COUNTER_RESET_STATE_ACKNOWLEDGED || item.Acknowledgement == nil || item.Acknowledgement.PreviousBytes != 7 || counter.Value() != 0 {
+			} else if item.State != trafficv1.TrafficCounterResetState_TRAFFIC_COUNTER_RESET_STATE_ACKNOWLEDGED || item.Acknowledgement == nil || item.Acknowledgement.PreviousBytes != 7 || counter.Value() != 0 {
 				t.Fatalf("present direction was skipped: %v", item)
 			}
 		}

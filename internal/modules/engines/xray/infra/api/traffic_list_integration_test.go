@@ -16,6 +16,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	trafficdomain "github.com/PapilioVPN/node/internal/modules/core/traffic/domain"
 	"github.com/PapilioVPN/node/internal/modules/engines/xray/domain"
 )
 
@@ -49,12 +50,12 @@ func TestTrafficCollectionUsesOneNativeReadAtEachSizeAndSharesChannel(t *testing
 			}})
 			client := apiClient(t, address, time.Second, 256*1024)
 			before := time.Now()
-			result, err := client.ReadTrafficCounters(t.Context(), domain.UserTraffic)
+			result, err := client.ReadTrafficCounters(t.Context(), trafficdomain.UserTraffic)
 			if err != nil || len(result.Items) != size || result.ObservedAt.Before(before) || result.ObservedAt.After(time.Now()) {
 				t.Fatalf("collection: %+v, %v", result, err)
 			}
 			for i, item := range result.Items {
-				if item.Name != fmt.Sprintf("reader-%04d", i) || item.Direction != domain.Uplink || item.Bytes != int64(i) {
+				if item.Name != fmt.Sprintf("reader-%04d", i) || item.Direction != trafficdomain.Uplink || item.Bytes != int64(i) {
 					t.Fatalf("item %d: %+v", i, item)
 				}
 			}
@@ -69,7 +70,7 @@ func TestTrafficCollectionUsesOneNativeReadAtEachSizeAndSharesChannel(t *testing
 }
 
 func TestTrafficCollectionPreservesOpaqueNamesSignedValuesAndDuplicates(t *testing.T) {
-	for _, scope := range []domain.TrafficScope{domain.UserTraffic, domain.InboundTraffic, domain.OutboundTraffic} {
+	for _, scope := range []trafficdomain.TrafficScope{trafficdomain.UserTraffic, trafficdomain.InboundTraffic, trafficdomain.OutboundTraffic} {
 		t.Run(string(scope), func(t *testing.T) {
 			prefix := string(scope) + ">>>"
 			address, _ := apiServer(t, trafficListServer{read: func(_ context.Context, r *native.QueryStatsRequest) (*native.QueryStatsResponse, error) {
@@ -87,11 +88,11 @@ func TestTrafficCollectionPreservesOpaqueNamesSignedValuesAndDuplicates(t *testi
 				}}, nil
 			}})
 			result, err := apiClient(t, address, time.Second, 4096).ReadTrafficCounters(t.Context(), scope)
-			want := []domain.TrafficCounterEntry{
-				{Name: " Mixed>>>traffic>>>user>>>@Example ", Direction: domain.Uplink, Bytes: math.MinInt64},
-				{Name: "same", Direction: domain.Downlink, Bytes: math.MaxInt64},
-				{Name: "same", Direction: domain.Downlink, Bytes: 0},
-				{Name: "   ", Direction: domain.Uplink, Bytes: 7},
+			want := []trafficdomain.TrafficCounterEntry{
+				{Name: " Mixed>>>traffic>>>user>>>@Example ", Direction: trafficdomain.Uplink, Bytes: math.MinInt64},
+				{Name: "same", Direction: trafficdomain.Downlink, Bytes: math.MaxInt64},
+				{Name: "same", Direction: trafficdomain.Downlink, Bytes: 0},
+				{Name: "   ", Direction: trafficdomain.Uplink, Bytes: 7},
 			}
 			if err != nil || !reflect.DeepEqual(result.Items, want) {
 				t.Fatalf("identity/values: %+v, %v", result, err)
@@ -109,8 +110,8 @@ func TestTrafficCollectionEmptyFailureAndReceiveBounds(t *testing.T) {
 		cause       error
 	}{
 		{"empty", &native.QueryStatsResponse{}, nil, 4096, nil},
-		{"empty-name", &native.QueryStatsResponse{Stat: []*native.Stat{{Name: "user>>>valid>>>traffic>>>uplink", Value: 1}, {Name: "user>>>>>>traffic>>>uplink", Value: 99}}}, nil, 4096, domain.ErrInvalidTrafficResponse},
-		{"unsupported", nil, status.Error(codes.Unimplemented, "private endpoint"), 4096, domain.ErrTrafficUnsupported},
+		{"empty-name", &native.QueryStatsResponse{Stat: []*native.Stat{{Name: "user>>>valid>>>traffic>>>uplink", Value: 1}, {Name: "user>>>>>>traffic>>>uplink", Value: 99}}}, nil, 4096, trafficdomain.ErrInvalidTrafficResponse},
+		{"unsupported", nil, status.Error(codes.Unimplemented, "private endpoint"), 4096, trafficdomain.ErrTrafficUnsupported},
 		{"server-limit", nil, status.Error(codes.ResourceExhausted, "private endpoint"), 4096, domain.ErrAPIResourceLimit},
 		{"receive-limit", &native.QueryStatsResponse{Stat: []*native.Stat{{Name: "user>>>reader>>>traffic>>>uplink", Value: 99}}}, nil, 1, domain.ErrAPIResourceLimit},
 		{"remote-deadline", nil, status.Error(codes.DeadlineExceeded, "private endpoint"), 4096, context.DeadlineExceeded},
@@ -119,7 +120,7 @@ func TestTrafficCollectionEmptyFailureAndReceiveBounds(t *testing.T) {
 			address, _ := apiServer(t, trafficListServer{read: func(context.Context, *native.QueryStatsRequest) (*native.QueryStatsResponse, error) {
 				return test.response, test.nativeError
 			}})
-			result, err := apiClient(t, address, time.Second, test.limit).ReadTrafficCounters(t.Context(), domain.UserTraffic)
+			result, err := apiClient(t, address, time.Second, test.limit).ReadTrafficCounters(t.Context(), trafficdomain.UserTraffic)
 			if test.cause == nil {
 				if err != nil || len(result.Items) != 0 || result.ObservedAt.IsZero() {
 					t.Fatalf("empty scope: %+v, %v", result, err)
@@ -149,9 +150,9 @@ func TestTrafficCollectionSharesAdmissionAndJoinsInterruptedReads(t *testing.T) 
 			client := apiClient(t, address, timeout, 4096)
 			ctx, cancel := context.WithCancel(t.Context())
 			done := make(chan struct{})
-			var result domain.TrafficCounters
+			var result trafficdomain.TrafficCounters
 			var readError error
-			go func() { result, readError = client.ReadTrafficCounters(ctx, domain.UserTraffic); close(done) }()
+			go func() { result, readError = client.ReadTrafficCounters(ctx, trafficdomain.UserTraffic); close(done) }()
 			defer func() { cancel(); _ = client.Close(); <-done }()
 			select {
 			case <-started:
@@ -161,7 +162,7 @@ func TestTrafficCollectionSharesAdmissionAndJoinsInterruptedReads(t *testing.T) 
 			if _, err := client.ReadRuntimeInfo(t.Context()); !errors.Is(err, domain.ErrAPIBusy) {
 				t.Fatalf("runtime bypassed admission: %v", err)
 			}
-			if _, err := client.ReadTrafficCounter(t.Context(), domain.TrafficSelection{}); !errors.Is(err, domain.ErrAPIBusy) {
+			if _, err := client.ReadTrafficCounter(t.Context(), trafficdomain.TrafficSelection{}); !errors.Is(err, domain.ErrAPIBusy) {
 				t.Fatalf("single bypassed admission: %v", err)
 			}
 			switch mode {

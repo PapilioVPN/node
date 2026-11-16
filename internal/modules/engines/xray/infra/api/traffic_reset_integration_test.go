@@ -15,6 +15,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	trafficdomain "github.com/PapilioVPN/node/internal/modules/core/traffic/domain"
 	"github.com/PapilioVPN/node/internal/modules/engines/xray/domain"
 )
 
@@ -26,9 +27,9 @@ func TestResetUsesNativeAtomicSwapWithoutCrossingCounterIdentity(t *testing.T) {
 	t.Cleanup(func() { _ = manager.Close() })
 	address, connections := apiServer(t, native.NewStatsServer(manager))
 	client := apiClient(t, address, time.Second, 4096)
-	for _, scope := range []domain.TrafficScope{domain.UserTraffic, domain.InboundTraffic, domain.OutboundTraffic} {
-		for _, direction := range []domain.TrafficDirection{domain.Uplink, domain.Downlink} {
-			selection := domain.TrafficSelection{Scope: scope, Name: " exact>>>opaque ", Direction: direction}
+	for _, scope := range []trafficdomain.TrafficScope{trafficdomain.UserTraffic, trafficdomain.InboundTraffic, trafficdomain.OutboundTraffic} {
+		for _, direction := range []trafficdomain.TrafficDirection{trafficdomain.Uplink, trafficdomain.Downlink} {
+			selection := trafficdomain.TrafficSelection{Scope: scope, Name: " exact>>>opaque ", Direction: direction}
 			name := string(scope) + ">>>" + selection.Name + ">>>traffic>>>" + string(direction)
 			counter, err := manager.RegisterCounter(name)
 			if err != nil {
@@ -66,13 +67,13 @@ func TestResetFailureDistinguishesNoEffectFromUnknownOutcome(t *testing.T) {
 		unknown  bool
 		expected error
 	}{
-		{name: "missing", cause: status.Error(codes.NotFound, "private-counter"), limit: 4096, expected: domain.ErrTrafficCounterNotFound},
-		{name: "unsupported", cause: status.Error(codes.Unimplemented, "private-method"), limit: 4096, expected: domain.ErrTrafficUnsupported},
+		{name: "missing", cause: status.Error(codes.NotFound, "private-counter"), limit: 4096, expected: trafficdomain.ErrTrafficCounterNotFound},
+		{name: "unsupported", cause: status.Error(codes.Unimplemented, "private-method"), limit: 4096, expected: trafficdomain.ErrTrafficUnsupported},
 		{name: "unavailable", cause: status.Error(codes.Unavailable, "private-endpoint"), limit: 4096, unknown: true},
 		{name: "remote-canceled", cause: status.Error(codes.Canceled, "private"), limit: 4096, unknown: true, expected: context.Canceled},
 		{name: "remote-deadline", cause: status.Error(codes.DeadlineExceeded, "private"), limit: 4096, unknown: true, expected: context.DeadlineExceeded},
-		{name: "empty", reply: &native.GetStatsResponse{}, limit: 4096, unknown: true, expected: domain.ErrInvalidTrafficResponse},
-		{name: "wrong-name", reply: &native.GetStatsResponse{Stat: &native.Stat{Name: "other"}}, limit: 4096, unknown: true, expected: domain.ErrInvalidTrafficResponse},
+		{name: "empty", reply: &native.GetStatsResponse{}, limit: 4096, unknown: true, expected: trafficdomain.ErrInvalidTrafficResponse},
+		{name: "wrong-name", reply: &native.GetStatsResponse{Stat: &native.Stat{Name: "other"}}, limit: 4096, unknown: true, expected: trafficdomain.ErrInvalidTrafficResponse},
 		{name: "reply-limit", reply: &native.GetStatsResponse{Stat: &native.Stat{Name: "inbound>>>proxy>>>traffic>>>uplink", Value: 99}}, limit: 1, unknown: true, expected: domain.ErrAPIResourceLimit},
 	} {
 		t.Run(entry.name, func(t *testing.T) {
@@ -84,8 +85,8 @@ func TestResetFailureDistinguishesNoEffectFromUnknownOutcome(t *testing.T) {
 				}
 				return entry.reply, entry.cause
 			}})
-			result, err := apiClient(t, address, time.Second, entry.limit).ResetTrafficCounter(t.Context(), domain.TrafficSelection{Scope: domain.InboundTraffic, Name: "proxy", Direction: domain.Uplink})
-			if err == nil || result != (domain.TrafficCounterReset{}) || errors.Is(err, domain.ErrTrafficResetUnknown) != entry.unknown || entry.expected != nil && !errors.Is(err, entry.expected) {
+			result, err := apiClient(t, address, time.Second, entry.limit).ResetTrafficCounter(t.Context(), trafficdomain.TrafficSelection{Scope: trafficdomain.InboundTraffic, Name: "proxy", Direction: trafficdomain.Uplink})
+			if err == nil || result != (trafficdomain.TrafficCounterReset{}) || errors.Is(err, trafficdomain.ErrTrafficResetUnknown) != entry.unknown || entry.expected != nil && !errors.Is(err, entry.expected) {
 				t.Fatalf("reset outcome/cause changed: %+v %v", result, err)
 			}
 			if calls.Load() != 1 {
@@ -108,8 +109,8 @@ func TestResetDeadlineCanFollowAnAppliedNativeEffect(t *testing.T) {
 		return nil, status.FromContextError(ctx.Err()).Err()
 	}})
 	client := apiClient(t, address, 100*time.Millisecond, 4096)
-	result, err := client.ResetTrafficCounter(t.Context(), domain.TrafficSelection{Scope: domain.UserTraffic, Name: "user", Direction: domain.Downlink})
-	if err == nil || !errors.Is(err, context.DeadlineExceeded) || !errors.Is(err, domain.ErrTrafficResetUnknown) || result != (domain.TrafficCounterReset{}) {
+	result, err := client.ResetTrafficCounter(t.Context(), trafficdomain.TrafficSelection{Scope: trafficdomain.UserTraffic, Name: "user", Direction: trafficdomain.Downlink})
+	if err == nil || !errors.Is(err, context.DeadlineExceeded) || !errors.Is(err, trafficdomain.ErrTrafficResetUnknown) || result != (trafficdomain.TrafficCounterReset{}) {
 		t.Fatalf("lost unknown effect: %+v %v", result, err)
 	}
 	select {
@@ -132,7 +133,7 @@ func TestResetSharesAdmissionAndRejectsKnownUnattemptedWork(t *testing.T) {
 		return nil, status.FromContextError(ctx.Err()).Err()
 	}})
 	client := apiClient(t, address, time.Second, 4096)
-	selection := domain.TrafficSelection{Scope: domain.UserTraffic, Name: "user", Direction: domain.Uplink}
+	selection := trafficdomain.TrafficSelection{Scope: trafficdomain.UserTraffic, Name: "user", Direction: trafficdomain.Uplink}
 	ctx, cancel := context.WithCancel(t.Context())
 	finished := make(chan error, 1)
 	go func() { _, err := client.ReadTrafficCounter(ctx, selection); finished <- err }()
@@ -142,20 +143,20 @@ func TestResetSharesAdmissionAndRejectsKnownUnattemptedWork(t *testing.T) {
 	case <-time.After(3 * time.Second):
 		t.Fatal("native read did not start")
 	}
-	if _, err := client.ResetTrafficCounter(t.Context(), selection); !errors.Is(err, domain.ErrAPIBusy) || errors.Is(err, domain.ErrTrafficResetUnknown) {
+	if _, err := client.ResetTrafficCounter(t.Context(), selection); !errors.Is(err, domain.ErrAPIBusy) || errors.Is(err, trafficdomain.ErrTrafficResetUnknown) {
 		t.Fatalf("rejected reset became an unknown effect: %v", err)
 	}
 	cancel()
 	<-finished
 	canceled, release := context.WithCancel(t.Context())
 	release()
-	if _, err := client.ResetTrafficCounter(canceled, selection); !errors.Is(err, context.Canceled) || errors.Is(err, domain.ErrTrafficResetUnknown) {
+	if _, err := client.ResetTrafficCounter(canceled, selection); !errors.Is(err, context.Canceled) || errors.Is(err, trafficdomain.ErrTrafficResetUnknown) {
 		t.Fatalf("pre-canceled reset became attempted: %v", err)
 	}
 	if err := client.Close(); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := client.ResetTrafficCounter(t.Context(), selection); err == nil || errors.Is(err, domain.ErrTrafficResetUnknown) {
+	if _, err := client.ResetTrafficCounter(t.Context(), selection); err == nil || errors.Is(err, trafficdomain.ErrTrafficResetUnknown) {
 		t.Fatalf("closed API became attempted: %v", err)
 	}
 	if calls.Load() != 1 {
