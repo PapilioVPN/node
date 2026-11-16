@@ -113,7 +113,7 @@ func verifyContainerRouting(t *testing.T, ctx context.Context, client xrayv1.Xra
 			t.Fatalf("packaged actual native routing selection differs: %v %v", route, err)
 		}
 	}
-	_, err := client.AddRoutingRule(ctx, &routingv1.AddRoutingRuleRequest{InstanceId: "packaged-xray", RuleJson: []byte(`{"network":"tcp","outboundTag":"direct"}`)})
+	_, err = client.AddRoutingRule(ctx, &routingv1.AddRoutingRuleRequest{InstanceId: "packaged-xray", RuleJson: []byte(`{"network":"tcp","outboundTag":"direct"}`)})
 	if status.Code(err) != codes.InvalidArgument {
 		t.Fatalf("packaged missing mode defaulted to replace: %v", err)
 	}
