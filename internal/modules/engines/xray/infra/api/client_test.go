@@ -25,6 +25,9 @@ func TestAPIConstructionAndCanceledAdmissionCreateNoNativeChannel(t *testing.T) 
 	if client.connection != nil {
 		t.Fatal("construction/canceled admission allocated native workers")
 	}
+	if _, err := client.ReadOutboundStatuses(ctx); !errors.Is(err, context.Canceled) || client.connection != nil {
+		t.Fatal("canceled outbound observation created native workers")
+	}
 	if _, err := client.ReadRoutingRules(ctx); !errors.Is(err, context.Canceled) || client.connection != nil {
 		t.Fatal("canceled routing read created native workers")
 	}
@@ -86,6 +89,9 @@ func TestAPIConstructionAndCanceledAdmissionCreateNoNativeChannel(t *testing.T) 
 	}
 	if client.connection != nil {
 		t.Fatal("closed admission created native channel")
+	}
+	if _, err := client.ReadOutboundStatuses(t.Context()); !errors.Is(err, grpc.ErrClientConnClosing) || client.connection != nil {
+		t.Fatal("closed outbound observation created native workers")
 	}
 	if _, err := client.ReadRoutingRules(t.Context()); !errors.Is(err, grpc.ErrClientConnClosing) || client.connection != nil {
 		t.Fatal("closed routing read created native workers")

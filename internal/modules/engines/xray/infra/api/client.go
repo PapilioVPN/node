@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	observatorynative "github.com/xtls/xray-core/app/observatory/command"
 	handlernative "github.com/xtls/xray-core/app/proxyman/command"
 	routingnative "github.com/xtls/xray-core/app/router/command"
 	native "github.com/xtls/xray-core/app/stats/command"
@@ -41,6 +42,7 @@ type Client struct {
 	stats           native.StatsServiceClient
 	handlers        handlernative.HandlerServiceClient
 	routing         routingnative.RoutingServiceClient
+	observatory     observatorynative.ObservatoryServiceClient
 	timeout         time.Duration
 	slots           chan struct{}
 	closeOnce       sync.Once
@@ -98,6 +100,7 @@ func (c *Client) nativeClients() (native.StatsServiceClient, handlernative.Handl
 	c.stats = native.NewStatsServiceClient(connection)
 	c.handlers = handlernative.NewHandlerServiceClient(connection)
 	c.routing = routingnative.NewRoutingServiceClient(connection)
+	c.observatory = observatorynative.NewObservatoryServiceClient(connection)
 	return c.stats, c.handlers, nil
 }
 

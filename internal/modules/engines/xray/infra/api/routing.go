@@ -17,7 +17,7 @@ func (c *Client) routingClient() (native.RoutingServiceClient, error) {
 	if _, _, err := c.nativeClients(); err != nil {
 		return nil, err
 	}
-	// All three native clients are initialized once under the same lock and never
+	// Native clients are initialized once under the same lock and never
 	// reassigned. They share one channel, admission/receive bounds and Close owner.
 	return c.routing, nil
 }

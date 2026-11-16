@@ -83,6 +83,9 @@ func TestXrayRuntimeInfoOverMTLSAndNativeReconnect(t *testing.T) {
 			}
 			client := xrayClient(t, server, certificates)
 			response := awaitRuntimeInfo(t, ctx, client, "edge-a")
+			if result, err := nativeXrayAPIClient(t, second).ReadOutboundStatuses(ctx); !errors.Is(err, xraydomain.ErrOutboundObservationUnsupported) || result.Items != nil || !result.ObservedAt.IsZero() {
+				t.Fatalf("absent native ObservatoryService became empty successful observations: %+v %v", result, err)
+			}
 			if result, err := nativeXrayAPIClient(t, second).TestRoute(ctx, xraydomain.RoutingProbe{}); !errors.Is(err, xraydomain.ErrRoutingProbeUnsupported) || errors.Is(err, xraydomain.ErrRoutingProbeUnknown) || !result.AcknowledgedAt.IsZero() {
 				t.Fatalf("absent native RoutingService accepted a probe or claimed effects: %+v %v", result, err)
 			}
