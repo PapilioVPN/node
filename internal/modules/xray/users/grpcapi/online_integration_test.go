@@ -49,7 +49,7 @@ func TestOnlineRPCsRejectExistingTrafficAndInfoGrants(t *testing.T) {
 			t.Error(err)
 		}
 	})
-	client := xrayClient(t, server, certificates)
+	client := xrayv1.NewXrayServiceClient(certificates.GRPCClient(t, server.Addr().String()))
 	_, countError := client.GetUserOnlineStats(t.Context(), &userv1.GetUserOnlineStatsRequest{})
 	_, ipsError := client.ListUserOnlineIPs(t.Context(), &userv1.ListUserOnlineIPsRequest{})
 	_, usersError := client.ListOnlineUsers(t.Context(), &userv1.ListOnlineUsersRequest{})
@@ -128,7 +128,7 @@ func TestOnlineObservationsOverMTLSFollowRealConnectionLifetimes(t *testing.T) {
 					testutil.AssertTCPPortsReleased(t, first.Xray.API.Address, second.Xray.API.Address)
 				}
 			})
-			client := xrayClient(t, server, certificates)
+			client := xrayv1.NewXrayServiceClient(certificates.GRPCClient(t, server.Addr().String()))
 			ctx, cancel := context.WithTimeout(t.Context(), 15*time.Second)
 			defer cancel()
 			// Poll only this isolated fixture's startup, never the production adapter.

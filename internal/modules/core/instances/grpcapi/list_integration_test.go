@@ -1,6 +1,6 @@
 //go:build integration && linux
 
-package bootstrap_test
+package grpcapi_test
 
 import (
 	"context"
@@ -45,7 +45,7 @@ func TestStatusPagesDiscoverSortedInstancesAndObserveCurrentState(t *testing.T) 
 			t.Error(err)
 		}
 	})
-	client := instanceClient(t, server, certificates)
+	client := instancesv1.NewInstanceServiceClient(certificates.GRPCClient(t, server.Addr().String()))
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()
 	if err := testutil.XrayTraffic(ctx, firstAddress, secondAddress); err != nil {

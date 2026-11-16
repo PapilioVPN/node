@@ -45,7 +45,7 @@ func TestUserObservationGrantsStayIndependentOverMTLS(t *testing.T) {
 					}
 					_ = server.Close()
 				})
-				client := xrayClient(t, server, certificates)
+				client := xrayv1.NewXrayServiceClient(certificates.GRPCClient(t, server.Addr().String()))
 				_, e1 := client.GetInboundUserMetadata(t.Context(), &userv1.GetInboundUserMetadataRequest{InstanceId: "missing", InboundTag: "in", Email: "user"})
 				_, e2 := client.ListInboundUserMetadata(t.Context(), &userv1.ListInboundUserMetadataRequest{InstanceId: "missing", InboundTag: "in"})
 				_, e3 := client.GetInboundUser(t.Context(), &userv1.GetInboundUserRequest{InstanceId: "missing", InboundTag: "in", Email: "user"})

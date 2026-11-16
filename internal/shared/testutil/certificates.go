@@ -16,6 +16,9 @@ import (
 	"testing"
 	"time"
 
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
+
 	"github.com/PapilioVPN/node/internal/settings"
 )
 
@@ -121,4 +124,19 @@ func (c Certificates) Config() settings.Config {
 			TLS: settings.TLS{CertificateFile: c.ServerCertificate, PrivateKeyFile: c.ServerKey, ClientCAFile: c.CA},
 		}},
 	}
+}
+
+// GRPCClient opens an authenticated management connection owned by this test.
+func (c Certificates) GRPCClient(t testing.TB, address string) *grpc.ClientConn {
+	t.Helper()
+	connection, err := grpc.NewClient(address, grpc.WithTransportCredentials(credentials.NewTLS(c.ClientTLS(t))))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if err := connection.Close(); err != nil {
+			t.Error(err)
+		}
+	})
+	return connection
 }

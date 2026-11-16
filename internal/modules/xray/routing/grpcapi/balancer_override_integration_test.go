@@ -1,6 +1,6 @@
 //go:build integration && linux
 
-package bootstrap_test
+package grpcapi_test
 
 import (
 	"bytes"
@@ -25,6 +25,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/PapilioVPN/node/internal/bootstrap"
+	xrayservice "github.com/PapilioVPN/node/internal/bootstrap/xrayapi/proto/v1"
 	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
 	"github.com/PapilioVPN/node/internal/modules/xray/routing/app/services"
 	"github.com/PapilioVPN/node/internal/modules/xray/routing/domain"
@@ -149,7 +150,7 @@ func TestXrayBalancerOverrideAndClearPreserveStrategyIsolationAndConfig(t *testi
 
 			// Exercise the process-owned module binding through a real mTLS client.
 			// Only the write grant is enabled; readback is an independent native witness.
-			public := xrayClient(t, server, certificates)
+			public := xrayservice.NewXrayServiceClient(certificates.GRPCClient(t, server.Addr().String()))
 			publicAssign := func(target string) {
 				t.Helper()
 				before := time.Now().UnixMilli()

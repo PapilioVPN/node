@@ -1,6 +1,6 @@
 //go:build integration && linux
 
-package bootstrap_test
+package grpcapi_test
 
 import (
 	"bytes"
@@ -18,6 +18,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/PapilioVPN/node/internal/bootstrap"
+	xrayservice "github.com/PapilioVPN/node/internal/bootstrap/xrayapi/proto/v1"
 	"github.com/PapilioVPN/node/internal/modules/xray/routing/domain"
 	routingv1 "github.com/PapilioVPN/node/internal/modules/xray/routing/grpcapi/proto/v1"
 	rpc "github.com/PapilioVPN/node/internal/platform/grpcserver"
@@ -80,7 +81,7 @@ func TestXrayRuleRemovalOverMTLSChangesTrafficAndKeepsOtherState(t *testing.T) {
 			}
 			assertBalancedHTTP(t, ctx, balancedA, false)
 			assertBalancedHTTP(t, ctx, balancedB, true)
-			client := xrayClient(t, server, certificates)
+			client := xrayservice.NewXrayServiceClient(certificates.GRPCClient(t, server.Addr().String()))
 			remove := func(tag string) {
 				t.Helper()
 				before := time.Now().UnixMilli()

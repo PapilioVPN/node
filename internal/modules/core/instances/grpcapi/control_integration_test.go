@@ -1,6 +1,6 @@
 //go:build integration && linux
 
-package bootstrap_test
+package grpcapi_test
 
 import (
 	"context"
@@ -25,16 +25,6 @@ import (
 	"github.com/PapilioVPN/node/internal/shared/testutil"
 )
 
-func instanceClient(t *testing.T, server *rpc.Server, certificates testutil.Certificates) instancesv1.InstanceServiceClient {
-	t.Helper()
-	connection, err := grpc.NewClient(server.Addr().String(), grpc.WithTransportCredentials(credentials.NewTLS(certificates.ClientTLS(t))))
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { _ = connection.Close() })
-	return instancesv1.NewInstanceServiceClient(connection)
-}
-
 func TestControlPermissionsRemainIndependentOverMTLS(t *testing.T) {
 	for _, test := range []struct {
 		name          string
@@ -57,7 +47,7 @@ func TestControlPermissionsRemainIndependentOverMTLS(t *testing.T) {
 					t.Error(err)
 				}
 			})
-			client := instanceClient(t, server, certificates)
+			client := instancesv1.NewInstanceServiceClient(certificates.GRPCClient(t, server.Addr().String()))
 			controlCode, readCode := codes.PermissionDenied, codes.PermissionDenied
 			if test.control {
 				controlCode = codes.NotFound
@@ -140,7 +130,7 @@ func TestControlRestartsOnlySelectedXrayAndRetainsShutdownOwnership(t *testing.T
 			t.Error(err)
 		}
 	})
-	client := instanceClient(t, server, certificates)
+	client := instancesv1.NewInstanceServiceClient(certificates.GRPCClient(t, server.Addr().String()))
 	ctx, cancel := context.WithTimeout(t.Context(), 8*time.Second)
 	defer cancel()
 	if err := testutil.XrayTraffic(ctx, firstAddress, secondAddress); err != nil {
@@ -204,7 +194,7 @@ func TestControlFailureTransmitsPartialNativeOutcome(t *testing.T) {
 		_ = server.Close()
 		_ = resources.Close()
 	})
-	client := instanceClient(t, server, certificates)
+	client := instancesv1.NewInstanceServiceClient(certificates.GRPCClient(t, server.Addr().String()))
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()
 	ticker := time.NewTicker(10 * time.Millisecond)

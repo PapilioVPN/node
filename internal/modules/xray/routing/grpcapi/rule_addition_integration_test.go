@@ -1,6 +1,6 @@
 //go:build integration && linux
 
-package bootstrap_test
+package grpcapi_test
 
 import (
 	"bytes"
@@ -22,6 +22,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/PapilioVPN/node/internal/bootstrap"
+	xrayservice "github.com/PapilioVPN/node/internal/bootstrap/xrayapi/proto/v1"
 	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
 	"github.com/PapilioVPN/node/internal/modules/xray/routing/app/services"
 	"github.com/PapilioVPN/node/internal/modules/xray/routing/domain"
@@ -182,7 +183,7 @@ func TestXrayRuleAdditionNativePipelinePreservesAppendReplaceAssetsAndInstances(
 
 			// The production module owns these native clients/preparers. Only the
 			// routing management grant is enabled on the external mTLS boundary.
-			public := xrayClient(t, server, certificates)
+			public := xrayservice.NewXrayServiceClient(certificates.GRPCClient(t, server.Addr().String()))
 			publicAdd := func(content string, mode routingv1.RoutingRuleMode, tag string) {
 				t.Helper()
 				before := time.Now().UnixMilli()

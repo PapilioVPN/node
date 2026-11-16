@@ -12,6 +12,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/PapilioVPN/node/internal/bootstrap"
+	xrayservice "github.com/PapilioVPN/node/internal/bootstrap/xrayapi/proto/v1"
 	userv1 "github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi/proto/v1"
 	xrayv1 "github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi/proto/v1"
 	rpc "github.com/PapilioVPN/node/internal/platform/grpcserver"
@@ -33,7 +34,7 @@ func TestUserCountRequiresIndependentGrantOverMTLS(t *testing.T) {
 				t.Fatal(err)
 			}
 			t.Cleanup(func() { _ = application.Stop(context.Background()); _ = server.Close() })
-			client := xrayClient(t, server, certificates)
+			client := xrayservice.NewXrayServiceClient(certificates.GRPCClient(t, server.Addr().String()))
 			response, err := client.GetInboundUserCount(t.Context(), &userv1.GetInboundUserCountRequest{InstanceId: "missing", InboundTag: "in"})
 			want := codes.PermissionDenied
 			if granted {

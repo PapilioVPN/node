@@ -212,7 +212,7 @@ func TestLiveUserAdditionUpdatesEveryBaselineNativeUserManager(t *testing.T) {
 	defer observer.Close()
 	// Compare public projections against independently read canonical native records.
 	observations := services.NewUserObservationService(map[instances.InstanceID]services.UserObservationReader{instance.ID: &userxray.Adapter{API: observer}})
-	client := xrayClient(t, server, certificates)
+	client := xrayv1.NewXrayServiceClient(certificates.GRPCClient(t, server.Addr().String()))
 	for _, tc := range cases {
 		t.Run(tc.tag, func(t *testing.T) {
 			before, err := client.GetInboundUserCount(ctx, &userv1.GetInboundUserCountRequest{InstanceId: "edge", InboundTag: tc.tag})
@@ -448,39 +448,41 @@ func verifyPublicUserAdditionCollection(t *testing.T, ctx context.Context, clien
 
 // Missing and unsupported native APIs must not become empty user observations.
 func TestUserObservationsRejectMissingNativeCapabilitiesOverMTLS(t *testing.T) {
-	for _, mode := range []string{"disabled", "unsupported"} {
-		t.Run(mode, func(t *testing.T) {
-			certificates := testutil.NewCertificates(t)
-			instance, address := testutil.ConfiguredXray(t, certificates.Directory, "edge-a")
-			if mode == "unsupported" {
-				testutil.ConfigureXrayAPI(t, &instance, "unix", []string{})
-			}
-			cfg := certificates.Config()
-			cfg.Instances = []settings.Instance{instance}
-			cfg.Communications.GRPC.Permissions.ReadEngineUserMetadata = true
-			cfg.Communications.GRPC.Permissions.ReadEngineUserAccounts = true
-			var server *rpc.Server
-			var resources *lifecycle.Resources
-			application := bootstrap.New(cfg, "test", fx.NopLogger, fx.Populate(&server, &resources))
-			if err := application.Start(t.Context()); err != nil {
-				t.Fatal(err)
-			}
-			t.Cleanup(func() {
-				if err := application.Stop(context.Background()); err != nil {
-					t.Error(err)
+	for _, network := range []string{"tcp", "unix"} {
+		for _, mode := range []string{"disabled", "unsupported"} {
+			t.Run(network+"/"+mode, func(t *testing.T) {
+				certificates := testutil.NewCertificates(t)
+				instance, address := testutil.ConfiguredXray(t, certificates.Directory, "edge-a")
+				if mode == "unsupported" {
+					testutil.ConfigureXrayAPI(t, &instance, network, []string{})
 				}
-				if err := server.Close(); err != nil {
-					t.Error(err)
+				cfg := certificates.Config()
+				cfg.Instances = []settings.Instance{instance}
+				cfg.Communications.GRPC.Permissions.ReadEngineUserMetadata = true
+				cfg.Communications.GRPC.Permissions.ReadEngineUserAccounts = true
+				var server *rpc.Server
+				var resources *lifecycle.Resources
+				application := bootstrap.New(cfg, "test", fx.NopLogger, fx.Populate(&server, &resources))
+				if err := application.Start(t.Context()); err != nil {
+					t.Fatal(err)
 				}
-				if err := resources.Close(); err != nil {
-					t.Error(err)
+				t.Cleanup(func() {
+					if err := application.Stop(context.Background()); err != nil {
+						t.Error(err)
+					}
+					if err := server.Close(); err != nil {
+						t.Error(err)
+					}
+					if err := resources.Close(); err != nil {
+						t.Error(err)
+					}
+					testutil.AssertTCPPortsReleased(t, address)
+				})
+				if err := testutil.XrayTraffic(t.Context(), address); err != nil {
+					t.Fatal(err)
 				}
-				testutil.AssertTCPPortsReleased(t, address)
+				verifyFailedUserViews(t, t.Context(), xrayv1.NewXrayServiceClient(certificates.GRPCClient(t, server.Addr().String())), "edge-a", "in", codes.FailedPrecondition)
 			})
-			if err := testutil.XrayTraffic(t.Context(), address); err != nil {
-				t.Fatal(err)
-			}
-			verifyFailedUserViews(t, t.Context(), xrayClient(t, server, certificates), "edge-a", "in", codes.FailedPrecondition)
-		})
+		}
 	}
 }

@@ -1,6 +1,6 @@
 //go:build integration && linux
 
-package bootstrap_test
+package grpcapi_test
 
 import (
 	"context"
@@ -13,6 +13,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/PapilioVPN/node/internal/bootstrap"
+	xrayservice "github.com/PapilioVPN/node/internal/bootstrap/xrayapi/proto/v1"
 	xrayv1 "github.com/PapilioVPN/node/internal/modules/xray/outbounds/grpcapi/proto/v1"
 	rpc "github.com/PapilioVPN/node/internal/platform/grpcserver"
 	"github.com/PapilioVPN/node/internal/shared/testutil"
@@ -33,7 +34,7 @@ func TestOutboundReadGrantOverMTLSIsIndependent(t *testing.T) {
 				t.Fatal(err)
 			}
 			t.Cleanup(func() { _ = application.Stop(context.Background()); _ = server.Close() })
-			client := xrayClient(t, server, certificates)
+			client := xrayservice.NewXrayServiceClient(certificates.GRPCClient(t, server.Addr().String()))
 			code := codes.PermissionDenied
 			if granted {
 				code = codes.NotFound

@@ -1,6 +1,6 @@
 //go:build integration && linux
 
-package bootstrap_test
+package grpcapi_test
 
 import (
 	"bytes"
@@ -11,33 +11,18 @@ import (
 	"time"
 
 	"go.uber.org/fx"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/proto"
 
 	"github.com/PapilioVPN/node/internal/bootstrap"
 	xrayv1 "github.com/PapilioVPN/node/internal/bootstrap/xrayapi/proto/v1"
 	"github.com/PapilioVPN/node/internal/modules/core/instances"
 	instancesv1 "github.com/PapilioVPN/node/internal/modules/core/instances/grpcapi/proto/v1"
 	infov1 "github.com/PapilioVPN/node/internal/modules/xray/info/grpcapi/proto/v1"
-	outboundsv1 "github.com/PapilioVPN/node/internal/modules/xray/outbounds/grpcapi/proto/v1"
-	routingv1 "github.com/PapilioVPN/node/internal/modules/xray/routing/grpcapi/proto/v1"
 	rpc "github.com/PapilioVPN/node/internal/platform/grpcserver"
 	"github.com/PapilioVPN/node/internal/settings"
 	"github.com/PapilioVPN/node/internal/shared/testutil"
 )
-
-func xrayClient(t *testing.T, server *rpc.Server, certificates testutil.Certificates) xrayv1.XrayServiceClient {
-	t.Helper()
-	connection, err := grpc.NewClient(server.Addr().String(), grpc.WithTransportCredentials(credentials.NewTLS(certificates.ClientTLS(t))))
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { _ = connection.Close() })
-	return xrayv1.NewXrayServiceClient(connection)
-}
 
 func TestXrayBinaryInfoOverMTLSKeepsLiveInstancesUnchanged(t *testing.T) {
 	certificates := testutil.NewCertificates(t)
@@ -51,11 +36,6 @@ func TestXrayBinaryInfoOverMTLSKeepsLiveInstancesUnchanged(t *testing.T) {
 	cfg := certificates.Config()
 	cfg.Instances = []settings.Instance{first, second}
 	cfg.Communications.GRPC.Permissions.ReadEngineInfo = true
-	cfg.Communications.GRPC.Permissions.ReadEngineOutbounds = true
-	cfg.Communications.GRPC.Permissions.ReadEngineUserMetadata = true
-	cfg.Communications.GRPC.Permissions.ReadEngineUserAccounts = true
-	cfg.Communications.GRPC.Permissions.TestEngineRouting = true
-	cfg.Communications.GRPC.Permissions.ManageEngineRouting = true
 	var server *rpc.Server
 	var resources *instances.Resources
 	application := bootstrap.New(cfg, "test", fx.NopLogger, fx.Populate(&server, &resources))
@@ -79,21 +59,7 @@ func TestXrayBinaryInfoOverMTLSKeepsLiveInstancesUnchanged(t *testing.T) {
 	if err := testutil.XrayTraffic(ctx, firstAddress, secondAddress); err != nil {
 		t.Fatal(err)
 	}
-	client := xrayClient(t, server, certificates)
-	if value, err := client.ListOutboundStatuses(ctx, &outboundsv1.ListOutboundStatusesRequest{InstanceId: "edge-a"}); value != nil || status.Code(err) != codes.FailedPrecondition {
-		t.Fatal("disabled API became successful outbound collection")
-	}
-	if value, err := client.GetOutboundStatus(ctx, &outboundsv1.GetOutboundStatusRequest{InstanceId: "edge-a", OutboundTag: proto.String("out")}); value != nil || status.Code(err) != codes.FailedPrecondition {
-		t.Fatal("disabled API became absent outbound observation")
-	}
-	_, probeError := client.TestRoute(ctx, &routingv1.TestRouteRequest{InstanceId: "edge-a", Context: &routingv1.RoutingContext{}})
-	assertRoutingProbeFailure(t, probeError, codes.FailedPrecondition, routingv1.RoutingProbeOutcome_ROUTING_PROBE_OUTCOME_NOT_EXECUTED)
-	_, overrideError := client.OverrideBalancerTarget(ctx, &routingv1.OverrideBalancerTargetRequest{InstanceId: "edge-a", BalancerTag: "pool", Target: proto.String("")})
-	assertRoutingMutationFailure(t, overrideError, codes.FailedPrecondition, routingv1.RoutingMutationOutcome_ROUTING_MUTATION_OUTCOME_NOT_APPLIED)
-	_, removalError := client.RemoveRoutingRule(ctx, &routingv1.RemoveRoutingRuleRequest{InstanceId: "edge-a", RuleTag: "rule"})
-	assertRoutingMutationFailure(t, removalError, codes.FailedPrecondition, routingv1.RoutingMutationOutcome_ROUTING_MUTATION_OUTCOME_NOT_APPLIED)
-	_, additionError := client.AddRoutingRule(ctx, &routingv1.AddRoutingRuleRequest{InstanceId: "edge-a", RuleJson: []byte(`{"network":"tcp","outboundTag":"out"}`), Mode: routingv1.RoutingRuleMode_ROUTING_RULE_MODE_APPEND})
-	assertRoutingMutationFailure(t, additionError, codes.FailedPrecondition, routingv1.RoutingMutationOutcome_ROUTING_MUTATION_OUTCOME_NOT_APPLIED)
+	client := xrayv1.NewXrayServiceClient(certificates.GRPCClient(t, server.Addr().String()))
 
 	if _, err := client.GetRuntimeInfo(ctx, &infov1.GetRuntimeInfoRequest{InstanceId: "edge-a"}); status.Code(err) != codes.FailedPrecondition {
 		t.Fatalf("absent API settings were ignored: %v", err)
@@ -112,7 +78,7 @@ func TestXrayBinaryInfoOverMTLSKeepsLiveInstancesUnchanged(t *testing.T) {
 			t.Fatalf("selection failure: %v; want %v", err, expected)
 		}
 	}
-	controls := instanceClient(t, server, certificates)
+	controls := instancesv1.NewInstanceServiceClient(certificates.GRPCClient(t, server.Addr().String()))
 	if _, err := controls.GetInstanceStatus(ctx, &instancesv1.GetInstanceStatusRequest{InstanceId: "edge-a"}); status.Code(err) != codes.PermissionDenied {
 		t.Fatalf("engine information granted status reads: %v", err)
 	}
@@ -150,7 +116,7 @@ func TestXrayBinaryInfoRequiresItsOwnGrant(t *testing.T) {
 			t.Error(err)
 		}
 	})
-	client := xrayClient(t, server, certificates)
+	client := xrayv1.NewXrayServiceClient(certificates.GRPCClient(t, server.Addr().String()))
 	for _, id := range []string{"unknown", ""} {
 		if _, err := client.GetBinaryInfo(t.Context(), &infov1.GetBinaryInfoRequest{InstanceId: id}); status.Code(err) != codes.PermissionDenied {
 			t.Fatalf("other instance grants must not authorize engine information: %v", err)

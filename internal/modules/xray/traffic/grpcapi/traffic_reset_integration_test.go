@@ -1,6 +1,6 @@
 //go:build integration
 
-package xrayapi_test
+package grpcapi_test
 
 import (
 	"context"

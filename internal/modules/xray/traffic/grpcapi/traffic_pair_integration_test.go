@@ -1,6 +1,6 @@
 //go:build integration
 
-package xrayapi_test
+package grpcapi_test
 
 import (
 	"context"
@@ -29,7 +29,7 @@ import (
 )
 
 // Official SDK counters perform the actual effects. The interceptor injects a
-// lost native acknowledgement; bootstrap covers real engine processes separately.
+// lost native acknowledgement; real engine processes are covered beside this adapter.
 func TestMTLSPairResetPreservesUnknownEffectsAndIndependentMissingDirections(t *testing.T) {
 	manager, err := nativestats.NewManager(t.Context(), &nativestats.Config{})
 	if err != nil {

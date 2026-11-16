@@ -17,6 +17,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/PapilioVPN/node/internal/bootstrap"
+	xrayservice "github.com/PapilioVPN/node/internal/bootstrap/xrayapi/proto/v1"
 	"github.com/PapilioVPN/node/internal/modules/xray/users"
 	"github.com/PapilioVPN/node/internal/modules/xray/users/app/services"
 	"github.com/PapilioVPN/node/internal/modules/xray/users/domain"
@@ -62,7 +63,7 @@ func TestUserCollectionProgressOverMTLSRetainsLargeReports(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = application.Stop(context.Background()); _ = server.Close() })
-	client := xrayClient(t, server, certificates)
+	client := xrayservice.NewXrayServiceClient(certificates.GRPCClient(t, server.Addr().String()))
 	for _, count := range []int{0, 1, 100, 1000} {
 		request := &userv1.AddInboundUsersRequest{InstanceId: "controlled", InboundTag: " exact>>>tag ", Users: make([]*userv1.InboundUser, count)}
 		for i := range request.Users {

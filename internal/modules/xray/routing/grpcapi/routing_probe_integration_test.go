@@ -1,6 +1,6 @@
 //go:build integration && linux
 
-package bootstrap_test
+package grpcapi_test
 
 import (
 	"bytes"
@@ -24,6 +24,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/PapilioVPN/node/internal/bootstrap"
+	xrayservice "github.com/PapilioVPN/node/internal/bootstrap/xrayapi/proto/v1"
 	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
 	infoapi "github.com/PapilioVPN/node/internal/modules/xray/info/infra/api"
 	outboundapi "github.com/PapilioVPN/node/internal/modules/xray/outbounds/infra/api"
@@ -34,7 +35,6 @@ import (
 	trafficxray "github.com/PapilioVPN/node/internal/modules/xray/traffic/infra/api"
 	onlineapi "github.com/PapilioVPN/node/internal/modules/xray/users/infra/api"
 	rpc "github.com/PapilioVPN/node/internal/platform/grpcserver"
-	nativeapi "github.com/PapilioVPN/node/internal/platform/xray"
 	"github.com/PapilioVPN/node/internal/settings"
 	"github.com/PapilioVPN/node/internal/shared/testutil"
 )
@@ -142,7 +142,7 @@ func TestXrayRoutingProbePreservesNativeFieldsProjectionAndEffects(t *testing.T)
 			if err != nil || result.InstanceID != "edge-a" || result.Result.Route.OutboundTag != "edge-a-out-a" || !reflect.DeepEqual(result.Result.Route.Context, expected) || result.Result.AcknowledgedAt.IsZero() {
 				t.Fatalf("native full context was narrowed/fabricated: %+v %v", result, err)
 			}
-			client := xrayClient(t, server, certificates)
+			client := xrayservice.NewXrayServiceClient(certificates.GRPCClient(t, server.Addr().String()))
 			wireInput := &routingv1.RoutingContext{
 				InboundTag: " exact>>>in ", Network: routingv1.RoutingNetwork_ROUTING_NETWORK_TCP,
 				SourceIps: []string{"192.0.2.1", "::ffff:192.0.2.1", "192.0.2.1"}, SourcePort: 60000,
@@ -270,16 +270,7 @@ type nativeXrayAPI struct {
 
 func nativeXrayAPIClient(t *testing.T, instance settings.Instance) *nativeXrayAPI {
 	t.Helper()
-	api := instance.Xray.API
-	client, err := nativeapi.NewClient(nativeapi.Config{Network: api.Network, Address: api.Address, RequestTimeout: api.RequestTimeout, MaxReceiveBytes: api.MaxReceiveBytes, MaxConcurrent: api.MaxConcurrent})
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() {
-		if err := client.Close(); err != nil {
-			t.Error(err)
-		}
-	})
+	client := testutil.XrayAPIClient(t, instance.Xray.API)
 	return &nativeXrayAPI{Counters: &trafficxray.Counters{API: client}, Observer: &outboundapi.Observer{API: client}, Online: &onlineapi.Online{API: client}, Reader: &infoapi.Reader{API: client}, Router: &routingxray.Router{API: client}}
 }
 

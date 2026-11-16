@@ -1,6 +1,6 @@
 //go:build integration && linux
 
-package bootstrap_test
+package grpcapi_test
 
 import (
 	"bytes"
@@ -19,6 +19,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/PapilioVPN/node/internal/bootstrap"
+	xrayservice "github.com/PapilioVPN/node/internal/bootstrap/xrayapi/proto/v1"
 	xrayv1 "github.com/PapilioVPN/node/internal/modules/xray/info/grpcapi/proto/v1"
 	trafficv1 "github.com/PapilioVPN/node/internal/modules/xray/traffic/grpcapi/proto/v1"
 	rpc "github.com/PapilioVPN/node/internal/platform/grpcserver"
@@ -46,7 +47,7 @@ func TestTrafficCounterRPCRequiresIndependentGrant(t *testing.T) {
 					t.Error(err)
 				}
 			})
-			client := xrayClient(t, server, certificates)
+			client := xrayservice.NewXrayServiceClient(certificates.GRPCClient(t, server.Addr().String()))
 			_, err := client.GetTrafficCounter(t.Context(), &trafficv1.GetTrafficCounterRequest{
 				InstanceId: "missing", Scope: trafficv1.TrafficScope_TRAFFIC_SCOPE_INBOUND,
 				Name: "proxy", Direction: trafficv1.TrafficDirection_TRAFFIC_DIRECTION_UPLINK,
@@ -158,7 +159,7 @@ func TestTrafficCountersAndResetOverMTLSPreserveNativeUsageAndInstanceIsolation(
 			})
 			ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 			defer cancel()
-			client := xrayClient(t, server, certificates)
+			client := xrayservice.NewXrayServiceClient(certificates.GRPCClient(t, server.Addr().String()))
 			request := &trafficv1.GetTrafficCounterRequest{InstanceId: "edge-a", Scope: trafficv1.TrafficScope_TRAFFIC_SCOPE_INBOUND, Name: "proxy", Direction: trafficv1.TrafficDirection_TRAFFIC_DIRECTION_UPLINK}
 			// Only this isolated test polls readiness. Production makes one RPC.
 			ticker := time.NewTicker(20 * time.Millisecond)
@@ -482,7 +483,7 @@ func TestResetRPCUsesIndependentGrantAndNoEffectDetails(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = application.Stop(context.Background()); _ = server.Close() })
-	client := xrayClient(t, server, certificates)
+	client := xrayservice.NewXrayServiceClient(certificates.GRPCClient(t, server.Addr().String()))
 	_, err := client.ResetTrafficCounter(t.Context(), &trafficv1.ResetTrafficCounterRequest{InstanceId: "missing", Scope: trafficv1.TrafficScope_TRAFFIC_SCOPE_INBOUND, Name: "proxy", Direction: trafficv1.TrafficDirection_TRAFFIC_DIRECTION_UPLINK})
 	if status.Code(err) != codes.NotFound {
 		t.Fatalf("reset grant was not wired: %v", err)

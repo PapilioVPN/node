@@ -1,6 +1,6 @@
 //go:build integration
 
-package xrayapi_test
+package grpcapi_test
 
 import (
 	"context"
@@ -30,7 +30,7 @@ import (
 )
 
 // Actual SDK swaps followed by an injected lost reply verify partial progress
-// through the real mTLS boundary; real engine processes are tested in bootstrap.
+// through the real mTLS boundary; real engine processes are tested beside this adapter.
 func TestMTLSScopeResetRetainsAppliedUnknownAndUnattemptedEffects(t *testing.T) {
 	manager, err := nativestats.NewManager(t.Context(), &nativestats.Config{})
 	if err != nil {

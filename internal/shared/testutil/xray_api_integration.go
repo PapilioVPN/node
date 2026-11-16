@@ -11,6 +11,9 @@ import (
 	native "github.com/xtls/xray-core/app/stats/command"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/stats"
+
+	nativeapi "github.com/PapilioVPN/node/internal/platform/xray"
+	"github.com/PapilioVPN/node/internal/settings"
 )
 
 // Controlled SDK fixtures verify RPC/channel contracts, not real engine behavior.
@@ -57,4 +60,19 @@ func XrayStatsAPI(t testing.TB, service native.StatsServiceServer) (string, *Xra
 	go func() { defer close(finished); _ = server.Serve(listener) }()
 	t.Cleanup(func() { server.Stop(); server.GracefulStop(); <-finished })
 	return listener.Addr().String(), counts
+}
+
+// XrayAPIClient owns an independent native observation channel for a fixture.
+func XrayAPIClient(t testing.TB, api *settings.XrayAPI) *nativeapi.Client {
+	t.Helper()
+	client, err := nativeapi.NewClient(nativeapi.Config{Network: api.Network, Address: api.Address, RequestTimeout: api.RequestTimeout, MaxReceiveBytes: api.MaxReceiveBytes, MaxConcurrent: api.MaxConcurrent})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if err := client.Close(); err != nil {
+			t.Error(err)
+		}
+	})
+	return client
 }

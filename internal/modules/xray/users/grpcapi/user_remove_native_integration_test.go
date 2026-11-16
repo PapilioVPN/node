@@ -19,6 +19,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/PapilioVPN/node/internal/bootstrap"
+	xrayservice "github.com/PapilioVPN/node/internal/bootstrap/xrayapi/proto/v1"
 	xrayprocess "github.com/PapilioVPN/node/internal/modules/core/instances/infra/xray/process"
 	xrayv1 "github.com/PapilioVPN/node/internal/modules/xray/info/grpcapi/proto/v1"
 	userv1 "github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi/proto/v1"
@@ -96,7 +97,7 @@ func TestLiveUserRemovalOverMTLSDeniesNewVLESSSessionsWithoutCrossingOwnership(t
 				state, failure := proxy.Observe()
 				t.Fatalf("all isolated credentials must work before removal: %v; client=%v/%v", err, state, failure)
 			}
-			client := xrayClient(t, server, certificates)
+			client := xrayservice.NewXrayServiceClient(certificates.GRPCClient(t, server.Addr().String()))
 			started := time.Now().UnixMilli()
 			ack, err := client.RemoveInboundUser(ctx, &userv1.RemoveInboundUserRequest{InstanceId: "edge-a", InboundTag: "target", Email: "selected@local"})
 			if err != nil || ack.InstanceId != "edge-a" || ack.InboundTag != "target" || ack.Email != "selected@local" || ack.AcknowledgedAtUnixMs < started {
@@ -167,7 +168,7 @@ func TestUserManagementRequiresIndependentGrantOverMTLS(t *testing.T) {
 				t.Fatal(err)
 			}
 			t.Cleanup(func() { _ = application.Stop(context.Background()); _ = server.Close() })
-			client := xrayClient(t, server, certificates)
+			client := xrayservice.NewXrayServiceClient(certificates.GRPCClient(t, server.Addr().String()))
 			_, additionError := client.AddInboundUser(t.Context(), &userv1.AddInboundUserRequest{InstanceId: "missing", InboundTag: "in", User: &userv1.InboundUser{Email: "user", Account: &userv1.InboundUser_Vless{Vless: &userv1.VLESSAccount{Id: "test-only"}}}})
 			additionCode := codes.PermissionDenied
 			if granted {

@@ -1,6 +1,6 @@
 //go:build integration && linux
 
-package bootstrap_test
+package grpcapi_test
 
 import (
 	"bytes"
@@ -78,7 +78,7 @@ func TestXrayRoutingReadsOverMTLSKeepPriorityTrafficAndInstances(t *testing.T) {
 			if err := testutil.XrayTraffic(ctx, firstAddress, secondAddress); err != nil {
 				t.Fatal(err)
 			}
-			client := xrayClient(t, server, certificates)
+			client := xrayv1.NewXrayServiceClient(certificates.GRPCClient(t, server.Addr().String()))
 			firstRules := awaitRoutingRules(t, ctx, client, "edge-a")
 			secondRules := awaitRoutingRules(t, ctx, client, "edge-b")
 			assertRoutingReferences(t, firstRules, "edge-a")
@@ -231,7 +231,7 @@ func TestRoutingReadGrantOverMTLSIsIndependent(t *testing.T) {
 				t.Fatal(err)
 			}
 			t.Cleanup(func() { _ = application.Stop(context.Background()); _ = server.Close() })
-			client := xrayClient(t, server, certificates)
+			client := xrayv1.NewXrayServiceClient(certificates.GRPCClient(t, server.Addr().String()))
 			want := codes.PermissionDenied
 			if granted {
 				want = codes.NotFound

@@ -1,6 +1,6 @@
 //go:build integration && linux
 
-package bootstrap_test
+package grpcapi_test
 
 import (
 	"bytes"
@@ -41,7 +41,7 @@ func TestConfigValidationRequiresItsOwnGrantOverMTLS(t *testing.T) {
 			t.Error(err)
 		}
 	})
-	client := instanceClient(t, server, certificates)
+	client := instancesv1.NewInstanceServiceClient(certificates.GRPCClient(t, server.Addr().String()))
 	for _, id := range []string{"unknown", ""} {
 		_, err := client.ValidateInstanceConfig(t.Context(), &instancesv1.ValidateInstanceConfigRequest{InstanceId: id})
 		if status.Code(err) != codes.PermissionDenied {
@@ -81,7 +81,7 @@ func TestConfigValidationOverMTLSKeepsBothInstancesAndFilesUnchanged(t *testing.
 			t.Error(err)
 		}
 	})
-	client := instanceClient(t, server, certificates)
+	client := instancesv1.NewInstanceServiceClient(certificates.GRPCClient(t, server.Addr().String()))
 	ctx, cancel := context.WithTimeout(t.Context(), 8*time.Second)
 	defer cancel()
 	if err := testutil.XrayTraffic(ctx, firstAddress, secondAddress); err != nil {

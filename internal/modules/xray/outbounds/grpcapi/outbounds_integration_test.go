@@ -1,6 +1,6 @@
 //go:build integration && linux
 
-package bootstrap_test
+package grpcapi_test
 
 import (
 	"bytes"
@@ -21,11 +21,13 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/PapilioVPN/node/internal/bootstrap"
+	xrayservice "github.com/PapilioVPN/node/internal/bootstrap/xrayapi/proto/v1"
 	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
 	infov1 "github.com/PapilioVPN/node/internal/modules/xray/info/grpcapi/proto/v1"
 	"github.com/PapilioVPN/node/internal/modules/xray/outbounds/app/services"
 	"github.com/PapilioVPN/node/internal/modules/xray/outbounds/domain"
 	xrayv1 "github.com/PapilioVPN/node/internal/modules/xray/outbounds/grpcapi/proto/v1"
+	outboundapi "github.com/PapilioVPN/node/internal/modules/xray/outbounds/infra/api"
 	routingv1 "github.com/PapilioVPN/node/internal/modules/xray/routing/grpcapi/proto/v1"
 	rpc "github.com/PapilioVPN/node/internal/platform/grpcserver"
 	"github.com/PapilioVPN/node/internal/settings"
@@ -80,7 +82,7 @@ func TestXrayOutboundObservationsRetainOrdinaryAndBurstFactsWithoutNewProbes(t *
 				})
 				// Independent test-owned native clients remain observation oracles;
 				// public mTLS calls use the production module's existing API clients.
-				firstAPI, secondAPI := nativeXrayAPIClient(t, first), nativeXrayAPIClient(t, second)
+				firstAPI, secondAPI := &outboundapi.Observer{API: testutil.XrayAPIClient(t, first.Xray.API)}, &outboundapi.Observer{API: testutil.XrayAPIClient(t, second.Xray.API)}
 				service := services.NewOutboundStatusService(map[instances.InstanceID]services.OutboundStatusReader{"edge-a": firstAPI, "edge-b": secondAPI})
 				ctx, cancel := context.WithTimeout(t.Context(), 8*time.Second)
 				defer cancel()
@@ -130,7 +132,7 @@ func TestXrayOutboundObservationsRetainOrdinaryAndBurstFactsWithoutNewProbes(t *
 				if before == 0 || !burst && hits.Load() != before {
 					t.Fatal("observation reads started new probes")
 				}
-				public := xrayClient(t, server, certificates)
+				public := xrayservice.NewXrayServiceClient(certificates.GRPCClient(t, server.Addr().String()))
 				wire, err := public.ListOutboundStatuses(ctx, &xrayv1.ListOutboundStatusesRequest{InstanceId: "edge-a"})
 				if err != nil || wire.InstanceId != "edge-a" || len(wire.Statuses) != 2 || wire.Statuses[0].OutboundTag != "edge-a-bad" || wire.Statuses[1].OutboundTag != "edge-a-good" || wire.ObservedAtUnixMs <= 0 {
 					t.Fatalf("mTLS outbound collection differs: %v %v", wire, err)
