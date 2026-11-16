@@ -155,6 +155,10 @@ func newAPIResources(config []settings.Instance) (*apiResources, error) {
 			counters := &trafficxray.Counters{API: client}
 			traffic.Reader, traffic.Collection, traffic.Resetter = counters, counters, counters
 			traffic.Timeout = api.RequestTimeout
+			traffic.ResetConcurrency = 1
+			if profile := instance.Traffic; profile != nil {
+				traffic.ResetConcurrency = profile.ResetConcurrency
+			}
 			router := &routingxray.Router{API: client}
 			routing.Reader, routing.Prober, routing.Overrider, routing.Remover = router, router, router, router
 			routing.Addition = routingservices.RoutingRuleBinding{Applier: router, Timeout: api.RequestTimeout}

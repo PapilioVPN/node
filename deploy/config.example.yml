@@ -33,6 +33,11 @@ instances: []
 #        max_input_bytes: 32768
 #        max_output_bytes: 65536 # Entire compiled envelope, before decoding.
 #        max_concurrent: 1
+#    # Optional scope reset fan-out. Omit for sequential execution.
+#    # Requires API; cannot exceed its shared max_concurrent. No automatic retries.
+#    # Already-started resets can finish after failure; inspect every reported item.
+#    traffic:
+#      reset_concurrency: 2
 #    # Optional candidate building. Create/mount work_dir before enabling it.
 #    validation:
 #      work_dir: validation-work

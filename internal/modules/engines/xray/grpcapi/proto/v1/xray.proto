@@ -25,8 +25,9 @@ service XrayService {
   // Atomically swaps one exact existing counter with zero and returns prior bytes.
   // No application retry. A missing response can follow an applied reset.
   rpc ResetTrafficCounter(ResetTrafficCounterRequest) returns (ResetTrafficCounterResponse);
-  // Discovers one exact scope without reset, then resets selected counters in order.
-  // Non-atomic 1+N fallback: stops on first failure and retains progress in details.
+  // Discovers one exact scope without reset, then applies bounded configured fan-out.
+  // Non-atomic 1+N fallback: stops new admission on failure and joins in-flight calls.
+  // Details retain every selected identity and its observed effect in stable order.
   rpc ResetTrafficCounters(ResetTrafficCountersRequest) returns (ResetTrafficCountersResponse);
   // Two exact non-reset reads; absent directions are omitted, never zero-filled.
   rpc GetTrafficPair(GetTrafficPairRequest) returns (GetTrafficPairResponse);

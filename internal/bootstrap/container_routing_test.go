@@ -19,6 +19,7 @@ import (
 
 	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
 	routingv1 "github.com/PapilioVPN/node/internal/modules/core/routing/grpcapi/proto/v1"
+	trafficv1 "github.com/PapilioVPN/node/internal/modules/core/traffic/grpcapi/proto/v1"
 	xrayv1 "github.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi/proto/v1"
 	"github.com/PapilioVPN/node/internal/settings"
 )
@@ -39,7 +40,7 @@ func configureContainerRouting(t *testing.T, cfg *settings.Config, directory str
 	if copyError != nil || sourceError != nil || targetError != nil {
 		t.Fatalf("copy native fixture: %v %v %v", copyError, sourceError, targetError)
 	}
-	const native = `{"api":{"tag":"management","listen":"127.0.0.1:10085","services":["RoutingService","ObservatoryService","HandlerService"]},"inbounds":[{"tag":"users","listen":"127.0.0.1","port":10086,"protocol":"trojan","settings":{"clients":[{"email":"packaged@local","password":"test-only-packaged-account","level":23}]}}],"outbounds":[{"tag":"direct","protocol":"freedom"},{"tag":"blocked","protocol":"blackhole"}],"routing":{"rules":[{"network":"tcp,udp","outboundTag":"direct","ruleTag":"initial"}]},"observatory":{"subjectSelector":["blocked"],"probeURL":"http://fixture.invalid/","probeInterval":"1h"}}`
+	const native = `{"api":{"tag":"management","listen":"127.0.0.1:10085","services":["RoutingService","ObservatoryService","HandlerService","StatsService"]},"stats":{},"policy":{"system":{"statsInboundUplink":true,"statsInboundDownlink":true}},"inbounds":[{"tag":"users","listen":"127.0.0.1","port":10086,"protocol":"trojan","settings":{"clients":[{"email":"packaged@local","password":"test-only-packaged-account","level":23}]}}],"outbounds":[{"tag":"direct","protocol":"freedom"},{"tag":"blocked","protocol":"blackhole"}],"routing":{"rules":[{"network":"tcp,udp","outboundTag":"direct","ruleTag":"initial"}]},"observatory":{"subjectSelector":["blocked"],"probeURL":"http://fixture.invalid/","probeInterval":"1h"}}`
 	if err := os.WriteFile(filepath.Join(directory, "xray.json"), []byte(native), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -54,7 +55,7 @@ func configureContainerRouting(t *testing.T, cfg *settings.Config, directory str
 	if err := os.Mkdir(filepath.Join(runtimeDirectory, "rules"), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	cfg.Instances = []settings.Instance{{ID: "packaged-xray", Engine: instances.Xray, Xray: &settings.Xray{
+	cfg.Instances = []settings.Instance{{ID: "packaged-xray", Engine: instances.Xray, Traffic: &settings.Traffic{ResetConcurrency: 2}, Xray: &settings.Xray{
 		Binary: "xray", ConfigFile: "xray.json", StopTimeout: time.Second,
 		API:          &settings.XrayAPI{Network: "tcp", Address: "127.0.0.1:10085", RequestTimeout: 2 * time.Second, MaxReceiveBytes: 65536, MaxConcurrent: 2},
 		RoutingRules: &settings.RoutingRulePreparation{WorkDir: "/runtime/rules", MaxInputBytes: 4096, MaxOutputBytes: 65536, MaxConcurrent: 1},
@@ -82,6 +83,15 @@ func verifyContainerRouting(t *testing.T, ctx context.Context, client xrayv1.Xra
 		case <-ctx.Done():
 			t.Fatal(ctx.Err())
 		case <-ticker.C:
+		}
+	}
+	reset, err := client.ResetTrafficCounters(ctx, &trafficv1.ResetTrafficCountersRequest{InstanceId: "packaged-xray", Scope: trafficv1.TrafficScope_TRAFFIC_SCOPE_INBOUND, MaxCounters: 2})
+	if err != nil || len(reset.GetItems()) != 2 {
+		t.Fatalf("packaged concurrent native reset failed: %v %v", reset, err)
+	}
+	for _, item := range reset.Items {
+		if item.Name != "users" || item.State != trafficv1.TrafficCounterResetState_TRAFFIC_COUNTER_RESET_STATE_ACKNOWLEDGED || item.Acknowledgement == nil || item.Acknowledgement.PreviousBytes != 0 {
+			t.Fatalf("packaged reset lost precise acknowledgement: %v", item)
 		}
 	}
 	for _, item := range []struct {

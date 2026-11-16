@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net"
 	"net/url"
@@ -81,8 +82,12 @@ func TestTrafficCounterRPCRequiresIndependentGrant(t *testing.T) {
 }
 
 func TestTrafficCountersAndResetOverMTLSPreserveNativeUsageAndInstanceIsolation(t *testing.T) {
-	for _, network := range []string{"unix", "tcp"} {
-		t.Run(network, func(t *testing.T) {
+	for _, test := range []struct {
+		network     string
+		concurrency int
+	}{{"unix", 1}, {"unix", 2}, {"tcp", 1}, {"tcp", 2}} {
+		network, concurrency := test.network, test.concurrency
+		t.Run(fmt.Sprintf("%s/C=%d", network, concurrency), func(t *testing.T) {
 			certificates := testutil.NewCertificates(t)
 			// Keep every selected endpoint reserved until composition is complete.
 			// The management listener also needs a distinct fixed port: instance
@@ -107,6 +112,9 @@ func TestTrafficCountersAndResetOverMTLSPreserveNativeUsageAndInstanceIsolation(
 					reserve(instance.Xray.API.Address)
 				}
 				configureTrafficCounters(t, instance)
+				if concurrency > 1 {
+					instance.Traffic = &settings.Traffic{ResetConcurrency: concurrency}
+				}
 			}
 			original, err := os.ReadFile(first.Xray.ConfigFile)
 			if err != nil {

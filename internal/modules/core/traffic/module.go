@@ -16,11 +16,12 @@ import (
 // BackendBinding supplies one configured instance's traffic operations. Timeout
 // bounds each multi-call operation as a whole; nil ports retain disabled status.
 type BackendBinding struct {
-	InstanceID instances.InstanceID
-	Reader     services.TrafficCounterReader
-	Collection services.TrafficCountersReader
-	Resetter   services.TrafficCounterResetter
-	Timeout    time.Duration
+	InstanceID       instances.InstanceID
+	Reader           services.TrafficCounterReader
+	Collection       services.TrafficCountersReader
+	Resetter         services.TrafficCounterResetter
+	Timeout          time.Duration
+	ResetConcurrency int
 }
 
 type backendBindings struct {
@@ -57,7 +58,7 @@ func newOperations(bindings backendBindings) (operations, error) {
 			return operations{}, errors.New("invalid traffic backend binding")
 		}
 		readers[b.InstanceID], collections[b.InstanceID], resetters[b.InstanceID] = b.Reader, b.Collection, b.Resetter
-		scopes[b.InstanceID] = services.TrafficResetBinding{Reader: b.Collection, Resetter: b.Resetter, Timeout: b.Timeout}
+		scopes[b.InstanceID] = services.TrafficResetBinding{Reader: b.Collection, Resetter: b.Resetter, Timeout: b.Timeout, MaxConcurrent: b.ResetConcurrency}
 		pairs[b.InstanceID] = services.TrafficPairReadBinding{Reader: b.Reader, Timeout: b.Timeout}
 		pairResets[b.InstanceID] = services.TrafficPairResetBinding{Resetter: b.Resetter, Timeout: b.Timeout}
 	}

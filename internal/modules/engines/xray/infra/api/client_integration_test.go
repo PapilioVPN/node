@@ -53,7 +53,7 @@ func (s *connectionCounts) HandleConn(_ context.Context, event stats.ConnStats) 
 	}
 }
 
-func apiServer(t *testing.T, service native.StatsServiceServer) (string, *connectionCounts) {
+func apiServer(t testing.TB, service native.StatsServiceServer) (string, *connectionCounts) {
 	t.Helper()
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {

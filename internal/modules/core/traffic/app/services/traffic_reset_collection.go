@@ -14,9 +14,10 @@ import (
 // TrafficResetBinding shares existing native resources and bounds the entire
 // discovery/reset operation, rather than granting a fresh budget to every item.
 type TrafficResetBinding struct {
-	Reader   TrafficCountersReader
-	Resetter TrafficCounterResetter
-	Timeout  time.Duration
+	MaxConcurrent int // Scope reset admission; zero retains sequential execution.
+	Reader        TrafficCountersReader
+	Resetter      TrafficCounterResetter
+	Timeout       time.Duration
 }
 
 type TrafficCountersResetService struct {
@@ -29,8 +30,9 @@ func NewTrafficCountersResetService(bindings map[instances.InstanceID]TrafficRes
 
 // ResetTrafficCounters uses one read and N exact resets, not native bulk. Xray's
 // substring QueryStats(reset=true) cannot safely reset an exact scope. Preflight
-// rejects excess/duplicate selections before effects. Stop on the first failure,
-// retain acknowledged effects and never retry. maxCounters is boundary-validated.
+// rejects excess/duplicate selections before effects. Stop new admission on the
+// first observed failure, join admitted calls and retain their effects without
+// retry. maxCounters is boundary-validated; omitted concurrency stays sequential.
 func (s *TrafficCountersResetService) ResetTrafficCounters(ctx context.Context, id instances.InstanceID, scope domain.TrafficScope, maxCounters int) (domain.InstanceTrafficCountersReset, error) {
 	result := domain.InstanceTrafficCountersReset{InstanceID: id, Scope: scope}
 	if err := ctx.Err(); err != nil {
@@ -63,6 +65,9 @@ func (s *TrafficCountersResetService) ResetTrafficCounters(ctx context.Context, 
 	result.Reset.Items = make([]domain.TrafficCounterResetEntry, len(counters.Items))
 	for i, item := range counters.Items {
 		result.Reset.Items[i] = domain.TrafficCounterResetEntry{Name: item.Name, Direction: item.Direction, State: domain.TrafficResetNotAttempted}
+	}
+	if binding.MaxConcurrent > 1 && len(result.Reset.Items) > 1 {
+		return result, resetConcurrentTrafficCounters(ctx, binding.Resetter, scope, result.Reset.Items, binding.MaxConcurrent)
 	}
 	for i := range result.Reset.Items {
 		if err := ctx.Err(); err != nil {

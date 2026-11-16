@@ -16,6 +16,13 @@ type Instance struct {
 	Engine     domain.EngineKind `yaml:"engine"`
 	Xray       *Xray             `yaml:"xray,omitempty"`
 	Validation *ConfigValidation `yaml:"validation,omitempty"`
+	Traffic    *Traffic          `yaml:"traffic,omitempty"`
+}
+
+// Traffic bounds capability execution independently of shared native API capacity.
+// Omission retains sequential scope resets; a configured profile is explicit.
+type Traffic struct {
+	ResetConcurrency int `yaml:"reset_concurrency"`
 }
 
 // ConfigValidation enables candidate building with explicit per-instance limits.
@@ -101,6 +108,11 @@ func validateInstances(instances []Instance) error {
 				}
 			default:
 				return fmt.Errorf("%w: instances[%d].xray.api requires unix or tcp network", ErrInvalidConfig, i)
+			}
+		}
+		if traffic := instance.Traffic; traffic != nil {
+			if xray.API == nil || traffic.ResetConcurrency <= 0 || traffic.ResetConcurrency > xray.API.MaxConcurrent {
+				return fmt.Errorf("%w: instances[%d].traffic requires an API and positive reset_concurrency within API max_concurrent", ErrInvalidConfig, i)
 			}
 		}
 		if rules := xray.RoutingRules; rules != nil {

@@ -70,8 +70,9 @@ type XrayServiceClient interface {
 	// Atomically swaps one exact existing counter with zero and returns prior bytes.
 	// No application retry. A missing response can follow an applied reset.
 	ResetTrafficCounter(ctx context.Context, in *v11.ResetTrafficCounterRequest, opts ...grpc.CallOption) (*v11.ResetTrafficCounterResponse, error)
-	// Discovers one exact scope without reset, then resets selected counters in order.
-	// Non-atomic 1+N fallback: stops on first failure and retains progress in details.
+	// Discovers one exact scope without reset, then applies bounded configured fan-out.
+	// Non-atomic 1+N fallback: stops new admission on failure and joins in-flight calls.
+	// Details retain every selected identity and its observed effect in stable order.
 	ResetTrafficCounters(ctx context.Context, in *v11.ResetTrafficCountersRequest, opts ...grpc.CallOption) (*v11.ResetTrafficCountersResponse, error)
 	// Two exact non-reset reads; absent directions are omitted, never zero-filled.
 	GetTrafficPair(ctx context.Context, in *v11.GetTrafficPairRequest, opts ...grpc.CallOption) (*v11.GetTrafficPairResponse, error)
@@ -404,8 +405,9 @@ type XrayServiceServer interface {
 	// Atomically swaps one exact existing counter with zero and returns prior bytes.
 	// No application retry. A missing response can follow an applied reset.
 	ResetTrafficCounter(context.Context, *v11.ResetTrafficCounterRequest) (*v11.ResetTrafficCounterResponse, error)
-	// Discovers one exact scope without reset, then resets selected counters in order.
-	// Non-atomic 1+N fallback: stops on first failure and retains progress in details.
+	// Discovers one exact scope without reset, then applies bounded configured fan-out.
+	// Non-atomic 1+N fallback: stops new admission on failure and joins in-flight calls.
+	// Details retain every selected identity and its observed effect in stable order.
 	ResetTrafficCounters(context.Context, *v11.ResetTrafficCountersRequest) (*v11.ResetTrafficCountersResponse, error)
 	// Two exact non-reset reads; absent directions are omitted, never zero-filled.
 	GetTrafficPair(context.Context, *v11.GetTrafficPairRequest) (*v11.GetTrafficPairResponse, error)

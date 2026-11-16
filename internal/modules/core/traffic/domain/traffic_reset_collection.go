@@ -27,7 +27,7 @@ type TrafficCounterResetEntry struct {
 	Reset     *TrafficCounterReset
 }
 
-// TrafficCountersReset describes sequential effects, never an atomic scope reset.
+// TrafficCountersReset describes independent effects, never an atomic scope reset.
 // SelectedAt is discovery completion; newly created counters are not included.
 // A name removed/recreated after discovery has no native generation identifier.
 type TrafficCountersReset struct {
