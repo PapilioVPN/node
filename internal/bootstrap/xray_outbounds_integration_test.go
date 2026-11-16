@@ -22,10 +22,10 @@ import (
 
 	"github.com/PapilioVPN/node/internal/bootstrap"
 	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
-	"github.com/PapilioVPN/node/internal/modules/xray/app/services"
-	"github.com/PapilioVPN/node/internal/modules/xray/domain"
-	xrayv1 "github.com/PapilioVPN/node/internal/modules/xray/grpcapi/proto/v1"
 	infov1 "github.com/PapilioVPN/node/internal/modules/xray/info/grpcapi/proto/v1"
+	"github.com/PapilioVPN/node/internal/modules/xray/outbounds/app/services"
+	"github.com/PapilioVPN/node/internal/modules/xray/outbounds/domain"
+	xrayv1 "github.com/PapilioVPN/node/internal/modules/xray/outbounds/grpcapi/proto/v1"
 	routingv1 "github.com/PapilioVPN/node/internal/modules/xray/routing/grpcapi/proto/v1"
 	rpc "github.com/PapilioVPN/node/internal/platform/grpcserver"
 	"github.com/PapilioVPN/node/internal/settings"

@@ -18,10 +18,11 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/PapilioVPN/node/internal/bootstrap"
+	xrayv1 "github.com/PapilioVPN/node/internal/bootstrap/xrayapi/proto/v1"
 	"github.com/PapilioVPN/node/internal/modules/core/instances"
 	instancesv1 "github.com/PapilioVPN/node/internal/modules/core/instances/grpcapi/proto/v1"
-	xrayv1 "github.com/PapilioVPN/node/internal/modules/xray/grpcapi/proto/v1"
 	infov1 "github.com/PapilioVPN/node/internal/modules/xray/info/grpcapi/proto/v1"
+	outboundsv1 "github.com/PapilioVPN/node/internal/modules/xray/outbounds/grpcapi/proto/v1"
 	routingv1 "github.com/PapilioVPN/node/internal/modules/xray/routing/grpcapi/proto/v1"
 	rpc "github.com/PapilioVPN/node/internal/platform/grpcserver"
 	"github.com/PapilioVPN/node/internal/settings"
@@ -79,10 +80,10 @@ func TestXrayBinaryInfoOverMTLSKeepsLiveInstancesUnchanged(t *testing.T) {
 		t.Fatal(err)
 	}
 	client := xrayClient(t, server, certificates)
-	if value, err := client.ListOutboundStatuses(ctx, &xrayv1.ListOutboundStatusesRequest{InstanceId: "edge-a"}); value != nil || status.Code(err) != codes.FailedPrecondition {
+	if value, err := client.ListOutboundStatuses(ctx, &outboundsv1.ListOutboundStatusesRequest{InstanceId: "edge-a"}); value != nil || status.Code(err) != codes.FailedPrecondition {
 		t.Fatal("disabled API became successful outbound collection")
 	}
-	if value, err := client.GetOutboundStatus(ctx, &xrayv1.GetOutboundStatusRequest{InstanceId: "edge-a", OutboundTag: proto.String("out")}); value != nil || status.Code(err) != codes.FailedPrecondition {
+	if value, err := client.GetOutboundStatus(ctx, &outboundsv1.GetOutboundStatusRequest{InstanceId: "edge-a", OutboundTag: proto.String("out")}); value != nil || status.Code(err) != codes.FailedPrecondition {
 		t.Fatal("disabled API became absent outbound observation")
 	}
 	_, probeError := client.TestRoute(ctx, &routingv1.TestRouteRequest{InstanceId: "edge-a", Context: &routingv1.RoutingContext{}})

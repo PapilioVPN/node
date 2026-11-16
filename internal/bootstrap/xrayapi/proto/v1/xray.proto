@@ -1,0 +1,77 @@
+syntax = "proto3";
+
+package papilio.node.xray.v1;
+
+option go_package = "github.com/PapilioVPN/node/internal/bootstrap/xrayapi/proto/v1;xrayv1";
+
+import "internal/modules/xray/users/grpcapi/proto/v1/users.proto";
+import "internal/modules/xray/routing/grpcapi/proto/v1/routing.proto";
+import "internal/modules/xray/traffic/grpcapi/proto/v1/traffic.proto";
+
+import "internal/modules/xray/info/grpcapi/proto/v1/info.proto";
+
+import "internal/modules/xray/outbounds/grpcapi/proto/v1/outbounds.proto";
+
+service XrayService {
+  // One live native addition after an inbound-type preflight. Not atomic against
+  // external inbound replacement; no remove-before-add or application retry.
+  rpc AddInboundUser(AddInboundUserRequest) returns (AddInboundUserResponse);
+  // One live native removal; no config persistence or established-session claim.
+  // Lost replies can hide an applied change. No application retry.
+  rpc RemoveInboundUser(RemoveInboundUserRequest) returns (RemoveInboundUserResponse);
+  // Executes the selected configured binary's native version command only.
+  // These facts may differ from a previously started process after file replacement.
+  rpc GetBinaryInfo(GetBinaryInfoRequest) returns (GetBinaryInfoResponse);
+  // Observes the configured local API's Go runtime, not host RSS or traffic health.
+  rpc GetRuntimeInfo(GetRuntimeInfoRequest) returns (GetRuntimeInfoResponse);
+  // Reads one exact native traffic counter without resetting it.
+  rpc GetTrafficCounter(GetTrafficCounterRequest) returns (GetTrafficCounterResponse);
+  // Atomically swaps one exact existing counter with zero and returns prior bytes.
+  // No application retry. A missing response can follow an applied reset.
+  rpc ResetTrafficCounter(ResetTrafficCounterRequest) returns (ResetTrafficCounterResponse);
+  // Discovers one exact scope without reset, then applies bounded configured fan-out.
+  // Non-atomic 1+N fallback: stops new admission on failure and joins in-flight calls.
+  // Details retain every selected identity and its observed effect in stable order.
+  rpc ResetTrafficCounters(ResetTrafficCountersRequest) returns (ResetTrafficCountersResponse);
+  // Two exact non-reset reads; absent directions are omitted, never zero-filled.
+  rpc GetTrafficPair(GetTrafficPairRequest) returns (GetTrafficPairResponse);
+  // Attempts uplink then downlink, not atomically. Missing directions are retained.
+  // Other failures stop and preserve observed progress in typed error details.
+  rpc ResetTrafficPair(ResetTrafficPairRequest) returns (ResetTrafficPairResponse);
+  // Reads all existing traffic counters in one scope without resetting them.
+  // Complete response or resource-limit error; native Xray offers no pagination.
+  rpc ListTrafficCounters(ListTrafficCountersRequest) returns (ListTrafficCountersResponse);
+  // Counts distinct IPs tracked by native session contexts, not open connections.
+  // Session cleanup can lag client disconnect; this is not a presence guarantee.
+  rpc GetUserOnlineStats(GetUserOnlineStatsRequest) returns (GetUserOnlineStatsResponse);
+  rpc ListUserOnlineIPs(ListUserOnlineIPsRequest) returns (ListUserOnlineIPsResponse);
+  rpc ListOnlineUsers(ListOnlineUsersRequest) returns (ListOnlineUsersResponse);
+  // Native membership count only, not online users or a user-list snapshot.
+  rpc GetInboundUserCount(GetInboundUserCountRequest) returns (GetInboundUserCountResponse);
+  // User-manager observations, not initial config or a complete replay image.
+  // Metadata excludes account payloads. Full records require their own grant.
+  rpc GetInboundUserMetadata(GetInboundUserMetadataRequest) returns (GetInboundUserMetadataResponse);
+  rpc ListInboundUserMetadata(ListInboundUserMetadataRequest) returns (ListInboundUserMetadataResponse);
+  rpc GetInboundUser(GetInboundUserRequest) returns (GetInboundUserResponse);
+  rpc ListInboundUsers(ListInboundUsersRequest) returns (ListInboundUsersResponse);
+  // Ordered references only; the native API does not return rule conditions.
+  rpc ListRoutingRules(ListRoutingRulesRequest) returns (ListRoutingRulesResponse);
+  // Native field presence is retained; this does not probe or override routing.
+  rpc GetBalancerInfo(GetBalancerInfoRequest) returns (GetBalancerInfoResponse);
+  // Native route selection can advance balancers, resolve DNS and fire webhooks.
+  // A lost reply may follow effects. Never replay automatically.
+  rpc TestRoute(TestRouteRequest) returns (TestRouteResponse);
+  // One native assignment; an explicitly empty target clears the override.
+  // Completion does not establish outbound existence or persistence. No retry.
+  rpc OverrideBalancerTarget(OverrideBalancerTargetRequest) returns (OverrideBalancerTargetResponse);
+  // Removes exact-tag rules live. Missing tags are acknowledged native no-ops;
+  // no count, persistence or established-session termination is promised.
+  rpc RemoveRoutingRule(RemoveRoutingRuleRequest) returns (RemoveRoutingRuleResponse);
+  // Builds one native routing.rules[] object with the selected instance binary,
+  // then applies once. Replace drops previous rules and balancers. No retry.
+  rpc AddRoutingRule(AddRoutingRuleRequest) returns (AddRoutingRuleResponse);
+  // Reads existing observatory facts, not a new probe or outbound membership.
+  // Native API has no tag projection; each operation reads its full observation.
+  rpc GetOutboundStatus(GetOutboundStatusRequest) returns (GetOutboundStatusResponse);
+  rpc ListOutboundStatuses(ListOutboundStatusesRequest) returns (ListOutboundStatusesResponse);
+}

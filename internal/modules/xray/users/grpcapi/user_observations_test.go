@@ -14,9 +14,10 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 
+	grpcapi "github.com/PapilioVPN/node/internal/bootstrap/xrayapi"
 	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
-	"github.com/PapilioVPN/node/internal/modules/xray/grpcapi"
 	infogrpc "github.com/PapilioVPN/node/internal/modules/xray/info/grpcapi"
+	outboundgrpc "github.com/PapilioVPN/node/internal/modules/xray/outbounds/grpcapi"
 	routinggrpc "github.com/PapilioVPN/node/internal/modules/xray/routing/grpcapi"
 	trafficgrpc "github.com/PapilioVPN/node/internal/modules/xray/traffic/grpcapi"
 	"github.com/PapilioVPN/node/internal/modules/xray/users/domain"
@@ -71,9 +72,9 @@ var userReadCalls = []struct {
 func TestUserViewsRequireIndependentGrants(t *testing.T) {
 	for i, op := range userReadCalls {
 		t.Run(op.name, func(t *testing.T) {
-			h := grpcapi.Handler{AllowOutboundsRead: true, UserAPI:
+			h := grpcapi.Handler{UserAPI:
 			// Also grant the opposite view: it must not enable this operation.
-			usergrpc.UserAPI{AllowUsersRead: true, AllowUserManagement: true, AllowOnlineRead: true}, RoutingAPI: routinggrpc.RoutingAPI{AllowRoutingRead: true, AllowRoutingTest: true, AllowRoutingManagement: true}, TrafficAPI: trafficgrpc.TrafficAPI{AllowStatsRead: true, AllowStatsReset: true}, InfoAPI: infogrpc.InfoAPI{AllowInfoRead: true},
+			usergrpc.UserAPI{AllowUsersRead: true, AllowUserManagement: true, AllowOnlineRead: true}, RoutingAPI: routinggrpc.RoutingAPI{AllowRoutingRead: true, AllowRoutingTest: true, AllowRoutingManagement: true}, TrafficAPI: trafficgrpc.TrafficAPI{AllowStatsRead: true, AllowStatsReset: true}, InfoAPI: infogrpc.InfoAPI{AllowInfoRead: true}, OutboundAPI: outboundgrpc.OutboundAPI{AllowOutboundsRead: true},
 			}
 
 			if i < 2 {

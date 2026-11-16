@@ -18,6 +18,7 @@ import (
 	"github.com/PapilioVPN/node/internal/modules/xray/traffic/domain"
 	"github.com/PapilioVPN/node/internal/modules/xray/traffic/grpcapi"
 	trafficv1 "github.com/PapilioVPN/node/internal/modules/xray/traffic/grpcapi/proto/v1"
+	nativeapi "github.com/PapilioVPN/node/internal/platform/xray"
 	"github.com/PapilioVPN/node/internal/settings"
 )
 
@@ -54,7 +55,7 @@ type bindings struct {
 func trafficAPI(t *testing.T, p settings.GRPCPermissions, values []traffic.BackendBinding) grpcapi.TrafficAPI {
 	t.Helper()
 	var api grpcapi.TrafficAPI
-	app := fx.New(fx.NopLogger, fx.Supply(p), fx.Provide(func() bindings { return bindings{Values: values} }), traffic.Module(true), fx.Populate(&api))
+	app := fx.New(fx.NopLogger, fx.Supply([]settings.Instance{}, &nativeapi.Resources{}), fx.Supply(p), fx.Provide(func() bindings { return bindings{Values: values} }), traffic.Module(true), fx.Populate(&api))
 	if err := app.Start(t.Context()); err != nil {
 		t.Fatal(err)
 	}
@@ -121,7 +122,7 @@ func TestTrafficModuleKeepsReadAndResetGrantsIndependent(t *testing.T) {
 
 func TestTrafficModuleRejectsAmbiguousBackendOwnership(t *testing.T) {
 	var api grpcapi.TrafficAPI
-	app := fx.New(fx.NopLogger, fx.Supply(settings.GRPCPermissions{}), fx.Provide(func() bindings {
+	app := fx.New(fx.NopLogger, fx.Supply([]settings.Instance{}, &nativeapi.Resources{}), fx.Supply(settings.GRPCPermissions{}), fx.Provide(func() bindings {
 		return bindings{Values: []traffic.BackendBinding{{InstanceID: "same"}, {InstanceID: "same"}}}
 	}), traffic.Module(true), fx.Populate(&api))
 	if app.Err() == nil {

@@ -26,15 +26,15 @@ import (
 	"github.com/PapilioVPN/node/internal/bootstrap"
 	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
 	infoapi "github.com/PapilioVPN/node/internal/modules/xray/info/infra/api"
-	xrayapi "github.com/PapilioVPN/node/internal/modules/xray/infra/api"
+	outboundapi "github.com/PapilioVPN/node/internal/modules/xray/outbounds/infra/api"
 	"github.com/PapilioVPN/node/internal/modules/xray/routing/app/services"
 	"github.com/PapilioVPN/node/internal/modules/xray/routing/domain"
 	routingv1 "github.com/PapilioVPN/node/internal/modules/xray/routing/grpcapi/proto/v1"
 	routingxray "github.com/PapilioVPN/node/internal/modules/xray/routing/infra/api"
 	trafficxray "github.com/PapilioVPN/node/internal/modules/xray/traffic/infra/api"
 	onlineapi "github.com/PapilioVPN/node/internal/modules/xray/users/infra/api"
-	nativeapi "github.com/PapilioVPN/node/internal/platform/engines/xray/api"
 	rpc "github.com/PapilioVPN/node/internal/platform/grpcserver"
+	nativeapi "github.com/PapilioVPN/node/internal/platform/xray"
 	"github.com/PapilioVPN/node/internal/settings"
 	"github.com/PapilioVPN/node/internal/shared/testutil"
 )
@@ -262,7 +262,7 @@ func TestXrayRoutingProbePreservesNativeFieldsProjectionAndEffects(t *testing.T)
 
 type nativeXrayAPI struct {
 	*trafficxray.Counters
-	*xrayapi.Adapter
+	*outboundapi.Observer
 	*onlineapi.Online
 	*infoapi.Reader
 	*routingxray.Router
@@ -280,7 +280,7 @@ func nativeXrayAPIClient(t *testing.T, instance settings.Instance) *nativeXrayAP
 			t.Error(err)
 		}
 	})
-	return &nativeXrayAPI{Counters: &trafficxray.Counters{API: client}, Adapter: &xrayapi.Adapter{API: client}, Online: &onlineapi.Online{API: client}, Reader: &infoapi.Reader{API: client}, Router: &routingxray.Router{API: client}}
+	return &nativeXrayAPI{Counters: &trafficxray.Counters{API: client}, Observer: &outboundapi.Observer{API: client}, Online: &onlineapi.Online{API: client}, Reader: &infoapi.Reader{API: client}, Router: &routingxray.Router{API: client}}
 }
 
 func configureXrayProbeRouting(t *testing.T, instance settings.Instance, webhook string) []byte {

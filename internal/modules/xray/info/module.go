@@ -12,7 +12,9 @@ import (
 	"github.com/PapilioVPN/node/internal/modules/xray/info/app/services"
 	"github.com/PapilioVPN/node/internal/modules/xray/info/domain"
 	"github.com/PapilioVPN/node/internal/modules/xray/info/grpcapi"
+	infoapi "github.com/PapilioVPN/node/internal/modules/xray/info/infra/api"
 	"github.com/PapilioVPN/node/internal/modules/xray/info/infra/process"
+	nativeapi "github.com/PapilioVPN/node/internal/platform/xray"
 	"github.com/PapilioVPN/node/internal/settings"
 )
 
@@ -27,7 +29,7 @@ type backendBindings struct {
 }
 
 func Module(grpcEnabled bool) fx.Option {
-	options := []fx.Option{fx.Provide(newBinaryInfoService, newRuntimeInfoService, fx.Private), fx.Provide(capability)}
+	options := []fx.Option{fx.Provide(newNativeBindings), fx.Provide(newBinaryInfoService, newRuntimeInfoService, fx.Private), fx.Provide(capability)}
 	if grpcEnabled {
 		options = append(options, fx.Provide(newInfoAPI))
 	}
@@ -77,4 +79,28 @@ type capabilityResult struct {
 
 func capability() capabilityResult {
 	return capabilityResult{Values: []system.Capability{domain.ReadBinaryInfo, domain.ReadRuntimeInfo}}
+}
+
+type nativeBindings struct {
+	fx.Out
+	Values []BackendBinding `group:"xray_info_backends,flatten"`
+}
+
+func newNativeBindings(config []settings.Instance, resources *nativeapi.Resources) (nativeBindings, error) {
+	result := nativeBindings{}
+	for _, instance := range config {
+		if instance.Engine != instances.Xray {
+			continue
+		}
+		client, exists := resources.Client(string(instance.ID))
+		if !exists {
+			return nativeBindings{}, fmt.Errorf("missing Xray API binding for instance %q", instance.ID)
+		}
+		binding := BackendBinding{InstanceID: instance.ID}
+		if client != nil {
+			binding.Reader = &infoapi.Reader{API: client}
+		}
+		result.Values = append(result.Values, binding)
+	}
+	return result, nil
 }

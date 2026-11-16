@@ -19,8 +19,8 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/PapilioVPN/node/internal/bootstrap"
+	xrayprocess "github.com/PapilioVPN/node/internal/modules/core/instances/infra/xray/process"
 	xrayv1 "github.com/PapilioVPN/node/internal/modules/xray/info/grpcapi/proto/v1"
-	xrayprocess "github.com/PapilioVPN/node/internal/modules/xray/infra/process"
 	userv1 "github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi/proto/v1"
 	rpc "github.com/PapilioVPN/node/internal/platform/grpcserver"
 	"github.com/PapilioVPN/node/internal/settings"

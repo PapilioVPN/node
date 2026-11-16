@@ -17,6 +17,7 @@ import (
 	"github.com/PapilioVPN/node/internal/modules/xray/users/domain"
 	"github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi"
 	userv1 "github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi/proto/v1"
+	nativeapi "github.com/PapilioVPN/node/internal/platform/xray"
 	"github.com/PapilioVPN/node/internal/settings"
 )
 
@@ -34,7 +35,7 @@ type bindings struct {
 func TestUserModuleBuildsFromFocusedPortsWithoutAnEngineModule(t *testing.T) {
 	calls := 0
 	var api grpcapi.UserAPI
-	app := fx.New(fx.NopLogger,
+	app := fx.New(fx.NopLogger, fx.Supply([]settings.Instance{}, &nativeapi.Resources{}),
 		fx.Supply(settings.GRPCPermissions{ReadEngineUsers: true}),
 		fx.Provide(func() bindings {
 			return bindings{Values: []users.BackendBinding{
@@ -77,7 +78,7 @@ func TestUserModuleBuildsFromFocusedPortsWithoutAnEngineModule(t *testing.T) {
 
 func TestUserModuleRejectsAmbiguousBackendOwnership(t *testing.T) {
 	var api grpcapi.UserAPI
-	app := fx.New(fx.NopLogger, fx.Supply(settings.GRPCPermissions{}),
+	app := fx.New(fx.NopLogger, fx.Supply([]settings.Instance{}, &nativeapi.Resources{}), fx.Supply(settings.GRPCPermissions{}),
 		fx.Provide(func() bindings {
 			return bindings{Values: []users.BackendBinding{{InstanceID: "same"}, {InstanceID: "same"}}}
 		}),

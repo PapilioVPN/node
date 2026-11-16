@@ -1,7 +1,7 @@
 // Package grpcapi adapts user operations to the existing versioned wire contract.
 package grpcapi
 
-import xrayv1 "github.com/PapilioVPN/node/internal/modules/xray/grpcapi/proto/v1"
+import xrayv1 "github.com/PapilioVPN/node/internal/bootstrap/xrayapi/proto/v1"
 
 // UserAPI is composed into the existing XrayService registration. Each operation
 // owns its focused application port; the engine server owns no user workflows.

@@ -3,6 +3,7 @@ package users
 
 import (
 	"errors"
+	"fmt"
 
 	"go.uber.org/fx"
 
@@ -11,6 +12,8 @@ import (
 	"github.com/PapilioVPN/node/internal/modules/xray/users/app/services"
 	"github.com/PapilioVPN/node/internal/modules/xray/users/domain"
 	"github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi"
+	userapi "github.com/PapilioVPN/node/internal/modules/xray/users/infra/api"
+	nativeapi "github.com/PapilioVPN/node/internal/platform/xray"
 	"github.com/PapilioVPN/node/internal/settings"
 )
 
@@ -31,7 +34,7 @@ type backendBindings struct {
 }
 
 func Module(grpcEnabled bool) fx.Option {
-	options := []fx.Option{fx.Provide(newOperations, fx.Private), fx.Provide(capability)}
+	options := []fx.Option{fx.Provide(newNativeBindings), fx.Provide(newOperations, fx.Private), fx.Provide(capability)}
 	if grpcEnabled {
 		options = append(options, fx.Provide(newUserAPI))
 	}
@@ -95,4 +98,30 @@ func capability() capabilityResult {
 		domain.ReadInboundUserMetadata, domain.ListInboundUserMetadata,
 		domain.ReadUserOnlineStats, domain.ListUserOnlineIPs, domain.ListOnlineUsers,
 	}}
+}
+
+type nativeBindings struct {
+	fx.Out
+	Values []BackendBinding `group:"user_backends,flatten"`
+}
+
+func newNativeBindings(config []settings.Instance, resources *nativeapi.Resources) (nativeBindings, error) {
+	result := nativeBindings{}
+	for _, instance := range config {
+		if instance.Engine != instances.Xray {
+			continue
+		}
+		client, exists := resources.Client(string(instance.ID))
+		if !exists {
+			return nativeBindings{}, fmt.Errorf("missing Xray API binding for instance %q", instance.ID)
+		}
+		binding := BackendBinding{InstanceID: instance.ID}
+		if client != nil {
+			adapter := &userapi.Adapter{API: client}
+			binding.Adder, binding.Remover, binding.Counter, binding.Observer = adapter, adapter, adapter, adapter
+			binding.Online = &userapi.Online{API: client}
+		}
+		result.Values = append(result.Values, binding)
+	}
+	return result, nil
 }

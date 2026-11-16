@@ -20,11 +20,12 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/PapilioVPN/node/internal/bootstrap"
+	xrayv1 "github.com/PapilioVPN/node/internal/bootstrap/xrayapi/proto/v1"
 	"github.com/PapilioVPN/node/internal/modules/core/instances"
 	instancesv1 "github.com/PapilioVPN/node/internal/modules/core/instances/grpcapi/proto/v1"
-	xraydomain "github.com/PapilioVPN/node/internal/modules/xray/domain"
-	xrayv1 "github.com/PapilioVPN/node/internal/modules/xray/grpcapi/proto/v1"
 	infov1 "github.com/PapilioVPN/node/internal/modules/xray/info/grpcapi/proto/v1"
+	xraydomain "github.com/PapilioVPN/node/internal/modules/xray/outbounds/domain"
+	outboundsv1 "github.com/PapilioVPN/node/internal/modules/xray/outbounds/grpcapi/proto/v1"
 	routingdomain "github.com/PapilioVPN/node/internal/modules/xray/routing/domain"
 	routingv1 "github.com/PapilioVPN/node/internal/modules/xray/routing/grpcapi/proto/v1"
 	trafficv1 "github.com/PapilioVPN/node/internal/modules/xray/traffic/grpcapi/proto/v1"
@@ -91,10 +92,10 @@ func TestXrayRuntimeInfoOverMTLSAndNativeReconnect(t *testing.T) {
 			}
 			client := xrayClient(t, server, certificates)
 			response := awaitRuntimeInfo(t, ctx, client, "edge-a")
-			if value, err := client.ListOutboundStatuses(ctx, &xrayv1.ListOutboundStatusesRequest{InstanceId: "edge-b"}); value != nil || status.Code(err) != codes.FailedPrecondition {
+			if value, err := client.ListOutboundStatuses(ctx, &outboundsv1.ListOutboundStatusesRequest{InstanceId: "edge-b"}); value != nil || status.Code(err) != codes.FailedPrecondition {
 				t.Fatal("absent native ObservatoryService became a public empty result")
 			}
-			if value, err := client.GetOutboundStatus(ctx, &xrayv1.GetOutboundStatusRequest{InstanceId: "edge-b", OutboundTag: proto.String("out")}); value != nil || status.Code(err) != codes.FailedPrecondition {
+			if value, err := client.GetOutboundStatus(ctx, &outboundsv1.GetOutboundStatusRequest{InstanceId: "edge-b", OutboundTag: proto.String("out")}); value != nil || status.Code(err) != codes.FailedPrecondition {
 				t.Fatal("absent native ObservatoryService became a public absent observation")
 			}
 			if result, err := nativeXrayAPIClient(t, second).ReadOutboundStatuses(ctx); !errors.Is(err, xraydomain.ErrOutboundObservationUnsupported) || result.Items != nil || !result.ObservedAt.IsZero() {

@@ -3,13 +3,18 @@ package traffic
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"go.uber.org/fx"
 
 	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
+	system "github.com/PapilioVPN/node/internal/modules/system/info/domain"
 	"github.com/PapilioVPN/node/internal/modules/xray/traffic/app/services"
+	"github.com/PapilioVPN/node/internal/modules/xray/traffic/domain"
 	"github.com/PapilioVPN/node/internal/modules/xray/traffic/grpcapi"
+	trafficapi "github.com/PapilioVPN/node/internal/modules/xray/traffic/infra/api"
+	nativeapi "github.com/PapilioVPN/node/internal/platform/xray"
 	"github.com/PapilioVPN/node/internal/settings"
 )
 
@@ -30,7 +35,7 @@ type backendBindings struct {
 }
 
 func Module(grpcEnabled bool) fx.Option {
-	options := []fx.Option{fx.Provide(newOperations, fx.Private)}
+	options := []fx.Option{fx.Provide(newNativeBindings, capability), fx.Provide(newOperations, fx.Private)}
 	if grpcEnabled {
 		options = append(options, fx.Provide(newTrafficAPI))
 	}
@@ -78,4 +83,43 @@ func newTrafficAPI(s operations, p settings.GRPCPermissions) grpcapi.TrafficAPI 
 		ScopeResets: s.scopeResets, Pairs: s.pairs, PairResets: s.pairResets,
 		AllowStatsRead: p.ReadEngineStats, AllowStatsReset: p.ResetEngineStats,
 	}
+}
+
+type capabilityResult struct {
+	fx.Out
+	Values []system.Capability `group:"node_capabilities,flatten"`
+}
+
+func capability() capabilityResult {
+	return capabilityResult{Values: []system.Capability{domain.ReadTrafficCounter, domain.ListTrafficCounters, domain.ResetTrafficCounter, domain.ResetTrafficCounters, domain.ReadTrafficPair, domain.ResetTrafficPair}}
+}
+
+type nativeBindings struct {
+	fx.Out
+	Values []BackendBinding `group:"traffic_backends,flatten"`
+}
+
+func newNativeBindings(config []settings.Instance, resources *nativeapi.Resources) (nativeBindings, error) {
+	result := nativeBindings{}
+	for _, instance := range config {
+		if instance.Engine != instances.Xray {
+			continue
+		}
+		client, exists := resources.Client(string(instance.ID))
+		if !exists {
+			return nativeBindings{}, fmt.Errorf("missing Xray API binding for instance %q", instance.ID)
+		}
+		binding := BackendBinding{InstanceID: instance.ID}
+		if client != nil {
+			adapter := &trafficapi.Counters{API: client}
+			binding.Reader, binding.Collection, binding.Resetter = adapter, adapter, adapter
+			binding.Timeout = instance.Xray.API.RequestTimeout
+			binding.ResetConcurrency = 1
+			if profile := instance.Traffic; profile != nil {
+				binding.ResetConcurrency = profile.ResetConcurrency
+			}
+		}
+		result.Values = append(result.Values, binding)
+	}
+	return result, nil
 }

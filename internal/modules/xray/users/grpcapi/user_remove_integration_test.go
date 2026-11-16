@@ -15,15 +15,15 @@ import (
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/status"
 
+	grpcapi "github.com/PapilioVPN/node/internal/bootstrap/xrayapi"
+	xrayv1 "github.com/PapilioVPN/node/internal/bootstrap/xrayapi/proto/v1"
 	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
-	"github.com/PapilioVPN/node/internal/modules/xray/grpcapi"
-	xrayv1 "github.com/PapilioVPN/node/internal/modules/xray/grpcapi/proto/v1"
 	"github.com/PapilioVPN/node/internal/modules/xray/users/app/services"
 	usergrpc "github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi"
 	userv1 "github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi/proto/v1"
 	userxray "github.com/PapilioVPN/node/internal/modules/xray/users/infra/api"
-	nativeapi "github.com/PapilioVPN/node/internal/platform/engines/xray/api"
 	"github.com/PapilioVPN/node/internal/platform/grpcserver"
+	nativeapi "github.com/PapilioVPN/node/internal/platform/xray"
 	"github.com/PapilioVPN/node/internal/shared/testutil"
 )
 

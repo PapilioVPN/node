@@ -17,6 +17,7 @@ import (
 	"github.com/PapilioVPN/node/internal/modules/xray/routing/domain"
 	"github.com/PapilioVPN/node/internal/modules/xray/routing/grpcapi"
 	routingv1 "github.com/PapilioVPN/node/internal/modules/xray/routing/grpcapi/proto/v1"
+	nativeapi "github.com/PapilioVPN/node/internal/platform/xray"
 	"github.com/PapilioVPN/node/internal/settings"
 )
 
@@ -39,7 +40,7 @@ type bindings struct {
 func TestRoutingModuleConsumesFocusedPortsWithoutAnEngineModule(t *testing.T) {
 	backend := &reader{}
 	var api grpcapi.RoutingAPI
-	app := fx.New(fx.NopLogger, fx.Supply(settings.GRPCPermissions{ReadEngineRouting: true}),
+	app := fx.New(fx.NopLogger, fx.Supply([]settings.Instance{}, &nativeapi.Resources{}), fx.Supply(settings.GRPCPermissions{ReadEngineRouting: true}),
 		fx.Provide(func() bindings {
 			return bindings{Values: []routing.BackendBinding{{InstanceID: " edge ", Reader: backend}, {InstanceID: "disabled"}}}
 		}), routing.Module(true), fx.Populate(&api))
@@ -73,7 +74,7 @@ func TestRoutingModuleConsumesFocusedPortsWithoutAnEngineModule(t *testing.T) {
 
 func TestRoutingModuleRejectsAmbiguousBackendOwnership(t *testing.T) {
 	var api grpcapi.RoutingAPI
-	app := fx.New(fx.NopLogger, fx.Supply(settings.GRPCPermissions{}),
+	app := fx.New(fx.NopLogger, fx.Supply([]settings.Instance{}, &nativeapi.Resources{}), fx.Supply(settings.GRPCPermissions{}),
 		fx.Provide(func() bindings {
 			return bindings{Values: []routing.BackendBinding{{InstanceID: "same"}, {InstanceID: "same"}}}
 		}),
