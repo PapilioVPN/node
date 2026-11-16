@@ -5,7 +5,6 @@ import (
 	"context"
 
 	observatory "github.com/xtls/xray-core/app/observatory/command"
-	routing "github.com/xtls/xray-core/app/router/command"
 	stats "github.com/xtls/xray-core/app/stats/command"
 )
 
@@ -14,7 +13,6 @@ import (
 type API interface {
 	Begin(context.Context) (context.Context, func(), error)
 	StatsClient() (stats.StatsServiceClient, error)
-	RoutingClient() (routing.RoutingServiceClient, error)
 	ObservatoryClient() (observatory.ObservatoryServiceClient, error)
 }
 

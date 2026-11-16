@@ -24,6 +24,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	nodev1 "github.com/PapilioVPN/node/internal/modules/core/instances/grpcapi/proto/v1"
+	routingv1 "github.com/PapilioVPN/node/internal/modules/core/routing/grpcapi/proto/v1"
 	userv1 "github.com/PapilioVPN/node/internal/modules/core/users/grpcapi/proto/v1"
 	xrayv1 "github.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi/proto/v1"
 	systemv1 "github.com/PapilioVPN/node/internal/modules/system/info/grpcapi/proto/v1"
@@ -176,13 +177,13 @@ func TestContainer(t *testing.T) {
 	if _, err := xrayv1.NewXrayServiceClient(connection).GetInboundUserCount(request, &userv1.GetInboundUserCountRequest{InstanceId: "unconfigured", InboundTag: "in"}); status.Code(err) != codes.NotFound {
 		t.Fatalf("packaged user count not wired: %v", err)
 	}
-	if _, err := xrayv1.NewXrayServiceClient(connection).ListRoutingRules(request, &xrayv1.ListRoutingRulesRequest{InstanceId: "unconfigured"}); status.Code(err) != codes.NotFound {
+	if _, err := xrayv1.NewXrayServiceClient(connection).ListRoutingRules(request, &routingv1.ListRoutingRulesRequest{InstanceId: "unconfigured"}); status.Code(err) != codes.NotFound {
 		t.Fatalf("packaged routing list not wired: %v", err)
 	}
-	if _, err := xrayv1.NewXrayServiceClient(connection).GetBalancerInfo(request, &xrayv1.GetBalancerInfoRequest{InstanceId: "unconfigured", BalancerTag: "pool"}); status.Code(err) != codes.NotFound {
+	if _, err := xrayv1.NewXrayServiceClient(connection).GetBalancerInfo(request, &routingv1.GetBalancerInfoRequest{InstanceId: "unconfigured", BalancerTag: "pool"}); status.Code(err) != codes.NotFound {
 		t.Fatalf("packaged balancer read not wired: %v", err)
 	}
-	_, probeError := xrayv1.NewXrayServiceClient(connection).TestRoute(request, &xrayv1.TestRouteRequest{InstanceId: "unconfigured", Context: &xrayv1.RoutingContext{}})
+	_, probeError := xrayv1.NewXrayServiceClient(connection).TestRoute(request, &routingv1.TestRouteRequest{InstanceId: "unconfigured", Context: &routingv1.RoutingContext{}})
 	if status.Code(probeError) != codes.NotFound {
 		t.Fatalf("packaged routing probe not wired: %v", probeError)
 	}
@@ -190,11 +191,11 @@ func TestContainer(t *testing.T) {
 	if len(probeDetails) != 1 {
 		t.Fatalf("packaged routing probe outcome missing: %v", probeError)
 	}
-	probeFailure, ok := probeDetails[0].(*xrayv1.TestRouteFailure)
-	if !ok || probeFailure.Outcome != xrayv1.RoutingProbeOutcome_ROUTING_PROBE_OUTCOME_NOT_EXECUTED {
+	probeFailure, ok := probeDetails[0].(*routingv1.TestRouteFailure)
+	if !ok || probeFailure.Outcome != routingv1.RoutingProbeOutcome_ROUTING_PROBE_OUTCOME_NOT_EXECUTED {
 		t.Fatalf("packaged routing probe outcome incorrect: %v", probeDetails)
 	}
-	_, overrideError := xrayv1.NewXrayServiceClient(connection).OverrideBalancerTarget(request, &xrayv1.OverrideBalancerTargetRequest{InstanceId: "unconfigured", BalancerTag: "pool", Target: proto.String("")})
+	_, overrideError := xrayv1.NewXrayServiceClient(connection).OverrideBalancerTarget(request, &routingv1.OverrideBalancerTargetRequest{InstanceId: "unconfigured", BalancerTag: "pool", Target: proto.String("")})
 	if status.Code(overrideError) != codes.NotFound {
 		t.Fatalf("packaged balancer override not wired: %v", overrideError)
 	}
@@ -202,12 +203,12 @@ func TestContainer(t *testing.T) {
 	if len(overrideDetails) != 1 {
 		t.Fatalf("packaged routing mutation outcome missing: %v", overrideError)
 	}
-	overrideFailure, ok := overrideDetails[0].(*xrayv1.RoutingMutationFailure)
-	if !ok || overrideFailure.Outcome != xrayv1.RoutingMutationOutcome_ROUTING_MUTATION_OUTCOME_NOT_APPLIED {
+	overrideFailure, ok := overrideDetails[0].(*routingv1.RoutingMutationFailure)
+	if !ok || overrideFailure.Outcome != routingv1.RoutingMutationOutcome_ROUTING_MUTATION_OUTCOME_NOT_APPLIED {
 		t.Fatalf("packaged routing mutation outcome incorrect: %v", overrideDetails)
 	}
 
-	_, removalError := xrayv1.NewXrayServiceClient(connection).RemoveRoutingRule(request, &xrayv1.RemoveRoutingRuleRequest{InstanceId: "unconfigured", RuleTag: "rule"})
+	_, removalError := xrayv1.NewXrayServiceClient(connection).RemoveRoutingRule(request, &routingv1.RemoveRoutingRuleRequest{InstanceId: "unconfigured", RuleTag: "rule"})
 	if status.Code(removalError) != codes.NotFound {
 		t.Fatalf("packaged routing rule removal not wired: %v", removalError)
 	}
@@ -215,8 +216,8 @@ func TestContainer(t *testing.T) {
 	if len(removalDetails) != 1 {
 		t.Fatalf("packaged removal outcome missing: %v", removalError)
 	}
-	removalFailure, ok := removalDetails[0].(*xrayv1.RoutingMutationFailure)
-	if !ok || removalFailure.Outcome != xrayv1.RoutingMutationOutcome_ROUTING_MUTATION_OUTCOME_NOT_APPLIED {
+	removalFailure, ok := removalDetails[0].(*routingv1.RoutingMutationFailure)
+	if !ok || removalFailure.Outcome != routingv1.RoutingMutationOutcome_ROUTING_MUTATION_OUTCOME_NOT_APPLIED {
 		t.Fatalf("packaged removal outcome incorrect: %v", removalDetails)
 	}
 	if _, err := xrayv1.NewXrayServiceClient(connection).AddInboundUser(request, &userv1.AddInboundUserRequest{InstanceId: "unconfigured", InboundTag: "in", User: &userv1.InboundUser{Email: "user", Account: &userv1.InboundUser_Vless{Vless: &userv1.VLESSAccount{Id: "test-only"}}}}); status.Code(err) != codes.NotFound {

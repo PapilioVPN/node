@@ -11,6 +11,8 @@ import (
 	"google.golang.org/grpc"
 
 	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
+	routingdomain "github.com/PapilioVPN/node/internal/modules/core/routing/domain"
+	routingxray "github.com/PapilioVPN/node/internal/modules/core/routing/infra/xray/api"
 	userdomain "github.com/PapilioVPN/node/internal/modules/core/users/domain"
 	userxray "github.com/PapilioVPN/node/internal/modules/core/users/infra/xray"
 	"github.com/PapilioVPN/node/internal/modules/engines/xray/domain"
@@ -48,6 +50,7 @@ func TestModuleClosesAPIAdmissionAndExportsFinalCleanup(t *testing.T) {
 	}
 	service := newRuntimeInfoService(resources)
 	userAdapter := &userxray.Adapter{API: resources.clients[0]}
+	router := &routingxray.Router{API: resources.clients[0]}
 	if err := application.Stop(t.Context()); err != nil {
 		t.Fatal(err)
 	}
@@ -107,23 +110,23 @@ func TestModuleClosesAPIAdmissionAndExportsFinalCleanup(t *testing.T) {
 	if _, err := userAdapter.ReadInboundUsers(t.Context(), "in"); !errors.Is(err, grpc.ErrClientConnClosing) {
 		t.Fatalf("closed module admitted user listing: %v", err)
 	}
-	if _, err := newRoutingService(resources).ListRoutingRules(t.Context(), "edge"); !errors.Is(err, grpc.ErrClientConnClosing) {
+	if _, err := router.ReadRoutingRules(t.Context()); !errors.Is(err, grpc.ErrClientConnClosing) {
 		t.Fatalf("closed native API admitted routing list: %v", err)
 	}
-	if _, err := newRoutingService(resources).GetBalancerInfo(t.Context(), "edge", "pool"); !errors.Is(err, grpc.ErrClientConnClosing) {
+	if _, err := router.ReadBalancerInfo(t.Context(), "pool"); !errors.Is(err, grpc.ErrClientConnClosing) {
 		t.Fatalf("closed native API admitted balancer read: %v", err)
 	}
-	if _, err := newRoutingProbeService(resources).TestRoute(t.Context(), "edge", domain.RoutingProbe{}); !errors.Is(err, grpc.ErrClientConnClosing) || errors.Is(err, domain.ErrRoutingProbeUnknown) {
+	if _, err := router.TestRoute(t.Context(), routingdomain.RoutingProbe{}); !errors.Is(err, grpc.ErrClientConnClosing) || errors.Is(err, routingdomain.ErrRoutingProbeUnknown) {
 		t.Fatalf("closed native API admitted a probe or claimed effects: %v", err)
 	}
-	if _, err := newBalancerOverrideService(resources).OverrideBalancerTarget(t.Context(), "edge", domain.BalancerOverride{BalancerTag: "pool", Target: ""}); !errors.Is(err, grpc.ErrClientConnClosing) || errors.Is(err, domain.ErrRoutingMutationUnknown) {
+	if _, err := router.OverrideBalancerTarget(t.Context(), routingdomain.BalancerOverride{BalancerTag: "pool", Target: ""}); !errors.Is(err, grpc.ErrClientConnClosing) || errors.Is(err, routingdomain.ErrRoutingMutationUnknown) {
 		t.Fatalf("closed native API admitted a routing change or claimed effects: %v", err)
 	}
 
-	if _, err := newRoutingRuleRemovalService(resources).RemoveRoutingRule(t.Context(), "edge", "rule"); !errors.Is(err, grpc.ErrClientConnClosing) || errors.Is(err, domain.ErrRoutingMutationUnknown) {
+	if _, err := router.RemoveRoutingRule(t.Context(), "rule"); !errors.Is(err, grpc.ErrClientConnClosing) || errors.Is(err, routingdomain.ErrRoutingMutationUnknown) {
 		t.Fatalf("closed module admitted rule removal/claimed effects: %v", err)
 	}
-	if _, err := resources.ruleAppliers["edge"].ApplyRoutingRule(t.Context(), domain.PreparedRoutingRule{Config: []byte{1}}, domain.AppendRoutingRule); !errors.Is(err, grpc.ErrClientConnClosing) || errors.Is(err, domain.ErrRoutingMutationUnknown) {
+	if _, err := router.ApplyRoutingRule(t.Context(), routingdomain.PreparedRoutingRule{Config: []byte{1}}, routingdomain.AppendRoutingRule); !errors.Is(err, grpc.ErrClientConnClosing) || errors.Is(err, routingdomain.ErrRoutingMutationUnknown) {
 		t.Fatalf("module close admitted rule addition/claimed effects: %v", err)
 	}
 

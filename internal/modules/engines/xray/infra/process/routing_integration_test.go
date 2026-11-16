@@ -27,8 +27,8 @@ import (
 	"google.golang.org/protobuf/encoding/protowire"
 	"google.golang.org/protobuf/proto"
 
-	"github.com/PapilioVPN/node/internal/modules/engines/xray/domain"
-	xrayprocess "github.com/PapilioVPN/node/internal/modules/engines/xray/infra/process"
+	"github.com/PapilioVPN/node/internal/modules/core/routing/domain"
+	xrayprocess "github.com/PapilioVPN/node/internal/modules/core/routing/infra/xray/process"
 )
 
 func rulePreparer(t *testing.T, cfg xrayprocess.RoutingRulePreparationConfig) *xrayprocess.RoutingRulePreparer {

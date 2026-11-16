@@ -20,6 +20,7 @@ import (
 	"google.golang.org/protobuf/encoding/protowire"
 	"google.golang.org/protobuf/proto"
 
+	routingdomain "github.com/PapilioVPN/node/internal/modules/core/routing/domain"
 	"github.com/PapilioVPN/node/internal/modules/engines/xray/domain"
 )
 
@@ -45,20 +46,20 @@ func TestRuleAdditionDispatchesCanonicalConfigAndExplicitModeOnce(t *testing.T) 
 		}
 		return &native.AddRuleResponse{}, nil
 	}})
-	ack, err := apiClient(t, address, time.Second, 4096).ApplyRoutingRule(t.Context(), domain.PreparedRoutingRule{Config: content, RuleTag: " rule "}, domain.AppendRoutingRule)
+	ack, err := apiClient(t, address, time.Second, 4096).ApplyRoutingRule(t.Context(), routingdomain.PreparedRoutingRule{Config: content, RuleTag: " rule "}, routingdomain.AppendRoutingRule)
 	if err != nil || ack.AcknowledgedAt.IsZero() || counts.rpcs.Load() != 1 {
 		t.Fatalf("prepared rule was not dispatched exactly once: %+v %v", ack, err)
 	}
 }
 
-func preparedRoutingRule(t *testing.T, tag string) domain.PreparedRoutingRule {
+func preparedRoutingRule(t *testing.T, tag string) routingdomain.PreparedRoutingRule {
 	t.Helper()
 	config := &router.Config{Rule: []*router.RoutingRule{{RuleTag: tag, InboundTag: []string{"in"}, TargetTag: &router.RoutingRule_Tag{Tag: "new-out"}}}}
 	content, err := proto.Marshal(config)
 	if err != nil {
 		t.Fatal(err)
 	}
-	return domain.PreparedRoutingRule{Config: content, RuleTag: tag}
+	return routingdomain.PreparedRoutingRule{Config: content, RuleTag: tag}
 }
 
 func TestRuleAdditionNativeAppendAndReplaceAtEveryExistingRuleCount(t *testing.T) {
@@ -83,7 +84,7 @@ func TestRuleAdditionNativeAppendAndReplaceAtEveryExistingRuleCount(t *testing.T
 				t.Fatal(err)
 			}
 			prepared := preparedRoutingRule(t, " exact>>>rule ")
-			for i, mode := range []domain.RoutingRuleMode{domain.AppendRoutingRule, domain.ReplaceRoutingRules} {
+			for i, mode := range []routingdomain.RoutingRuleMode{routingdomain.AppendRoutingRule, routingdomain.ReplaceRoutingRules} {
 				before := time.Now()
 				ack, err := client.ApplyRoutingRule(t.Context(), prepared, mode)
 				if err != nil || ack.AcknowledgedAt.Before(before) || ack.AcknowledgedAt.After(time.Now()) || counts.rpcs.Load() != int64(i+2) || counts.opened.Load() != 1 {
@@ -91,13 +92,13 @@ func TestRuleAdditionNativeAppendAndReplaceAtEveryExistingRuleCount(t *testing.T
 				}
 				rules := engine.ListRule()
 				want := 1
-				if mode == domain.AppendRoutingRule {
+				if mode == routingdomain.AppendRoutingRule {
 					want += size
 				}
 				if len(rules) != want || rules[len(rules)-1].GetRuleTag() != " exact>>>rule " || rules[len(rules)-1].GetOutboundTag() != "new-out" {
 					t.Fatal("native append/replace semantics changed")
 				}
-				if mode == domain.AppendRoutingRule {
+				if mode == routingdomain.AppendRoutingRule {
 					for index, rule := range rules[:size] {
 						if rule.GetRuleTag() != fmt.Sprint("old-", size-index) || rule.GetOutboundTag() != fmt.Sprint("out-", index) {
 							t.Fatal("append reordered prior rules")
@@ -115,11 +116,11 @@ func TestRuleAdditionNativeFailuresAndOversizedAcknowledgementRetainEffects(t *t
 			address, counts := routingAPI(t, ruleAdditionServer{add: func(context.Context, *native.AddRuleRequest) (*native.AddRuleResponse, error) {
 				return nil, status.Error(code, "private diagnostics")
 			}})
-			ack, err := apiClient(t, address, time.Second, 4096).ApplyRoutingRule(t.Context(), preparedRoutingRule(t, "rule"), domain.ReplaceRoutingRules)
-			if err == nil || status.Code(err) != code || !ack.AcknowledgedAt.IsZero() || counts.rpcs.Load() != 1 || errors.Is(err, domain.ErrRoutingMutationUnknown) != (code != codes.Unimplemented) {
+			ack, err := apiClient(t, address, time.Second, 4096).ApplyRoutingRule(t.Context(), preparedRoutingRule(t, "rule"), routingdomain.ReplaceRoutingRules)
+			if err == nil || status.Code(err) != code || !ack.AcknowledgedAt.IsZero() || counts.rpcs.Load() != 1 || errors.Is(err, routingdomain.ErrRoutingMutationUnknown) != (code != codes.Unimplemented) {
 				t.Fatalf("application failure lost/replayed effects: %+v %v", ack, err)
 			}
-			if code == codes.Unimplemented && !errors.Is(err, domain.ErrRoutingManagementUnsupported) {
+			if code == codes.Unimplemented && !errors.Is(err, routingdomain.ErrRoutingManagementUnsupported) {
 				t.Fatal(err)
 			}
 		})
@@ -131,8 +132,8 @@ func TestRuleAdditionNativeFailuresAndOversizedAcknowledgementRetainEffects(t *t
 		calls.Add(1)
 		return response, nil
 	}})
-	ack, err := apiClient(t, address, time.Second, 1).ApplyRoutingRule(t.Context(), preparedRoutingRule(t, "rule"), domain.AppendRoutingRule)
-	if !ack.AcknowledgedAt.IsZero() || !errors.Is(err, domain.ErrRoutingMutationUnknown) || !errors.Is(err, domain.ErrAPIResourceLimit) || counts.rpcs.Load() != 1 || calls.Load() != 1 {
+	ack, err := apiClient(t, address, time.Second, 1).ApplyRoutingRule(t.Context(), preparedRoutingRule(t, "rule"), routingdomain.AppendRoutingRule)
+	if !ack.AcknowledgedAt.IsZero() || !errors.Is(err, routingdomain.ErrRoutingMutationUnknown) || !errors.Is(err, domain.ErrAPIResourceLimit) || counts.rpcs.Load() != 1 || calls.Load() != 1 {
 		t.Fatalf("oversized acknowledgement became no effects/replayed: %+v %v", ack, err)
 	}
 }
@@ -153,7 +154,7 @@ func TestRuleAdditionSharesAdmissionAndJoinsAfterCancelCloseOrDeadline(t *testin
 			prepared := preparedRoutingRule(t, "rule")
 			go func() {
 				defer close(done)
-				_, applicationError = client.ApplyRoutingRule(ctx, prepared, domain.ReplaceRoutingRules)
+				_, applicationError = client.ApplyRoutingRule(ctx, prepared, routingdomain.ReplaceRoutingRules)
 			}()
 			defer func() { cancel(); _ = client.Close(); <-done }()
 			select {
@@ -161,7 +162,7 @@ func TestRuleAdditionSharesAdmissionAndJoinsAfterCancelCloseOrDeadline(t *testin
 			case <-time.After(3 * time.Second):
 				t.Fatal("native addition not started")
 			}
-			if _, err := client.ApplyRoutingRule(t.Context(), prepared, domain.AppendRoutingRule); !errors.Is(err, domain.ErrAPIBusy) || errors.Is(err, domain.ErrRoutingMutationUnknown) {
+			if _, err := client.ApplyRoutingRule(t.Context(), prepared, routingdomain.AppendRoutingRule); !errors.Is(err, domain.ErrAPIBusy) || errors.Is(err, routingdomain.ErrRoutingMutationUnknown) {
 				t.Fatal("saturated addition was not rejected before effects")
 			}
 			if _, err := client.RemoveRoutingRule(t.Context(), "old"); !errors.Is(err, domain.ErrAPIBusy) {
@@ -180,7 +181,7 @@ func TestRuleAdditionSharesAdmissionAndJoinsAfterCancelCloseOrDeadline(t *testin
 			}
 			select {
 			case <-done:
-				if !errors.Is(applicationError, domain.ErrRoutingMutationUnknown) || counts.rpcs.Load() != 1 {
+				if !errors.Is(applicationError, routingdomain.ErrRoutingMutationUnknown) || counts.rpcs.Load() != 1 {
 					t.Fatalf("lost application acknowledgement became no effects/retried: %v", applicationError)
 				}
 				if mode == "cancel" && !errors.Is(applicationError, context.Canceled) {
@@ -225,7 +226,7 @@ func TestRuleAdditionReplacementCanApplyBeforeOldWebhookCleanupCompletes(t *test
 	finished := make(chan struct{})
 	address, counts := routingAPI(t, observingRuleAdditionServer{RoutingServiceServer: native.NewRoutingServer(engine, nil), finished: finished})
 	client := apiClient(t, address, 3*time.Second, 4096)
-	if _, err := client.TestRoute(t.Context(), domain.RoutingProbe{Context: domain.RoutingContext{InboundTag: "in"}}); err != nil {
+	if _, err := client.TestRoute(t.Context(), routingdomain.RoutingProbe{Context: routingdomain.RoutingContext{InboundTag: "in"}}); err != nil {
 		t.Fatal(err)
 	}
 	select {
@@ -239,7 +240,7 @@ func TestRuleAdditionReplacementCanApplyBeforeOldWebhookCleanupCompletes(t *test
 	prepared := preparedRoutingRule(t, "new")
 	go func() {
 		defer close(done)
-		_, applicationError = client.ApplyRoutingRule(ctx, prepared, domain.ReplaceRoutingRules)
+		_, applicationError = client.ApplyRoutingRule(ctx, prepared, routingdomain.ReplaceRoutingRules)
 	}()
 	defer func() { cancel(); _ = client.Close(); <-done }()
 	ticker := time.NewTicker(time.Millisecond)
@@ -265,7 +266,7 @@ func TestRuleAdditionReplacementCanApplyBeforeOldWebhookCleanupCompletes(t *test
 	cancel()
 	select {
 	case <-done:
-		if !errors.Is(applicationError, domain.ErrRoutingMutationUnknown) || !errors.Is(applicationError, context.Canceled) {
+		if !errors.Is(applicationError, routingdomain.ErrRoutingMutationUnknown) || !errors.Is(applicationError, context.Canceled) {
 			t.Fatalf("post-publication cancellation lost effects: %v", applicationError)
 		}
 	case <-time.After(3 * time.Second):

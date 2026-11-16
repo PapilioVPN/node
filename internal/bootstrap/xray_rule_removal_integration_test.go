@@ -18,9 +18,8 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/PapilioVPN/node/internal/bootstrap"
-	"github.com/PapilioVPN/node/internal/modules/engines/xray/domain"
-	xrayv1 "github.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi/proto/v1"
-	xrayapi "github.com/PapilioVPN/node/internal/modules/engines/xray/infra/api"
+	"github.com/PapilioVPN/node/internal/modules/core/routing/domain"
+	routingv1 "github.com/PapilioVPN/node/internal/modules/core/routing/grpcapi/proto/v1"
 	rpc "github.com/PapilioVPN/node/internal/platform/grpcserver"
 	"github.com/PapilioVPN/node/internal/settings"
 	"github.com/PapilioVPN/node/internal/shared/testutil"
@@ -85,7 +84,7 @@ func TestXrayRuleRemovalOverMTLSChangesTrafficAndKeepsOtherState(t *testing.T) {
 			remove := func(tag string) {
 				t.Helper()
 				before := time.Now().UnixMilli()
-				response, err := client.RemoveRoutingRule(ctx, &xrayv1.RemoveRoutingRuleRequest{InstanceId: "edge-a", RuleTag: tag})
+				response, err := client.RemoveRoutingRule(ctx, &routingv1.RemoveRoutingRuleRequest{InstanceId: "edge-a", RuleTag: tag})
 				if err != nil || response.InstanceId != "edge-a" || response.RuleTag != tag || response.AcknowledgedAtUnixMs < before || response.AcknowledgedAtUnixMs > time.Now().UnixMilli() {
 					t.Fatalf("public removal acknowledgement changed: %v %v", response, err)
 				}
@@ -106,7 +105,7 @@ func TestXrayRuleRemovalOverMTLSChangesTrafficAndKeepsOtherState(t *testing.T) {
 				t.Fatalf("missing rule removal changed other rules: %+v %v", actual, err)
 			}
 			// Whitespace identifies a real native rule. Discard its successful response.
-			response, lost := client.RemoveRoutingRule(ctx, &xrayv1.RemoveRoutingRuleRequest{InstanceId: "edge-a", RuleTag: "   "}, grpc.MaxCallRecvMsgSize(1))
+			response, lost := client.RemoveRoutingRule(ctx, &routingv1.RemoveRoutingRuleRequest{InstanceId: "edge-a", RuleTag: "   "}, grpc.MaxCallRecvMsgSize(1))
 			if response != nil || status.Code(lost) != codes.ResourceExhausted {
 				t.Fatalf("failed to discard removal acknowledgement: %v %v", response, lost)
 			}
@@ -148,7 +147,7 @@ func TestXrayRuleRemovalOverMTLSChangesTrafficAndKeepsOtherState(t *testing.T) {
 	}
 }
 
-func awaitNativeRoutingRules(t *testing.T, ctx context.Context, client *xrayapi.Adapter) domain.RoutingRules {
+func awaitNativeRoutingRules(t *testing.T, ctx context.Context, client *nativeXrayAPI) domain.RoutingRules {
 	t.Helper()
 	ticker := time.NewTicker(20 * time.Millisecond)
 	defer ticker.Stop()

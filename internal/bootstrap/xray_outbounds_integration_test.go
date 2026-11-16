@@ -22,6 +22,7 @@ import (
 
 	"github.com/PapilioVPN/node/internal/bootstrap"
 	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
+	routingv1 "github.com/PapilioVPN/node/internal/modules/core/routing/grpcapi/proto/v1"
 	"github.com/PapilioVPN/node/internal/modules/engines/xray/app/services"
 	"github.com/PapilioVPN/node/internal/modules/engines/xray/domain"
 	xrayv1 "github.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi/proto/v1"
@@ -163,7 +164,7 @@ func TestXrayOutboundObservationsRetainOrdinaryAndBurstFactsWithoutNewProbes(t *
 				if _, err := public.GetRuntimeInfo(ctx, &xrayv1.GetRuntimeInfoRequest{InstanceId: "edge-a"}); status.Code(err) != codes.PermissionDenied {
 					t.Fatal("outbound grant enabled runtime reads")
 				}
-				if _, err := public.ListRoutingRules(ctx, &xrayv1.ListRoutingRulesRequest{InstanceId: "edge-a"}); status.Code(err) != codes.PermissionDenied {
+				if _, err := public.ListRoutingRules(ctx, &routingv1.ListRoutingRulesRequest{InstanceId: "edge-a"}); status.Code(err) != codes.PermissionDenied {
 					t.Fatal("outbound grant enabled routing reads")
 				}
 				if !burst && hits.Load() != before {

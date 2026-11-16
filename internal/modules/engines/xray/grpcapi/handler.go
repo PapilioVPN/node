@@ -10,6 +10,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
+	routinggrpc "github.com/PapilioVPN/node/internal/modules/core/routing/grpcapi"
 	usergrpc "github.com/PapilioVPN/node/internal/modules/core/users/grpcapi"
 	"github.com/PapilioVPN/node/internal/modules/engines/xray/domain"
 	xrayv1 "github.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi/proto/v1"
@@ -23,29 +24,22 @@ type BinaryInfoReader interface {
 
 type Handler struct {
 	usergrpc.UserAPI
-	Info                   BinaryInfoReader
-	Runtime                RuntimeInfoReader
-	Traffic                TrafficCounterReader
-	Resets                 TrafficCounterResetter
-	ScopeResets            TrafficCountersResetter
-	Pairs                  TrafficPairReader
-	PairResets             TrafficPairResetter
-	TrafficCounters        TrafficCountersReader
-	Online                 OnlineReader
-	Routing                RoutingReader
-	Probes                 RoutingProber
-	BalancerOverrides      BalancerOverrider
-	RuleRemoval            RoutingRuleRemover
-	RuleAddition           RoutingRuleAdder
-	Outbounds              OutboundStatusReader
-	AllowInfoRead          bool
-	AllowStatsRead         bool
-	AllowStatsReset        bool
-	AllowOnlineRead        bool
-	AllowRoutingRead       bool
-	AllowRoutingTest       bool
-	AllowRoutingManagement bool
-	AllowOutboundsRead     bool
+	routinggrpc.RoutingAPI
+	Info               BinaryInfoReader
+	Runtime            RuntimeInfoReader
+	Traffic            TrafficCounterReader
+	Resets             TrafficCounterResetter
+	ScopeResets        TrafficCountersResetter
+	Pairs              TrafficPairReader
+	PairResets         TrafficPairResetter
+	TrafficCounters    TrafficCountersReader
+	Online             OnlineReader
+	Outbounds          OutboundStatusReader
+	AllowInfoRead      bool
+	AllowStatsRead     bool
+	AllowStatsReset    bool
+	AllowOnlineRead    bool
+	AllowOutboundsRead bool
 }
 
 func (h Handler) GetBinaryInfo(ctx context.Context, request *xrayv1.GetBinaryInfoRequest) (*xrayv1.GetBinaryInfoResponse, error) {

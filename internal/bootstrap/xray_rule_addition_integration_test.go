@@ -23,10 +23,10 @@ import (
 
 	"github.com/PapilioVPN/node/internal/bootstrap"
 	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
-	"github.com/PapilioVPN/node/internal/modules/engines/xray/app/services"
-	"github.com/PapilioVPN/node/internal/modules/engines/xray/domain"
-	xrayv1 "github.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi/proto/v1"
-	xrayprocess "github.com/PapilioVPN/node/internal/modules/engines/xray/infra/process"
+	"github.com/PapilioVPN/node/internal/modules/core/routing/app/services"
+	"github.com/PapilioVPN/node/internal/modules/core/routing/domain"
+	routingv1 "github.com/PapilioVPN/node/internal/modules/core/routing/grpcapi/proto/v1"
+	xrayprocess "github.com/PapilioVPN/node/internal/modules/core/routing/infra/xray/process"
 	rpc "github.com/PapilioVPN/node/internal/platform/grpcserver"
 	"github.com/PapilioVPN/node/internal/settings"
 	"github.com/PapilioVPN/node/internal/shared/testutil"
@@ -183,44 +183,44 @@ func TestXrayRuleAdditionNativePipelinePreservesAppendReplaceAssetsAndInstances(
 			// The production module owns these native clients/preparers. Only the
 			// routing management grant is enabled on the external mTLS boundary.
 			public := xrayClient(t, server, certificates)
-			publicAdd := func(content string, mode xrayv1.RoutingRuleMode, tag string) {
+			publicAdd := func(content string, mode routingv1.RoutingRuleMode, tag string) {
 				t.Helper()
 				before := time.Now().UnixMilli()
-				response, err := public.AddRoutingRule(ctx, &xrayv1.AddRoutingRuleRequest{InstanceId: "edge-a", RuleJson: []byte(content), Mode: mode})
+				response, err := public.AddRoutingRule(ctx, &routingv1.AddRoutingRuleRequest{InstanceId: "edge-a", RuleJson: []byte(content), Mode: mode})
 				if err != nil || response.InstanceId != "edge-a" || response.RuleTag != tag || response.Mode != mode || response.AcknowledgedAtUnixMs < before || response.AcknowledgedAtUnixMs > time.Now().UnixMilli() {
 					t.Fatalf("mTLS addition acknowledgement changed: %v %v", response, err)
 				}
 			}
-			publicAdd(`{"network":"tcp","outboundTag":"edge-a-out-a"}`, xrayv1.RoutingRuleMode_ROUTING_RULE_MODE_APPEND, "")
-			publicAdd(`{"ruleTag":"   ","network":"tcp","outboundTag":"blocked"}`, xrayv1.RoutingRuleMode_ROUTING_RULE_MODE_APPEND, "   ")
+			publicAdd(`{"network":"tcp","outboundTag":"edge-a-out-a"}`, routingv1.RoutingRuleMode_ROUTING_RULE_MODE_APPEND, "")
+			publicAdd(`{"ruleTag":"   ","network":"tcp","outboundTag":"blocked"}`, routingv1.RoutingRuleMode_ROUTING_RULE_MODE_APPEND, "   ")
 			rules, err := firstAPI.ReadRoutingRules(ctx)
 			if err != nil || len(rules.Items) != 3 || rules.Items[0].RuleTag != "geo" || rules.Items[1].RuleTag != "" || rules.Items[2].RuleTag != "   " {
 				t.Fatalf("mTLS append lost native tag/order semantics: %+v %v", rules, err)
 			}
-			_, err = public.AddRoutingRule(ctx, &xrayv1.AddRoutingRuleRequest{InstanceId: "edge-a", RuleJson: []byte(strings.Repeat(" ", 257)), Mode: xrayv1.RoutingRuleMode_ROUTING_RULE_MODE_APPEND})
-			assertRoutingMutationFailure(t, err, codes.ResourceExhausted, xrayv1.RoutingMutationOutcome_ROUTING_MUTATION_OUTCOME_NOT_APPLIED)
-			_, err = public.AddRoutingRule(ctx, &xrayv1.AddRoutingRuleRequest{InstanceId: "edge-a", RuleJson: []byte(`{}`), Mode: xrayv1.RoutingRuleMode_ROUTING_RULE_MODE_APPEND})
-			assertRoutingMutationFailure(t, err, codes.InvalidArgument, xrayv1.RoutingMutationOutcome_ROUTING_MUTATION_OUTCOME_NOT_APPLIED)
-			_, err = public.AddRoutingRule(ctx, &xrayv1.AddRoutingRuleRequest{InstanceId: "edge-a", RuleJson: []byte(invalidCondition), Mode: xrayv1.RoutingRuleMode_ROUTING_RULE_MODE_APPEND})
-			assertRoutingMutationFailure(t, err, codes.Unavailable, xrayv1.RoutingMutationOutcome_ROUTING_MUTATION_OUTCOME_UNKNOWN)
+			_, err = public.AddRoutingRule(ctx, &routingv1.AddRoutingRuleRequest{InstanceId: "edge-a", RuleJson: []byte(strings.Repeat(" ", 257)), Mode: routingv1.RoutingRuleMode_ROUTING_RULE_MODE_APPEND})
+			assertRoutingMutationFailure(t, err, codes.ResourceExhausted, routingv1.RoutingMutationOutcome_ROUTING_MUTATION_OUTCOME_NOT_APPLIED)
+			_, err = public.AddRoutingRule(ctx, &routingv1.AddRoutingRuleRequest{InstanceId: "edge-a", RuleJson: []byte(`{}`), Mode: routingv1.RoutingRuleMode_ROUTING_RULE_MODE_APPEND})
+			assertRoutingMutationFailure(t, err, codes.InvalidArgument, routingv1.RoutingMutationOutcome_ROUTING_MUTATION_OUTCOME_NOT_APPLIED)
+			_, err = public.AddRoutingRule(ctx, &routingv1.AddRoutingRuleRequest{InstanceId: "edge-a", RuleJson: []byte(invalidCondition), Mode: routingv1.RoutingRuleMode_ROUTING_RULE_MODE_APPEND})
+			assertRoutingMutationFailure(t, err, codes.Unavailable, routingv1.RoutingMutationOutcome_ROUTING_MUTATION_OUTCOME_UNKNOWN)
 			if actual, err := firstAPI.ReadRoutingRules(ctx); err != nil || !reflect.DeepEqual(actual.Items, rules.Items) {
 				t.Fatal("failed public input/native condition changed live rules")
 			}
 			if err := os.Remove(workA); err != nil {
 				t.Fatal(err)
 			}
-			_, err = public.AddRoutingRule(ctx, &xrayv1.AddRoutingRuleRequest{InstanceId: "edge-a", RuleJson: []byte(`{"network":"tcp","outboundTag":"blocked"}`), Mode: xrayv1.RoutingRuleMode_ROUTING_RULE_MODE_APPEND})
-			assertRoutingMutationFailure(t, err, codes.Unavailable, xrayv1.RoutingMutationOutcome_ROUTING_MUTATION_OUTCOME_NOT_APPLIED)
+			_, err = public.AddRoutingRule(ctx, &routingv1.AddRoutingRuleRequest{InstanceId: "edge-a", RuleJson: []byte(`{"network":"tcp","outboundTag":"blocked"}`), Mode: routingv1.RoutingRuleMode_ROUTING_RULE_MODE_APPEND})
+			assertRoutingMutationFailure(t, err, codes.Unavailable, routingv1.RoutingMutationOutcome_ROUTING_MUTATION_OUTCOME_NOT_APPLIED)
 			if strings.Contains(err.Error(), workA) {
 				t.Fatal("preparation failure exposed private paths")
 			}
 			if err := os.Mkdir(workA, 0o700); err != nil {
 				t.Fatal(err)
 			}
-			publicAdd(`{"ruleTag":"public-block","inboundTag":["balanced-http"],"outboundTag":"blocked"}`, xrayv1.RoutingRuleMode_ROUTING_RULE_MODE_REPLACE, "public-block")
+			publicAdd(`{"ruleTag":"public-block","inboundTag":["balanced-http"],"outboundTag":"blocked"}`, routingv1.RoutingRuleMode_ROUTING_RULE_MODE_REPLACE, "public-block")
 			assertBalancedHTTP(t, ctx, balancedA, false)
 			assertBalancedHTTP(t, ctx, balancedB, true)
-			lost, lostError := public.AddRoutingRule(ctx, &xrayv1.AddRoutingRuleRequest{InstanceId: "edge-a", RuleJson: []byte(`{"ruleTag":"lost-reply","network":"tcp,udp","outboundTag":"edge-a-out-a"}`), Mode: xrayv1.RoutingRuleMode_ROUTING_RULE_MODE_REPLACE}, grpc.MaxCallRecvMsgSize(1))
+			lost, lostError := public.AddRoutingRule(ctx, &routingv1.AddRoutingRuleRequest{InstanceId: "edge-a", RuleJson: []byte(`{"ruleTag":"lost-reply","network":"tcp,udp","outboundTag":"edge-a-out-a"}`), Mode: routingv1.RoutingRuleMode_ROUTING_RULE_MODE_REPLACE}, grpc.MaxCallRecvMsgSize(1))
 			if lost != nil || status.Code(lostError) != codes.ResourceExhausted {
 				t.Fatalf("test did not discard the public acknowledgement: %v %v", lost, lostError)
 			}
@@ -231,7 +231,7 @@ func TestXrayRuleAdditionNativePipelinePreservesAppendReplaceAssetsAndInstances(
 			if actual, err := secondAPI.ReadRoutingRules(ctx); err != nil || len(actual.Items) != 1 || actual.Items[0].RuleTag != "geo" {
 				t.Fatalf("public addition crossed instance: %+v %v", actual, err)
 			}
-			if _, err := public.ListRoutingRules(ctx, &xrayv1.ListRoutingRulesRequest{InstanceId: "edge-a"}); status.Code(err) != codes.PermissionDenied {
+			if _, err := public.ListRoutingRules(ctx, &routingv1.ListRoutingRulesRequest{InstanceId: "edge-a"}); status.Code(err) != codes.PermissionDenied {
 				t.Fatalf("management grant enabled routing reads: %v", err)
 			}
 			// No active configuration file is rewritten; only live routing is affected.

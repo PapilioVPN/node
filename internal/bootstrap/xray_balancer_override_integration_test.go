@@ -26,10 +26,9 @@ import (
 
 	"github.com/PapilioVPN/node/internal/bootstrap"
 	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
-	"github.com/PapilioVPN/node/internal/modules/engines/xray/app/services"
-	"github.com/PapilioVPN/node/internal/modules/engines/xray/domain"
-	xrayv1 "github.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi/proto/v1"
-	xrayapi "github.com/PapilioVPN/node/internal/modules/engines/xray/infra/api"
+	"github.com/PapilioVPN/node/internal/modules/core/routing/app/services"
+	"github.com/PapilioVPN/node/internal/modules/core/routing/domain"
+	routingv1 "github.com/PapilioVPN/node/internal/modules/core/routing/grpcapi/proto/v1"
 	rpc "github.com/PapilioVPN/node/internal/platform/grpcserver"
 	"github.com/PapilioVPN/node/internal/settings"
 	"github.com/PapilioVPN/node/internal/shared/testutil"
@@ -79,7 +78,7 @@ func TestXrayBalancerOverrideAndClearPreserveStrategyIsolationAndConfig(t *testi
 			if err := xrayTraffic(ctx, healthA, healthB); err != nil {
 				t.Fatal(err)
 			}
-			clients := map[instances.InstanceID]*xrayapi.Adapter{
+			clients := map[instances.InstanceID]*nativeXrayAPI{
 				"edge-a": nativeXrayAPIClient(t, first), "edge-b": nativeXrayAPIClient(t, second),
 			}
 			for _, client := range clients {
@@ -106,7 +105,7 @@ func TestXrayBalancerOverrideAndClearPreserveStrategyIsolationAndConfig(t *testi
 			}
 			service := services.NewBalancerOverrideService(map[instances.InstanceID]services.BalancerOverrider{"edge-a": firstAPI, "edge-b": secondAPI})
 			probe := domain.RoutingProbe{Context: domain.RoutingContext{Network: domain.RoutingTCP, TargetDomain: "pool.invalid"}}
-			assertRoute := func(client *xrayapi.Adapter, target string) {
+			assertRoute := func(client *nativeXrayAPI, target string) {
 				t.Helper()
 				result, err := client.TestRoute(ctx, probe)
 				if err != nil || result.Route.OutboundTag != target {
@@ -154,7 +153,7 @@ func TestXrayBalancerOverrideAndClearPreserveStrategyIsolationAndConfig(t *testi
 			publicAssign := func(target string) {
 				t.Helper()
 				before := time.Now().UnixMilli()
-				response, err := public.OverrideBalancerTarget(ctx, &xrayv1.OverrideBalancerTargetRequest{InstanceId: "edge-a", BalancerTag: "pool", Target: proto.String(target)})
+				response, err := public.OverrideBalancerTarget(ctx, &routingv1.OverrideBalancerTargetRequest{InstanceId: "edge-a", BalancerTag: "pool", Target: proto.String(target)})
 				if err != nil || response.InstanceId != "edge-a" || response.BalancerTag != "pool" || response.Target != target || response.AcknowledgedAtUnixMs < before || response.AcknowledgedAtUnixMs > time.Now().UnixMilli() {
 					t.Fatalf("public override acknowledgement changed: %v %v", response, err)
 				}
@@ -165,8 +164,8 @@ func TestXrayBalancerOverrideAndClearPreserveStrategyIsolationAndConfig(t *testi
 			}
 			publicAssign("blocked")
 			assertBalancedHTTP(t, ctx, balancedA, false)
-			_, omitted := public.OverrideBalancerTarget(ctx, &xrayv1.OverrideBalancerTargetRequest{InstanceId: "edge-a", BalancerTag: "pool"})
-			assertRoutingMutationFailure(t, omitted, codes.InvalidArgument, xrayv1.RoutingMutationOutcome_ROUTING_MUTATION_OUTCOME_NOT_APPLIED)
+			_, omitted := public.OverrideBalancerTarget(ctx, &routingv1.OverrideBalancerTargetRequest{InstanceId: "edge-a", BalancerTag: "pool"})
+			assertRoutingMutationFailure(t, omitted, codes.InvalidArgument, routingv1.RoutingMutationOutcome_ROUTING_MUTATION_OUTCOME_NOT_APPLIED)
 			info, err := firstAPI.ReadBalancerInfo(ctx, "pool")
 			if err != nil || info.OverrideTarget == nil || *info.OverrideTarget != "blocked" {
 				t.Fatalf("omitted target cleared an override: %+v %v", info, err)
@@ -178,11 +177,11 @@ func TestXrayBalancerOverrideAndClearPreserveStrategyIsolationAndConfig(t *testi
 				assertRoute(firstAPI, target)
 			}
 			publicAssign("")
-			_, missing := public.OverrideBalancerTarget(ctx, &xrayv1.OverrideBalancerTargetRequest{InstanceId: "edge-a", BalancerTag: "missing", Target: proto.String("blocked")})
-			assertRoutingMutationFailure(t, missing, codes.Unavailable, xrayv1.RoutingMutationOutcome_ROUTING_MUTATION_OUTCOME_UNKNOWN)
+			_, missing := public.OverrideBalancerTarget(ctx, &routingv1.OverrideBalancerTargetRequest{InstanceId: "edge-a", BalancerTag: "missing", Target: proto.String("blocked")})
+			assertRoutingMutationFailure(t, missing, codes.Unavailable, routingv1.RoutingMutationOutcome_ROUTING_MUTATION_OUTCOME_UNKNOWN)
 			// Discard a completed response at the external caller's receive boundary.
 			// Its local error cannot establish NOT_APPLIED or justify a retry.
-			response, lost := public.OverrideBalancerTarget(ctx, &xrayv1.OverrideBalancerTargetRequest{InstanceId: "edge-a", BalancerTag: "pool", Target: proto.String("blocked")}, grpc.MaxCallRecvMsgSize(1))
+			response, lost := public.OverrideBalancerTarget(ctx, &routingv1.OverrideBalancerTargetRequest{InstanceId: "edge-a", BalancerTag: "pool", Target: proto.String("blocked")}, grpc.MaxCallRecvMsgSize(1))
 			if response != nil || status.Code(lost) != codes.ResourceExhausted {
 				t.Fatalf("test failed to discard the public acknowledgement: %v %v", response, lost)
 			}
@@ -194,7 +193,7 @@ func TestXrayBalancerOverrideAndClearPreserveStrategyIsolationAndConfig(t *testi
 			publicAssign("")
 			assertBalancedHTTP(t, ctx, balancedA, true)
 			for _, item := range []struct {
-				client *xrayapi.Adapter
+				client *nativeXrayAPI
 				tag    string
 			}{{firstAPI, "other-pool"}, {secondAPI, "pool"}} {
 				info, err := item.client.ReadBalancerInfo(ctx, item.tag)

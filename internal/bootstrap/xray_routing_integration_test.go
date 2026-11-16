@@ -23,6 +23,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/PapilioVPN/node/internal/bootstrap"
+	routingv1 "github.com/PapilioVPN/node/internal/modules/core/routing/grpcapi/proto/v1"
 	userv1 "github.com/PapilioVPN/node/internal/modules/core/users/grpcapi/proto/v1"
 	xrayv1 "github.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi/proto/v1"
 	rpc "github.com/PapilioVPN/node/internal/platform/grpcserver"
@@ -106,13 +107,13 @@ func TestXrayRoutingReadsOverMTLSKeepPriorityTrafficAndInstances(t *testing.T) {
 			}
 			assertPriority()
 			for i := 0; i < 3; i++ {
-				rules, err := client.ListRoutingRules(ctx, &xrayv1.ListRoutingRulesRequest{InstanceId: "edge-a"})
+				rules, err := client.ListRoutingRules(ctx, &routingv1.ListRoutingRulesRequest{InstanceId: "edge-a"})
 				if err != nil {
 					t.Fatal(err)
 				}
 				assertRoutingReferences(t, rules, "edge-a")
 				for _, id := range []string{"edge-a", "edge-b"} {
-					info, err := client.GetBalancerInfo(ctx, &xrayv1.GetBalancerInfoRequest{InstanceId: id, BalancerTag: "pool"})
+					info, err := client.GetBalancerInfo(ctx, &routingv1.GetBalancerInfoRequest{InstanceId: id, BalancerTag: "pool"})
 					if err != nil || info.InstanceId != id || info.BalancerTag != "pool" || info.OverrideTarget == nil || *info.OverrideTarget != "" || info.PrincipalTargets == nil || info.ObservedAtUnixMs <= 0 {
 						t.Fatalf("native balancer presence/identity: %v %v", info, err)
 					}
@@ -130,7 +131,7 @@ func TestXrayRoutingReadsOverMTLSKeepPriorityTrafficAndInstances(t *testing.T) {
 			for _, tag := range []string{"missing", " pool "} {
 				// Pinned Xray returns a generic error for a missing balancer. Never
 				// parse its text into NotFound or fabricate an empty observation.
-				response, err := client.GetBalancerInfo(ctx, &xrayv1.GetBalancerInfoRequest{InstanceId: "edge-a", BalancerTag: tag})
+				response, err := client.GetBalancerInfo(ctx, &routingv1.GetBalancerInfoRequest{InstanceId: "edge-a", BalancerTag: tag})
 				if response != nil || status.Code(err) != codes.Unavailable || strings.Contains(err.Error(), certificates.Directory) {
 					t.Fatalf("native missing tag was normalized or fabricated: %v %v", response, err)
 				}
@@ -182,7 +183,7 @@ func configureXrayRouting(t *testing.T, instance settings.Instance) []byte {
 	return content
 }
 
-func assertRoutingReferences(t *testing.T, result *xrayv1.ListRoutingRulesResponse, id string) {
+func assertRoutingReferences(t *testing.T, result *routingv1.ListRoutingRulesResponse, id string) {
 	t.Helper()
 	want := [][2]string{{id + "-out-a", "z-first"}, {id + "-out-b", "a-second"}, {"", "balanced"}, {id + "-out-b", ""}}
 	if result.InstanceId != id || len(result.Rules) != len(want) || result.ObservedAtUnixMs <= 0 {
@@ -195,12 +196,12 @@ func assertRoutingReferences(t *testing.T, result *xrayv1.ListRoutingRulesRespon
 	}
 }
 
-func awaitRoutingRules(t *testing.T, ctx context.Context, client xrayv1.XrayServiceClient, id string) *xrayv1.ListRoutingRulesResponse {
+func awaitRoutingRules(t *testing.T, ctx context.Context, client xrayv1.XrayServiceClient, id string) *routingv1.ListRoutingRulesResponse {
 	t.Helper()
 	ticker := time.NewTicker(20 * time.Millisecond)
 	defer ticker.Stop()
 	for {
-		response, err := client.ListRoutingRules(ctx, &xrayv1.ListRoutingRulesRequest{InstanceId: id})
+		response, err := client.ListRoutingRules(ctx, &routingv1.ListRoutingRulesRequest{InstanceId: id})
 		if err == nil {
 			return response
 		}
@@ -235,17 +236,17 @@ func TestRoutingReadGrantOverMTLSIsIndependent(t *testing.T) {
 			if granted {
 				want = codes.NotFound
 			}
-			if result, err := client.ListRoutingRules(t.Context(), &xrayv1.ListRoutingRulesRequest{InstanceId: "missing"}); result != nil || status.Code(err) != want {
+			if result, err := client.ListRoutingRules(t.Context(), &routingv1.ListRoutingRulesRequest{InstanceId: "missing"}); result != nil || status.Code(err) != want {
 				t.Fatalf("routing grant/lookup boundary changed: %v %v", result, err)
 			}
-			if result, err := client.GetBalancerInfo(t.Context(), &xrayv1.GetBalancerInfoRequest{InstanceId: "missing", BalancerTag: "pool"}); result != nil || status.Code(err) != want {
+			if result, err := client.GetBalancerInfo(t.Context(), &routingv1.GetBalancerInfoRequest{InstanceId: "missing", BalancerTag: "pool"}); result != nil || status.Code(err) != want {
 				t.Fatalf("balancer grant/lookup boundary changed: %v %v", result, err)
 			}
 			if !granted {
-				if _, err := client.ListRoutingRules(t.Context(), &xrayv1.ListRoutingRulesRequest{}); status.Code(err) != codes.PermissionDenied {
+				if _, err := client.ListRoutingRules(t.Context(), &routingv1.ListRoutingRulesRequest{}); status.Code(err) != codes.PermissionDenied {
 					t.Fatalf("list shape checked before grant: %v", err)
 				}
-				if _, err := client.GetBalancerInfo(t.Context(), &xrayv1.GetBalancerInfoRequest{}); status.Code(err) != codes.PermissionDenied {
+				if _, err := client.GetBalancerInfo(t.Context(), &routingv1.GetBalancerInfoRequest{}); status.Code(err) != codes.PermissionDenied {
 					t.Fatalf("balancer shape checked before grant: %v", err)
 				}
 			} else {

@@ -17,6 +17,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	routingdomain "github.com/PapilioVPN/node/internal/modules/core/routing/domain"
 	"github.com/PapilioVPN/node/internal/modules/engines/xray/domain"
 )
 
@@ -129,7 +130,7 @@ func TestRoutingFailuresNeverReturnEmptySuccessOrRetry(t *testing.T) {
 				t.Fatal("native list failure became success or replayed")
 			}
 			info, err := client.ReadBalancerInfo(t.Context(), "pool")
-			if status.Code(err) != code || info != (domain.BalancerInfo{}) || counts.rpcs.Load() != 2 {
+			if status.Code(err) != code || info != (routingdomain.BalancerInfo{}) || counts.rpcs.Load() != 2 {
 				t.Fatal("native balancer failure became success or replayed")
 			}
 		})
@@ -137,7 +138,7 @@ func TestRoutingFailuresNeverReturnEmptySuccessOrRetry(t *testing.T) {
 	address, _ := routingAPI(t, routingServer{balancer: func(context.Context, string) (*native.GetBalancerInfoResponse, error) {
 		return &native.GetBalancerInfoResponse{}, nil
 	}})
-	if info, err := apiClient(t, address, time.Second, 4096).ReadBalancerInfo(t.Context(), "pool"); !errors.Is(err, domain.ErrInvalidRoutingResponse) || info != (domain.BalancerInfo{}) {
+	if info, err := apiClient(t, address, time.Second, 4096).ReadBalancerInfo(t.Context(), "pool"); !errors.Is(err, routingdomain.ErrInvalidRoutingResponse) || info != (routingdomain.BalancerInfo{}) {
 		t.Fatal("missing balancer message became empty successful info")
 	}
 }
@@ -155,7 +156,7 @@ func TestRoutingReceiveLimitsAndSharedAdmissionObserveCancellation(t *testing.T)
 	if result, err := limited.ReadRoutingRules(t.Context()); !errors.Is(err, domain.ErrAPIResourceLimit) || len(result.Items) != 0 {
 		t.Fatal("oversized routing list became partial facts")
 	}
-	if result, err := limited.ReadBalancerInfo(t.Context(), "pool"); !errors.Is(err, domain.ErrAPIResourceLimit) || result != (domain.BalancerInfo{}) {
+	if result, err := limited.ReadBalancerInfo(t.Context(), "pool"); !errors.Is(err, domain.ErrAPIResourceLimit) || result != (routingdomain.BalancerInfo{}) {
 		t.Fatal("oversized balancer reply became successful facts")
 	}
 	entered := make(chan struct{})

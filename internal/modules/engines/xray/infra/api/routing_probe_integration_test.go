@@ -19,6 +19,7 @@ import (
 	"google.golang.org/protobuf/encoding/protowire"
 	"google.golang.org/protobuf/proto"
 
+	routingdomain "github.com/PapilioVPN/node/internal/modules/core/routing/domain"
 	"github.com/PapilioVPN/node/internal/modules/engines/xray/domain"
 )
 
@@ -30,14 +31,14 @@ type routingProbeServer struct {
 func TestRoutingProbePreservesAllContextFieldsWithOneCallAtEverySize(t *testing.T) {
 	for _, size := range []int{0, 1, 100, 1000} {
 		for _, network := range []struct {
-			domain domain.RoutingNetwork
+			domain routingdomain.RoutingNetwork
 			native netnative.Network
 		}{
-			{domain.RoutingUnknown, netnative.Network_Unknown}, {domain.RoutingTCP, netnative.Network_TCP},
-			{domain.RoutingUDP, netnative.Network_UDP}, {domain.RoutingUnix, netnative.Network_UNIX},
+			{routingdomain.RoutingUnknown, netnative.Network_Unknown}, {routingdomain.RoutingTCP, netnative.Network_TCP},
+			{routingdomain.RoutingUDP, netnative.Network_UDP}, {routingdomain.RoutingUnix, netnative.Network_UNIX},
 		} {
 			t.Run(fmt.Sprintf("%d/%s", size, network.native), func(t *testing.T) {
-				input := domain.RoutingContext{InboundTag: " exact>>>in ", Network: network.domain,
+				input := routingdomain.RoutingContext{InboundTag: " exact>>>in ", Network: network.domain,
 					SourcePort: 65535, TargetPort: 0, LocalPort: 1, VLESSRoute: 65535,
 					TargetDomain: " Domain.Example ", Protocol: " opaque-protocol ", User: " Mixed@Example "}
 				if size > 0 {
@@ -65,7 +66,7 @@ func TestRoutingProbePreservesAllContextFieldsWithOneCallAtEverySize(t *testing.
 					return reply, nil
 				}})
 				client := apiClient(t, address, time.Second, 512*1024)
-				probe := domain.RoutingProbe{Context: input, FieldSelectors: selectors, PublishResult: true}
+				probe := routingdomain.RoutingProbe{Context: input, FieldSelectors: selectors, PublishResult: true}
 				result, err := client.TestRoute(t.Context(), probe)
 				if err != nil || !reflect.DeepEqual(result.Route.Context, input) || result.Route.OutboundTag != " exact>>>out " || !reflect.DeepEqual(result.Route.OutboundGroupTags, []string{"z", "a", "a", ""}) || result.AcknowledgedAt.IsZero() || counts.rpcs.Load() != 1 || counts.opened.Load() != 1 {
 					t.Fatalf("native full context changed or probe over-fetched: %v calls=%d channels=%d", err, counts.rpcs.Load(), counts.opened.Load())
@@ -90,11 +91,11 @@ func TestRoutingProbeFailuresRetainUnknownEffectsAndNeverRetry(t *testing.T) {
 			address, counts := routingAPI(t, routingProbeServer{probe: func(context.Context, *native.TestRouteRequest) (*native.RoutingContext, error) {
 				return nil, status.Error(code, "private diagnostic")
 			}})
-			result, err := apiClient(t, address, time.Second, 4096).TestRoute(t.Context(), domain.RoutingProbe{})
-			if err == nil || !reflect.DeepEqual(result, domain.RoutingProbeResult{}) || status.Code(err) != code || counts.rpcs.Load() != 1 || errors.Is(err, domain.ErrRoutingProbeUnknown) != (code != codes.Unimplemented) {
+			result, err := apiClient(t, address, time.Second, 4096).TestRoute(t.Context(), routingdomain.RoutingProbe{})
+			if err == nil || !reflect.DeepEqual(result, routingdomain.RoutingProbeResult{}) || status.Code(err) != code || counts.rpcs.Load() != 1 || errors.Is(err, routingdomain.ErrRoutingProbeUnknown) != (code != codes.Unimplemented) {
 				t.Fatalf("probe failure lost causes/outcome or retried: %+v %v calls=%d", result, err, counts.rpcs.Load())
 			}
-			if code == codes.Unimplemented && !errors.Is(err, domain.ErrRoutingProbeUnsupported) {
+			if code == codes.Unimplemented && !errors.Is(err, routingdomain.ErrRoutingProbeUnsupported) {
 				t.Fatal(err)
 			}
 			if code == codes.ResourceExhausted && !errors.Is(err, domain.ErrAPIResourceLimit) {
@@ -111,18 +112,18 @@ func TestRoutingProbeFailuresRetainUnknownEffectsAndNeverRetry(t *testing.T) {
 }
 
 func TestRoutingProbeRejectsInvalidRepresentationsBeforeNativeEffects(t *testing.T) {
-	for _, probe := range []domain.RoutingProbe{
-		{Context: domain.RoutingContext{Network: 255}},
-		{Context: domain.RoutingContext{InboundTag: "\xff"}}, {Context: domain.RoutingContext{User: "\xff"}},
-		{Context: domain.RoutingContext{TargetDomain: "\xff"}}, {Context: domain.RoutingContext{Protocol: "\xff"}},
-		{Context: domain.RoutingContext{Attributes: map[string]string{"\xff": "value"}}},
-		{Context: domain.RoutingContext{Attributes: map[string]string{"key": "\xff"}}}, {FieldSelectors: []string{"\xff"}},
-		{Context: domain.RoutingContext{SourceIPs: []netip.Addr{{}}}}, {Context: domain.RoutingContext{TargetIPs: []netip.Addr{{}}}},
-		{Context: domain.RoutingContext{LocalIPs: []netip.Addr{netip.MustParseAddr("fe80::1%eth0")}}},
+	for _, probe := range []routingdomain.RoutingProbe{
+		{Context: routingdomain.RoutingContext{Network: 255}},
+		{Context: routingdomain.RoutingContext{InboundTag: "\xff"}}, {Context: routingdomain.RoutingContext{User: "\xff"}},
+		{Context: routingdomain.RoutingContext{TargetDomain: "\xff"}}, {Context: routingdomain.RoutingContext{Protocol: "\xff"}},
+		{Context: routingdomain.RoutingContext{Attributes: map[string]string{"\xff": "value"}}},
+		{Context: routingdomain.RoutingContext{Attributes: map[string]string{"key": "\xff"}}}, {FieldSelectors: []string{"\xff"}},
+		{Context: routingdomain.RoutingContext{SourceIPs: []netip.Addr{{}}}}, {Context: routingdomain.RoutingContext{TargetIPs: []netip.Addr{{}}}},
+		{Context: routingdomain.RoutingContext{LocalIPs: []netip.Addr{netip.MustParseAddr("fe80::1%eth0")}}},
 	} {
 		address, counts := routingAPI(t, routingProbeServer{})
 		result, err := apiClient(t, address, time.Second, 4096).TestRoute(t.Context(), probe)
-		if !errors.Is(err, domain.ErrInvalidRoutingProbe) || errors.Is(err, domain.ErrRoutingProbeUnknown) || !reflect.DeepEqual(result, domain.RoutingProbeResult{}) || counts.rpcs.Load() != 0 || counts.opened.Load() != 0 {
+		if !errors.Is(err, routingdomain.ErrInvalidRoutingProbe) || errors.Is(err, routingdomain.ErrRoutingProbeUnknown) || !reflect.DeepEqual(result, routingdomain.RoutingProbeResult{}) || counts.rpcs.Load() != 0 || counts.opened.Load() != 0 {
 			t.Fatalf("invalid probe reached native workers/effects: %+v %v", result, err)
 		}
 	}
@@ -136,23 +137,23 @@ func TestRoutingProbeMalformedOrOversizedReplyRetainsPossibleEffects(t *testing.
 		{SourceIPs: [][]byte{{1}}}, {TargetIPs: [][]byte{{1, 2, 3}}}, {LocalIPs: [][]byte{nil}}, unknown,
 	} {
 		address, counts := routingAPI(t, routingProbeServer{probe: func(context.Context, *native.TestRouteRequest) (*native.RoutingContext, error) { return reply, nil }})
-		result, err := apiClient(t, address, time.Second, 4096).TestRoute(t.Context(), domain.RoutingProbe{})
-		if !errors.Is(err, domain.ErrInvalidRoutingProbeResponse) || !errors.Is(err, domain.ErrRoutingProbeUnknown) || !reflect.DeepEqual(result, domain.RoutingProbeResult{}) || counts.rpcs.Load() != 1 {
+		result, err := apiClient(t, address, time.Second, 4096).TestRoute(t.Context(), routingdomain.RoutingProbe{})
+		if !errors.Is(err, routingdomain.ErrInvalidRoutingProbeResponse) || !errors.Is(err, routingdomain.ErrRoutingProbeUnknown) || !reflect.DeepEqual(result, routingdomain.RoutingProbeResult{}) || counts.rpcs.Load() != 1 {
 			t.Fatalf("malformed reply became successful facts/no-effect: %+v %v", result, err)
 		}
 	}
 	address, counts := routingAPI(t, routingProbeServer{probe: func(context.Context, *native.TestRouteRequest) (*native.RoutingContext, error) {
 		return &native.RoutingContext{OutboundTag: "large"}, nil
 	}})
-	result, err := apiClient(t, address, time.Second, 1).TestRoute(t.Context(), domain.RoutingProbe{})
-	if !errors.Is(err, domain.ErrAPIResourceLimit) || !errors.Is(err, domain.ErrRoutingProbeUnknown) || !reflect.DeepEqual(result, domain.RoutingProbeResult{}) || counts.rpcs.Load() != 1 {
+	result, err := apiClient(t, address, time.Second, 1).TestRoute(t.Context(), routingdomain.RoutingProbe{})
+	if !errors.Is(err, domain.ErrAPIResourceLimit) || !errors.Is(err, routingdomain.ErrRoutingProbeUnknown) || !reflect.DeepEqual(result, routingdomain.RoutingProbeResult{}) || counts.rpcs.Load() != 1 {
 		t.Fatalf("oversized reply lost possible effects: %+v %v", result, err)
 	}
 	address, _ = routingAPI(t, routingProbeServer{probe: func(context.Context, *native.TestRouteRequest) (*native.RoutingContext, error) {
 		return &native.RoutingContext{}, nil
 	}})
-	result, err = apiClient(t, address, time.Second, 4096).TestRoute(t.Context(), domain.RoutingProbe{FieldSelectors: []string{"unknown"}})
-	if err != nil || result.AcknowledgedAt.IsZero() || !reflect.DeepEqual(result.Route, domain.RouteResult{}) {
+	result, err = apiClient(t, address, time.Second, 4096).TestRoute(t.Context(), routingdomain.RoutingProbe{FieldSelectors: []string{"unknown"}})
+	if err != nil || result.AcknowledgedAt.IsZero() || !reflect.DeepEqual(result.Route, routingdomain.RouteResult{}) {
 		t.Fatalf("valid empty projection became failure: %+v %v", result, err)
 	}
 }
@@ -172,14 +173,14 @@ func TestRoutingProbeCanceledAfterEffectSharesCapacityAndNeverReplays(t *testing
 			ctx, cancel := context.WithCancel(t.Context())
 			done := make(chan struct{})
 			var probeError error
-			go func() { defer close(done); _, probeError = client.TestRoute(ctx, domain.RoutingProbe{}) }()
+			go func() { defer close(done); _, probeError = client.TestRoute(ctx, routingdomain.RoutingProbe{}) }()
 			defer func() { cancel(); _ = client.Close(); <-done }()
 			select {
 			case <-entered:
 			case <-time.After(3 * time.Second):
 				t.Fatal("native probe did not start")
 			}
-			if _, err := client.TestRoute(t.Context(), domain.RoutingProbe{}); !errors.Is(err, domain.ErrAPIBusy) || errors.Is(err, domain.ErrRoutingProbeUnknown) {
+			if _, err := client.TestRoute(t.Context(), routingdomain.RoutingProbe{}); !errors.Is(err, domain.ErrAPIBusy) || errors.Is(err, routingdomain.ErrRoutingProbeUnknown) {
 				t.Fatalf("saturated probe bypassed admission or claimed possible effects: %v", err)
 			}
 			if _, err := client.ReadRuntimeInfo(t.Context()); !errors.Is(err, domain.ErrAPIBusy) {
@@ -199,7 +200,7 @@ func TestRoutingProbeCanceledAfterEffectSharesCapacityAndNeverReplays(t *testing
 			select {
 			case <-done:
 				err := probeError
-				if !errors.Is(err, domain.ErrRoutingProbeUnknown) || effects.Load() != 1 || counts.rpcs.Load() != 1 {
+				if !errors.Is(err, routingdomain.ErrRoutingProbeUnknown) || effects.Load() != 1 || counts.rpcs.Load() != 1 {
 					t.Fatalf("lost response erased/replayed effects: %v effects=%d calls=%d", err, effects.Load(), counts.rpcs.Load())
 				}
 				if mode == "cancel" && !errors.Is(err, context.Canceled) {
@@ -231,7 +232,7 @@ func TestRoutingProbeDispatchesOneNativeCommandOnExistingChannel(t *testing.T) {
 		t.Fatal(err)
 	}
 	before := time.Now()
-	result, err := client.TestRoute(t.Context(), domain.RoutingProbe{Context: domain.RoutingContext{TargetDomain: " opaque.example "}, FieldSelectors: []string{"out"}, PublishResult: true})
+	result, err := client.TestRoute(t.Context(), routingdomain.RoutingProbe{Context: routingdomain.RoutingContext{TargetDomain: " opaque.example "}, FieldSelectors: []string{"out"}, PublishResult: true})
 	if err != nil || result.Route.OutboundTag != " exact>>>out " || result.AcknowledgedAt.Before(before) || result.AcknowledgedAt.After(time.Now()) || counts.rpcs.Load() != 2 || counts.opened.Load() != 1 {
 		t.Fatalf("native probe was missing/changed or added calls/channels: %+v %v calls=%d channels=%d", result, err, counts.rpcs.Load(), counts.opened.Load())
 	}

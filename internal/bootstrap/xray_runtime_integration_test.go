@@ -22,6 +22,8 @@ import (
 	"github.com/PapilioVPN/node/internal/bootstrap"
 	"github.com/PapilioVPN/node/internal/modules/core/instances"
 	instancesv1 "github.com/PapilioVPN/node/internal/modules/core/instances/grpcapi/proto/v1"
+	routingdomain "github.com/PapilioVPN/node/internal/modules/core/routing/domain"
+	routingv1 "github.com/PapilioVPN/node/internal/modules/core/routing/grpcapi/proto/v1"
 	userv1 "github.com/PapilioVPN/node/internal/modules/core/users/grpcapi/proto/v1"
 	xraydomain "github.com/PapilioVPN/node/internal/modules/engines/xray/domain"
 	xrayv1 "github.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi/proto/v1"
@@ -96,27 +98,27 @@ func TestXrayRuntimeInfoOverMTLSAndNativeReconnect(t *testing.T) {
 			if result, err := nativeXrayAPIClient(t, second).ReadOutboundStatuses(ctx); !errors.Is(err, xraydomain.ErrOutboundObservationUnsupported) || result.Items != nil || !result.ObservedAt.IsZero() {
 				t.Fatalf("absent native ObservatoryService became empty successful observations: %+v %v", result, err)
 			}
-			if result, err := nativeXrayAPIClient(t, second).TestRoute(ctx, xraydomain.RoutingProbe{}); !errors.Is(err, xraydomain.ErrRoutingProbeUnsupported) || errors.Is(err, xraydomain.ErrRoutingProbeUnknown) || !result.AcknowledgedAt.IsZero() {
+			if result, err := nativeXrayAPIClient(t, second).TestRoute(ctx, routingdomain.RoutingProbe{}); !errors.Is(err, routingdomain.ErrRoutingProbeUnsupported) || errors.Is(err, routingdomain.ErrRoutingProbeUnknown) || !result.AcknowledgedAt.IsZero() {
 				t.Fatalf("absent native RoutingService accepted a probe or claimed effects: %+v %v", result, err)
 			}
-			if ack, err := nativeXrayAPIClient(t, second).OverrideBalancerTarget(ctx, xraydomain.BalancerOverride{BalancerTag: "pool"}); !errors.Is(err, xraydomain.ErrRoutingManagementUnsupported) || errors.Is(err, xraydomain.ErrRoutingMutationUnknown) || !ack.AcknowledgedAt.IsZero() {
+			if ack, err := nativeXrayAPIClient(t, second).OverrideBalancerTarget(ctx, routingdomain.BalancerOverride{BalancerTag: "pool"}); !errors.Is(err, routingdomain.ErrRoutingManagementUnsupported) || errors.Is(err, routingdomain.ErrRoutingMutationUnknown) || !ack.AcknowledgedAt.IsZero() {
 				t.Fatalf("absent native RoutingService accepted an override/claimed effects: %+v %v", ack, err)
 			}
-			_, probeError := client.TestRoute(ctx, &xrayv1.TestRouteRequest{InstanceId: "edge-b", Context: &xrayv1.RoutingContext{}})
-			assertRoutingProbeFailure(t, probeError, codes.FailedPrecondition, xrayv1.RoutingProbeOutcome_ROUTING_PROBE_OUTCOME_NOT_EXECUTED)
-			_, overrideError := client.OverrideBalancerTarget(ctx, &xrayv1.OverrideBalancerTargetRequest{InstanceId: "edge-b", BalancerTag: "pool", Target: proto.String("")})
-			assertRoutingMutationFailure(t, overrideError, codes.FailedPrecondition, xrayv1.RoutingMutationOutcome_ROUTING_MUTATION_OUTCOME_NOT_APPLIED)
-			_, removalError := client.RemoveRoutingRule(ctx, &xrayv1.RemoveRoutingRuleRequest{InstanceId: "edge-b", RuleTag: "rule"})
-			assertRoutingMutationFailure(t, removalError, codes.FailedPrecondition, xrayv1.RoutingMutationOutcome_ROUTING_MUTATION_OUTCOME_NOT_APPLIED)
+			_, probeError := client.TestRoute(ctx, &routingv1.TestRouteRequest{InstanceId: "edge-b", Context: &routingv1.RoutingContext{}})
+			assertRoutingProbeFailure(t, probeError, codes.FailedPrecondition, routingv1.RoutingProbeOutcome_ROUTING_PROBE_OUTCOME_NOT_EXECUTED)
+			_, overrideError := client.OverrideBalancerTarget(ctx, &routingv1.OverrideBalancerTargetRequest{InstanceId: "edge-b", BalancerTag: "pool", Target: proto.String("")})
+			assertRoutingMutationFailure(t, overrideError, codes.FailedPrecondition, routingv1.RoutingMutationOutcome_ROUTING_MUTATION_OUTCOME_NOT_APPLIED)
+			_, removalError := client.RemoveRoutingRule(ctx, &routingv1.RemoveRoutingRuleRequest{InstanceId: "edge-b", RuleTag: "rule"})
+			assertRoutingMutationFailure(t, removalError, codes.FailedPrecondition, routingv1.RoutingMutationOutcome_ROUTING_MUTATION_OUTCOME_NOT_APPLIED)
 			for _, id := range []string{"edge-a", "edge-b"} {
-				_, additionError := client.AddRoutingRule(ctx, &xrayv1.AddRoutingRuleRequest{InstanceId: id, RuleJson: []byte(`{"network":"tcp","outboundTag":"out"}`), Mode: xrayv1.RoutingRuleMode_ROUTING_RULE_MODE_APPEND})
-				assertRoutingMutationFailure(t, additionError, codes.FailedPrecondition, xrayv1.RoutingMutationOutcome_ROUTING_MUTATION_OUTCOME_NOT_APPLIED)
+				_, additionError := client.AddRoutingRule(ctx, &routingv1.AddRoutingRuleRequest{InstanceId: id, RuleJson: []byte(`{"network":"tcp","outboundTag":"out"}`), Mode: routingv1.RoutingRuleMode_ROUTING_RULE_MODE_APPEND})
+				assertRoutingMutationFailure(t, additionError, codes.FailedPrecondition, routingv1.RoutingMutationOutcome_ROUTING_MUTATION_OUTCOME_NOT_APPLIED)
 			}
 
-			if result, err := client.ListRoutingRules(ctx, &xrayv1.ListRoutingRulesRequest{InstanceId: "edge-b"}); result != nil || status.Code(err) != codes.FailedPrecondition {
+			if result, err := client.ListRoutingRules(ctx, &routingv1.ListRoutingRulesRequest{InstanceId: "edge-b"}); result != nil || status.Code(err) != codes.FailedPrecondition {
 				t.Fatalf("absent native RoutingService became successful rules: %v %v", result, err)
 			}
-			if result, err := client.GetBalancerInfo(ctx, &xrayv1.GetBalancerInfoRequest{InstanceId: "edge-b", BalancerTag: "pool"}); result != nil || status.Code(err) != codes.FailedPrecondition {
+			if result, err := client.GetBalancerInfo(ctx, &routingv1.GetBalancerInfoRequest{InstanceId: "edge-b", BalancerTag: "pool"}); result != nil || status.Code(err) != codes.FailedPrecondition {
 				t.Fatalf("absent native RoutingService became successful balancer: %v %v", result, err)
 			}
 			if result, err := client.GetInboundUserCount(ctx, &userv1.GetInboundUserCountRequest{InstanceId: "edge-b", InboundTag: "in"}); result != nil || status.Code(err) != codes.FailedPrecondition {

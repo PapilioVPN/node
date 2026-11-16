@@ -20,6 +20,7 @@ import (
 	"github.com/PapilioVPN/node/internal/bootstrap"
 	"github.com/PapilioVPN/node/internal/modules/core/instances"
 	instancesv1 "github.com/PapilioVPN/node/internal/modules/core/instances/grpcapi/proto/v1"
+	routingv1 "github.com/PapilioVPN/node/internal/modules/core/routing/grpcapi/proto/v1"
 	xrayv1 "github.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi/proto/v1"
 	rpc "github.com/PapilioVPN/node/internal/platform/grpcserver"
 	"github.com/PapilioVPN/node/internal/settings"
@@ -83,14 +84,14 @@ func TestXrayBinaryInfoOverMTLSKeepsLiveInstancesUnchanged(t *testing.T) {
 	if value, err := client.GetOutboundStatus(ctx, &xrayv1.GetOutboundStatusRequest{InstanceId: "edge-a", OutboundTag: proto.String("out")}); value != nil || status.Code(err) != codes.FailedPrecondition {
 		t.Fatal("disabled API became absent outbound observation")
 	}
-	_, probeError := client.TestRoute(ctx, &xrayv1.TestRouteRequest{InstanceId: "edge-a", Context: &xrayv1.RoutingContext{}})
-	assertRoutingProbeFailure(t, probeError, codes.FailedPrecondition, xrayv1.RoutingProbeOutcome_ROUTING_PROBE_OUTCOME_NOT_EXECUTED)
-	_, overrideError := client.OverrideBalancerTarget(ctx, &xrayv1.OverrideBalancerTargetRequest{InstanceId: "edge-a", BalancerTag: "pool", Target: proto.String("")})
-	assertRoutingMutationFailure(t, overrideError, codes.FailedPrecondition, xrayv1.RoutingMutationOutcome_ROUTING_MUTATION_OUTCOME_NOT_APPLIED)
-	_, removalError := client.RemoveRoutingRule(ctx, &xrayv1.RemoveRoutingRuleRequest{InstanceId: "edge-a", RuleTag: "rule"})
-	assertRoutingMutationFailure(t, removalError, codes.FailedPrecondition, xrayv1.RoutingMutationOutcome_ROUTING_MUTATION_OUTCOME_NOT_APPLIED)
-	_, additionError := client.AddRoutingRule(ctx, &xrayv1.AddRoutingRuleRequest{InstanceId: "edge-a", RuleJson: []byte(`{"network":"tcp","outboundTag":"out"}`), Mode: xrayv1.RoutingRuleMode_ROUTING_RULE_MODE_APPEND})
-	assertRoutingMutationFailure(t, additionError, codes.FailedPrecondition, xrayv1.RoutingMutationOutcome_ROUTING_MUTATION_OUTCOME_NOT_APPLIED)
+	_, probeError := client.TestRoute(ctx, &routingv1.TestRouteRequest{InstanceId: "edge-a", Context: &routingv1.RoutingContext{}})
+	assertRoutingProbeFailure(t, probeError, codes.FailedPrecondition, routingv1.RoutingProbeOutcome_ROUTING_PROBE_OUTCOME_NOT_EXECUTED)
+	_, overrideError := client.OverrideBalancerTarget(ctx, &routingv1.OverrideBalancerTargetRequest{InstanceId: "edge-a", BalancerTag: "pool", Target: proto.String("")})
+	assertRoutingMutationFailure(t, overrideError, codes.FailedPrecondition, routingv1.RoutingMutationOutcome_ROUTING_MUTATION_OUTCOME_NOT_APPLIED)
+	_, removalError := client.RemoveRoutingRule(ctx, &routingv1.RemoveRoutingRuleRequest{InstanceId: "edge-a", RuleTag: "rule"})
+	assertRoutingMutationFailure(t, removalError, codes.FailedPrecondition, routingv1.RoutingMutationOutcome_ROUTING_MUTATION_OUTCOME_NOT_APPLIED)
+	_, additionError := client.AddRoutingRule(ctx, &routingv1.AddRoutingRuleRequest{InstanceId: "edge-a", RuleJson: []byte(`{"network":"tcp","outboundTag":"out"}`), Mode: routingv1.RoutingRuleMode_ROUTING_RULE_MODE_APPEND})
+	assertRoutingMutationFailure(t, additionError, codes.FailedPrecondition, routingv1.RoutingMutationOutcome_ROUTING_MUTATION_OUTCOME_NOT_APPLIED)
 
 	if _, err := client.GetRuntimeInfo(ctx, &xrayv1.GetRuntimeInfoRequest{InstanceId: "edge-a"}); status.Code(err) != codes.FailedPrecondition {
 		t.Fatalf("absent API settings were ignored: %v", err)

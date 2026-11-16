@@ -16,6 +16,7 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protowire"
 
+	routingdomain "github.com/PapilioVPN/node/internal/modules/core/routing/domain"
 	"github.com/PapilioVPN/node/internal/modules/engines/xray/domain"
 )
 
@@ -44,7 +45,7 @@ func TestBalancerOverridePreservesExactTargetsAndDoesNotScanUnrelatedBalancers(t
 			}})
 			client := apiClient(t, address, time.Second, 4096)
 			for i, target := range []string{"", "   ", "not-an-existing-outbound", " outside>>>selector "} {
-				ack, err := client.OverrideBalancerTarget(t.Context(), domain.BalancerOverride{BalancerTag: " exact>>>pool ", Target: target})
+				ack, err := client.OverrideBalancerTarget(t.Context(), routingdomain.BalancerOverride{BalancerTag: " exact>>>pool ", Target: target})
 				if err != nil || ack.AcknowledgedAt.IsZero() || counts.rpcs.Load() != int64(i+1) || counts.opened.Load() != 1 {
 					t.Fatalf("override did extra preflight/scans or rejected native target: %+v %v", ack, err)
 				}
@@ -75,11 +76,11 @@ func TestBalancerOverrideFailureCodesRetainUncertainEffectsWithoutRetry(t *testi
 			address, counts := routingAPI(t, balancerOverrideServer{override: func(context.Context, *native.OverrideBalancerTargetRequest) (*native.OverrideBalancerTargetResponse, error) {
 				return nil, status.Error(code, "private diagnostics")
 			}})
-			ack, err := apiClient(t, address, time.Second, 4096).OverrideBalancerTarget(t.Context(), domain.BalancerOverride{BalancerTag: "pool", Target: "target"})
-			if err == nil || !ack.AcknowledgedAt.IsZero() || status.Code(err) != code || counts.rpcs.Load() != 1 || errors.Is(err, domain.ErrRoutingMutationUnknown) != (code != codes.Unimplemented) {
+			ack, err := apiClient(t, address, time.Second, 4096).OverrideBalancerTarget(t.Context(), routingdomain.BalancerOverride{BalancerTag: "pool", Target: "target"})
+			if err == nil || !ack.AcknowledgedAt.IsZero() || status.Code(err) != code || counts.rpcs.Load() != 1 || errors.Is(err, routingdomain.ErrRoutingMutationUnknown) != (code != codes.Unimplemented) {
 				t.Fatalf("native failure erased/replayed effects: %+v %v", ack, err)
 			}
-			if code == codes.Unimplemented && !errors.Is(err, domain.ErrRoutingManagementUnsupported) {
+			if code == codes.Unimplemented && !errors.Is(err, routingdomain.ErrRoutingManagementUnsupported) {
 				t.Fatal(err)
 			}
 			if code == codes.ResourceExhausted && !errors.Is(err, domain.ErrAPIResourceLimit) {
@@ -103,8 +104,8 @@ func TestBalancerOverrideReceiveLimitDoesNotPromiseNoEffects(t *testing.T) {
 		effects.Add(1)
 		return response, nil
 	}})
-	ack, err := apiClient(t, address, time.Second, 1).OverrideBalancerTarget(t.Context(), domain.BalancerOverride{BalancerTag: "pool"})
-	if !ack.AcknowledgedAt.IsZero() || !errors.Is(err, domain.ErrRoutingMutationUnknown) || !errors.Is(err, domain.ErrAPIResourceLimit) || effects.Load() != 1 || counts.rpcs.Load() != 1 {
+	ack, err := apiClient(t, address, time.Second, 1).OverrideBalancerTarget(t.Context(), routingdomain.BalancerOverride{BalancerTag: "pool"})
+	if !ack.AcknowledgedAt.IsZero() || !errors.Is(err, routingdomain.ErrRoutingMutationUnknown) || !errors.Is(err, domain.ErrAPIResourceLimit) || effects.Load() != 1 || counts.rpcs.Load() != 1 {
 		t.Fatalf("oversized acknowledgement became success/no-effect/replay: %+v %v", ack, err)
 	}
 }
@@ -126,7 +127,7 @@ func TestBalancerOverrideCanceledAfterEffectSharesCapacityAndJoins(t *testing.T)
 			var mutationError error
 			go func() {
 				defer close(done)
-				_, mutationError = client.OverrideBalancerTarget(ctx, domain.BalancerOverride{BalancerTag: "pool", Target: "target"})
+				_, mutationError = client.OverrideBalancerTarget(ctx, routingdomain.BalancerOverride{BalancerTag: "pool", Target: "target"})
 			}()
 			defer func() { cancel(); _ = client.Close(); <-done }()
 			select {
@@ -134,7 +135,7 @@ func TestBalancerOverrideCanceledAfterEffectSharesCapacityAndJoins(t *testing.T)
 			case <-time.After(3 * time.Second):
 				t.Fatal("native override did not start")
 			}
-			if _, err := client.OverrideBalancerTarget(t.Context(), domain.BalancerOverride{BalancerTag: "pool"}); !errors.Is(err, domain.ErrAPIBusy) || errors.Is(err, domain.ErrRoutingMutationUnknown) {
+			if _, err := client.OverrideBalancerTarget(t.Context(), routingdomain.BalancerOverride{BalancerTag: "pool"}); !errors.Is(err, domain.ErrAPIBusy) || errors.Is(err, routingdomain.ErrRoutingMutationUnknown) {
 				t.Fatalf("rejected override admitted effects: %v", err)
 			}
 			if _, err := client.ReadRuntimeInfo(t.Context()); !errors.Is(err, domain.ErrAPIBusy) {
@@ -143,7 +144,7 @@ func TestBalancerOverrideCanceledAfterEffectSharesCapacityAndJoins(t *testing.T)
 			if _, err := client.ReadBalancerInfo(t.Context(), "pool"); !errors.Is(err, domain.ErrAPIBusy) {
 				t.Fatalf("balancer read bypassed shared capacity: %v", err)
 			}
-			if _, err := client.TestRoute(t.Context(), domain.RoutingProbe{}); !errors.Is(err, domain.ErrAPIBusy) {
+			if _, err := client.TestRoute(t.Context(), routingdomain.RoutingProbe{}); !errors.Is(err, domain.ErrAPIBusy) {
 				t.Fatalf("probe bypassed shared capacity: %v", err)
 			}
 			switch mode {
@@ -156,7 +157,7 @@ func TestBalancerOverrideCanceledAfterEffectSharesCapacityAndJoins(t *testing.T)
 			}
 			select {
 			case <-done:
-				if !errors.Is(mutationError, domain.ErrRoutingMutationUnknown) || effects.Load() != 1 || counts.rpcs.Load() != 1 {
+				if !errors.Is(mutationError, routingdomain.ErrRoutingMutationUnknown) || effects.Load() != 1 || counts.rpcs.Load() != 1 {
 					t.Fatalf("lost acknowledgement erased/replayed effects: %v", mutationError)
 				}
 				if mode == "cancel" && !errors.Is(mutationError, context.Canceled) {
@@ -188,7 +189,7 @@ func TestBalancerOverrideUsesOneExactRPCAndExistingChannel(t *testing.T) {
 		t.Fatal(err)
 	}
 	before := time.Now()
-	ack, err := client.OverrideBalancerTarget(t.Context(), domain.BalancerOverride{BalancerTag: " exact>>>pool ", Target: " outside>>>selector "})
+	ack, err := client.OverrideBalancerTarget(t.Context(), routingdomain.BalancerOverride{BalancerTag: " exact>>>pool ", Target: " outside>>>selector "})
 	if err != nil || ack.AcknowledgedAt.Before(before) || ack.AcknowledgedAt.After(time.Now()) || counts.rpcs.Load() != 2 || counts.opened.Load() != 1 {
 		t.Fatalf("override was unsupported, changed or added RPCs/channels: %+v %v", ack, err)
 	}

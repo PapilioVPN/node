@@ -13,7 +13,7 @@ import (
 	"github.com/xtls/xray-core/features/routing"
 	"github.com/xtls/xray-core/features/stats"
 
-	"github.com/PapilioVPN/node/internal/modules/engines/xray/domain"
+	"github.com/PapilioVPN/node/internal/modules/core/routing/domain"
 )
 
 // The official SDK service can be constructed with a routing-stat channel.

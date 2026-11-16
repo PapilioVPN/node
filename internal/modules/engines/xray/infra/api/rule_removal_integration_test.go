@@ -20,6 +20,7 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protowire"
 
+	routingdomain "github.com/PapilioVPN/node/internal/modules/core/routing/domain"
 	"github.com/PapilioVPN/node/internal/modules/engines/xray/domain"
 )
 
@@ -84,10 +85,10 @@ func TestRuleRemovalNativeErrorsAndReceiveLossPreserveUnknownEffects(t *testing.
 				return nil, status.Error(code, "private diagnostics")
 			}})
 			ack, err := apiClient(t, address, time.Second, 4096).RemoveRoutingRule(t.Context(), "rule")
-			if err == nil || status.Code(err) != code || !ack.AcknowledgedAt.IsZero() || counts.rpcs.Load() != 1 || errors.Is(err, domain.ErrRoutingMutationUnknown) != (code != codes.Unimplemented) {
+			if err == nil || status.Code(err) != code || !ack.AcknowledgedAt.IsZero() || counts.rpcs.Load() != 1 || errors.Is(err, routingdomain.ErrRoutingMutationUnknown) != (code != codes.Unimplemented) {
 				t.Fatalf("native removal error lost/replayed effects: %+v %v", ack, err)
 			}
-			if code == codes.Unimplemented && !errors.Is(err, domain.ErrRoutingManagementUnsupported) {
+			if code == codes.Unimplemented && !errors.Is(err, routingdomain.ErrRoutingManagementUnsupported) {
 				t.Fatal(err)
 			}
 			if code == codes.ResourceExhausted && !errors.Is(err, domain.ErrAPIResourceLimit) {
@@ -103,7 +104,7 @@ func TestRuleRemovalNativeErrorsAndReceiveLossPreserveUnknownEffects(t *testing.
 		return response, nil
 	}})
 	ack, err := apiClient(t, address, time.Second, 1).RemoveRoutingRule(t.Context(), "rule")
-	if !ack.AcknowledgedAt.IsZero() || !errors.Is(err, domain.ErrRoutingMutationUnknown) || !errors.Is(err, domain.ErrAPIResourceLimit) || effects.Load() != 1 || counts.rpcs.Load() != 1 {
+	if !ack.AcknowledgedAt.IsZero() || !errors.Is(err, routingdomain.ErrRoutingMutationUnknown) || !errors.Is(err, domain.ErrAPIResourceLimit) || effects.Load() != 1 || counts.rpcs.Load() != 1 {
 		t.Fatalf("receive loss claimed no effects/replayed: %+v %v", ack, err)
 	}
 }
@@ -128,10 +129,10 @@ func TestRuleRemovalSharesCapacityAndReleasesCallerOnCancellation(t *testing.T) 
 			case <-time.After(3 * time.Second):
 				t.Fatal("native removal did not start")
 			}
-			if _, err := client.RemoveRoutingRule(t.Context(), "other"); !errors.Is(err, domain.ErrAPIBusy) || errors.Is(err, domain.ErrRoutingMutationUnknown) {
+			if _, err := client.RemoveRoutingRule(t.Context(), "other"); !errors.Is(err, domain.ErrAPIBusy) || errors.Is(err, routingdomain.ErrRoutingMutationUnknown) {
 				t.Fatalf("busy removal admitted effects: %v", err)
 			}
-			if _, err := client.OverrideBalancerTarget(t.Context(), domain.BalancerOverride{BalancerTag: "pool"}); !errors.Is(err, domain.ErrAPIBusy) {
+			if _, err := client.OverrideBalancerTarget(t.Context(), routingdomain.BalancerOverride{BalancerTag: "pool"}); !errors.Is(err, domain.ErrAPIBusy) {
 				t.Fatal("override bypassed shared removal capacity")
 			}
 			if _, err := client.ReadRuntimeInfo(t.Context()); !errors.Is(err, domain.ErrAPIBusy) {
@@ -148,7 +149,7 @@ func TestRuleRemovalSharesCapacityAndReleasesCallerOnCancellation(t *testing.T) 
 			select {
 			case <-done:
 				err := removalError
-				if !errors.Is(err, domain.ErrRoutingMutationUnknown) || counts.rpcs.Load() != 1 {
+				if !errors.Is(err, routingdomain.ErrRoutingMutationUnknown) || counts.rpcs.Load() != 1 {
 					t.Fatalf("canceled/closed removal lost effects/replayed: %v", err)
 				}
 				if mode == "cancel" && !errors.Is(err, context.Canceled) {
@@ -197,7 +198,7 @@ func TestRuleRemovalNativeEffectPrecedesWebhookCleanupAndCanOutliveCaller(t *tes
 	finished := make(chan struct{})
 	address, counts := routingAPI(t, observingRuleRemovalServer{RoutingServiceServer: native.NewRoutingServer(router, nil), finished: finished})
 	client := apiClient(t, address, 3*time.Second, 4096)
-	if _, err := client.TestRoute(t.Context(), domain.RoutingProbe{Context: domain.RoutingContext{InboundTag: "in"}}); err != nil {
+	if _, err := client.TestRoute(t.Context(), routingdomain.RoutingProbe{Context: routingdomain.RoutingContext{InboundTag: "in"}}); err != nil {
 		t.Fatal(err)
 	}
 	select {
@@ -232,7 +233,7 @@ func TestRuleRemovalNativeEffectPrecedesWebhookCleanupAndCanOutliveCaller(t *tes
 	select {
 	case <-done:
 		err := removalError
-		if !errors.Is(err, domain.ErrRoutingMutationUnknown) || !errors.Is(err, context.Canceled) {
+		if !errors.Is(err, routingdomain.ErrRoutingMutationUnknown) || !errors.Is(err, context.Canceled) {
 			t.Fatalf("post-effect cancellation claimed no effects: %v", err)
 		}
 	case <-time.After(3 * time.Second):

@@ -18,6 +18,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
+	routingv1 "github.com/PapilioVPN/node/internal/modules/core/routing/grpcapi/proto/v1"
 	xrayv1 "github.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi/proto/v1"
 	"github.com/PapilioVPN/node/internal/settings"
 )
@@ -67,7 +68,7 @@ func verifyContainerRouting(t *testing.T, ctx context.Context, client xrayv1.Xra
 	defer ticker.Stop()
 	// Only native read readiness is polled. Neither mutating request is replayed.
 	for {
-		rules, err := client.ListRoutingRules(ctx, &xrayv1.ListRoutingRulesRequest{InstanceId: "packaged-xray"})
+		rules, err := client.ListRoutingRules(ctx, &routingv1.ListRoutingRulesRequest{InstanceId: "packaged-xray"})
 		if err == nil {
 			if len(rules.Rules) != 1 || rules.Rules[0].RuleTag != "initial" {
 				t.Fatal("invalid packaged native fixture")
@@ -84,25 +85,25 @@ func verifyContainerRouting(t *testing.T, ctx context.Context, client xrayv1.Xra
 		}
 	}
 	for _, item := range []struct {
-		mode        xrayv1.RoutingRuleMode
+		mode        routingv1.RoutingRuleMode
 		tag, target string
 		count       int
-	}{{xrayv1.RoutingRuleMode_ROUTING_RULE_MODE_APPEND, "appended", "direct", 2}, {xrayv1.RoutingRuleMode_ROUTING_RULE_MODE_REPLACE, "replacement", "blocked", 1}} {
+	}{{routingv1.RoutingRuleMode_ROUTING_RULE_MODE_APPEND, "appended", "direct", 2}, {routingv1.RoutingRuleMode_ROUTING_RULE_MODE_REPLACE, "replacement", "blocked", 1}} {
 		rule := []byte(`{"ruleTag":"` + item.tag + `","domain":["geosite:TEST"],"outboundTag":"blocked"}`)
-		response, err := client.AddRoutingRule(ctx, &xrayv1.AddRoutingRuleRequest{InstanceId: "packaged-xray", RuleJson: rule, Mode: item.mode})
+		response, err := client.AddRoutingRule(ctx, &routingv1.AddRoutingRuleRequest{InstanceId: "packaged-xray", RuleJson: rule, Mode: item.mode})
 		if err != nil || response.InstanceId != "packaged-xray" || response.RuleTag != item.tag || response.Mode != item.mode || response.AcknowledgedAtUnixMs <= 0 {
 			t.Fatalf("packaged native preparation/application failed: %v %v", response, err)
 		}
-		rules, err := client.ListRoutingRules(ctx, &xrayv1.ListRoutingRulesRequest{InstanceId: "packaged-xray"})
+		rules, err := client.ListRoutingRules(ctx, &routingv1.ListRoutingRulesRequest{InstanceId: "packaged-xray"})
 		if err != nil || len(rules.Rules) != item.count || rules.Rules[len(rules.Rules)-1].RuleTag != item.tag {
 			t.Fatalf("packaged append/replace membership differs: %v %v", rules, err)
 		}
-		route, err := client.TestRoute(ctx, &xrayv1.TestRouteRequest{InstanceId: "packaged-xray", Context: &xrayv1.RoutingContext{Network: xrayv1.RoutingNetwork_ROUTING_NETWORK_TCP, TargetDomain: "packaged.invalid"}})
+		route, err := client.TestRoute(ctx, &routingv1.TestRouteRequest{InstanceId: "packaged-xray", Context: &routingv1.RoutingContext{Network: routingv1.RoutingNetwork_ROUTING_NETWORK_TCP, TargetDomain: "packaged.invalid"}})
 		if err != nil || route.GetRoute().GetOutboundTag() != item.target {
 			t.Fatalf("packaged actual native routing selection differs: %v %v", route, err)
 		}
 	}
-	_, err := client.AddRoutingRule(ctx, &xrayv1.AddRoutingRuleRequest{InstanceId: "packaged-xray", RuleJson: []byte(`{"network":"tcp","outboundTag":"direct"}`)})
+	_, err := client.AddRoutingRule(ctx, &routingv1.AddRoutingRuleRequest{InstanceId: "packaged-xray", RuleJson: []byte(`{"network":"tcp","outboundTag":"direct"}`)})
 	if status.Code(err) != codes.InvalidArgument {
 		t.Fatalf("packaged missing mode defaulted to replace: %v", err)
 	}
@@ -110,15 +111,15 @@ func verifyContainerRouting(t *testing.T, ctx context.Context, client xrayv1.Xra
 	if len(details) != 1 {
 		t.Fatalf("packaged addition outcome missing: %v", err)
 	}
-	failure, ok := details[0].(*xrayv1.RoutingMutationFailure)
-	if !ok || failure.Outcome != xrayv1.RoutingMutationOutcome_ROUTING_MUTATION_OUTCOME_NOT_APPLIED {
+	failure, ok := details[0].(*routingv1.RoutingMutationFailure)
+	if !ok || failure.Outcome != routingv1.RoutingMutationOutcome_ROUTING_MUTATION_OUTCOME_NOT_APPLIED {
 		t.Fatalf("packaged addition effects misreported: %v", details)
 	}
-	_, lost := client.AddRoutingRule(ctx, &xrayv1.AddRoutingRuleRequest{InstanceId: "packaged-xray", RuleJson: []byte(`{"ruleTag":"lost","network":"tcp,udp","outboundTag":"direct"}`), Mode: xrayv1.RoutingRuleMode_ROUTING_RULE_MODE_REPLACE}, grpc.MaxCallRecvMsgSize(1))
+	_, lost := client.AddRoutingRule(ctx, &routingv1.AddRoutingRuleRequest{InstanceId: "packaged-xray", RuleJson: []byte(`{"ruleTag":"lost","network":"tcp,udp","outboundTag":"direct"}`), Mode: routingv1.RoutingRuleMode_ROUTING_RULE_MODE_REPLACE}, grpc.MaxCallRecvMsgSize(1))
 	if status.Code(lost) != codes.ResourceExhausted {
 		t.Fatalf("packaged acknowledgement was not discarded: %v", lost)
 	}
-	rules, err := client.ListRoutingRules(ctx, &xrayv1.ListRoutingRulesRequest{InstanceId: "packaged-xray"})
+	rules, err := client.ListRoutingRules(ctx, &routingv1.ListRoutingRulesRequest{InstanceId: "packaged-xray"})
 	if err != nil || len(rules.Rules) != 1 || rules.Rules[0].RuleTag != "lost" {
 		t.Fatalf("packaged lost reply erased native effect: %v %v", rules, err)
 	}
