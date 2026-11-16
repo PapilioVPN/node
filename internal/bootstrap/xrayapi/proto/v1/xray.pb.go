@@ -29,7 +29,7 @@ var File_internal_bootstrap_xrayapi_proto_v1_xray_proto protoreflect.FileDescrip
 
 const file_internal_bootstrap_xrayapi_proto_v1_xray_proto_rawDesc = "" +
 	"\n" +
-	".internal/bootstrap/xrayapi/proto/v1/xray.proto\x12\x14papilio.node.xray.v1\x1a8internal/modules/xray/users/grpcapi/proto/v1/users.proto\x1a<internal/modules/xray/routing/grpcapi/proto/v1/routing.proto\x1a<internal/modules/xray/traffic/grpcapi/proto/v1/traffic.proto\x1a6internal/modules/xray/info/grpcapi/proto/v1/info.proto\x1a@internal/modules/xray/outbounds/grpcapi/proto/v1/outbounds.proto2\xf0\x19\n" +
+	".internal/bootstrap/xrayapi/proto/v1/xray.proto\x12\x14papilio.node.xray.v1\x1a<internal/modules/xray/users/grpcapi/proto/v1/mutations.proto\x1a?internal/modules/xray/users/grpcapi/proto/v1/observations.proto\x1a9internal/modules/xray/users/grpcapi/proto/v1/online.proto\x1a<internal/modules/xray/routing/grpcapi/proto/v1/routing.proto\x1a<internal/modules/xray/traffic/grpcapi/proto/v1/traffic.proto\x1a6internal/modules/xray/info/grpcapi/proto/v1/info.proto\x1a@internal/modules/xray/outbounds/grpcapi/proto/v1/outbounds.proto2\xf0\x19\n" +
 	"\vXrayService\x12k\n" +
 	"\x0eAddInboundUser\x12+.papilio.node.xray.v1.AddInboundUserRequest\x1a,.papilio.node.xray.v1.AddInboundUserResponse\x12n\n" +
 	"\x0fAddInboundUsers\x12,.papilio.node.xray.v1.AddInboundUsersRequest\x1a-.papilio.node.xray.v1.AddInboundUsersResponse\x12\x80\x01\n" +

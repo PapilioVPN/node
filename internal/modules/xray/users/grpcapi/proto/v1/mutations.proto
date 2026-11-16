@@ -1,0 +1,133 @@
+syntax = "proto3";
+
+package papilio.node.xray.v1;
+
+option go_package = "github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi/proto/v1;userv1";
+
+import "internal/modules/xray/users/grpcapi/proto/v1/accounts.proto";
+
+message RemoveInboundUserRequest {
+  string instance_id = 1;
+  string inbound_tag = 2;
+  // Preserved as provided; native protocols own case matching semantics.
+  string email = 3;
+}
+
+message RemoveInboundUserResponse {
+  string instance_id = 1;
+  string inbound_tag = 2;
+  string email = 3;
+  // Native completion acknowledged, not proof of previous existence or persistence.
+  int64 acknowledged_at_unix_ms = 4;
+}
+
+enum UserMutationOutcome {
+  USER_MUTATION_OUTCOME_UNSPECIFIED = 0;
+  USER_MUTATION_OUTCOME_NOT_APPLIED = 1;
+  USER_MUTATION_OUTCOME_UNKNOWN = 2;
+}
+
+// Missing details or an undelivered reply never establish NOT_APPLIED.
+message UserMutationFailure {
+  UserMutationOutcome outcome = 1;
+}
+
+message AddInboundUserRequest {
+  string instance_id = 1;
+  string inbound_tag = 2;
+  InboundUser user = 3;
+}
+
+message AddInboundUserResponse {
+  string instance_id = 1;
+  string inbound_tag = 2;
+  string email = 3;
+  // Native completion, not durable config or a strict-create guarantee.
+  int64 acknowledged_at_unix_ms = 4;
+}
+
+message AddInboundUsersRequest {
+  string instance_id = 1;
+  string inbound_tag = 2;
+  // Input order and duplicates are preserved. Bounded by the instance's users profile.
+  repeated InboundUser users = 3;
+}
+
+enum UserAdditionState {
+  USER_ADDITION_STATE_UNSPECIFIED = 0;
+  USER_ADDITION_STATE_NOT_ATTEMPTED = 1;
+  USER_ADDITION_STATE_ACKNOWLEDGED = 2;
+  USER_ADDITION_STATE_NOT_APPLIED = 3;
+  USER_ADDITION_STATE_UNKNOWN = 4;
+}
+
+message UserAdditionResult {
+  string email = 1;
+  UserAdditionState state = 2;
+  // Present only for acknowledged native completion, not durable configuration.
+  optional int64 acknowledged_at_unix_ms = 3;
+}
+
+message AddInboundUsersResponse {
+  string instance_id = 1;
+  string inbound_tag = 2;
+  repeated UserAdditionResult items = 3;
+}
+
+// Missing details or an undelivered reply never establish absence of effects.
+// Earlier acknowledgements remain valid when a later addition fails.
+message UserAdditionsFailure {
+  AddInboundUsersResponse progress = 1;
+  // NOT_APPLIED requires that no earlier member was acknowledged or uncertain.
+  UserMutationOutcome outcome = 2;
+}
+
+// Explicit selected replacements/removals, not full or unchanged-user sync.
+// Native matching owns identity. Conflicting selections fail before effects.
+message ApplyInboundUserDeltaRequest {
+  string instance_id = 1;
+  string inbound_tag = 2;
+  repeated InboundUser users = 3;
+  repeated string remove_emails = 4;
+}
+
+enum UserDeltaAction {
+  USER_DELTA_ACTION_UNSPECIFIED = 0;
+  USER_DELTA_ACTION_REMOVE = 1;
+  USER_DELTA_ACTION_ADD = 2;
+}
+
+enum UserDeltaState {
+  USER_DELTA_STATE_UNSPECIFIED = 0;
+  USER_DELTA_STATE_NOT_ATTEMPTED = 1;
+  USER_DELTA_STATE_ACKNOWLEDGED = 2;
+  USER_DELTA_STATE_NOT_APPLIED = 3;
+  USER_DELTA_STATE_UNKNOWN = 4;
+  // A completed membership read found no matching member. No mutation receipt.
+  USER_DELTA_STATE_NOT_REQUIRED = 5;
+}
+
+message UserDeltaStep {
+  string email = 1;
+  UserDeltaAction action = 2;
+  UserDeltaState state = 3;
+  optional int64 acknowledged_at_unix_ms = 4;
+}
+
+message ApplyInboundUserDeltaResponse {
+  string instance_id = 1;
+  string inbound_tag = 2;
+  // Present only after a completed membership observation, not a fenced revision.
+  optional int64 observed_at_unix_ms = 3;
+  // Requested removals, then old memberships/addition for each replacement.
+  // Includes distinct removal receipts for native duplicate-email memberships.
+  repeated UserDeltaStep steps = 4;
+}
+
+// Missing details/replies never establish absence of effects. Do not replay
+// automatically after an interrupted or failed delta.
+message UserDeltaFailure {
+  ApplyInboundUserDeltaResponse progress = 1;
+  // NOT_APPLIED only if no step was acknowledged or has an unknown effect.
+  UserMutationOutcome outcome = 2;
+}
