@@ -8,8 +8,10 @@ import (
 )
 
 const OverrideBalancerTarget = "xray.routing.balancer.override"
+const RemoveRoutingRule = "xray.routing.rule.remove"
 
 var ErrInvalidBalancerOverride = errors.New("invalid Xray balancer override")
+var ErrInvalidRoutingRuleTag = errors.New("invalid Xray routing rule tag")
 var ErrRoutingManagementUnsupported = errors.New("Xray routing management is not supported")
 var ErrRoutingMutationUnknown = errors.New("Xray routing mutation effects are unknown")
 
@@ -28,5 +30,13 @@ type RoutingMutationAcknowledgement struct{ AcknowledgedAt time.Time }
 type InstanceBalancerOverride struct {
 	InstanceID      instances.InstanceID
 	Override        BalancerOverride
+	Acknowledgement RoutingMutationAcknowledgement
+}
+
+// InstanceRoutingRuleRemoval acknowledges native completion, including a no-op
+// for a missing tag. It carries neither a removal count nor durable config state.
+type InstanceRoutingRuleRemoval struct {
+	InstanceID      instances.InstanceID
+	RuleTag         string
 	Acknowledgement RoutingMutationAcknowledgement
 }

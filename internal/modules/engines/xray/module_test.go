@@ -105,4 +105,7 @@ func TestModuleClosesAPIAdmissionAndExportsFinalCleanup(t *testing.T) {
 		t.Fatalf("closed native API admitted a routing change or claimed effects: %v", err)
 	}
 
+	if _, err := newRoutingRuleRemovalService(resources).RemoveRoutingRule(t.Context(), "edge", "rule"); !errors.Is(err, grpc.ErrClientConnClosing) || errors.Is(err, domain.ErrRoutingMutationUnknown) {
+		t.Fatalf("closed module admitted rule removal/claimed effects: %v", err)
+	}
 }

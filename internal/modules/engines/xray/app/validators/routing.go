@@ -20,3 +20,11 @@ func BalancerOverride(selection domain.BalancerOverride) error {
 	}
 	return nil
 }
+
+func RoutingRuleTag(tag string) error {
+	// Native tags are opaque; whitespace can identify an actual configured rule.
+	if tag == "" || !utf8.ValidString(tag) {
+		return domain.ErrInvalidRoutingRuleTag
+	}
+	return nil
+}

@@ -49,6 +49,9 @@ service XrayService {
   // One native assignment; an explicitly empty target clears the override.
   // Completion does not establish outbound existence or persistence. No retry.
   rpc OverrideBalancerTarget(OverrideBalancerTargetRequest) returns (OverrideBalancerTargetResponse);
+  // Removes exact-tag rules live. Missing tags are acknowledged native no-ops;
+  // no count, persistence or established-session termination is promised.
+  rpc RemoveRoutingRule(RemoveRoutingRuleRequest) returns (RemoveRoutingRuleResponse);
 }
 
 enum TrafficScope {
@@ -518,3 +521,16 @@ enum RoutingMutationOutcome {
 
 // Missing details or an undelivered reply never establish NOT_APPLIED.
 message RoutingMutationFailure { RoutingMutationOutcome outcome = 1; }
+
+message RemoveRoutingRuleRequest {
+  string instance_id = 1;
+  // Required nonempty native tag, preserved exactly, including whitespace.
+  string rule_tag = 2;
+}
+
+message RemoveRoutingRuleResponse {
+  string instance_id = 1;
+  string rule_tag = 2;
+  // Native completion, not proof of previous membership or durable configuration.
+  int64 acknowledged_at_unix_ms = 3;
+}

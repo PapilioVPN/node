@@ -20,3 +20,16 @@ func TestBalancerOverrideAcceptsExplicitClearAndOpaqueTargets(t *testing.T) {
 		}
 	}
 }
+
+func TestRoutingRuleTagsPreserveNativeWhitespaceAndRequireNonemptyUTF8(t *testing.T) {
+	for _, tag := range []string{" rule>>>tag ", "   "} {
+		if err := validators.RoutingRuleTag(tag); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, tag := range []string{"", "\xff"} {
+		if err := validators.RoutingRuleTag(tag); !errors.Is(err, domain.ErrInvalidRoutingRuleTag) {
+			t.Fatalf("invalid tag accepted: %v", err)
+		}
+	}
+}

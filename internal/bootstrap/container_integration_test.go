@@ -98,7 +98,7 @@ func TestContainer(t *testing.T) {
 		logs, _ := exec.CommandContext(ctx, "docker", "logs", containerID).CombinedOutput()
 		t.Fatalf("packaged operation failed: %v, %v; logs: %s", info, err, logs)
 	}
-	probeInstalled, overrideInstalled := false, false
+	probeInstalled, overrideInstalled, removalInstalled := false, false, false
 	for _, capability := range info.GetCapabilities() {
 		if capability == "xray.routing.test" {
 			probeInstalled = true
@@ -106,9 +106,12 @@ func TestContainer(t *testing.T) {
 		if capability == "xray.routing.balancer.override" {
 			overrideInstalled = true
 		}
+		if capability == "xray.routing.rule.remove" {
+			removalInstalled = true
+		}
 	}
-	if !probeInstalled || !overrideInstalled {
-		t.Fatal("packaged metadata omitted the installed routing probe or balancer override")
+	if !probeInstalled || !overrideInstalled || !removalInstalled {
+		t.Fatal("packaged metadata omitted an installed routing operation")
 	}
 	output, err = exec.CommandContext(ctx, "docker", "port", containerID, "9444/tcp").Output()
 	if err != nil {
@@ -205,6 +208,19 @@ func TestContainer(t *testing.T) {
 	overrideFailure, ok := overrideDetails[0].(*xrayv1.RoutingMutationFailure)
 	if !ok || overrideFailure.Outcome != xrayv1.RoutingMutationOutcome_ROUTING_MUTATION_OUTCOME_NOT_APPLIED {
 		t.Fatalf("packaged routing mutation outcome incorrect: %v", overrideDetails)
+	}
+
+	_, removalError := xrayv1.NewXrayServiceClient(connection).RemoveRoutingRule(request, &xrayv1.RemoveRoutingRuleRequest{InstanceId: "unconfigured", RuleTag: "rule"})
+	if status.Code(removalError) != codes.NotFound {
+		t.Fatalf("packaged routing rule removal not wired: %v", removalError)
+	}
+	removalDetails := status.Convert(removalError).Details()
+	if len(removalDetails) != 1 {
+		t.Fatalf("packaged removal outcome missing: %v", removalError)
+	}
+	removalFailure, ok := removalDetails[0].(*xrayv1.RoutingMutationFailure)
+	if !ok || removalFailure.Outcome != xrayv1.RoutingMutationOutcome_ROUTING_MUTATION_OUTCOME_NOT_APPLIED {
+		t.Fatalf("packaged removal outcome incorrect: %v", removalDetails)
 	}
 	if _, err := xrayv1.NewXrayServiceClient(connection).AddInboundUser(request, &xrayv1.AddInboundUserRequest{InstanceId: "unconfigured", InboundTag: "in", User: &xrayv1.InboundUser{Email: "user", Account: &xrayv1.InboundUser_Vless{Vless: &xrayv1.VLESSAccount{Id: "test-only"}}}}); status.Code(err) != codes.NotFound {
 		t.Fatalf("packaged user addition not wired: %v", err)

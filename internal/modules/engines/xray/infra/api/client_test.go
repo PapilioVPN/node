@@ -37,6 +37,13 @@ func TestAPIConstructionAndCanceledAdmissionCreateNoNativeChannel(t *testing.T) 
 	if _, err := client.OverrideBalancerTarget(ctx, domain.BalancerOverride{BalancerTag: "pool"}); !errors.Is(err, context.Canceled) || errors.Is(err, domain.ErrRoutingMutationUnknown) || client.connection != nil {
 		t.Fatalf("pre-canceled override created native effects/workers: %v", err)
 	}
+
+	if _, err := client.RemoveRoutingRule(ctx, "rule"); !errors.Is(err, context.Canceled) || errors.Is(err, domain.ErrRoutingMutationUnknown) || client.connection != nil {
+		t.Fatalf("pre-canceled removal created workers/effects: %v", err)
+	}
+	if _, err := client.RemoveRoutingRule(t.Context(), "\xff"); !errors.Is(err, domain.ErrInvalidRoutingRuleTag) || errors.Is(err, domain.ErrRoutingMutationUnknown) || client.connection != nil {
+		t.Fatalf("unrepresentable removal created workers/effects: %v", err)
+	}
 	for _, selection := range []domain.BalancerOverride{{BalancerTag: "\xff"}, {BalancerTag: "pool", Target: "\xff"}} {
 		if _, err := client.OverrideBalancerTarget(t.Context(), selection); !errors.Is(err, domain.ErrInvalidBalancerOverride) || errors.Is(err, domain.ErrRoutingMutationUnknown) || client.connection != nil {
 			t.Fatalf("invalid override allocated native workers/effects: %v", err)
@@ -79,6 +86,10 @@ func TestAPIConstructionAndCanceledAdmissionCreateNoNativeChannel(t *testing.T) 
 	}
 	if _, err := client.OverrideBalancerTarget(t.Context(), domain.BalancerOverride{BalancerTag: "pool"}); !errors.Is(err, grpc.ErrClientConnClosing) || errors.Is(err, domain.ErrRoutingMutationUnknown) || client.connection != nil {
 		t.Fatalf("closed override created native effects/workers: %v", err)
+	}
+
+	if _, err := client.RemoveRoutingRule(t.Context(), "rule"); !errors.Is(err, grpc.ErrClientConnClosing) || errors.Is(err, domain.ErrRoutingMutationUnknown) || client.connection != nil {
+		t.Fatalf("closed removal created workers/effects: %v", err)
 	}
 	if _, err := client.AddInboundUser(t.Context(), addition); !errors.Is(err, grpc.ErrClientConnClosing) || errors.Is(err, domain.ErrUserMutationUnknown) || client.connection != nil {
 		t.Fatalf("closed addition created native effects/workers: %v", err)

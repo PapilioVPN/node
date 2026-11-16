@@ -37,6 +37,7 @@ const (
 	XrayService_GetBalancerInfo_FullMethodName        = "/papilio.node.xray.v1.XrayService/GetBalancerInfo"
 	XrayService_TestRoute_FullMethodName              = "/papilio.node.xray.v1.XrayService/TestRoute"
 	XrayService_OverrideBalancerTarget_FullMethodName = "/papilio.node.xray.v1.XrayService/OverrideBalancerTarget"
+	XrayService_RemoveRoutingRule_FullMethodName      = "/papilio.node.xray.v1.XrayService/RemoveRoutingRule"
 )
 
 // XrayServiceClient is the client API for XrayService service.
@@ -87,6 +88,9 @@ type XrayServiceClient interface {
 	// One native assignment; an explicitly empty target clears the override.
 	// Completion does not establish outbound existence or persistence. No retry.
 	OverrideBalancerTarget(ctx context.Context, in *OverrideBalancerTargetRequest, opts ...grpc.CallOption) (*OverrideBalancerTargetResponse, error)
+	// Removes exact-tag rules live. Missing tags are acknowledged native no-ops;
+	// no count, persistence or established-session termination is promised.
+	RemoveRoutingRule(ctx context.Context, in *RemoveRoutingRuleRequest, opts ...grpc.CallOption) (*RemoveRoutingRuleResponse, error)
 }
 
 type xrayServiceClient struct {
@@ -277,6 +281,16 @@ func (c *xrayServiceClient) OverrideBalancerTarget(ctx context.Context, in *Over
 	return out, nil
 }
 
+func (c *xrayServiceClient) RemoveRoutingRule(ctx context.Context, in *RemoveRoutingRuleRequest, opts ...grpc.CallOption) (*RemoveRoutingRuleResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RemoveRoutingRuleResponse)
+	err := c.cc.Invoke(ctx, XrayService_RemoveRoutingRule_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // XrayServiceServer is the server API for XrayService service.
 // All implementations must embed UnimplementedXrayServiceServer
 // for forward compatibility.
@@ -325,6 +339,9 @@ type XrayServiceServer interface {
 	// One native assignment; an explicitly empty target clears the override.
 	// Completion does not establish outbound existence or persistence. No retry.
 	OverrideBalancerTarget(context.Context, *OverrideBalancerTargetRequest) (*OverrideBalancerTargetResponse, error)
+	// Removes exact-tag rules live. Missing tags are acknowledged native no-ops;
+	// no count, persistence or established-session termination is promised.
+	RemoveRoutingRule(context.Context, *RemoveRoutingRuleRequest) (*RemoveRoutingRuleResponse, error)
 	mustEmbedUnimplementedXrayServiceServer()
 }
 
@@ -388,6 +405,9 @@ func (UnimplementedXrayServiceServer) TestRoute(context.Context, *TestRouteReque
 }
 func (UnimplementedXrayServiceServer) OverrideBalancerTarget(context.Context, *OverrideBalancerTargetRequest) (*OverrideBalancerTargetResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method OverrideBalancerTarget not implemented")
+}
+func (UnimplementedXrayServiceServer) RemoveRoutingRule(context.Context, *RemoveRoutingRuleRequest) (*RemoveRoutingRuleResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RemoveRoutingRule not implemented")
 }
 func (UnimplementedXrayServiceServer) mustEmbedUnimplementedXrayServiceServer() {}
 func (UnimplementedXrayServiceServer) testEmbeddedByValue()                     {}
@@ -734,6 +754,24 @@ func _XrayService_OverrideBalancerTarget_Handler(srv interface{}, ctx context.Co
 	return interceptor(ctx, in, info, handler)
 }
 
+func _XrayService_RemoveRoutingRule_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RemoveRoutingRuleRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(XrayServiceServer).RemoveRoutingRule(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: XrayService_RemoveRoutingRule_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(XrayServiceServer).RemoveRoutingRule(ctx, req.(*RemoveRoutingRuleRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // XrayService_ServiceDesc is the grpc.ServiceDesc for XrayService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -812,6 +850,10 @@ var XrayService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "OverrideBalancerTarget",
 			Handler:    _XrayService_OverrideBalancerTarget_Handler,
+		},
+		{
+			MethodName: "RemoveRoutingRule",
+			Handler:    _XrayService_RemoveRoutingRule_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

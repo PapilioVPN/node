@@ -92,6 +92,8 @@ func TestXrayRuntimeInfoOverMTLSAndNativeReconnect(t *testing.T) {
 			assertRoutingProbeFailure(t, probeError, codes.FailedPrecondition, xrayv1.RoutingProbeOutcome_ROUTING_PROBE_OUTCOME_NOT_EXECUTED)
 			_, overrideError := client.OverrideBalancerTarget(ctx, &xrayv1.OverrideBalancerTargetRequest{InstanceId: "edge-b", BalancerTag: "pool", Target: proto.String("")})
 			assertRoutingMutationFailure(t, overrideError, codes.FailedPrecondition, xrayv1.RoutingMutationOutcome_ROUTING_MUTATION_OUTCOME_NOT_APPLIED)
+			_, removalError := client.RemoveRoutingRule(ctx, &xrayv1.RemoveRoutingRuleRequest{InstanceId: "edge-b", RuleTag: "rule"})
+			assertRoutingMutationFailure(t, removalError, codes.FailedPrecondition, xrayv1.RoutingMutationOutcome_ROUTING_MUTATION_OUTCOME_NOT_APPLIED)
 			if result, err := client.ListRoutingRules(ctx, &xrayv1.ListRoutingRulesRequest{InstanceId: "edge-b"}); result != nil || status.Code(err) != codes.FailedPrecondition {
 				t.Fatalf("absent native RoutingService became successful rules: %v %v", result, err)
 			}
