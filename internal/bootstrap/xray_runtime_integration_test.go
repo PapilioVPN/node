@@ -49,6 +49,7 @@ func TestXrayRuntimeInfoOverMTLSAndNativeReconnect(t *testing.T) {
 			cfg.Communications.GRPC.Permissions.ReadEngineStats = true
 			cfg.Communications.GRPC.Permissions.ReadEngineUsers = true
 			cfg.Communications.GRPC.Permissions.ReadEngineRouting = true
+			cfg.Communications.GRPC.Permissions.ReadEngineOutbounds = true
 			cfg.Communications.GRPC.Permissions.TestEngineRouting = true
 			cfg.Communications.GRPC.Permissions.ManageEngineRouting = true
 			cfg.Communications.GRPC.Permissions.ControlInstances = true
@@ -83,6 +84,12 @@ func TestXrayRuntimeInfoOverMTLSAndNativeReconnect(t *testing.T) {
 			}
 			client := xrayClient(t, server, certificates)
 			response := awaitRuntimeInfo(t, ctx, client, "edge-a")
+			if value, err := client.ListOutboundStatuses(ctx, &xrayv1.ListOutboundStatusesRequest{InstanceId: "edge-b"}); value != nil || status.Code(err) != codes.FailedPrecondition {
+				t.Fatal("absent native ObservatoryService became a public empty result")
+			}
+			if value, err := client.GetOutboundStatus(ctx, &xrayv1.GetOutboundStatusRequest{InstanceId: "edge-b", OutboundTag: proto.String("out")}); value != nil || status.Code(err) != codes.FailedPrecondition {
+				t.Fatal("absent native ObservatoryService became a public absent observation")
+			}
 			if result, err := nativeXrayAPIClient(t, second).ReadOutboundStatuses(ctx); !errors.Is(err, xraydomain.ErrOutboundObservationUnsupported) || result.Items != nil || !result.ObservedAt.IsZero() {
 				t.Fatalf("absent native ObservatoryService became empty successful observations: %+v %v", result, err)
 			}

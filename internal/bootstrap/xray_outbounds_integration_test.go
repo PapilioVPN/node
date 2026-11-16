@@ -18,11 +18,14 @@ import (
 	"go.uber.org/fx"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/PapilioVPN/node/internal/bootstrap"
 	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
 	"github.com/PapilioVPN/node/internal/modules/engines/xray/app/services"
 	"github.com/PapilioVPN/node/internal/modules/engines/xray/domain"
+	xrayv1 "github.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi/proto/v1"
+	rpc "github.com/PapilioVPN/node/internal/platform/grpcserver"
 	"github.com/PapilioVPN/node/internal/settings"
 	"github.com/PapilioVPN/node/internal/shared/testutil"
 )
@@ -45,18 +48,22 @@ func TestXrayOutboundObservationsRetainOrdinaryAndBurstFactsWithoutNewProbes(t *
 				originalA := configureXrayObservatory(t, first, probe.URL, burst, []string{"edge-a-"})
 				originalB := configureXrayObservatory(t, second, probe.URL, burst, []string{})
 				cfg := certificates.Config()
-				cfg.Communications.GRPC.Enabled = false
+				cfg.Communications.GRPC.Permissions.ReadEngineOutbounds = true
 				cfg.Instances = []settings.Instance{first, second}
+				var server *rpc.Server
 				var cleanup struct {
 					fx.In
 					Closers []io.Closer `group:"module_resources"`
 				}
-				application := bootstrap.New(cfg, "test", fx.NopLogger, fx.Populate(&cleanup))
+				application := bootstrap.New(cfg, "test", fx.NopLogger, fx.Populate(&cleanup, &server))
 				if err := application.Start(t.Context()); err != nil {
 					t.Fatal(err)
 				}
 				t.Cleanup(func() {
 					if err := application.Stop(context.Background()); err != nil {
+						t.Error(err)
+					}
+					if err := server.Close(); err != nil {
 						t.Error(err)
 					}
 					for _, closer := range cleanup.Closers {
@@ -69,8 +76,8 @@ func TestXrayOutboundObservationsRetainOrdinaryAndBurstFactsWithoutNewProbes(t *
 						assertInstancePortsReleased(t, first.Xray.API.Address, second.Xray.API.Address)
 					}
 				})
-				// Test-owned clients exercise the native/application foundation. This
-				// increment does not register a public endpoint or production binding.
+				// Independent test-owned native clients remain observation oracles;
+				// public mTLS calls use the production module's existing API clients.
 				firstAPI, secondAPI := nativeXrayAPIClient(t, first), nativeXrayAPIClient(t, second)
 				service := services.NewOutboundStatusService(map[instances.InstanceID]services.OutboundStatusReader{"edge-a": firstAPI, "edge-b": secondAPI})
 				ctx, cancel := context.WithTimeout(t.Context(), 8*time.Second)
@@ -120,6 +127,47 @@ func TestXrayOutboundObservationsRetainOrdinaryAndBurstFactsWithoutNewProbes(t *
 				// independent scheduler, so no fixed request-count promise applies.
 				if before == 0 || !burst && hits.Load() != before {
 					t.Fatal("observation reads started new probes")
+				}
+				public := xrayClient(t, server, certificates)
+				wire, err := public.ListOutboundStatuses(ctx, &xrayv1.ListOutboundStatusesRequest{InstanceId: "edge-a"})
+				if err != nil || wire.InstanceId != "edge-a" || len(wire.Statuses) != 2 || wire.Statuses[0].OutboundTag != "edge-a-bad" || wire.Statuses[1].OutboundTag != "edge-a-good" || wire.ObservedAtUnixMs <= 0 {
+					t.Fatalf("mTLS outbound collection differs: %v %v", wire, err)
+				}
+				for _, tag := range []string{"edge-a-good", "edge-a-bad"} {
+					value, err := public.GetOutboundStatus(ctx, &xrayv1.GetOutboundStatusRequest{InstanceId: "edge-a", OutboundTag: proto.String(tag)})
+					if err != nil || value.InstanceId != "edge-a" || value.OutboundTag != tag || value.Status == nil || value.Status.OutboundTag != tag || value.Status.Alive != (tag == "edge-a-good") || value.ObservedAtUnixMs <= 0 {
+						t.Fatalf("mTLS actual native status differs: %v %v", value, err)
+					}
+					if burst {
+						h := value.Status.HealthPing
+						if h == nil || h.TotalSamples <= 0 || value.Status.DelayMs != h.AverageNs/int64(time.Millisecond) || value.Status.LastSeenUnixSec != 0 || value.Status.LastTryUnixSec != 0 {
+							t.Fatal("mTLS burst presence/units differ")
+						}
+					} else if value.Status.HealthPing != nil || value.Status.LastTryUnixSec <= 0 {
+						t.Fatal("mTLS ordinary presence/time differs")
+					}
+				}
+				for _, tag := range []string{"", " edge-a-good ", "missing"} {
+					value, err := public.GetOutboundStatus(ctx, &xrayv1.GetOutboundStatusRequest{InstanceId: "edge-a", OutboundTag: proto.String(tag)})
+					if err != nil || value.Status != nil || value.OutboundTag != tag || value.ObservedAtUnixMs <= 0 {
+						t.Fatalf("mTLS absent observation became zero/normalized tag: %v %v", value, err)
+					}
+				}
+				wire, err = public.ListOutboundStatuses(ctx, &xrayv1.ListOutboundStatusesRequest{InstanceId: "edge-b"})
+				if err != nil || wire.InstanceId != "edge-b" || len(wire.Statuses) != 0 || wire.ObservedAtUnixMs <= 0 {
+					t.Fatal("mTLS empty/cross-instance result differs")
+				}
+				if _, err := public.GetOutboundStatus(ctx, &xrayv1.GetOutboundStatusRequest{InstanceId: "edge-a"}); status.Code(err) != codes.InvalidArgument {
+					t.Fatal("mTLS omitted tag selected anonymous observation")
+				}
+				if _, err := public.GetRuntimeInfo(ctx, &xrayv1.GetRuntimeInfoRequest{InstanceId: "edge-a"}); status.Code(err) != codes.PermissionDenied {
+					t.Fatal("outbound grant enabled runtime reads")
+				}
+				if _, err := public.ListRoutingRules(ctx, &xrayv1.ListRoutingRulesRequest{InstanceId: "edge-a"}); status.Code(err) != codes.PermissionDenied {
+					t.Fatal("outbound grant enabled routing reads")
+				}
+				if !burst && hits.Load() != before {
+					t.Fatal("mTLS observations started new probes")
 				}
 				for _, selection := range []struct {
 					id  instances.InstanceID

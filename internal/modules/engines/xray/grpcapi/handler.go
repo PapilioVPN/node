@@ -39,6 +39,7 @@ type Handler struct {
 	BalancerOverrides      BalancerOverrider
 	RuleRemoval            RoutingRuleRemover
 	RuleAddition           RoutingRuleAdder
+	Outbounds              OutboundStatusReader
 	AllowInfoRead          bool
 	AllowStatsRead         bool
 	AllowStatsReset        bool
@@ -48,6 +49,7 @@ type Handler struct {
 	AllowRoutingRead       bool
 	AllowRoutingTest       bool
 	AllowRoutingManagement bool
+	AllowOutboundsRead     bool
 }
 
 func (h Handler) GetBinaryInfo(ctx context.Context, request *xrayv1.GetBinaryInfoRequest) (*xrayv1.GetBinaryInfoResponse, error) {

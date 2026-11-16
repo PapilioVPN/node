@@ -31,6 +31,7 @@ func Module(grpcEnabled bool) fx.Option {
 			newTrafficCounterService, newTrafficCounterResetService, newTrafficCountersResetService,
 			newTrafficCountersService, newTrafficPairServices,
 			newUserRemovalService, newUserAdditionService, newUserCountService, newOnlineService,
+			newOutboundStatusService,
 			newRoutingService, newRoutingProbeService, newBalancerOverrideService, newRoutingRuleRemovalService, newRoutingRuleAdditionService,
 			fx.Private,
 		),
@@ -115,6 +116,7 @@ type apiResources struct {
 	balancerOverriders map[instances.InstanceID]services.BalancerOverrider
 	ruleRemovers       map[instances.InstanceID]services.RoutingRuleRemover
 	ruleAppliers       map[instances.InstanceID]services.RoutingRuleApplier
+	outboundReaders    map[instances.InstanceID]services.OutboundStatusReader
 	clients            []*xrayapi.Client
 }
 
@@ -133,6 +135,7 @@ func newAPIResources(config []settings.Instance) (*apiResources, error) {
 		balancerOverriders: make(map[instances.InstanceID]services.BalancerOverrider),
 		ruleRemovers:       make(map[instances.InstanceID]services.RoutingRuleRemover),
 		ruleAppliers:       make(map[instances.InstanceID]services.RoutingRuleApplier),
+		outboundReaders:    make(map[instances.InstanceID]services.OutboundStatusReader),
 	}
 	for _, instance := range config {
 		if instance.Engine != instances.Xray {
@@ -151,6 +154,7 @@ func newAPIResources(config []settings.Instance) (*apiResources, error) {
 		resources.balancerOverriders[instance.ID] = nil
 		resources.ruleRemovers[instance.ID] = nil
 		resources.ruleAppliers[instance.ID] = nil
+		resources.outboundReaders[instance.ID] = nil
 		if api := instance.Xray.API; api != nil {
 			client, err := xrayapi.NewClient(xrayapi.Config{
 				Network: api.Network, Address: api.Address, RequestTimeout: api.RequestTimeout,
@@ -172,6 +176,7 @@ func newAPIResources(config []settings.Instance) (*apiResources, error) {
 			resources.balancerOverriders[instance.ID] = client
 			resources.ruleRemovers[instance.ID] = client
 			resources.ruleAppliers[instance.ID] = client
+			resources.outboundReaders[instance.ID] = client
 			resources.clients = append(resources.clients, client)
 		}
 	}
@@ -211,6 +216,10 @@ func newTrafficCountersResetService(config []settings.Instance, resources *apiRe
 
 func newOnlineService(resources *apiResources) *services.OnlineService {
 	return services.NewOnlineService(resources.onlineReaders)
+}
+
+func newOutboundStatusService(resources *apiResources) *services.OutboundStatusService {
+	return services.NewOutboundStatusService(resources.outboundReaders)
 }
 
 func newUserRemovalService(resources *apiResources) *services.UserRemovalService {
@@ -315,6 +324,7 @@ type grpcServices struct {
 	BalancerOverrides *services.BalancerOverrideService
 	RuleRemoval       *services.RoutingRuleRemovalService
 	RuleAddition      *services.RoutingRuleAdditionService
+	Outbounds         *services.OutboundStatusService
 	Permissions       settings.GRPCPermissions
 }
 
@@ -328,6 +338,7 @@ func registerGRPC(p grpcServices) {
 		Probes: p.Probes, AllowRoutingTest: p.Permissions.TestEngineRouting,
 		BalancerOverrides: p.BalancerOverrides, AllowRoutingManagement: p.Permissions.ManageEngineRouting,
 		RuleRemoval: p.RuleRemoval, RuleAddition: p.RuleAddition,
+		Outbounds: p.Outbounds, AllowOutboundsRead: p.Permissions.ReadEngineOutbounds,
 		AllowInfoRead: p.Permissions.ReadEngineInfo, AllowStatsRead: p.Permissions.ReadEngineStats,
 		AllowOnlineRead: p.Permissions.ReadEngineOnline, AllowStatsReset: p.Permissions.ResetEngineStats,
 	})
@@ -348,6 +359,7 @@ func capability() capabilityResult {
 		domain.ListRoutingRules, domain.ReadBalancerInfo,
 		domain.TestRoute, domain.OverrideBalancerTarget, domain.RemoveRoutingRule, domain.AddRoutingRule,
 		domain.ReadUserOnlineStats, domain.ListUserOnlineIPs, domain.ListOnlineUsers,
+		domain.ReadOutboundStatus, domain.ListOutboundStatuses,
 	}}
 }
 

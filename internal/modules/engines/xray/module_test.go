@@ -51,6 +51,12 @@ func TestModuleClosesAPIAdmissionAndExportsFinalCleanup(t *testing.T) {
 	if _, err := service.GetRuntimeInfo(t.Context(), "edge"); !errors.Is(err, grpc.ErrClientConnClosing) {
 		t.Fatalf("OnStop did not close API admission: %v", err)
 	}
+	if _, err := newOutboundStatusService(resources).ListOutboundStatuses(t.Context(), "edge"); !errors.Is(err, grpc.ErrClientConnClosing) {
+		t.Fatalf("closed module admitted outbound list: %v", err)
+	}
+	if _, err := newOutboundStatusService(resources).GetOutboundStatus(t.Context(), "edge", "out"); !errors.Is(err, grpc.ErrClientConnClosing) {
+		t.Fatalf("closed module admitted outbound lookup: %v", err)
+	}
 	if _, err := newTrafficCounterService(resources).GetTrafficCounter(t.Context(), "edge", domain.TrafficSelection{Scope: domain.InboundTraffic, Name: "proxy", Direction: domain.Uplink}); !errors.Is(err, grpc.ErrClientConnClosing) {
 		t.Fatalf("OnStop did not close traffic admission: %v", err)
 	}

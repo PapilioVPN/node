@@ -39,6 +39,8 @@ const (
 	XrayService_OverrideBalancerTarget_FullMethodName = "/papilio.node.xray.v1.XrayService/OverrideBalancerTarget"
 	XrayService_RemoveRoutingRule_FullMethodName      = "/papilio.node.xray.v1.XrayService/RemoveRoutingRule"
 	XrayService_AddRoutingRule_FullMethodName         = "/papilio.node.xray.v1.XrayService/AddRoutingRule"
+	XrayService_GetOutboundStatus_FullMethodName      = "/papilio.node.xray.v1.XrayService/GetOutboundStatus"
+	XrayService_ListOutboundStatuses_FullMethodName   = "/papilio.node.xray.v1.XrayService/ListOutboundStatuses"
 )
 
 // XrayServiceClient is the client API for XrayService service.
@@ -95,6 +97,10 @@ type XrayServiceClient interface {
 	// Builds one native routing.rules[] object with the selected instance binary,
 	// then applies once. Replace drops previous rules and balancers. No retry.
 	AddRoutingRule(ctx context.Context, in *AddRoutingRuleRequest, opts ...grpc.CallOption) (*AddRoutingRuleResponse, error)
+	// Reads existing observatory facts, not a new probe or outbound membership.
+	// Native API has no tag projection; each operation reads its full observation.
+	GetOutboundStatus(ctx context.Context, in *GetOutboundStatusRequest, opts ...grpc.CallOption) (*GetOutboundStatusResponse, error)
+	ListOutboundStatuses(ctx context.Context, in *ListOutboundStatusesRequest, opts ...grpc.CallOption) (*ListOutboundStatusesResponse, error)
 }
 
 type xrayServiceClient struct {
@@ -305,6 +311,26 @@ func (c *xrayServiceClient) AddRoutingRule(ctx context.Context, in *AddRoutingRu
 	return out, nil
 }
 
+func (c *xrayServiceClient) GetOutboundStatus(ctx context.Context, in *GetOutboundStatusRequest, opts ...grpc.CallOption) (*GetOutboundStatusResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetOutboundStatusResponse)
+	err := c.cc.Invoke(ctx, XrayService_GetOutboundStatus_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *xrayServiceClient) ListOutboundStatuses(ctx context.Context, in *ListOutboundStatusesRequest, opts ...grpc.CallOption) (*ListOutboundStatusesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListOutboundStatusesResponse)
+	err := c.cc.Invoke(ctx, XrayService_ListOutboundStatuses_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // XrayServiceServer is the server API for XrayService service.
 // All implementations must embed UnimplementedXrayServiceServer
 // for forward compatibility.
@@ -359,6 +385,10 @@ type XrayServiceServer interface {
 	// Builds one native routing.rules[] object with the selected instance binary,
 	// then applies once. Replace drops previous rules and balancers. No retry.
 	AddRoutingRule(context.Context, *AddRoutingRuleRequest) (*AddRoutingRuleResponse, error)
+	// Reads existing observatory facts, not a new probe or outbound membership.
+	// Native API has no tag projection; each operation reads its full observation.
+	GetOutboundStatus(context.Context, *GetOutboundStatusRequest) (*GetOutboundStatusResponse, error)
+	ListOutboundStatuses(context.Context, *ListOutboundStatusesRequest) (*ListOutboundStatusesResponse, error)
 	mustEmbedUnimplementedXrayServiceServer()
 }
 
@@ -428,6 +458,12 @@ func (UnimplementedXrayServiceServer) RemoveRoutingRule(context.Context, *Remove
 }
 func (UnimplementedXrayServiceServer) AddRoutingRule(context.Context, *AddRoutingRuleRequest) (*AddRoutingRuleResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method AddRoutingRule not implemented")
+}
+func (UnimplementedXrayServiceServer) GetOutboundStatus(context.Context, *GetOutboundStatusRequest) (*GetOutboundStatusResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetOutboundStatus not implemented")
+}
+func (UnimplementedXrayServiceServer) ListOutboundStatuses(context.Context, *ListOutboundStatusesRequest) (*ListOutboundStatusesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListOutboundStatuses not implemented")
 }
 func (UnimplementedXrayServiceServer) mustEmbedUnimplementedXrayServiceServer() {}
 func (UnimplementedXrayServiceServer) testEmbeddedByValue()                     {}
@@ -810,6 +846,42 @@ func _XrayService_AddRoutingRule_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
+func _XrayService_GetOutboundStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetOutboundStatusRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(XrayServiceServer).GetOutboundStatus(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: XrayService_GetOutboundStatus_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(XrayServiceServer).GetOutboundStatus(ctx, req.(*GetOutboundStatusRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _XrayService_ListOutboundStatuses_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListOutboundStatusesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(XrayServiceServer).ListOutboundStatuses(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: XrayService_ListOutboundStatuses_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(XrayServiceServer).ListOutboundStatuses(ctx, req.(*ListOutboundStatusesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // XrayService_ServiceDesc is the grpc.ServiceDesc for XrayService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -896,6 +968,14 @@ var XrayService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "AddRoutingRule",
 			Handler:    _XrayService_AddRoutingRule_Handler,
+		},
+		{
+			MethodName: "GetOutboundStatus",
+			Handler:    _XrayService_GetOutboundStatus_Handler,
+		},
+		{
+			MethodName: "ListOutboundStatuses",
+			Handler:    _XrayService_ListOutboundStatuses_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

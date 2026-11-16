@@ -38,7 +38,7 @@ func configureContainerRouting(t *testing.T, cfg *settings.Config, directory str
 	if copyError != nil || sourceError != nil || targetError != nil {
 		t.Fatalf("copy native fixture: %v %v %v", copyError, sourceError, targetError)
 	}
-	const native = `{"api":{"tag":"management","listen":"127.0.0.1:10085","services":["RoutingService"]},"outbounds":[{"tag":"direct","protocol":"freedom"},{"tag":"blocked","protocol":"blackhole"}],"routing":{"rules":[{"network":"tcp,udp","outboundTag":"direct","ruleTag":"initial"}]}}`
+	const native = `{"api":{"tag":"management","listen":"127.0.0.1:10085","services":["RoutingService","ObservatoryService"]},"outbounds":[{"tag":"direct","protocol":"freedom"},{"tag":"blocked","protocol":"blackhole"}],"routing":{"rules":[{"network":"tcp,udp","outboundTag":"direct","ruleTag":"initial"}]},"observatory":{"subjectSelector":["blocked"],"probeURL":"http://fixture.invalid/","probeInterval":"1h"}}`
 	if err := os.WriteFile(filepath.Join(directory, "xray.json"), []byte(native), 0o600); err != nil {
 		t.Fatal(err)
 	}

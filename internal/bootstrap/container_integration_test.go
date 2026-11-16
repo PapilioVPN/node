@@ -58,6 +58,7 @@ func TestContainer(t *testing.T) {
 	cfg.Communications.GRPC.Permissions.ReadEngineUsers = true
 	cfg.Communications.GRPC.Permissions.ReadEngineOnline = true
 	cfg.Communications.GRPC.Permissions.ReadEngineRouting = true
+	cfg.Communications.GRPC.Permissions.ReadEngineOutbounds = true
 	cfg.Communications.GRPC.Permissions.TestEngineRouting = true
 	cfg.Communications.GRPC.Permissions.ManageEngineRouting = true
 	runtimeDirectory, originalXrayConfig := configureContainerRouting(t, &cfg, certificates.Directory)
@@ -101,7 +102,7 @@ func TestContainer(t *testing.T) {
 		logs, _ := exec.CommandContext(ctx, "docker", "logs", containerID).CombinedOutput()
 		t.Fatalf("packaged operation failed: %v, %v; logs: %s", info, err, logs)
 	}
-	for _, capability := range []string{"xray.routing.test", "xray.routing.balancer.override", "xray.routing.rule.remove", "xray.routing.rule.add"} {
+	for _, capability := range []string{"xray.routing.test", "xray.routing.balancer.override", "xray.routing.rule.remove", "xray.routing.rule.add", "xray.outbound.status.read", "xray.outbound.statuses.list"} {
 		if !slices.Contains(info.GetCapabilities(), capability) {
 			t.Fatalf("packaged metadata omitted %s", capability)
 		}
@@ -237,6 +238,7 @@ func TestContainer(t *testing.T) {
 		t.Fatalf("packaged online users grant/service: %v", err)
 	}
 	verifyContainerRouting(t, request, xrayv1.NewXrayServiceClient(connection), certificates.Directory, runtimeDirectory, originalXrayConfig)
+	verifyContainerOutbounds(t, request, xrayv1.NewXrayServiceClient(connection))
 	if output, err := exec.CommandContext(ctx, "docker", "stop", "--time", "5", containerID).CombinedOutput(); err != nil {
 		t.Fatalf("stop runtime: %s, %v", output, err)
 	}

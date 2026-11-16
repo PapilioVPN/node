@@ -7,6 +7,9 @@ import (
 	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
 )
 
+const ReadOutboundStatus = "xray.outbound.status.read"
+const ListOutboundStatuses = "xray.outbound.statuses.list"
+
 var ErrOutboundObservationUnsupported = errors.New("Xray outbound observations are not supported")
 var ErrInvalidOutboundObservation = errors.New("invalid Xray outbound observation")
 

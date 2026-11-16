@@ -48,6 +48,7 @@ func TestXrayBinaryInfoOverMTLSKeepsLiveInstancesUnchanged(t *testing.T) {
 	cfg := certificates.Config()
 	cfg.Instances = []settings.Instance{first, second}
 	cfg.Communications.GRPC.Permissions.ReadEngineInfo = true
+	cfg.Communications.GRPC.Permissions.ReadEngineOutbounds = true
 	cfg.Communications.GRPC.Permissions.TestEngineRouting = true
 	cfg.Communications.GRPC.Permissions.ManageEngineRouting = true
 	var server *rpc.Server
@@ -74,6 +75,12 @@ func TestXrayBinaryInfoOverMTLSKeepsLiveInstancesUnchanged(t *testing.T) {
 		t.Fatal(err)
 	}
 	client := xrayClient(t, server, certificates)
+	if value, err := client.ListOutboundStatuses(ctx, &xrayv1.ListOutboundStatusesRequest{InstanceId: "edge-a"}); value != nil || status.Code(err) != codes.FailedPrecondition {
+		t.Fatal("disabled API became successful outbound collection")
+	}
+	if value, err := client.GetOutboundStatus(ctx, &xrayv1.GetOutboundStatusRequest{InstanceId: "edge-a", OutboundTag: proto.String("out")}); value != nil || status.Code(err) != codes.FailedPrecondition {
+		t.Fatal("disabled API became absent outbound observation")
+	}
 	_, probeError := client.TestRoute(ctx, &xrayv1.TestRouteRequest{InstanceId: "edge-a", Context: &xrayv1.RoutingContext{}})
 	assertRoutingProbeFailure(t, probeError, codes.FailedPrecondition, xrayv1.RoutingProbeOutcome_ROUTING_PROBE_OUTCOME_NOT_EXECUTED)
 	_, overrideError := client.OverrideBalancerTarget(ctx, &xrayv1.OverrideBalancerTargetRequest{InstanceId: "edge-a", BalancerTag: "pool", Target: proto.String("")})

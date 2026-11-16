@@ -69,6 +69,8 @@ communications:
       read_engine_online: false
       # Ordered rule references and balancer observations; no probes or changes.
       read_engine_routing: false
+      # Existing observatory results only; does not execute a new probe.
+      read_engine_outbounds: false
       # Native route probes can advance balancers, resolve DNS and fire webhooks.
       test_engine_routing: false
       # Set/clear balancer overrides and add/remove rules; no implicit read/probe grants.
