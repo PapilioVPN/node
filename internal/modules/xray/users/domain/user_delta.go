@@ -1,6 +1,10 @@
 package domain
 
-import "time"
+import (
+	"time"
+
+	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
+)
 
 // InboundUserDelta replaces selected memberships and removes selected identities;
 // unlisted identities are never selected for removal. Native credential
@@ -35,4 +39,12 @@ type UserMutationStep struct {
 type UserDeltaReport struct {
 	ObservedAt time.Time
 	Steps      []UserMutationStep
+}
+
+const ApplyInboundUserDelta = "xray.inbound.users.delta.apply"
+
+type InstanceInboundUserDelta struct {
+	InstanceID instances.InstanceID
+	InboundTag string
+	Report     UserDeltaReport
 }

@@ -181,6 +181,10 @@ func TestUserManagementRequiresIndependentGrantOverMTLS(t *testing.T) {
 			if status.Code(collectionError) != additionCode {
 				t.Fatal("collection did not check write grant before selecting its instance")
 			}
+			_, deltaError := client.ApplyInboundUserDelta(t.Context(), &userv1.ApplyInboundUserDeltaRequest{InstanceId: "missing", InboundTag: "in"})
+			if status.Code(deltaError) != additionCode {
+				t.Fatal("delta did not enforce the independent write grant before lookup")
+			}
 
 			_, err := client.RemoveInboundUser(t.Context(), &userv1.RemoveInboundUserRequest{InstanceId: "missing", InboundTag: "in", Email: "user"})
 			if !granted {

@@ -255,3 +255,53 @@ message ListOnlineUsersResponse {
   repeated string emails = 2;
   int64 observed_at_unix_ms = 3;
 }
+
+// Explicit selected replacements/removals, not full or unchanged-user sync.
+// Native matching owns identity. Conflicting selections fail before effects.
+message ApplyInboundUserDeltaRequest {
+  string instance_id = 1;
+  string inbound_tag = 2;
+  repeated InboundUser users = 3;
+  repeated string remove_emails = 4;
+}
+
+enum UserDeltaAction {
+  USER_DELTA_ACTION_UNSPECIFIED = 0;
+  USER_DELTA_ACTION_REMOVE = 1;
+  USER_DELTA_ACTION_ADD = 2;
+}
+
+enum UserDeltaState {
+  USER_DELTA_STATE_UNSPECIFIED = 0;
+  USER_DELTA_STATE_NOT_ATTEMPTED = 1;
+  USER_DELTA_STATE_ACKNOWLEDGED = 2;
+  USER_DELTA_STATE_NOT_APPLIED = 3;
+  USER_DELTA_STATE_UNKNOWN = 4;
+  // A completed membership read found no matching member. No mutation receipt.
+  USER_DELTA_STATE_NOT_REQUIRED = 5;
+}
+
+message UserDeltaStep {
+  string email = 1;
+  UserDeltaAction action = 2;
+  UserDeltaState state = 3;
+  optional int64 acknowledged_at_unix_ms = 4;
+}
+
+message ApplyInboundUserDeltaResponse {
+  string instance_id = 1;
+  string inbound_tag = 2;
+  // Present only after a completed membership observation, not a fenced revision.
+  optional int64 observed_at_unix_ms = 3;
+  // Requested removals, then old memberships/addition for each replacement.
+  // Includes distinct removal receipts for native duplicate-email memberships.
+  repeated UserDeltaStep steps = 4;
+}
+
+// Missing details/replies never establish absence of effects. Do not replay
+// automatically after an interrupted or failed delta.
+message UserDeltaFailure {
+  ApplyInboundUserDeltaResponse progress = 1;
+  // NOT_APPLIED only if no step was acknowledged or has an unknown effect.
+  UserMutationOutcome outcome = 2;
+}

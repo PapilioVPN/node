@@ -26,6 +26,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	XrayService_AddInboundUser_FullMethodName          = "/papilio.node.xray.v1.XrayService/AddInboundUser"
 	XrayService_AddInboundUsers_FullMethodName         = "/papilio.node.xray.v1.XrayService/AddInboundUsers"
+	XrayService_ApplyInboundUserDelta_FullMethodName   = "/papilio.node.xray.v1.XrayService/ApplyInboundUserDelta"
 	XrayService_RemoveInboundUser_FullMethodName       = "/papilio.node.xray.v1.XrayService/RemoveInboundUser"
 	XrayService_GetBinaryInfo_FullMethodName           = "/papilio.node.xray.v1.XrayService/GetBinaryInfo"
 	XrayService_GetRuntimeInfo_FullMethodName          = "/papilio.node.xray.v1.XrayService/GetRuntimeInfo"
@@ -63,6 +64,9 @@ type XrayServiceClient interface {
 	// Ordered 1+N native fallback with one type preflight and no retry or rollback.
 	// A failure retains per-input progress in UserAdditionsFailure details.
 	AddInboundUsers(ctx context.Context, in *v1.AddInboundUsersRequest, opts ...grpc.CallOption) (*v1.AddInboundUsersResponse, error)
+	// Explicit selected replacements/removals with one membership read; no retry,
+	// persistence or full-sync claim. Failure retains UserDeltaFailure progress.
+	ApplyInboundUserDelta(ctx context.Context, in *v1.ApplyInboundUserDeltaRequest, opts ...grpc.CallOption) (*v1.ApplyInboundUserDeltaResponse, error)
 	// One live native removal; no config persistence or established-session claim.
 	// Lost replies can hide an applied change. No application retry.
 	RemoveInboundUser(ctx context.Context, in *v1.RemoveInboundUserRequest, opts ...grpc.CallOption) (*v1.RemoveInboundUserResponse, error)
@@ -145,6 +149,16 @@ func (c *xrayServiceClient) AddInboundUsers(ctx context.Context, in *v1.AddInbou
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(v1.AddInboundUsersResponse)
 	err := c.cc.Invoke(ctx, XrayService_AddInboundUsers_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *xrayServiceClient) ApplyInboundUserDelta(ctx context.Context, in *v1.ApplyInboundUserDeltaRequest, opts ...grpc.CallOption) (*v1.ApplyInboundUserDeltaResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(v1.ApplyInboundUserDeltaResponse)
+	err := c.cc.Invoke(ctx, XrayService_ApplyInboundUserDelta_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -411,6 +425,9 @@ type XrayServiceServer interface {
 	// Ordered 1+N native fallback with one type preflight and no retry or rollback.
 	// A failure retains per-input progress in UserAdditionsFailure details.
 	AddInboundUsers(context.Context, *v1.AddInboundUsersRequest) (*v1.AddInboundUsersResponse, error)
+	// Explicit selected replacements/removals with one membership read; no retry,
+	// persistence or full-sync claim. Failure retains UserDeltaFailure progress.
+	ApplyInboundUserDelta(context.Context, *v1.ApplyInboundUserDeltaRequest) (*v1.ApplyInboundUserDeltaResponse, error)
 	// One live native removal; no config persistence or established-session claim.
 	// Lost replies can hide an applied change. No application retry.
 	RemoveInboundUser(context.Context, *v1.RemoveInboundUserRequest) (*v1.RemoveInboundUserResponse, error)
@@ -484,6 +501,9 @@ func (UnimplementedXrayServiceServer) AddInboundUser(context.Context, *v1.AddInb
 }
 func (UnimplementedXrayServiceServer) AddInboundUsers(context.Context, *v1.AddInboundUsersRequest) (*v1.AddInboundUsersResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method AddInboundUsers not implemented")
+}
+func (UnimplementedXrayServiceServer) ApplyInboundUserDelta(context.Context, *v1.ApplyInboundUserDeltaRequest) (*v1.ApplyInboundUserDeltaResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ApplyInboundUserDelta not implemented")
 }
 func (UnimplementedXrayServiceServer) RemoveInboundUser(context.Context, *v1.RemoveInboundUserRequest) (*v1.RemoveInboundUserResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method RemoveInboundUser not implemented")
@@ -613,6 +633,24 @@ func _XrayService_AddInboundUsers_Handler(srv interface{}, ctx context.Context, 
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(XrayServiceServer).AddInboundUsers(ctx, req.(*v1.AddInboundUsersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _XrayService_ApplyInboundUserDelta_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(v1.ApplyInboundUserDeltaRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(XrayServiceServer).ApplyInboundUserDelta(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: XrayService_ApplyInboundUserDelta_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(XrayServiceServer).ApplyInboundUserDelta(ctx, req.(*v1.ApplyInboundUserDeltaRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1081,6 +1119,10 @@ var XrayService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "AddInboundUsers",
 			Handler:    _XrayService_AddInboundUsers_Handler,
+		},
+		{
+			MethodName: "ApplyInboundUserDelta",
+			Handler:    _XrayService_ApplyInboundUserDelta_Handler,
 		},
 		{
 			MethodName: "RemoveInboundUser",

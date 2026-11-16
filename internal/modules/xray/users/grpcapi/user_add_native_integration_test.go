@@ -24,7 +24,6 @@ import (
 	xrayprocess "github.com/PapilioVPN/node/internal/modules/core/instances/infra/xray/process"
 	"github.com/PapilioVPN/node/internal/modules/xray/users/domain"
 	userv1 "github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi/proto/v1"
-	userapi "github.com/PapilioVPN/node/internal/modules/xray/users/infra/api"
 	rpc "github.com/PapilioVPN/node/internal/platform/grpcserver"
 	"github.com/PapilioVPN/node/internal/settings"
 	"github.com/PapilioVPN/node/internal/shared/testutil"
@@ -117,6 +116,13 @@ func TestLiveUserAdditionOverMTLSEnablesVLESSWithoutRemovingExistingUsers(t *tes
 			if _, err := client.AddInboundUsers(ctx, &userv1.AddInboundUsersRequest{InstanceId: "edge-b", InboundTag: "target"}); status.Code(err) != codes.FailedPrecondition {
 				t.Fatal("omitted profile enabled collection writes")
 			}
+
+			if _, err := client.ApplyInboundUserDelta(ctx, &userv1.ApplyInboundUserDeltaRequest{InstanceId: "edge-b", InboundTag: "target"}); status.Code(err) != codes.FailedPrecondition {
+				t.Fatal("omitted profile enabled delta writes")
+			}
+			if _, err := client.ApplyInboundUserDelta(ctx, &userv1.ApplyInboundUserDeltaRequest{InstanceId: "edge-a", InboundTag: "target", Users: []*userv1.InboundUser{request.User}, RemoveEmails: []string{"other@local"}}); status.Code(err) != codes.ResourceExhausted {
+				t.Fatal("delta ignored combined replacement/removal limit")
+			}
 			batch := &userv1.AddInboundUsersRequest{InstanceId: "edge-a", InboundTag: "target", Users: []*userv1.InboundUser{request.User, request.User}}
 			if _, err := client.AddInboundUsers(ctx, batch); status.Code(err) != codes.ResourceExhausted {
 				t.Fatal("collection ignored its instance limit")
@@ -182,11 +188,11 @@ func TestLiveUserAdditionOverMTLSEnablesVLESSWithoutRemovingExistingUsers(t *tes
 
 			// A real replacement must disable the old credential and admit its successor
 			// while the other user, inbound and instance keep accepting their sessions.
-			delta := &userapi.Adapter{API: testutil.XrayAPIClient(t, first.Xray.API)}
-			progress, err := delta.ApplyInboundUserDelta(ctx, domain.InboundUserDelta{InboundTag: "target", Users: []domain.InboundUser{{Email: "selected@local", Account: domain.UserAccount{Protocol: domain.VLESS, VLESS: &domain.VLESSAccount{ID: replacementID}}}}})
-			if err != nil || len(progress.Steps) != 2 || progress.Steps[0].State != domain.UserMutationAcknowledged || progress.Steps[1].State != domain.UserMutationAcknowledged {
-				t.Fatal("native replacement did not acknowledge removal and addition")
+			progress, err := client.ApplyInboundUserDelta(ctx, &userv1.ApplyInboundUserDeltaRequest{InstanceId: "edge-a", InboundTag: "target", Users: []*userv1.InboundUser{request.User}})
+			if err != nil || len(progress.Steps) != 2 || progress.Steps[0].State != userv1.UserDeltaState_USER_DELTA_STATE_ACKNOWLEDGED || progress.Steps[1].State != userv1.UserDeltaState_USER_DELTA_STATE_ACKNOWLEDGED {
+				t.Fatal("public replacement did not acknowledge removal and addition")
 			}
+
 			blocked, release = context.WithTimeout(ctx, 400*time.Millisecond)
 			err = testutil.XrayTraffic(blocked, proxies[0])
 			release()

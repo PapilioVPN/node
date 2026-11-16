@@ -41,13 +41,13 @@ func userMutationStatus(ctx context.Context, cause error) *status.Status {
 			code, message = codes.FailedPrecondition, "Xray user collections are not configured"
 		case errors.Is(cause, domain.ErrUserCollectionTooLarge):
 			code, message = codes.ResourceExhausted, "Xray user collection limit exceeded"
-		case errors.Is(cause, domain.ErrUserManagementUnsupported):
+		case errors.Is(cause, domain.ErrUserManagementUnsupported), errors.Is(cause, domain.ErrUserReadUnsupported):
 			code, message = codes.FailedPrecondition, "Xray user management is not supported"
 		case errors.Is(cause, domain.ErrInboundProtocolMismatch):
 			code, message = codes.FailedPrecondition, "account does not match Xray inbound protocol"
 		case errors.Is(cause, domain.ErrAPIBusy), errors.Is(cause, domain.ErrAPIResourceLimit):
 			code, message = codes.ResourceExhausted, "Xray API resource limit exceeded"
-		case errors.Is(cause, domain.ErrInvalidUserSelection), errors.Is(cause, domain.ErrInvalidUserAccount):
+		case errors.Is(cause, domain.ErrInvalidUserSelection), errors.Is(cause, domain.ErrInvalidUserAccount), errors.Is(cause, domain.ErrInvalidUserDelta):
 			code, message = codes.InvalidArgument, "invalid Xray user selection or account"
 		}
 		mapped = status.Error(code, message)

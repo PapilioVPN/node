@@ -298,6 +298,7 @@ func TestLiveUserAdditionUpdatesEveryBaselineNativeUserManager(t *testing.T) {
 			}
 			verifyPublicUserAdditionCollection(t, ctx, client, tc.tag, tc.user, before.Count)
 			verifyNativeUserDelta(t, ctx, &userxray.Adapter{API: observer}, native, tc.tag, before.Count)
+			verifyPublicUserDelta(t, ctx, client, tc.tag, tc.user, before.Count)
 		})
 	}
 	current, err := os.ReadFile(instance.Xray.ConfigFile)

@@ -29,7 +29,7 @@ instances: []
 #      # Optional user collections. Requires API and manage_engine_users below.
 #      # Both request_timeout values bound the whole collection; no automatic retry.
 #      users:
-#        max_batch_users: 1000
+#        max_batch_users: 1000 # Delta bounds requested replacements and removals together.
 #      # Optional single-rule append/replace. Requires API and an existing work_dir.
 #      # api.request_timeout bounds preparation and application together.
 #      routing_rules:

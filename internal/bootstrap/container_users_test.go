@@ -45,6 +45,7 @@ func verifyContainerUserViews(t *testing.T, ctx context.Context, client xrayv1.X
 		t.Fatalf("packaged missing user became a fabricated account: %v", err)
 	}
 	verifyContainerUserAdditions(t, ctx, client)
+	verifyContainerUserDelta(t, ctx, client)
 }
 
 func verifyContainerUserAdditions(t *testing.T, ctx context.Context, client xrayv1.XrayServiceClient) {
@@ -68,5 +69,36 @@ func verifyContainerUserAdditions(t *testing.T, ctx context.Context, client xray
 		if _, err := client.RemoveInboundUser(ctx, &userv1.RemoveInboundUserRequest{InstanceId: "packaged-xray", InboundTag: "users", Email: item.Email}); err != nil {
 			t.Fatal("packaged collection cleanup failed")
 		}
+	}
+}
+
+// The packaged executable must expose the same native delta, not only compile it.
+func verifyContainerUserDelta(t *testing.T, ctx context.Context, client xrayv1.XrayServiceClient) {
+	t.Helper()
+	user := &userv1.InboundUser{Email: "packaged-delta@local", Account: &userv1.InboundUser_Trojan{Trojan: &userv1.PasswordAccount{Password: "test-only-delta-first"}}}
+	if _, err := client.AddInboundUser(ctx, &userv1.AddInboundUserRequest{InstanceId: "packaged-xray", InboundTag: "users", User: user}); err != nil {
+		t.Fatal("packaged delta seed failed")
+	}
+	user.Level = 31
+	user.GetTrojan().Password = "test-only-delta-next"
+	result, err := client.ApplyInboundUserDelta(ctx, &userv1.ApplyInboundUserDeltaRequest{InstanceId: "packaged-xray", InboundTag: "users", Users: []*userv1.InboundUser{user}, RemoveEmails: []string{"missing-packaged-delta"}})
+	if err != nil || len(result.Steps) != 3 || result.ObservedAtUnixMs == nil || result.Steps[0].State != userv1.UserDeltaState_USER_DELTA_STATE_NOT_REQUIRED || result.Steps[1].State != userv1.UserDeltaState_USER_DELTA_STATE_ACKNOWLEDGED || result.Steps[2].State != userv1.UserDeltaState_USER_DELTA_STATE_ACKNOWLEDGED {
+		t.Fatalf("packaged user delta failed: %v", err)
+	}
+	stored, err := client.GetInboundUser(ctx, &userv1.GetInboundUserRequest{InstanceId: "packaged-xray", InboundTag: "users", Email: user.Email})
+	if err != nil || stored.User == nil || stored.User.Level != 31 || stored.User.Account == nil {
+		t.Fatal("packaged delta lost actual native membership/level")
+	}
+	var account trojan.Account
+	if err := proto.Unmarshal(stored.User.Account.Protobuf, &account); err != nil || account.Password != user.GetTrojan().Password {
+		t.Fatal("packaged delta did not replace actual native credentials; withheld")
+	}
+	cleanup, err := client.ApplyInboundUserDelta(ctx, &userv1.ApplyInboundUserDeltaRequest{InstanceId: "packaged-xray", InboundTag: "users", RemoveEmails: []string{user.Email}})
+	if err != nil || len(cleanup.Steps) != 1 || cleanup.Steps[0].State != userv1.UserDeltaState_USER_DELTA_STATE_ACKNOWLEDGED {
+		t.Fatal("packaged delta cleanup failed")
+	}
+	count, err := client.GetInboundUserCount(ctx, &userv1.GetInboundUserCountRequest{InstanceId: "packaged-xray", InboundTag: "users"})
+	if err != nil || count.Count != 1 {
+		t.Fatal("packaged delta changed the baseline user")
 	}
 }

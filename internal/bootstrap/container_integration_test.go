@@ -109,7 +109,7 @@ func TestContainer(t *testing.T) {
 		logs, _ := exec.CommandContext(ctx, "docker", "logs", containerID).CombinedOutput()
 		t.Fatalf("packaged operation failed: %v, %v; logs: %s", info, err, logs)
 	}
-	for _, capability := range []string{"xray.inbound.users.add", "xray.routing.test", "xray.routing.balancer.override", "xray.routing.rule.remove", "xray.routing.rule.add", "xray.outbound.status.read", "xray.outbound.statuses.list", "xray.inbound.user.read", "xray.inbound.users.list", "xray.inbound.user.metadata.read", "xray.inbound.users.metadata.list"} {
+	for _, capability := range []string{"xray.inbound.users.delta.apply", "xray.inbound.users.add", "xray.routing.test", "xray.routing.balancer.override", "xray.routing.rule.remove", "xray.routing.rule.add", "xray.outbound.status.read", "xray.outbound.statuses.list", "xray.inbound.user.read", "xray.inbound.users.list", "xray.inbound.user.metadata.read", "xray.inbound.users.metadata.list"} {
 		if !slices.Contains(info.GetCapabilities(), capability) {
 			t.Fatalf("packaged metadata omitted %s", capability)
 		}

@@ -9,7 +9,7 @@ import (
 )
 
 func InboundUserSelection(selection domain.InboundUserSelection) error {
-	if InboundTag(selection.InboundTag) != nil || strings.TrimSpace(selection.Email) == "" || !utf8.ValidString(selection.Email) {
+	if InboundTag(selection.InboundTag) != nil || InboundUserEmail(selection.Email) != nil {
 		return domain.ErrInvalidUserSelection
 	}
 	return nil
@@ -29,9 +29,16 @@ func InboundUserAddition(addition domain.InboundUserAddition) error {
 	return userAccount(addition.User)
 }
 
-func InboundUser(user domain.InboundUser) error {
-	if strings.TrimSpace(user.Email) == "" || !utf8.ValidString(user.Email) {
+func InboundUserEmail(email string) error {
+	if strings.TrimSpace(email) == "" || !utf8.ValidString(email) {
 		return domain.ErrInvalidUserSelection
+	}
+	return nil
+}
+
+func InboundUser(user domain.InboundUser) error {
+	if err := InboundUserEmail(user.Email); err != nil {
+		return err
 	}
 	return userAccount(user)
 }

@@ -19,6 +19,9 @@ service XrayService {
   // Ordered 1+N native fallback with one type preflight and no retry or rollback.
   // A failure retains per-input progress in UserAdditionsFailure details.
   rpc AddInboundUsers(AddInboundUsersRequest) returns (AddInboundUsersResponse);
+  // Explicit selected replacements/removals with one membership read; no retry,
+  // persistence or full-sync claim. Failure retains UserDeltaFailure progress.
+  rpc ApplyInboundUserDelta(ApplyInboundUserDeltaRequest) returns (ApplyInboundUserDeltaResponse);
   // One live native removal; no config persistence or established-session claim.
   // Lost replies can hide an applied change. No application retry.
   rpc RemoveInboundUser(RemoveInboundUserRequest) returns (RemoveInboundUserResponse);

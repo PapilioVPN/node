@@ -184,6 +184,114 @@ func (UserAdditionState) EnumDescriptor() ([]byte, []int) {
 	return file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDescGZIP(), []int{2}
 }
 
+type UserDeltaAction int32
+
+const (
+	UserDeltaAction_USER_DELTA_ACTION_UNSPECIFIED UserDeltaAction = 0
+	UserDeltaAction_USER_DELTA_ACTION_REMOVE      UserDeltaAction = 1
+	UserDeltaAction_USER_DELTA_ACTION_ADD         UserDeltaAction = 2
+)
+
+// Enum value maps for UserDeltaAction.
+var (
+	UserDeltaAction_name = map[int32]string{
+		0: "USER_DELTA_ACTION_UNSPECIFIED",
+		1: "USER_DELTA_ACTION_REMOVE",
+		2: "USER_DELTA_ACTION_ADD",
+	}
+	UserDeltaAction_value = map[string]int32{
+		"USER_DELTA_ACTION_UNSPECIFIED": 0,
+		"USER_DELTA_ACTION_REMOVE":      1,
+		"USER_DELTA_ACTION_ADD":         2,
+	}
+)
+
+func (x UserDeltaAction) Enum() *UserDeltaAction {
+	p := new(UserDeltaAction)
+	*p = x
+	return p
+}
+
+func (x UserDeltaAction) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (UserDeltaAction) Descriptor() protoreflect.EnumDescriptor {
+	return file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_enumTypes[3].Descriptor()
+}
+
+func (UserDeltaAction) Type() protoreflect.EnumType {
+	return &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_enumTypes[3]
+}
+
+func (x UserDeltaAction) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use UserDeltaAction.Descriptor instead.
+func (UserDeltaAction) EnumDescriptor() ([]byte, []int) {
+	return file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDescGZIP(), []int{3}
+}
+
+type UserDeltaState int32
+
+const (
+	UserDeltaState_USER_DELTA_STATE_UNSPECIFIED   UserDeltaState = 0
+	UserDeltaState_USER_DELTA_STATE_NOT_ATTEMPTED UserDeltaState = 1
+	UserDeltaState_USER_DELTA_STATE_ACKNOWLEDGED  UserDeltaState = 2
+	UserDeltaState_USER_DELTA_STATE_NOT_APPLIED   UserDeltaState = 3
+	UserDeltaState_USER_DELTA_STATE_UNKNOWN       UserDeltaState = 4
+	// A completed membership read found no matching member. No mutation receipt.
+	UserDeltaState_USER_DELTA_STATE_NOT_REQUIRED UserDeltaState = 5
+)
+
+// Enum value maps for UserDeltaState.
+var (
+	UserDeltaState_name = map[int32]string{
+		0: "USER_DELTA_STATE_UNSPECIFIED",
+		1: "USER_DELTA_STATE_NOT_ATTEMPTED",
+		2: "USER_DELTA_STATE_ACKNOWLEDGED",
+		3: "USER_DELTA_STATE_NOT_APPLIED",
+		4: "USER_DELTA_STATE_UNKNOWN",
+		5: "USER_DELTA_STATE_NOT_REQUIRED",
+	}
+	UserDeltaState_value = map[string]int32{
+		"USER_DELTA_STATE_UNSPECIFIED":   0,
+		"USER_DELTA_STATE_NOT_ATTEMPTED": 1,
+		"USER_DELTA_STATE_ACKNOWLEDGED":  2,
+		"USER_DELTA_STATE_NOT_APPLIED":   3,
+		"USER_DELTA_STATE_UNKNOWN":       4,
+		"USER_DELTA_STATE_NOT_REQUIRED":  5,
+	}
+)
+
+func (x UserDeltaState) Enum() *UserDeltaState {
+	p := new(UserDeltaState)
+	*p = x
+	return p
+}
+
+func (x UserDeltaState) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (UserDeltaState) Descriptor() protoreflect.EnumDescriptor {
+	return file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_enumTypes[4].Descriptor()
+}
+
+func (UserDeltaState) Type() protoreflect.EnumType {
+	return &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_enumTypes[4]
+}
+
+func (x UserDeltaState) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use UserDeltaState.Descriptor instead.
+func (UserDeltaState) EnumDescriptor() ([]byte, []int) {
+	return file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDescGZIP(), []int{4}
+}
+
 type RemoveInboundUserRequest struct {
 	state      protoimpl.MessageState `protogen:"open.v1"`
 	InstanceId string                 `protobuf:"bytes,1,opt,name=instance_id,json=instanceId,proto3" json:"instance_id,omitempty"`
@@ -2498,6 +2606,270 @@ func (x *ListOnlineUsersResponse) GetObservedAtUnixMs() int64 {
 	return 0
 }
 
+// Explicit selected replacements/removals, not full or unchanged-user sync.
+// Native matching owns identity. Conflicting selections fail before effects.
+type ApplyInboundUserDeltaRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	InstanceId    string                 `protobuf:"bytes,1,opt,name=instance_id,json=instanceId,proto3" json:"instance_id,omitempty"`
+	InboundTag    string                 `protobuf:"bytes,2,opt,name=inbound_tag,json=inboundTag,proto3" json:"inbound_tag,omitempty"`
+	Users         []*InboundUser         `protobuf:"bytes,3,rep,name=users,proto3" json:"users,omitempty"`
+	RemoveEmails  []string               `protobuf:"bytes,4,rep,name=remove_emails,json=removeEmails,proto3" json:"remove_emails,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ApplyInboundUserDeltaRequest) Reset() {
+	*x = ApplyInboundUserDeltaRequest{}
+	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[37]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ApplyInboundUserDeltaRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ApplyInboundUserDeltaRequest) ProtoMessage() {}
+
+func (x *ApplyInboundUserDeltaRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[37]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ApplyInboundUserDeltaRequest.ProtoReflect.Descriptor instead.
+func (*ApplyInboundUserDeltaRequest) Descriptor() ([]byte, []int) {
+	return file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDescGZIP(), []int{37}
+}
+
+func (x *ApplyInboundUserDeltaRequest) GetInstanceId() string {
+	if x != nil {
+		return x.InstanceId
+	}
+	return ""
+}
+
+func (x *ApplyInboundUserDeltaRequest) GetInboundTag() string {
+	if x != nil {
+		return x.InboundTag
+	}
+	return ""
+}
+
+func (x *ApplyInboundUserDeltaRequest) GetUsers() []*InboundUser {
+	if x != nil {
+		return x.Users
+	}
+	return nil
+}
+
+func (x *ApplyInboundUserDeltaRequest) GetRemoveEmails() []string {
+	if x != nil {
+		return x.RemoveEmails
+	}
+	return nil
+}
+
+type UserDeltaStep struct {
+	state                protoimpl.MessageState `protogen:"open.v1"`
+	Email                string                 `protobuf:"bytes,1,opt,name=email,proto3" json:"email,omitempty"`
+	Action               UserDeltaAction        `protobuf:"varint,2,opt,name=action,proto3,enum=papilio.node.xray.v1.UserDeltaAction" json:"action,omitempty"`
+	State                UserDeltaState         `protobuf:"varint,3,opt,name=state,proto3,enum=papilio.node.xray.v1.UserDeltaState" json:"state,omitempty"`
+	AcknowledgedAtUnixMs *int64                 `protobuf:"varint,4,opt,name=acknowledged_at_unix_ms,json=acknowledgedAtUnixMs,proto3,oneof" json:"acknowledged_at_unix_ms,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
+}
+
+func (x *UserDeltaStep) Reset() {
+	*x = UserDeltaStep{}
+	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[38]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UserDeltaStep) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UserDeltaStep) ProtoMessage() {}
+
+func (x *UserDeltaStep) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[38]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UserDeltaStep.ProtoReflect.Descriptor instead.
+func (*UserDeltaStep) Descriptor() ([]byte, []int) {
+	return file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDescGZIP(), []int{38}
+}
+
+func (x *UserDeltaStep) GetEmail() string {
+	if x != nil {
+		return x.Email
+	}
+	return ""
+}
+
+func (x *UserDeltaStep) GetAction() UserDeltaAction {
+	if x != nil {
+		return x.Action
+	}
+	return UserDeltaAction_USER_DELTA_ACTION_UNSPECIFIED
+}
+
+func (x *UserDeltaStep) GetState() UserDeltaState {
+	if x != nil {
+		return x.State
+	}
+	return UserDeltaState_USER_DELTA_STATE_UNSPECIFIED
+}
+
+func (x *UserDeltaStep) GetAcknowledgedAtUnixMs() int64 {
+	if x != nil && x.AcknowledgedAtUnixMs != nil {
+		return *x.AcknowledgedAtUnixMs
+	}
+	return 0
+}
+
+type ApplyInboundUserDeltaResponse struct {
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	InstanceId string                 `protobuf:"bytes,1,opt,name=instance_id,json=instanceId,proto3" json:"instance_id,omitempty"`
+	InboundTag string                 `protobuf:"bytes,2,opt,name=inbound_tag,json=inboundTag,proto3" json:"inbound_tag,omitempty"`
+	// Present only after a completed membership observation, not a fenced revision.
+	ObservedAtUnixMs *int64 `protobuf:"varint,3,opt,name=observed_at_unix_ms,json=observedAtUnixMs,proto3,oneof" json:"observed_at_unix_ms,omitempty"`
+	// Requested removals, then old memberships/addition for each replacement.
+	// Includes distinct removal receipts for native duplicate-email memberships.
+	Steps         []*UserDeltaStep `protobuf:"bytes,4,rep,name=steps,proto3" json:"steps,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ApplyInboundUserDeltaResponse) Reset() {
+	*x = ApplyInboundUserDeltaResponse{}
+	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[39]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ApplyInboundUserDeltaResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ApplyInboundUserDeltaResponse) ProtoMessage() {}
+
+func (x *ApplyInboundUserDeltaResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[39]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ApplyInboundUserDeltaResponse.ProtoReflect.Descriptor instead.
+func (*ApplyInboundUserDeltaResponse) Descriptor() ([]byte, []int) {
+	return file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDescGZIP(), []int{39}
+}
+
+func (x *ApplyInboundUserDeltaResponse) GetInstanceId() string {
+	if x != nil {
+		return x.InstanceId
+	}
+	return ""
+}
+
+func (x *ApplyInboundUserDeltaResponse) GetInboundTag() string {
+	if x != nil {
+		return x.InboundTag
+	}
+	return ""
+}
+
+func (x *ApplyInboundUserDeltaResponse) GetObservedAtUnixMs() int64 {
+	if x != nil && x.ObservedAtUnixMs != nil {
+		return *x.ObservedAtUnixMs
+	}
+	return 0
+}
+
+func (x *ApplyInboundUserDeltaResponse) GetSteps() []*UserDeltaStep {
+	if x != nil {
+		return x.Steps
+	}
+	return nil
+}
+
+// Missing details/replies never establish absence of effects. Do not replay
+// automatically after an interrupted or failed delta.
+type UserDeltaFailure struct {
+	state    protoimpl.MessageState         `protogen:"open.v1"`
+	Progress *ApplyInboundUserDeltaResponse `protobuf:"bytes,1,opt,name=progress,proto3" json:"progress,omitempty"`
+	// NOT_APPLIED only if no step was acknowledged or has an unknown effect.
+	Outcome       UserMutationOutcome `protobuf:"varint,2,opt,name=outcome,proto3,enum=papilio.node.xray.v1.UserMutationOutcome" json:"outcome,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UserDeltaFailure) Reset() {
+	*x = UserDeltaFailure{}
+	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[40]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UserDeltaFailure) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UserDeltaFailure) ProtoMessage() {}
+
+func (x *UserDeltaFailure) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[40]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UserDeltaFailure.ProtoReflect.Descriptor instead.
+func (*UserDeltaFailure) Descriptor() ([]byte, []int) {
+	return file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDescGZIP(), []int{40}
+}
+
+func (x *UserDeltaFailure) GetProgress() *ApplyInboundUserDeltaResponse {
+	if x != nil {
+		return x.Progress
+	}
+	return nil
+}
+
+func (x *UserDeltaFailure) GetOutcome() UserMutationOutcome {
+	if x != nil {
+		return x.Outcome
+	}
+	return UserMutationOutcome_USER_MUTATION_OUTCOME_UNSPECIFIED
+}
+
 var File_internal_modules_xray_users_grpcapi_proto_v1_users_proto protoreflect.FileDescriptor
 
 const file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDesc = "" +
@@ -2692,7 +3064,31 @@ const file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDesc = ""
 	"\vinstance_id\x18\x01 \x01(\tR\n" +
 	"instanceId\x12\x16\n" +
 	"\x06emails\x18\x02 \x03(\tR\x06emails\x12-\n" +
-	"\x13observed_at_unix_ms\x18\x03 \x01(\x03R\x10observedAtUnixMs*\x86\x01\n" +
+	"\x13observed_at_unix_ms\x18\x03 \x01(\x03R\x10observedAtUnixMs\"\xbe\x01\n" +
+	"\x1cApplyInboundUserDeltaRequest\x12\x1f\n" +
+	"\vinstance_id\x18\x01 \x01(\tR\n" +
+	"instanceId\x12\x1f\n" +
+	"\vinbound_tag\x18\x02 \x01(\tR\n" +
+	"inboundTag\x127\n" +
+	"\x05users\x18\x03 \x03(\v2!.papilio.node.xray.v1.InboundUserR\x05users\x12#\n" +
+	"\rremove_emails\x18\x04 \x03(\tR\fremoveEmails\"\xf8\x01\n" +
+	"\rUserDeltaStep\x12\x14\n" +
+	"\x05email\x18\x01 \x01(\tR\x05email\x12=\n" +
+	"\x06action\x18\x02 \x01(\x0e2%.papilio.node.xray.v1.UserDeltaActionR\x06action\x12:\n" +
+	"\x05state\x18\x03 \x01(\x0e2$.papilio.node.xray.v1.UserDeltaStateR\x05state\x12:\n" +
+	"\x17acknowledged_at_unix_ms\x18\x04 \x01(\x03H\x00R\x14acknowledgedAtUnixMs\x88\x01\x01B\x1a\n" +
+	"\x18_acknowledged_at_unix_ms\"\xe8\x01\n" +
+	"\x1dApplyInboundUserDeltaResponse\x12\x1f\n" +
+	"\vinstance_id\x18\x01 \x01(\tR\n" +
+	"instanceId\x12\x1f\n" +
+	"\vinbound_tag\x18\x02 \x01(\tR\n" +
+	"inboundTag\x122\n" +
+	"\x13observed_at_unix_ms\x18\x03 \x01(\x03H\x00R\x10observedAtUnixMs\x88\x01\x01\x129\n" +
+	"\x05steps\x18\x04 \x03(\v2#.papilio.node.xray.v1.UserDeltaStepR\x05stepsB\x16\n" +
+	"\x14_observed_at_unix_ms\"\xa8\x01\n" +
+	"\x10UserDeltaFailure\x12O\n" +
+	"\bprogress\x18\x01 \x01(\v23.papilio.node.xray.v1.ApplyInboundUserDeltaResponseR\bprogress\x12C\n" +
+	"\aoutcome\x18\x02 \x01(\x0e2).papilio.node.xray.v1.UserMutationOutcomeR\aoutcome*\x86\x01\n" +
 	"\x13UserMutationOutcome\x12%\n" +
 	"!USER_MUTATION_OUTCOME_UNSPECIFIED\x10\x00\x12%\n" +
 	"!USER_MUTATION_OUTCOME_NOT_APPLIED\x10\x01\x12!\n" +
@@ -2709,7 +3105,18 @@ const file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDesc = ""
 	"!USER_ADDITION_STATE_NOT_ATTEMPTED\x10\x01\x12$\n" +
 	" USER_ADDITION_STATE_ACKNOWLEDGED\x10\x02\x12#\n" +
 	"\x1fUSER_ADDITION_STATE_NOT_APPLIED\x10\x03\x12\x1f\n" +
-	"\x1bUSER_ADDITION_STATE_UNKNOWN\x10\x04BPZNgithub.com/PapilioVPN/node/internal/modules/xray/users/grpcapi/proto/v1;userv1b\x06proto3"
+	"\x1bUSER_ADDITION_STATE_UNKNOWN\x10\x04*m\n" +
+	"\x0fUserDeltaAction\x12!\n" +
+	"\x1dUSER_DELTA_ACTION_UNSPECIFIED\x10\x00\x12\x1c\n" +
+	"\x18USER_DELTA_ACTION_REMOVE\x10\x01\x12\x19\n" +
+	"\x15USER_DELTA_ACTION_ADD\x10\x02*\xdc\x01\n" +
+	"\x0eUserDeltaState\x12 \n" +
+	"\x1cUSER_DELTA_STATE_UNSPECIFIED\x10\x00\x12\"\n" +
+	"\x1eUSER_DELTA_STATE_NOT_ATTEMPTED\x10\x01\x12!\n" +
+	"\x1dUSER_DELTA_STATE_ACKNOWLEDGED\x10\x02\x12 \n" +
+	"\x1cUSER_DELTA_STATE_NOT_APPLIED\x10\x03\x12\x1c\n" +
+	"\x18USER_DELTA_STATE_UNKNOWN\x10\x04\x12!\n" +
+	"\x1dUSER_DELTA_STATE_NOT_REQUIRED\x10\x05BPZNgithub.com/PapilioVPN/node/internal/modules/xray/users/grpcapi/proto/v1;userv1b\x06proto3"
 
 var (
 	file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDescOnce sync.Once
@@ -2723,78 +3130,90 @@ func file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDescGZIP()
 	return file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDescData
 }
 
-var file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes = make([]protoimpl.MessageInfo, 37)
+var file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_enumTypes = make([]protoimpl.EnumInfo, 5)
+var file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes = make([]protoimpl.MessageInfo, 41)
 var file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_goTypes = []any{
 	(UserMutationOutcome)(0),                // 0: papilio.node.xray.v1.UserMutationOutcome
 	(ShadowsocksCipher)(0),                  // 1: papilio.node.xray.v1.ShadowsocksCipher
 	(UserAdditionState)(0),                  // 2: papilio.node.xray.v1.UserAdditionState
-	(*RemoveInboundUserRequest)(nil),        // 3: papilio.node.xray.v1.RemoveInboundUserRequest
-	(*RemoveInboundUserResponse)(nil),       // 4: papilio.node.xray.v1.RemoveInboundUserResponse
-	(*UserMutationFailure)(nil),             // 5: papilio.node.xray.v1.UserMutationFailure
-	(*AddInboundUserRequest)(nil),           // 6: papilio.node.xray.v1.AddInboundUserRequest
-	(*InboundUser)(nil),                     // 7: papilio.node.xray.v1.InboundUser
-	(*VLESSAccount)(nil),                    // 8: papilio.node.xray.v1.VLESSAccount
-	(*VMessAccount)(nil),                    // 9: papilio.node.xray.v1.VMessAccount
-	(*PasswordAccount)(nil),                 // 10: papilio.node.xray.v1.PasswordAccount
-	(*HysteriaAccount)(nil),                 // 11: papilio.node.xray.v1.HysteriaAccount
-	(*ShadowsocksAccount)(nil),              // 12: papilio.node.xray.v1.ShadowsocksAccount
-	(*Shadowsocks2022Account)(nil),          // 13: papilio.node.xray.v1.Shadowsocks2022Account
-	(*WireGuardAccount)(nil),                // 14: papilio.node.xray.v1.WireGuardAccount
-	(*AddInboundUserResponse)(nil),          // 15: papilio.node.xray.v1.AddInboundUserResponse
-	(*AddInboundUsersRequest)(nil),          // 16: papilio.node.xray.v1.AddInboundUsersRequest
-	(*UserAdditionResult)(nil),              // 17: papilio.node.xray.v1.UserAdditionResult
-	(*AddInboundUsersResponse)(nil),         // 18: papilio.node.xray.v1.AddInboundUsersResponse
-	(*UserAdditionsFailure)(nil),            // 19: papilio.node.xray.v1.UserAdditionsFailure
-	(*GetInboundUserCountRequest)(nil),      // 20: papilio.node.xray.v1.GetInboundUserCountRequest
-	(*GetInboundUserCountResponse)(nil),     // 21: papilio.node.xray.v1.GetInboundUserCountResponse
-	(*InboundUserMetadata)(nil),             // 22: papilio.node.xray.v1.InboundUserMetadata
-	(*NativeUserAccount)(nil),               // 23: papilio.node.xray.v1.NativeUserAccount
-	(*InboundUserRecord)(nil),               // 24: papilio.node.xray.v1.InboundUserRecord
-	(*GetInboundUserMetadataRequest)(nil),   // 25: papilio.node.xray.v1.GetInboundUserMetadataRequest
-	(*GetInboundUserMetadataResponse)(nil),  // 26: papilio.node.xray.v1.GetInboundUserMetadataResponse
-	(*ListInboundUserMetadataRequest)(nil),  // 27: papilio.node.xray.v1.ListInboundUserMetadataRequest
-	(*ListInboundUserMetadataResponse)(nil), // 28: papilio.node.xray.v1.ListInboundUserMetadataResponse
-	(*GetInboundUserRequest)(nil),           // 29: papilio.node.xray.v1.GetInboundUserRequest
-	(*GetInboundUserResponse)(nil),          // 30: papilio.node.xray.v1.GetInboundUserResponse
-	(*ListInboundUsersRequest)(nil),         // 31: papilio.node.xray.v1.ListInboundUsersRequest
-	(*ListInboundUsersResponse)(nil),        // 32: papilio.node.xray.v1.ListInboundUsersResponse
-	(*GetUserOnlineStatsRequest)(nil),       // 33: papilio.node.xray.v1.GetUserOnlineStatsRequest
-	(*GetUserOnlineStatsResponse)(nil),      // 34: papilio.node.xray.v1.GetUserOnlineStatsResponse
-	(*ListUserOnlineIPsRequest)(nil),        // 35: papilio.node.xray.v1.ListUserOnlineIPsRequest
-	(*ListUserOnlineIPsResponse)(nil),       // 36: papilio.node.xray.v1.ListUserOnlineIPsResponse
-	(*OnlineIP)(nil),                        // 37: papilio.node.xray.v1.OnlineIP
-	(*ListOnlineUsersRequest)(nil),          // 38: papilio.node.xray.v1.ListOnlineUsersRequest
-	(*ListOnlineUsersResponse)(nil),         // 39: papilio.node.xray.v1.ListOnlineUsersResponse
+	(UserDeltaAction)(0),                    // 3: papilio.node.xray.v1.UserDeltaAction
+	(UserDeltaState)(0),                     // 4: papilio.node.xray.v1.UserDeltaState
+	(*RemoveInboundUserRequest)(nil),        // 5: papilio.node.xray.v1.RemoveInboundUserRequest
+	(*RemoveInboundUserResponse)(nil),       // 6: papilio.node.xray.v1.RemoveInboundUserResponse
+	(*UserMutationFailure)(nil),             // 7: papilio.node.xray.v1.UserMutationFailure
+	(*AddInboundUserRequest)(nil),           // 8: papilio.node.xray.v1.AddInboundUserRequest
+	(*InboundUser)(nil),                     // 9: papilio.node.xray.v1.InboundUser
+	(*VLESSAccount)(nil),                    // 10: papilio.node.xray.v1.VLESSAccount
+	(*VMessAccount)(nil),                    // 11: papilio.node.xray.v1.VMessAccount
+	(*PasswordAccount)(nil),                 // 12: papilio.node.xray.v1.PasswordAccount
+	(*HysteriaAccount)(nil),                 // 13: papilio.node.xray.v1.HysteriaAccount
+	(*ShadowsocksAccount)(nil),              // 14: papilio.node.xray.v1.ShadowsocksAccount
+	(*Shadowsocks2022Account)(nil),          // 15: papilio.node.xray.v1.Shadowsocks2022Account
+	(*WireGuardAccount)(nil),                // 16: papilio.node.xray.v1.WireGuardAccount
+	(*AddInboundUserResponse)(nil),          // 17: papilio.node.xray.v1.AddInboundUserResponse
+	(*AddInboundUsersRequest)(nil),          // 18: papilio.node.xray.v1.AddInboundUsersRequest
+	(*UserAdditionResult)(nil),              // 19: papilio.node.xray.v1.UserAdditionResult
+	(*AddInboundUsersResponse)(nil),         // 20: papilio.node.xray.v1.AddInboundUsersResponse
+	(*UserAdditionsFailure)(nil),            // 21: papilio.node.xray.v1.UserAdditionsFailure
+	(*GetInboundUserCountRequest)(nil),      // 22: papilio.node.xray.v1.GetInboundUserCountRequest
+	(*GetInboundUserCountResponse)(nil),     // 23: papilio.node.xray.v1.GetInboundUserCountResponse
+	(*InboundUserMetadata)(nil),             // 24: papilio.node.xray.v1.InboundUserMetadata
+	(*NativeUserAccount)(nil),               // 25: papilio.node.xray.v1.NativeUserAccount
+	(*InboundUserRecord)(nil),               // 26: papilio.node.xray.v1.InboundUserRecord
+	(*GetInboundUserMetadataRequest)(nil),   // 27: papilio.node.xray.v1.GetInboundUserMetadataRequest
+	(*GetInboundUserMetadataResponse)(nil),  // 28: papilio.node.xray.v1.GetInboundUserMetadataResponse
+	(*ListInboundUserMetadataRequest)(nil),  // 29: papilio.node.xray.v1.ListInboundUserMetadataRequest
+	(*ListInboundUserMetadataResponse)(nil), // 30: papilio.node.xray.v1.ListInboundUserMetadataResponse
+	(*GetInboundUserRequest)(nil),           // 31: papilio.node.xray.v1.GetInboundUserRequest
+	(*GetInboundUserResponse)(nil),          // 32: papilio.node.xray.v1.GetInboundUserResponse
+	(*ListInboundUsersRequest)(nil),         // 33: papilio.node.xray.v1.ListInboundUsersRequest
+	(*ListInboundUsersResponse)(nil),        // 34: papilio.node.xray.v1.ListInboundUsersResponse
+	(*GetUserOnlineStatsRequest)(nil),       // 35: papilio.node.xray.v1.GetUserOnlineStatsRequest
+	(*GetUserOnlineStatsResponse)(nil),      // 36: papilio.node.xray.v1.GetUserOnlineStatsResponse
+	(*ListUserOnlineIPsRequest)(nil),        // 37: papilio.node.xray.v1.ListUserOnlineIPsRequest
+	(*ListUserOnlineIPsResponse)(nil),       // 38: papilio.node.xray.v1.ListUserOnlineIPsResponse
+	(*OnlineIP)(nil),                        // 39: papilio.node.xray.v1.OnlineIP
+	(*ListOnlineUsersRequest)(nil),          // 40: papilio.node.xray.v1.ListOnlineUsersRequest
+	(*ListOnlineUsersResponse)(nil),         // 41: papilio.node.xray.v1.ListOnlineUsersResponse
+	(*ApplyInboundUserDeltaRequest)(nil),    // 42: papilio.node.xray.v1.ApplyInboundUserDeltaRequest
+	(*UserDeltaStep)(nil),                   // 43: papilio.node.xray.v1.UserDeltaStep
+	(*ApplyInboundUserDeltaResponse)(nil),   // 44: papilio.node.xray.v1.ApplyInboundUserDeltaResponse
+	(*UserDeltaFailure)(nil),                // 45: papilio.node.xray.v1.UserDeltaFailure
 }
 var file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_depIdxs = []int32{
 	0,  // 0: papilio.node.xray.v1.UserMutationFailure.outcome:type_name -> papilio.node.xray.v1.UserMutationOutcome
-	7,  // 1: papilio.node.xray.v1.AddInboundUserRequest.user:type_name -> papilio.node.xray.v1.InboundUser
-	8,  // 2: papilio.node.xray.v1.InboundUser.vless:type_name -> papilio.node.xray.v1.VLESSAccount
-	9,  // 3: papilio.node.xray.v1.InboundUser.vmess:type_name -> papilio.node.xray.v1.VMessAccount
-	10, // 4: papilio.node.xray.v1.InboundUser.trojan:type_name -> papilio.node.xray.v1.PasswordAccount
-	12, // 5: papilio.node.xray.v1.InboundUser.shadowsocks:type_name -> papilio.node.xray.v1.ShadowsocksAccount
-	13, // 6: papilio.node.xray.v1.InboundUser.shadowsocks_2022:type_name -> papilio.node.xray.v1.Shadowsocks2022Account
-	11, // 7: papilio.node.xray.v1.InboundUser.hysteria:type_name -> papilio.node.xray.v1.HysteriaAccount
-	10, // 8: papilio.node.xray.v1.InboundUser.masque:type_name -> papilio.node.xray.v1.PasswordAccount
-	14, // 9: papilio.node.xray.v1.InboundUser.wireguard:type_name -> papilio.node.xray.v1.WireGuardAccount
+	9,  // 1: papilio.node.xray.v1.AddInboundUserRequest.user:type_name -> papilio.node.xray.v1.InboundUser
+	10, // 2: papilio.node.xray.v1.InboundUser.vless:type_name -> papilio.node.xray.v1.VLESSAccount
+	11, // 3: papilio.node.xray.v1.InboundUser.vmess:type_name -> papilio.node.xray.v1.VMessAccount
+	12, // 4: papilio.node.xray.v1.InboundUser.trojan:type_name -> papilio.node.xray.v1.PasswordAccount
+	14, // 5: papilio.node.xray.v1.InboundUser.shadowsocks:type_name -> papilio.node.xray.v1.ShadowsocksAccount
+	15, // 6: papilio.node.xray.v1.InboundUser.shadowsocks_2022:type_name -> papilio.node.xray.v1.Shadowsocks2022Account
+	13, // 7: papilio.node.xray.v1.InboundUser.hysteria:type_name -> papilio.node.xray.v1.HysteriaAccount
+	12, // 8: papilio.node.xray.v1.InboundUser.masque:type_name -> papilio.node.xray.v1.PasswordAccount
+	16, // 9: papilio.node.xray.v1.InboundUser.wireguard:type_name -> papilio.node.xray.v1.WireGuardAccount
 	1,  // 10: papilio.node.xray.v1.ShadowsocksAccount.cipher:type_name -> papilio.node.xray.v1.ShadowsocksCipher
-	7,  // 11: papilio.node.xray.v1.AddInboundUsersRequest.users:type_name -> papilio.node.xray.v1.InboundUser
+	9,  // 11: papilio.node.xray.v1.AddInboundUsersRequest.users:type_name -> papilio.node.xray.v1.InboundUser
 	2,  // 12: papilio.node.xray.v1.UserAdditionResult.state:type_name -> papilio.node.xray.v1.UserAdditionState
-	17, // 13: papilio.node.xray.v1.AddInboundUsersResponse.items:type_name -> papilio.node.xray.v1.UserAdditionResult
-	18, // 14: papilio.node.xray.v1.UserAdditionsFailure.progress:type_name -> papilio.node.xray.v1.AddInboundUsersResponse
+	19, // 13: papilio.node.xray.v1.AddInboundUsersResponse.items:type_name -> papilio.node.xray.v1.UserAdditionResult
+	20, // 14: papilio.node.xray.v1.UserAdditionsFailure.progress:type_name -> papilio.node.xray.v1.AddInboundUsersResponse
 	0,  // 15: papilio.node.xray.v1.UserAdditionsFailure.outcome:type_name -> papilio.node.xray.v1.UserMutationOutcome
-	23, // 16: papilio.node.xray.v1.InboundUserRecord.account:type_name -> papilio.node.xray.v1.NativeUserAccount
-	22, // 17: papilio.node.xray.v1.GetInboundUserMetadataResponse.user:type_name -> papilio.node.xray.v1.InboundUserMetadata
-	22, // 18: papilio.node.xray.v1.ListInboundUserMetadataResponse.users:type_name -> papilio.node.xray.v1.InboundUserMetadata
-	24, // 19: papilio.node.xray.v1.GetInboundUserResponse.user:type_name -> papilio.node.xray.v1.InboundUserRecord
-	24, // 20: papilio.node.xray.v1.ListInboundUsersResponse.users:type_name -> papilio.node.xray.v1.InboundUserRecord
-	37, // 21: papilio.node.xray.v1.ListUserOnlineIPsResponse.items:type_name -> papilio.node.xray.v1.OnlineIP
-	22, // [22:22] is the sub-list for method output_type
-	22, // [22:22] is the sub-list for method input_type
-	22, // [22:22] is the sub-list for extension type_name
-	22, // [22:22] is the sub-list for extension extendee
-	0,  // [0:22] is the sub-list for field type_name
+	25, // 16: papilio.node.xray.v1.InboundUserRecord.account:type_name -> papilio.node.xray.v1.NativeUserAccount
+	24, // 17: papilio.node.xray.v1.GetInboundUserMetadataResponse.user:type_name -> papilio.node.xray.v1.InboundUserMetadata
+	24, // 18: papilio.node.xray.v1.ListInboundUserMetadataResponse.users:type_name -> papilio.node.xray.v1.InboundUserMetadata
+	26, // 19: papilio.node.xray.v1.GetInboundUserResponse.user:type_name -> papilio.node.xray.v1.InboundUserRecord
+	26, // 20: papilio.node.xray.v1.ListInboundUsersResponse.users:type_name -> papilio.node.xray.v1.InboundUserRecord
+	39, // 21: papilio.node.xray.v1.ListUserOnlineIPsResponse.items:type_name -> papilio.node.xray.v1.OnlineIP
+	9,  // 22: papilio.node.xray.v1.ApplyInboundUserDeltaRequest.users:type_name -> papilio.node.xray.v1.InboundUser
+	3,  // 23: papilio.node.xray.v1.UserDeltaStep.action:type_name -> papilio.node.xray.v1.UserDeltaAction
+	4,  // 24: papilio.node.xray.v1.UserDeltaStep.state:type_name -> papilio.node.xray.v1.UserDeltaState
+	43, // 25: papilio.node.xray.v1.ApplyInboundUserDeltaResponse.steps:type_name -> papilio.node.xray.v1.UserDeltaStep
+	44, // 26: papilio.node.xray.v1.UserDeltaFailure.progress:type_name -> papilio.node.xray.v1.ApplyInboundUserDeltaResponse
+	0,  // 27: papilio.node.xray.v1.UserDeltaFailure.outcome:type_name -> papilio.node.xray.v1.UserMutationOutcome
+	28, // [28:28] is the sub-list for method output_type
+	28, // [28:28] is the sub-list for method input_type
+	28, // [28:28] is the sub-list for extension type_name
+	28, // [28:28] is the sub-list for extension extendee
+	0,  // [0:28] is the sub-list for field type_name
 }
 
 func init() { file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_init() }
@@ -2814,13 +3233,15 @@ func file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_init() {
 	}
 	file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[11].OneofWrappers = []any{}
 	file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[14].OneofWrappers = []any{}
+	file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[38].OneofWrappers = []any{}
+	file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[39].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDesc), len(file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDesc)),
-			NumEnums:      3,
-			NumMessages:   37,
+			NumEnums:      5,
+			NumMessages:   41,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

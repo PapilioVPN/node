@@ -22,7 +22,7 @@ type Adapter struct {
 	writes sync.Mutex
 }
 
-// beginMutation serializes this instance's user effects without a waiting queue.
+// beginMutation serializes this adapter's admitted user writes without a queue.
 // Reads retain independent shared native capacity. This is operation admission,
 // not a state lock; it covers all phases of a write and releases on every exit.
 func (c *Adapter) beginMutation(ctx context.Context) (context.Context, func(), error) {
