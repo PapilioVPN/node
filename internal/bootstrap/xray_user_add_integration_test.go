@@ -13,19 +13,19 @@ import (
 	"testing"
 	"time"
 
+	"github.com/xtls/xray-core/common/serial"
+	"github.com/xtls/xray-core/proxy/vless"
 	"go.uber.org/fx"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
 	"github.com/PapilioVPN/node/internal/bootstrap"
-	"github.com/PapilioVPN/node/internal/modules/engines/xray/domain"
-	xrayv1 "github.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi/proto/v1"
+	"github.com/PapilioVPN/node/internal/modules/core/users/domain"
+	userv1 "github.com/PapilioVPN/node/internal/modules/core/users/grpcapi/proto/v1"
 	xrayprocess "github.com/PapilioVPN/node/internal/modules/engines/xray/infra/process"
 	rpc "github.com/PapilioVPN/node/internal/platform/grpcserver"
 	"github.com/PapilioVPN/node/internal/settings"
 	"github.com/PapilioVPN/node/internal/shared/testutil"
-	"github.com/xtls/xray-core/common/serial"
-	"github.com/xtls/xray-core/proxy/vless"
 )
 
 func TestLiveUserAdditionOverMTLSEnablesVLESSWithoutRemovingExistingUsers(t *testing.T) {
@@ -101,16 +101,16 @@ func TestLiveUserAdditionOverMTLSEnablesVLESSWithoutRemovingExistingUsers(t *tes
 				t.Fatal("unprovisioned user authenticated before addition")
 			}
 			client := xrayClient(t, server, certificates)
-			before, err := client.GetInboundUserCount(ctx, &xrayv1.GetInboundUserCountRequest{InstanceId: "edge-a", InboundTag: "target"})
+			before, err := client.GetInboundUserCount(ctx, &userv1.GetInboundUserCountRequest{InstanceId: "edge-a", InboundTag: "target"})
 			if err != nil || before.Count != 1 {
 				t.Fatalf("native initial membership count: %v %v", before, err)
 			}
 			verifySingleUserViews(t, ctx, client, "edge-a", "target", "selected@local", nil)
-			request := &xrayv1.AddInboundUserRequest{InstanceId: "edge-a", InboundTag: "target", User: &xrayv1.InboundUser{Email: "selected@local", Account: &xrayv1.InboundUser_Trojan{Trojan: &xrayv1.PasswordAccount{Password: "test-only"}}}}
+			request := &userv1.AddInboundUserRequest{InstanceId: "edge-a", InboundTag: "target", User: &userv1.InboundUser{Email: "selected@local", Account: &userv1.InboundUser_Trojan{Trojan: &userv1.PasswordAccount{Password: "test-only"}}}}
 			if _, err := client.AddInboundUser(ctx, request); status.Code(err) != codes.FailedPrecondition {
 				t.Fatalf("wrong account family reached native user manager: %v", err)
 			}
-			request.User.Account = &xrayv1.InboundUser_Vless{Vless: &xrayv1.VLESSAccount{Id: selectedID}}
+			request.User.Account = &userv1.InboundUser_Vless{Vless: &userv1.VLESSAccount{Id: selectedID}}
 			started := time.Now().UnixMilli()
 			ack, err := client.AddInboundUser(ctx, request)
 			if err != nil || ack.InstanceId != "edge-a" || ack.InboundTag != "target" || ack.Email != "selected@local" || ack.AcknowledgedAtUnixMs < started {
@@ -120,7 +120,7 @@ func TestLiveUserAdditionOverMTLSEnablesVLESSWithoutRemovingExistingUsers(t *tes
 				t.Fatalf("added user cannot authenticate: %v", err)
 			}
 			for _, selection := range []struct{ instance, tag string }{{"edge-a", "target"}, {"edge-a", "other"}, {"edge-b", "target"}} {
-				count, err := client.GetInboundUserCount(ctx, &xrayv1.GetInboundUserCountRequest{InstanceId: selection.instance, InboundTag: selection.tag})
+				count, err := client.GetInboundUserCount(ctx, &userv1.GetInboundUserCountRequest{InstanceId: selection.instance, InboundTag: selection.tag})
 				if err != nil || count.InstanceId != selection.instance || count.InboundTag != selection.tag || count.Count != 2 {
 					t.Fatalf("count crossed instance/inbound membership: %v %v", count, err)
 				}
@@ -131,12 +131,12 @@ func TestLiveUserAdditionOverMTLSEnablesVLESSWithoutRemovingExistingUsers(t *tes
 				native := serial.ToTypedMessage(&vless.Account{Id: selectedID})
 				record := domain.ObservedInboundUser{Email: "selected@local", Account: domain.ObservedUserAccount{TypeName: native.Type, Protobuf: native.Value}}
 				verifySingleUserViews(t, ctx, client, selected.id, selected.tag, "selected@local", &record)
-				all, err := client.ListInboundUserMetadata(ctx, &xrayv1.ListInboundUserMetadataRequest{InstanceId: selected.id, InboundTag: selected.tag})
+				all, err := client.ListInboundUserMetadata(ctx, &userv1.ListInboundUserMetadataRequest{InstanceId: selected.id, InboundTag: selected.tag})
 				if err != nil || len(all.Users) != 2 {
 					t.Fatal("public user list crossed instance/inbound membership")
 				}
 			}
-			request.User.Account = &xrayv1.InboundUser_Vless{Vless: &xrayv1.VLESSAccount{Id: replacementID}}
+			request.User.Account = &userv1.InboundUser_Vless{Vless: &userv1.VLESSAccount{Id: replacementID}}
 			_, err = client.AddInboundUser(ctx, request)
 			if status.Code(err) != codes.Unavailable {
 				t.Fatalf("native duplicate was hidden or replaced: %v", err)
@@ -145,8 +145,8 @@ func TestLiveUserAdditionOverMTLSEnablesVLESSWithoutRemovingExistingUsers(t *tes
 			if len(details) != 1 {
 				t.Fatal("duplicate failure lost mutation outcome details")
 			}
-			failure, ok := details[0].(*xrayv1.UserMutationFailure)
-			if !ok || failure.Outcome != xrayv1.UserMutationOutcome_USER_MUTATION_OUTCOME_UNKNOWN {
+			failure, ok := details[0].(*userv1.UserMutationFailure)
+			if !ok || failure.Outcome != userv1.UserMutationOutcome_USER_MUTATION_OUTCOME_UNKNOWN {
 				t.Fatal("generic native error was relabeled as proof of no effect")
 			}
 			blocked, release = context.WithTimeout(ctx, 400*time.Millisecond)

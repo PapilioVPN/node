@@ -8,6 +8,7 @@ package xrayv1
 
 import (
 	context "context"
+	v1 "github.com/PapilioVPN/node/internal/modules/core/users/grpcapi/proto/v1"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -53,10 +54,10 @@ const (
 type XrayServiceClient interface {
 	// One live native addition after an inbound-type preflight. Not atomic against
 	// external inbound replacement; no remove-before-add or application retry.
-	AddInboundUser(ctx context.Context, in *AddInboundUserRequest, opts ...grpc.CallOption) (*AddInboundUserResponse, error)
+	AddInboundUser(ctx context.Context, in *v1.AddInboundUserRequest, opts ...grpc.CallOption) (*v1.AddInboundUserResponse, error)
 	// One live native removal; no config persistence or established-session claim.
 	// Lost replies can hide an applied change. No application retry.
-	RemoveInboundUser(ctx context.Context, in *RemoveInboundUserRequest, opts ...grpc.CallOption) (*RemoveInboundUserResponse, error)
+	RemoveInboundUser(ctx context.Context, in *v1.RemoveInboundUserRequest, opts ...grpc.CallOption) (*v1.RemoveInboundUserResponse, error)
 	// Executes the selected configured binary's native version command only.
 	// These facts may differ from a previously started process after file replacement.
 	GetBinaryInfo(ctx context.Context, in *GetBinaryInfoRequest, opts ...grpc.CallOption) (*GetBinaryInfoResponse, error)
@@ -84,13 +85,13 @@ type XrayServiceClient interface {
 	ListUserOnlineIPs(ctx context.Context, in *ListUserOnlineIPsRequest, opts ...grpc.CallOption) (*ListUserOnlineIPsResponse, error)
 	ListOnlineUsers(ctx context.Context, in *ListOnlineUsersRequest, opts ...grpc.CallOption) (*ListOnlineUsersResponse, error)
 	// Native membership count only, not online users or a user-list snapshot.
-	GetInboundUserCount(ctx context.Context, in *GetInboundUserCountRequest, opts ...grpc.CallOption) (*GetInboundUserCountResponse, error)
+	GetInboundUserCount(ctx context.Context, in *v1.GetInboundUserCountRequest, opts ...grpc.CallOption) (*v1.GetInboundUserCountResponse, error)
 	// User-manager observations, not initial config or a complete replay image.
 	// Metadata excludes account payloads. Full records require their own grant.
-	GetInboundUserMetadata(ctx context.Context, in *GetInboundUserMetadataRequest, opts ...grpc.CallOption) (*GetInboundUserMetadataResponse, error)
-	ListInboundUserMetadata(ctx context.Context, in *ListInboundUserMetadataRequest, opts ...grpc.CallOption) (*ListInboundUserMetadataResponse, error)
-	GetInboundUser(ctx context.Context, in *GetInboundUserRequest, opts ...grpc.CallOption) (*GetInboundUserResponse, error)
-	ListInboundUsers(ctx context.Context, in *ListInboundUsersRequest, opts ...grpc.CallOption) (*ListInboundUsersResponse, error)
+	GetInboundUserMetadata(ctx context.Context, in *v1.GetInboundUserMetadataRequest, opts ...grpc.CallOption) (*v1.GetInboundUserMetadataResponse, error)
+	ListInboundUserMetadata(ctx context.Context, in *v1.ListInboundUserMetadataRequest, opts ...grpc.CallOption) (*v1.ListInboundUserMetadataResponse, error)
+	GetInboundUser(ctx context.Context, in *v1.GetInboundUserRequest, opts ...grpc.CallOption) (*v1.GetInboundUserResponse, error)
+	ListInboundUsers(ctx context.Context, in *v1.ListInboundUsersRequest, opts ...grpc.CallOption) (*v1.ListInboundUsersResponse, error)
 	// Ordered references only; the native API does not return rule conditions.
 	ListRoutingRules(ctx context.Context, in *ListRoutingRulesRequest, opts ...grpc.CallOption) (*ListRoutingRulesResponse, error)
 	// Native field presence is retained; this does not probe or override routing.
@@ -121,9 +122,9 @@ func NewXrayServiceClient(cc grpc.ClientConnInterface) XrayServiceClient {
 	return &xrayServiceClient{cc}
 }
 
-func (c *xrayServiceClient) AddInboundUser(ctx context.Context, in *AddInboundUserRequest, opts ...grpc.CallOption) (*AddInboundUserResponse, error) {
+func (c *xrayServiceClient) AddInboundUser(ctx context.Context, in *v1.AddInboundUserRequest, opts ...grpc.CallOption) (*v1.AddInboundUserResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(AddInboundUserResponse)
+	out := new(v1.AddInboundUserResponse)
 	err := c.cc.Invoke(ctx, XrayService_AddInboundUser_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -131,9 +132,9 @@ func (c *xrayServiceClient) AddInboundUser(ctx context.Context, in *AddInboundUs
 	return out, nil
 }
 
-func (c *xrayServiceClient) RemoveInboundUser(ctx context.Context, in *RemoveInboundUserRequest, opts ...grpc.CallOption) (*RemoveInboundUserResponse, error) {
+func (c *xrayServiceClient) RemoveInboundUser(ctx context.Context, in *v1.RemoveInboundUserRequest, opts ...grpc.CallOption) (*v1.RemoveInboundUserResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(RemoveInboundUserResponse)
+	out := new(v1.RemoveInboundUserResponse)
 	err := c.cc.Invoke(ctx, XrayService_RemoveInboundUser_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -251,9 +252,9 @@ func (c *xrayServiceClient) ListOnlineUsers(ctx context.Context, in *ListOnlineU
 	return out, nil
 }
 
-func (c *xrayServiceClient) GetInboundUserCount(ctx context.Context, in *GetInboundUserCountRequest, opts ...grpc.CallOption) (*GetInboundUserCountResponse, error) {
+func (c *xrayServiceClient) GetInboundUserCount(ctx context.Context, in *v1.GetInboundUserCountRequest, opts ...grpc.CallOption) (*v1.GetInboundUserCountResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetInboundUserCountResponse)
+	out := new(v1.GetInboundUserCountResponse)
 	err := c.cc.Invoke(ctx, XrayService_GetInboundUserCount_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -261,9 +262,9 @@ func (c *xrayServiceClient) GetInboundUserCount(ctx context.Context, in *GetInbo
 	return out, nil
 }
 
-func (c *xrayServiceClient) GetInboundUserMetadata(ctx context.Context, in *GetInboundUserMetadataRequest, opts ...grpc.CallOption) (*GetInboundUserMetadataResponse, error) {
+func (c *xrayServiceClient) GetInboundUserMetadata(ctx context.Context, in *v1.GetInboundUserMetadataRequest, opts ...grpc.CallOption) (*v1.GetInboundUserMetadataResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetInboundUserMetadataResponse)
+	out := new(v1.GetInboundUserMetadataResponse)
 	err := c.cc.Invoke(ctx, XrayService_GetInboundUserMetadata_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -271,9 +272,9 @@ func (c *xrayServiceClient) GetInboundUserMetadata(ctx context.Context, in *GetI
 	return out, nil
 }
 
-func (c *xrayServiceClient) ListInboundUserMetadata(ctx context.Context, in *ListInboundUserMetadataRequest, opts ...grpc.CallOption) (*ListInboundUserMetadataResponse, error) {
+func (c *xrayServiceClient) ListInboundUserMetadata(ctx context.Context, in *v1.ListInboundUserMetadataRequest, opts ...grpc.CallOption) (*v1.ListInboundUserMetadataResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ListInboundUserMetadataResponse)
+	out := new(v1.ListInboundUserMetadataResponse)
 	err := c.cc.Invoke(ctx, XrayService_ListInboundUserMetadata_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -281,9 +282,9 @@ func (c *xrayServiceClient) ListInboundUserMetadata(ctx context.Context, in *Lis
 	return out, nil
 }
 
-func (c *xrayServiceClient) GetInboundUser(ctx context.Context, in *GetInboundUserRequest, opts ...grpc.CallOption) (*GetInboundUserResponse, error) {
+func (c *xrayServiceClient) GetInboundUser(ctx context.Context, in *v1.GetInboundUserRequest, opts ...grpc.CallOption) (*v1.GetInboundUserResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetInboundUserResponse)
+	out := new(v1.GetInboundUserResponse)
 	err := c.cc.Invoke(ctx, XrayService_GetInboundUser_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -291,9 +292,9 @@ func (c *xrayServiceClient) GetInboundUser(ctx context.Context, in *GetInboundUs
 	return out, nil
 }
 
-func (c *xrayServiceClient) ListInboundUsers(ctx context.Context, in *ListInboundUsersRequest, opts ...grpc.CallOption) (*ListInboundUsersResponse, error) {
+func (c *xrayServiceClient) ListInboundUsers(ctx context.Context, in *v1.ListInboundUsersRequest, opts ...grpc.CallOption) (*v1.ListInboundUsersResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ListInboundUsersResponse)
+	out := new(v1.ListInboundUsersResponse)
 	err := c.cc.Invoke(ctx, XrayService_ListInboundUsers_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -387,10 +388,10 @@ func (c *xrayServiceClient) ListOutboundStatuses(ctx context.Context, in *ListOu
 type XrayServiceServer interface {
 	// One live native addition after an inbound-type preflight. Not atomic against
 	// external inbound replacement; no remove-before-add or application retry.
-	AddInboundUser(context.Context, *AddInboundUserRequest) (*AddInboundUserResponse, error)
+	AddInboundUser(context.Context, *v1.AddInboundUserRequest) (*v1.AddInboundUserResponse, error)
 	// One live native removal; no config persistence or established-session claim.
 	// Lost replies can hide an applied change. No application retry.
-	RemoveInboundUser(context.Context, *RemoveInboundUserRequest) (*RemoveInboundUserResponse, error)
+	RemoveInboundUser(context.Context, *v1.RemoveInboundUserRequest) (*v1.RemoveInboundUserResponse, error)
 	// Executes the selected configured binary's native version command only.
 	// These facts may differ from a previously started process after file replacement.
 	GetBinaryInfo(context.Context, *GetBinaryInfoRequest) (*GetBinaryInfoResponse, error)
@@ -418,13 +419,13 @@ type XrayServiceServer interface {
 	ListUserOnlineIPs(context.Context, *ListUserOnlineIPsRequest) (*ListUserOnlineIPsResponse, error)
 	ListOnlineUsers(context.Context, *ListOnlineUsersRequest) (*ListOnlineUsersResponse, error)
 	// Native membership count only, not online users or a user-list snapshot.
-	GetInboundUserCount(context.Context, *GetInboundUserCountRequest) (*GetInboundUserCountResponse, error)
+	GetInboundUserCount(context.Context, *v1.GetInboundUserCountRequest) (*v1.GetInboundUserCountResponse, error)
 	// User-manager observations, not initial config or a complete replay image.
 	// Metadata excludes account payloads. Full records require their own grant.
-	GetInboundUserMetadata(context.Context, *GetInboundUserMetadataRequest) (*GetInboundUserMetadataResponse, error)
-	ListInboundUserMetadata(context.Context, *ListInboundUserMetadataRequest) (*ListInboundUserMetadataResponse, error)
-	GetInboundUser(context.Context, *GetInboundUserRequest) (*GetInboundUserResponse, error)
-	ListInboundUsers(context.Context, *ListInboundUsersRequest) (*ListInboundUsersResponse, error)
+	GetInboundUserMetadata(context.Context, *v1.GetInboundUserMetadataRequest) (*v1.GetInboundUserMetadataResponse, error)
+	ListInboundUserMetadata(context.Context, *v1.ListInboundUserMetadataRequest) (*v1.ListInboundUserMetadataResponse, error)
+	GetInboundUser(context.Context, *v1.GetInboundUserRequest) (*v1.GetInboundUserResponse, error)
+	ListInboundUsers(context.Context, *v1.ListInboundUsersRequest) (*v1.ListInboundUsersResponse, error)
 	// Ordered references only; the native API does not return rule conditions.
 	ListRoutingRules(context.Context, *ListRoutingRulesRequest) (*ListRoutingRulesResponse, error)
 	// Native field presence is retained; this does not probe or override routing.
@@ -455,10 +456,10 @@ type XrayServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedXrayServiceServer struct{}
 
-func (UnimplementedXrayServiceServer) AddInboundUser(context.Context, *AddInboundUserRequest) (*AddInboundUserResponse, error) {
+func (UnimplementedXrayServiceServer) AddInboundUser(context.Context, *v1.AddInboundUserRequest) (*v1.AddInboundUserResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method AddInboundUser not implemented")
 }
-func (UnimplementedXrayServiceServer) RemoveInboundUser(context.Context, *RemoveInboundUserRequest) (*RemoveInboundUserResponse, error) {
+func (UnimplementedXrayServiceServer) RemoveInboundUser(context.Context, *v1.RemoveInboundUserRequest) (*v1.RemoveInboundUserResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method RemoveInboundUser not implemented")
 }
 func (UnimplementedXrayServiceServer) GetBinaryInfo(context.Context, *GetBinaryInfoRequest) (*GetBinaryInfoResponse, error) {
@@ -494,19 +495,19 @@ func (UnimplementedXrayServiceServer) ListUserOnlineIPs(context.Context, *ListUs
 func (UnimplementedXrayServiceServer) ListOnlineUsers(context.Context, *ListOnlineUsersRequest) (*ListOnlineUsersResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListOnlineUsers not implemented")
 }
-func (UnimplementedXrayServiceServer) GetInboundUserCount(context.Context, *GetInboundUserCountRequest) (*GetInboundUserCountResponse, error) {
+func (UnimplementedXrayServiceServer) GetInboundUserCount(context.Context, *v1.GetInboundUserCountRequest) (*v1.GetInboundUserCountResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetInboundUserCount not implemented")
 }
-func (UnimplementedXrayServiceServer) GetInboundUserMetadata(context.Context, *GetInboundUserMetadataRequest) (*GetInboundUserMetadataResponse, error) {
+func (UnimplementedXrayServiceServer) GetInboundUserMetadata(context.Context, *v1.GetInboundUserMetadataRequest) (*v1.GetInboundUserMetadataResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetInboundUserMetadata not implemented")
 }
-func (UnimplementedXrayServiceServer) ListInboundUserMetadata(context.Context, *ListInboundUserMetadataRequest) (*ListInboundUserMetadataResponse, error) {
+func (UnimplementedXrayServiceServer) ListInboundUserMetadata(context.Context, *v1.ListInboundUserMetadataRequest) (*v1.ListInboundUserMetadataResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListInboundUserMetadata not implemented")
 }
-func (UnimplementedXrayServiceServer) GetInboundUser(context.Context, *GetInboundUserRequest) (*GetInboundUserResponse, error) {
+func (UnimplementedXrayServiceServer) GetInboundUser(context.Context, *v1.GetInboundUserRequest) (*v1.GetInboundUserResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetInboundUser not implemented")
 }
-func (UnimplementedXrayServiceServer) ListInboundUsers(context.Context, *ListInboundUsersRequest) (*ListInboundUsersResponse, error) {
+func (UnimplementedXrayServiceServer) ListInboundUsers(context.Context, *v1.ListInboundUsersRequest) (*v1.ListInboundUsersResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListInboundUsers not implemented")
 }
 func (UnimplementedXrayServiceServer) ListRoutingRules(context.Context, *ListRoutingRulesRequest) (*ListRoutingRulesResponse, error) {
@@ -555,7 +556,7 @@ func RegisterXrayServiceServer(s grpc.ServiceRegistrar, srv XrayServiceServer) {
 }
 
 func _XrayService_AddInboundUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AddInboundUserRequest)
+	in := new(v1.AddInboundUserRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -567,13 +568,13 @@ func _XrayService_AddInboundUser_Handler(srv interface{}, ctx context.Context, d
 		FullMethod: XrayService_AddInboundUser_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(XrayServiceServer).AddInboundUser(ctx, req.(*AddInboundUserRequest))
+		return srv.(XrayServiceServer).AddInboundUser(ctx, req.(*v1.AddInboundUserRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _XrayService_RemoveInboundUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(RemoveInboundUserRequest)
+	in := new(v1.RemoveInboundUserRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -585,7 +586,7 @@ func _XrayService_RemoveInboundUser_Handler(srv interface{}, ctx context.Context
 		FullMethod: XrayService_RemoveInboundUser_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(XrayServiceServer).RemoveInboundUser(ctx, req.(*RemoveInboundUserRequest))
+		return srv.(XrayServiceServer).RemoveInboundUser(ctx, req.(*v1.RemoveInboundUserRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -789,7 +790,7 @@ func _XrayService_ListOnlineUsers_Handler(srv interface{}, ctx context.Context, 
 }
 
 func _XrayService_GetInboundUserCount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetInboundUserCountRequest)
+	in := new(v1.GetInboundUserCountRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -801,13 +802,13 @@ func _XrayService_GetInboundUserCount_Handler(srv interface{}, ctx context.Conte
 		FullMethod: XrayService_GetInboundUserCount_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(XrayServiceServer).GetInboundUserCount(ctx, req.(*GetInboundUserCountRequest))
+		return srv.(XrayServiceServer).GetInboundUserCount(ctx, req.(*v1.GetInboundUserCountRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _XrayService_GetInboundUserMetadata_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetInboundUserMetadataRequest)
+	in := new(v1.GetInboundUserMetadataRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -819,13 +820,13 @@ func _XrayService_GetInboundUserMetadata_Handler(srv interface{}, ctx context.Co
 		FullMethod: XrayService_GetInboundUserMetadata_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(XrayServiceServer).GetInboundUserMetadata(ctx, req.(*GetInboundUserMetadataRequest))
+		return srv.(XrayServiceServer).GetInboundUserMetadata(ctx, req.(*v1.GetInboundUserMetadataRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _XrayService_ListInboundUserMetadata_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListInboundUserMetadataRequest)
+	in := new(v1.ListInboundUserMetadataRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -837,13 +838,13 @@ func _XrayService_ListInboundUserMetadata_Handler(srv interface{}, ctx context.C
 		FullMethod: XrayService_ListInboundUserMetadata_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(XrayServiceServer).ListInboundUserMetadata(ctx, req.(*ListInboundUserMetadataRequest))
+		return srv.(XrayServiceServer).ListInboundUserMetadata(ctx, req.(*v1.ListInboundUserMetadataRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _XrayService_GetInboundUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetInboundUserRequest)
+	in := new(v1.GetInboundUserRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -855,13 +856,13 @@ func _XrayService_GetInboundUser_Handler(srv interface{}, ctx context.Context, d
 		FullMethod: XrayService_GetInboundUser_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(XrayServiceServer).GetInboundUser(ctx, req.(*GetInboundUserRequest))
+		return srv.(XrayServiceServer).GetInboundUser(ctx, req.(*v1.GetInboundUserRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _XrayService_ListInboundUsers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListInboundUsersRequest)
+	in := new(v1.ListInboundUsersRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -873,7 +874,7 @@ func _XrayService_ListInboundUsers_Handler(srv interface{}, ctx context.Context,
 		FullMethod: XrayService_ListInboundUsers_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(XrayServiceServer).ListInboundUsers(ctx, req.(*ListInboundUsersRequest))
+		return srv.(XrayServiceServer).ListInboundUsers(ctx, req.(*v1.ListInboundUsersRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }

@@ -16,6 +16,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
+	usergrpc "github.com/PapilioVPN/node/internal/modules/core/users/grpcapi"
 	"github.com/PapilioVPN/node/internal/modules/engines/xray/domain"
 	"github.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi"
 	xrayv1 "github.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi/proto/v1"
@@ -43,7 +44,7 @@ func TestRouteRequiresIdentityAndIndependentGrantBeforeShape(t *testing.T) {
 	if _, err := (grpcapi.Handler{}).TestRoute(t.Context(), nil); status.Code(err) != codes.Unauthenticated {
 		t.Fatalf("unverified probe reached shape/application: %v", err)
 	}
-	h := grpcapi.Handler{AllowInfoRead: true, AllowStatsRead: true, AllowStatsReset: true, AllowOnlineRead: true, AllowUsersRead: true, AllowUserManagement: true, AllowRoutingRead: true}
+	h := grpcapi.Handler{AllowInfoRead: true, AllowStatsRead: true, AllowStatsReset: true, AllowOnlineRead: true, AllowRoutingRead: true, UserAPI: usergrpc.UserAPI{AllowUsersRead: true, AllowUserManagement: true}}
 	if _, err := h.TestRoute(verifiedContext(t), nil); status.Code(err) != codes.PermissionDenied {
 		t.Fatalf("other grants enabled routing probes: %v", err)
 	}

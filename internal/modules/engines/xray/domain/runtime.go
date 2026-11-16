@@ -5,13 +5,14 @@ import (
 	"time"
 
 	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
+	"github.com/PapilioVPN/node/internal/shared/engineapi"
 )
 
 const ReadRuntimeInfo = "xray.runtime.info.read"
 
-var ErrAPIDisabled = errors.New("Xray API is not enabled")
-var ErrAPIBusy = errors.New("Xray API is busy")
-var ErrAPIResourceLimit = errors.New("Xray API resource limit exceeded")
+var ErrAPIDisabled = engineapi.ErrDisabled
+var ErrAPIBusy = engineapi.ErrBusy
+var ErrAPIResourceLimit = engineapi.ErrResourceLimit
 var ErrRuntimeInfoUnsupported = errors.New("Xray runtime information is not supported")
 
 // RuntimeInfo preserves the native GetSysStats counters without signed conversion.

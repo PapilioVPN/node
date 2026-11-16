@@ -12,6 +12,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/PapilioVPN/node/internal/bootstrap"
+	userv1 "github.com/PapilioVPN/node/internal/modules/core/users/grpcapi/proto/v1"
 	xrayv1 "github.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi/proto/v1"
 	rpc "github.com/PapilioVPN/node/internal/platform/grpcserver"
 	"github.com/PapilioVPN/node/internal/shared/testutil"
@@ -33,7 +34,7 @@ func TestUserCountRequiresIndependentGrantOverMTLS(t *testing.T) {
 			}
 			t.Cleanup(func() { _ = application.Stop(context.Background()); _ = server.Close() })
 			client := xrayClient(t, server, certificates)
-			response, err := client.GetInboundUserCount(t.Context(), &xrayv1.GetInboundUserCountRequest{InstanceId: "missing", InboundTag: "in"})
+			response, err := client.GetInboundUserCount(t.Context(), &userv1.GetInboundUserCountRequest{InstanceId: "missing", InboundTag: "in"})
 			want := codes.PermissionDenied
 			if granted {
 				want = codes.NotFound
@@ -42,7 +43,7 @@ func TestUserCountRequiresIndependentGrantOverMTLS(t *testing.T) {
 				t.Fatalf("count grant/lookup boundary changed: %v %v", response, err)
 			}
 			if granted {
-				if _, err := client.RemoveInboundUser(t.Context(), &xrayv1.RemoveInboundUserRequest{InstanceId: "missing", InboundTag: "in", Email: "user"}); status.Code(err) != codes.PermissionDenied {
+				if _, err := client.RemoveInboundUser(t.Context(), &userv1.RemoveInboundUserRequest{InstanceId: "missing", InboundTag: "in", Email: "user"}); status.Code(err) != codes.PermissionDenied {
 					t.Fatalf("count read enabled user mutations: %v", err)
 				}
 				if _, err := client.GetUserOnlineStats(t.Context(), &xrayv1.GetUserOnlineStatsRequest{InstanceId: "missing", Email: "user"}); status.Code(err) != codes.PermissionDenied {

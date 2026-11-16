@@ -19,6 +19,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/PapilioVPN/node/internal/bootstrap"
+	userv1 "github.com/PapilioVPN/node/internal/modules/core/users/grpcapi/proto/v1"
 	xrayv1 "github.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi/proto/v1"
 	xrayprocess "github.com/PapilioVPN/node/internal/modules/engines/xray/infra/process"
 	rpc "github.com/PapilioVPN/node/internal/platform/grpcserver"
@@ -97,7 +98,7 @@ func TestLiveUserRemovalOverMTLSDeniesNewVLESSSessionsWithoutCrossingOwnership(t
 			}
 			client := xrayClient(t, server, certificates)
 			started := time.Now().UnixMilli()
-			ack, err := client.RemoveInboundUser(ctx, &xrayv1.RemoveInboundUserRequest{InstanceId: "edge-a", InboundTag: "target", Email: "selected@local"})
+			ack, err := client.RemoveInboundUser(ctx, &userv1.RemoveInboundUserRequest{InstanceId: "edge-a", InboundTag: "target", Email: "selected@local"})
 			if err != nil || ack.InstanceId != "edge-a" || ack.InboundTag != "target" || ack.Email != "selected@local" || ack.AcknowledgedAtUnixMs < started {
 				t.Fatalf("native removal acknowledgement: %v %v", ack, err)
 			}
@@ -117,7 +118,7 @@ func TestLiveUserRemovalOverMTLSDeniesNewVLESSSessionsWithoutCrossingOwnership(t
 			if err != nil || !bytes.Equal(current, original) {
 				t.Fatalf("live removal modified native config: %v", err)
 			}
-			_, err = client.RemoveInboundUser(ctx, &xrayv1.RemoveInboundUserRequest{InstanceId: "edge-a", InboundTag: "target", Email: "selected@local"})
+			_, err = client.RemoveInboundUser(ctx, &userv1.RemoveInboundUserRequest{InstanceId: "edge-a", InboundTag: "target", Email: "selected@local"})
 			if status.Code(err) != codes.Unavailable {
 				t.Fatalf("generic native absence was relabeled: %v", err)
 			}
@@ -125,8 +126,8 @@ func TestLiveUserRemovalOverMTLSDeniesNewVLESSSessionsWithoutCrossingOwnership(t
 			if len(details) != 1 {
 				t.Fatalf("unknown outcome detail absent: %v", err)
 			}
-			failure, ok := details[0].(*xrayv1.UserMutationFailure)
-			if !ok || failure.Outcome != xrayv1.UserMutationOutcome_USER_MUTATION_OUTCOME_UNKNOWN {
+			failure, ok := details[0].(*userv1.UserMutationFailure)
+			if !ok || failure.Outcome != userv1.UserMutationOutcome_USER_MUTATION_OUTCOME_UNKNOWN {
 				t.Fatalf("native generic failure became known no effect: %v", details)
 			}
 		})
@@ -167,7 +168,7 @@ func TestUserManagementRequiresIndependentGrantOverMTLS(t *testing.T) {
 			}
 			t.Cleanup(func() { _ = application.Stop(context.Background()); _ = server.Close() })
 			client := xrayClient(t, server, certificates)
-			_, additionError := client.AddInboundUser(t.Context(), &xrayv1.AddInboundUserRequest{InstanceId: "missing", InboundTag: "in", User: &xrayv1.InboundUser{Email: "user", Account: &xrayv1.InboundUser_Vless{Vless: &xrayv1.VLESSAccount{Id: "test-only"}}}})
+			_, additionError := client.AddInboundUser(t.Context(), &userv1.AddInboundUserRequest{InstanceId: "missing", InboundTag: "in", User: &userv1.InboundUser{Email: "user", Account: &userv1.InboundUser_Vless{Vless: &userv1.VLESSAccount{Id: "test-only"}}}})
 			additionCode := codes.PermissionDenied
 			if granted {
 				additionCode = codes.NotFound
@@ -175,7 +176,7 @@ func TestUserManagementRequiresIndependentGrantOverMTLS(t *testing.T) {
 			if status.Code(additionError) != additionCode {
 				t.Fatalf("addition did not enforce/wire the independent grant: %v", additionError)
 			}
-			_, err := client.RemoveInboundUser(t.Context(), &xrayv1.RemoveInboundUserRequest{InstanceId: "missing", InboundTag: "in", Email: "user"})
+			_, err := client.RemoveInboundUser(t.Context(), &userv1.RemoveInboundUserRequest{InstanceId: "missing", InboundTag: "in", Email: "user"})
 			if !granted {
 				if status.Code(err) != codes.PermissionDenied {
 					t.Fatalf("other grants enabled user removal: %v", err)
@@ -189,8 +190,8 @@ func TestUserManagementRequiresIndependentGrantOverMTLS(t *testing.T) {
 			if len(details) != 1 {
 				t.Fatalf("no-effect detail missing: %v", err)
 			}
-			failure, ok := details[0].(*xrayv1.UserMutationFailure)
-			if !ok || failure.Outcome != xrayv1.UserMutationOutcome_USER_MUTATION_OUTCOME_NOT_APPLIED {
+			failure, ok := details[0].(*userv1.UserMutationFailure)
+			if !ok || failure.Outcome != userv1.UserMutationOutcome_USER_MUTATION_OUTCOME_NOT_APPLIED {
 				t.Fatalf("missing instance effects: %v", details)
 			}
 			if _, err := client.GetRuntimeInfo(t.Context(), &xrayv1.GetRuntimeInfoRequest{InstanceId: "missing"}); status.Code(err) != codes.PermissionDenied {

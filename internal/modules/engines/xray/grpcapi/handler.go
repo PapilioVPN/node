@@ -10,6 +10,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
+	usergrpc "github.com/PapilioVPN/node/internal/modules/core/users/grpcapi"
 	"github.com/PapilioVPN/node/internal/modules/engines/xray/domain"
 	xrayv1 "github.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi/proto/v1"
 	"github.com/PapilioVPN/node/internal/shared/grpcidentity"
@@ -21,7 +22,7 @@ type BinaryInfoReader interface {
 }
 
 type Handler struct {
-	xrayv1.UnimplementedXrayServiceServer
+	usergrpc.UserAPI
 	Info                   BinaryInfoReader
 	Runtime                RuntimeInfoReader
 	Traffic                TrafficCounterReader
@@ -29,10 +30,6 @@ type Handler struct {
 	ScopeResets            TrafficCountersResetter
 	Pairs                  TrafficPairReader
 	PairResets             TrafficPairResetter
-	UserRemoval            InboundUserRemover
-	UserAddition           InboundUserAdder
-	UserCounts             InboundUserCountReader
-	Users                  InboundUserReader
 	TrafficCounters        TrafficCountersReader
 	Online                 OnlineReader
 	Routing                RoutingReader
@@ -45,10 +42,6 @@ type Handler struct {
 	AllowStatsRead         bool
 	AllowStatsReset        bool
 	AllowOnlineRead        bool
-	AllowUserManagement    bool
-	AllowUsersRead         bool
-	AllowUserMetadataRead  bool
-	AllowUserAccountsRead  bool
 	AllowRoutingRead       bool
 	AllowRoutingTest       bool
 	AllowRoutingManagement bool

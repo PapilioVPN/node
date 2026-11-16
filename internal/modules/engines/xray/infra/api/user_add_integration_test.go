@@ -16,6 +16,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	userdomain "github.com/PapilioVPN/node/internal/modules/core/users/domain"
 	"github.com/PapilioVPN/node/internal/modules/engines/xray/domain"
 )
 
@@ -33,9 +34,9 @@ func (s userAdditionServer) AlterInbound(ctx context.Context, r *handlers.AlterI
 	return s.add(ctx, r)
 }
 
-func userAddition() domain.InboundUserAddition {
-	return domain.InboundUserAddition{InboundTag: " exact>>>tag ", User: domain.InboundUser{Email: " Mixed@Example ", Level: 42,
-		Account: domain.UserAccount{Protocol: domain.VLESS, VLESS: &domain.VLESSAccount{ID: "8e781ad6-dae6-4ed4-9d7b-8c247f735869"}}}}
+func userAddition() userdomain.InboundUserAddition {
+	return userdomain.InboundUserAddition{InboundTag: " exact>>>tag ", User: userdomain.InboundUser{Email: " Mixed@Example ", Level: 42,
+		Account: userdomain.UserAccount{Protocol: userdomain.VLESS, VLESS: &userdomain.VLESSAccount{ID: "8e781ad6-dae6-4ed4-9d7b-8c247f735869"}}}}
 }
 func additionTarget() *core.InboundHandlerConfig {
 	return &core.InboundHandlerConfig{Tag: userAddition().InboundTag, ProxySettings: &serial.TypedMessage{Type: "xray.proxy.vless.inbound.Config"}}
@@ -71,7 +72,7 @@ func TestUserAdditionUsesOneListingAndOneAddRegardlessOfOtherInbounds(t *testing
 					return &handlers.AlterInboundResponse{}, nil
 				},
 			})
-			client := apiClient(t, address, time.Second, 128*1024)
+			client := userClient(t, address, time.Second, 128*1024)
 			if _, err := client.ReadRuntimeInfo(t.Context()); err != nil {
 				t.Fatal(err)
 			}
@@ -91,10 +92,10 @@ func TestAdditionPreflightFailuresNeverMutateOrClaimUnknownEffect(t *testing.T) 
 		cause    error
 		limit    int
 	}{
-		{"absent", nil, domain.ErrInboundNotFound, 4096},
-		{"wrong-family", []*core.InboundHandlerConfig{{Tag: userAddition().InboundTag, ProxySettings: &serial.TypedMessage{Type: "xray.proxy.trojan.ServerConfig"}}}, domain.ErrInboundProtocolMismatch, 4096},
-		{"duplicate", []*core.InboundHandlerConfig{additionTarget(), additionTarget()}, domain.ErrInvalidInboundResponse, 4096},
-		{"missing-type", []*core.InboundHandlerConfig{{Tag: userAddition().InboundTag}}, domain.ErrInvalidInboundResponse, 4096},
+		{"absent", nil, userdomain.ErrInboundNotFound, 4096},
+		{"wrong-family", []*core.InboundHandlerConfig{{Tag: userAddition().InboundTag, ProxySettings: &serial.TypedMessage{Type: "xray.proxy.trojan.ServerConfig"}}}, userdomain.ErrInboundProtocolMismatch, 4096},
+		{"duplicate", []*core.InboundHandlerConfig{additionTarget(), additionTarget()}, userdomain.ErrInvalidInboundResponse, 4096},
+		{"missing-type", []*core.InboundHandlerConfig{{Tag: userAddition().InboundTag}}, userdomain.ErrInvalidInboundResponse, 4096},
 		{"oversized", []*core.InboundHandlerConfig{additionTarget()}, domain.ErrAPIResourceLimit, 1},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -108,9 +109,9 @@ func TestAdditionPreflightFailuresNeverMutateOrClaimUnknownEffect(t *testing.T) 
 					return &handlers.AlterInboundResponse{}, nil
 				},
 			})
-			client := apiClient(t, address, time.Second, tc.limit)
+			client := userClient(t, address, time.Second, tc.limit)
 			ack, err := client.AddInboundUser(t.Context(), userAddition())
-			if !errors.Is(err, tc.cause) || errors.Is(err, domain.ErrUserMutationUnknown) || !ack.AcknowledgedAt.IsZero() || adds.Load() != 0 {
+			if !errors.Is(err, tc.cause) || errors.Is(err, userdomain.ErrUserMutationUnknown) || !ack.AcknowledgedAt.IsZero() || adds.Load() != 0 {
 				t.Fatalf("preflight permitted/claimed a mutation: %v adds=%d", err, adds.Load())
 			}
 		})
@@ -135,13 +136,13 @@ func TestAdditionDistinguishesReadFailureFromUncertainMutationWithoutReplay(t *t
 						return nil, status.Error(code, "private diagnostics")
 					},
 				})
-				client := apiClient(t, address, time.Second, 4096)
+				client := userClient(t, address, time.Second, 4096)
 				ack, err := client.AddInboundUser(t.Context(), userAddition())
 				var wantAdds int32
 				if !failList {
 					wantAdds = 1
 				}
-				if err == nil || !ack.AcknowledgedAt.IsZero() || status.Code(err) != code || errors.Is(err, domain.ErrUserMutationUnknown) != (!failList && code != codes.Unimplemented) || lists.Load() != 1 || adds.Load() != wantAdds {
+				if err == nil || !ack.AcknowledgedAt.IsZero() || status.Code(err) != code || errors.Is(err, userdomain.ErrUserMutationUnknown) != (!failList && code != codes.Unimplemented) || lists.Load() != 1 || adds.Load() != wantAdds {
 					t.Fatalf("effect/cause/replay changed: %v lists=%d adds=%d", err, lists.Load(), adds.Load())
 				}
 			})
@@ -174,7 +175,7 @@ func TestAdditionSharesAdmissionAndOneDeadlineAcrossReadAndWrite(t *testing.T) {
 			return nil, status.FromContextError(ctx.Err()).Err()
 		},
 	})
-	client := apiClient(t, address, 400*time.Millisecond, 4096)
+	client := userClient(t, address, 400*time.Millisecond, 4096)
 	done := make(chan error, 1)
 	go func() { _, err := client.AddInboundUser(t.Context(), userAddition()); done <- err }()
 	select {
@@ -188,7 +189,7 @@ func TestAdditionSharesAdmissionAndOneDeadlineAcrossReadAndWrite(t *testing.T) {
 	close(release)
 	select {
 	case err := <-done:
-		if !errors.Is(err, context.DeadlineExceeded) || !errors.Is(err, domain.ErrUserMutationUnknown) || !applied.Load() {
+		if !errors.Is(err, context.DeadlineExceeded) || !errors.Is(err, userdomain.ErrUserMutationUnknown) || !applied.Load() {
 			t.Fatalf("lost applied acknowledgement became no effect: %v", err)
 		}
 	case <-time.After(3 * time.Second):

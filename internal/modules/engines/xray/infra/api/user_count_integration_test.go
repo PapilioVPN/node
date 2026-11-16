@@ -14,6 +14,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	userdomain "github.com/PapilioVPN/node/internal/modules/core/users/domain"
 	"github.com/PapilioVPN/node/internal/modules/engines/xray/domain"
 )
 
@@ -35,7 +36,7 @@ func TestNativeUserCountHasOneExactCallAndConstantResultSpace(t *testing.T) {
 		}
 		return &native.GetInboundUsersCountResponse{Count: size.Load()}, nil
 	}})
-	client := apiClient(t, address, time.Second, 4096)
+	client := userClient(t, address, time.Second, 4096)
 	if _, err := client.ReadRuntimeInfo(t.Context()); err != nil {
 		t.Fatal(err)
 	}
@@ -48,7 +49,7 @@ func TestNativeUserCountHasOneExactCallAndConstantResultSpace(t *testing.T) {
 		}
 	}
 	size.Store(-1)
-	if result, err := client.ReadInboundUserCount(t.Context(), " exact>>>tag "); !errors.Is(err, domain.ErrInvalidUserCount) || result != (domain.InboundUserCount{}) {
+	if result, err := client.ReadInboundUserCount(t.Context(), " exact>>>tag "); !errors.Is(err, userdomain.ErrInvalidUserCount) || result != (userdomain.InboundUserCount{}) {
 		t.Fatalf("negative native count became successful facts: %+v %v", result, err)
 	}
 }
@@ -61,9 +62,9 @@ func TestNativeUserCountPreservesFailureInsteadOfReturningZero(t *testing.T) {
 				calls.Add(1)
 				return nil, status.Error(code, "private native diagnostics")
 			}})
-			client := apiClient(t, address, time.Second, 4096)
+			client := userClient(t, address, time.Second, 4096)
 			result, err := client.ReadInboundUserCount(t.Context(), "in")
-			if status.Code(err) != code || result != (domain.InboundUserCount{}) || calls.Load() != 1 {
+			if status.Code(err) != code || result != (userdomain.InboundUserCount{}) || calls.Load() != 1 {
 				t.Fatalf("failed count became zero/retried: %+v %v calls=%d", result, err, calls.Load())
 			}
 		})
@@ -71,8 +72,8 @@ func TestNativeUserCountPreservesFailureInsteadOfReturningZero(t *testing.T) {
 	address, _ := userAPI(t, userCountServer{count: func(context.Context, *native.GetInboundUserRequest) (*native.GetInboundUsersCountResponse, error) {
 		return &native.GetInboundUsersCountResponse{Count: math.MaxInt64}, nil
 	}})
-	client := apiClient(t, address, time.Second, 1)
-	if result, err := client.ReadInboundUserCount(t.Context(), "in"); !errors.Is(err, domain.ErrAPIResourceLimit) || result != (domain.InboundUserCount{}) {
+	client := userClient(t, address, time.Second, 1)
+	if result, err := client.ReadInboundUserCount(t.Context(), "in"); !errors.Is(err, domain.ErrAPIResourceLimit) || result != (userdomain.InboundUserCount{}) {
 		t.Fatalf("native receive limit was bypassed: %+v %v", result, err)
 	}
 }
@@ -84,7 +85,7 @@ func TestNativeUserCountSharesAdmissionAndCancellationWithOtherOperations(t *tes
 		<-ctx.Done()
 		return nil, status.FromContextError(ctx.Err()).Err()
 	}})
-	client := apiClient(t, address, time.Second, 4096)
+	client := userClient(t, address, time.Second, 4096)
 	ctx, cancel := context.WithCancel(t.Context())
 	done := make(chan error, 1)
 	go func() { _, err := client.ReadInboundUserCount(ctx, "in"); done <- err }()
@@ -97,7 +98,7 @@ func TestNativeUserCountSharesAdmissionAndCancellationWithOtherOperations(t *tes
 	if _, err := client.ReadRuntimeInfo(t.Context()); !errors.Is(err, domain.ErrAPIBusy) {
 		t.Fatalf("stats bypassed count admission: %v", err)
 	}
-	if _, err := client.RemoveInboundUser(t.Context(), domain.InboundUserSelection{InboundTag: "in", Email: "user"}); !errors.Is(err, domain.ErrAPIBusy) {
+	if _, err := client.RemoveInboundUser(t.Context(), userdomain.InboundUserSelection{InboundTag: "in", Email: "user"}); !errors.Is(err, domain.ErrAPIBusy) {
 		t.Fatalf("mutation bypassed count admission: %v", err)
 	}
 	cancel()
@@ -109,7 +110,7 @@ func TestNativeUserCountSharesAdmissionAndCancellationWithOtherOperations(t *tes
 	case <-time.After(3 * time.Second):
 		t.Fatal("count failed to join after cancellation")
 	}
-	if result, err := client.ReadInboundUserCount(ctx, "in"); !errors.Is(err, context.Canceled) || result != (domain.InboundUserCount{}) {
+	if result, err := client.ReadInboundUserCount(ctx, "in"); !errors.Is(err, context.Canceled) || result != (userdomain.InboundUserCount{}) {
 		t.Fatal("pre-canceled count returned successful facts")
 	}
 }

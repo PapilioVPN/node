@@ -11,6 +11,8 @@ import (
 	"google.golang.org/grpc"
 
 	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
+	userdomain "github.com/PapilioVPN/node/internal/modules/core/users/domain"
+	userxray "github.com/PapilioVPN/node/internal/modules/core/users/infra/xray"
 	"github.com/PapilioVPN/node/internal/modules/engines/xray/domain"
 	"github.com/PapilioVPN/node/internal/settings"
 )
@@ -45,6 +47,7 @@ func TestModuleClosesAPIAdmissionAndExportsFinalCleanup(t *testing.T) {
 		t.Fatal("API owner was not exported for final cleanup")
 	}
 	service := newRuntimeInfoService(resources)
+	userAdapter := &userxray.Adapter{API: resources.clients[0]}
 	if err := application.Stop(t.Context()); err != nil {
 		t.Fatal(err)
 	}
@@ -88,20 +91,20 @@ func TestModuleClosesAPIAdmissionAndExportsFinalCleanup(t *testing.T) {
 	if err := resources.Close(); err != nil {
 		t.Fatalf("final cleanup after OnStop: %v", err)
 	}
-	if _, err := newUserRemovalService(resources).RemoveInboundUser(t.Context(), "edge", domain.InboundUserSelection{InboundTag: "in", Email: "user"}); !errors.Is(err, grpc.ErrClientConnClosing) || errors.Is(err, domain.ErrUserMutationUnknown) {
+	if _, err := userAdapter.RemoveInboundUser(t.Context(), userdomain.InboundUserSelection{InboundTag: "in", Email: "user"}); !errors.Is(err, grpc.ErrClientConnClosing) || errors.Is(err, userdomain.ErrUserMutationUnknown) {
 		t.Fatalf("closed native API admitted user removal: %v", err)
 	}
-	addition := domain.InboundUserAddition{InboundTag: "in", User: domain.InboundUser{Email: "user", Account: domain.UserAccount{Protocol: domain.VLESS, VLESS: &domain.VLESSAccount{ID: "test-only"}}}}
-	if _, err := newUserAdditionService(resources).AddInboundUser(t.Context(), "edge", addition); !errors.Is(err, grpc.ErrClientConnClosing) || errors.Is(err, domain.ErrUserMutationUnknown) {
+	addition := userdomain.InboundUserAddition{InboundTag: "in", User: userdomain.InboundUser{Email: "user", Account: userdomain.UserAccount{Protocol: userdomain.VLESS, VLESS: &userdomain.VLESSAccount{ID: "test-only"}}}}
+	if _, err := userAdapter.AddInboundUser(t.Context(), addition); !errors.Is(err, grpc.ErrClientConnClosing) || errors.Is(err, userdomain.ErrUserMutationUnknown) {
 		t.Fatalf("closed native API admitted user addition: %v", err)
 	}
-	if _, err := newUserCountService(resources).GetInboundUserCount(t.Context(), "edge", "in"); !errors.Is(err, grpc.ErrClientConnClosing) {
+	if _, err := userAdapter.ReadInboundUserCount(t.Context(), "in"); !errors.Is(err, grpc.ErrClientConnClosing) {
 		t.Fatalf("closed native API admitted user count: %v", err)
 	}
-	if _, err := newUserObservationService(resources).GetInboundUser(t.Context(), "edge", domain.InboundUserSelection{InboundTag: "in", Email: "user"}); !errors.Is(err, grpc.ErrClientConnClosing) {
+	if _, err := userAdapter.ReadInboundUser(t.Context(), userdomain.InboundUserSelection{InboundTag: "in", Email: "user"}); !errors.Is(err, grpc.ErrClientConnClosing) {
 		t.Fatalf("closed module admitted user lookup: %v", err)
 	}
-	if _, err := newUserObservationService(resources).ListInboundUsers(t.Context(), "edge", "in"); !errors.Is(err, grpc.ErrClientConnClosing) {
+	if _, err := userAdapter.ReadInboundUsers(t.Context(), "in"); !errors.Is(err, grpc.ErrClientConnClosing) {
 		t.Fatalf("closed module admitted user listing: %v", err)
 	}
 	if _, err := newRoutingService(resources).ListRoutingRules(t.Context(), "edge"); !errors.Is(err, grpc.ErrClientConnClosing) {

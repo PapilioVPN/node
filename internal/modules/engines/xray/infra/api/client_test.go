@@ -8,6 +8,8 @@ import (
 
 	"google.golang.org/grpc"
 
+	userdomain "github.com/PapilioVPN/node/internal/modules/core/users/domain"
+	userxray "github.com/PapilioVPN/node/internal/modules/core/users/infra/xray"
 	"github.com/PapilioVPN/node/internal/modules/engines/xray/domain"
 )
 
@@ -17,6 +19,7 @@ func TestAPIConstructionAndCanceledAdmissionCreateNoNativeChannel(t *testing.T) 
 		t.Fatal(err)
 	}
 	defer client.Close()
+	users := &userxray.Adapter{API: client}
 	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
 	if _, err := client.ReadRuntimeInfo(ctx); !errors.Is(err, context.Canceled) {
@@ -64,17 +67,17 @@ func TestAPIConstructionAndCanceledAdmissionCreateNoNativeChannel(t *testing.T) 
 			t.Fatalf("invalid override allocated native workers/effects: %v", err)
 		}
 	}
-	addition := domain.InboundUserAddition{InboundTag: "in", User: domain.InboundUser{Email: "user", Account: domain.UserAccount{Protocol: domain.VLESS, VLESS: &domain.VLESSAccount{ID: "test-only"}}}}
-	if _, err := client.AddInboundUser(ctx, addition); !errors.Is(err, context.Canceled) || errors.Is(err, domain.ErrUserMutationUnknown) || client.connection != nil {
+	addition := userdomain.InboundUserAddition{InboundTag: "in", User: userdomain.InboundUser{Email: "user", Account: userdomain.UserAccount{Protocol: userdomain.VLESS, VLESS: &userdomain.VLESSAccount{ID: "test-only"}}}}
+	if _, err := users.AddInboundUser(ctx, addition); !errors.Is(err, context.Canceled) || errors.Is(err, userdomain.ErrUserMutationUnknown) || client.connection != nil {
 		t.Fatalf("canceled addition created native effects/workers: %v", err)
 	}
-	if _, err := client.ReadInboundUserCount(ctx, "in"); !errors.Is(err, context.Canceled) || client.connection != nil {
+	if _, err := users.ReadInboundUserCount(ctx, "in"); !errors.Is(err, context.Canceled) || client.connection != nil {
 		t.Fatalf("canceled count created native workers: %v", err)
 	}
-	if _, err := client.ReadInboundUser(ctx, domain.InboundUserSelection{InboundTag: "in", Email: "user"}); !errors.Is(err, context.Canceled) || client.connection != nil {
+	if _, err := users.ReadInboundUser(ctx, userdomain.InboundUserSelection{InboundTag: "in", Email: "user"}); !errors.Is(err, context.Canceled) || client.connection != nil {
 		t.Fatal("canceled user lookup created native workers")
 	}
-	if _, err := client.ReadInboundUsers(ctx, "in"); !errors.Is(err, context.Canceled) || client.connection != nil {
+	if _, err := users.ReadInboundUsers(ctx, "in"); !errors.Is(err, context.Canceled) || client.connection != nil {
 		t.Fatal("canceled user collection created native workers")
 	}
 	selection := domain.TrafficSelection{Scope: domain.InboundTraffic, Name: "proxy", Direction: domain.Uplink}
@@ -113,16 +116,16 @@ func TestAPIConstructionAndCanceledAdmissionCreateNoNativeChannel(t *testing.T) 
 	if _, err := client.ApplyRoutingRule(t.Context(), domain.PreparedRoutingRule{Config: []byte{1}}, domain.AppendRoutingRule); !errors.Is(err, grpc.ErrClientConnClosing) || errors.Is(err, domain.ErrRoutingMutationUnknown) || client.connection != nil {
 		t.Fatalf("closed application created workers/effects: %v", err)
 	}
-	if _, err := client.AddInboundUser(t.Context(), addition); !errors.Is(err, grpc.ErrClientConnClosing) || errors.Is(err, domain.ErrUserMutationUnknown) || client.connection != nil {
+	if _, err := users.AddInboundUser(t.Context(), addition); !errors.Is(err, grpc.ErrClientConnClosing) || errors.Is(err, userdomain.ErrUserMutationUnknown) || client.connection != nil {
 		t.Fatalf("closed addition created native effects/workers: %v", err)
 	}
-	if _, err := client.ReadInboundUserCount(t.Context(), "in"); !errors.Is(err, grpc.ErrClientConnClosing) || client.connection != nil {
+	if _, err := users.ReadInboundUserCount(t.Context(), "in"); !errors.Is(err, grpc.ErrClientConnClosing) || client.connection != nil {
 		t.Fatalf("closed count created native workers: %v", err)
 	}
-	if _, err := client.ReadInboundUser(t.Context(), domain.InboundUserSelection{InboundTag: "in", Email: "user"}); !errors.Is(err, grpc.ErrClientConnClosing) || client.connection != nil {
+	if _, err := users.ReadInboundUser(t.Context(), userdomain.InboundUserSelection{InboundTag: "in", Email: "user"}); !errors.Is(err, grpc.ErrClientConnClosing) || client.connection != nil {
 		t.Fatal("closed user lookup created native workers")
 	}
-	if _, err := client.ReadInboundUsers(t.Context(), "in"); !errors.Is(err, grpc.ErrClientConnClosing) || client.connection != nil {
+	if _, err := users.ReadInboundUsers(t.Context(), "in"); !errors.Is(err, grpc.ErrClientConnClosing) || client.connection != nil {
 		t.Fatal("closed user collection created native workers")
 	}
 	if _, err := client.ReadTrafficCounter(t.Context(), selection); !errors.Is(err, grpc.ErrClientConnClosing) || client.connection != nil {

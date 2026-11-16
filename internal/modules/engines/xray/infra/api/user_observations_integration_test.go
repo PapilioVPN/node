@@ -19,6 +19,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	userdomain "github.com/PapilioVPN/node/internal/modules/core/users/domain"
 	"github.com/PapilioVPN/node/internal/modules/engines/xray/domain"
 )
 
@@ -45,12 +46,12 @@ func TestSingleUserReadPreservesNativeStoredIdentityAndNeverLists(t *testing.T) 
 		}
 		return &native.GetInboundUserResponse{Users: []*protocol.User{user}}, nil
 	}})
-	client := apiClient(t, address, time.Second, 4096)
+	client := userClient(t, address, time.Second, 4096)
 	if _, err := client.ReadRuntimeInfo(t.Context()); err != nil {
 		t.Fatal(err)
 	}
 	beforeRPCs := counts.rpcs.Load()
-	selection := domain.InboundUserSelection{InboundTag: " exact>>>tag ", Email: "Mixed@Example"}
+	selection := userdomain.InboundUserSelection{InboundTag: " exact>>>tag ", Email: "Mixed@Example"}
 	before := time.Now()
 	result, err := client.ReadInboundUser(t.Context(), selection)
 	if err != nil || result.User == nil || result.User.Email != user.Email || result.User.Level != math.MaxUint32 || result.User.Account.TypeName != user.Account.Type || !bytes.Equal(result.User.Account.Protobuf, user.Account.Value) || result.ObservedAt.Before(before) || result.ObservedAt.After(time.Now()) || counts.rpcs.Load() != beforeRPCs+1 || counts.opened.Load() != 1 {
@@ -61,7 +62,7 @@ func TestSingleUserReadPreservesNativeStoredIdentityAndNeverLists(t *testing.T) 
 	if err != nil || !bytes.Equal(result.User.Account.Protobuf, user.Account.Value) || counts.rpcs.Load() != beforeRPCs+2 {
 		t.Fatal("returned account did not have independent native-reply ownership")
 	}
-	if _, err := client.ReadInboundUser(t.Context(), domain.InboundUserSelection{InboundTag: selection.InboundTag}); !errors.Is(err, domain.ErrInvalidUserSelection) || counts.rpcs.Load() != beforeRPCs+2 {
+	if _, err := client.ReadInboundUser(t.Context(), userdomain.InboundUserSelection{InboundTag: selection.InboundTag}); !errors.Is(err, userdomain.ErrInvalidUserSelection) || counts.rpcs.Load() != beforeRPCs+2 {
 		t.Fatal("empty single email accidentally requested all native users")
 	}
 }
@@ -81,9 +82,9 @@ func TestSingleUserAbsenceIsDistinctFromMalformedResponse(t *testing.T) {
 			address, counts := userAPI(t, userObservationServer{read: func(context.Context, *native.GetInboundUserRequest) (*native.GetInboundUserResponse, error) {
 				return &native.GetInboundUserResponse{Users: tc.users}, nil
 			}})
-			client := apiClient(t, address, time.Second, 4096)
-			result, err := client.ReadInboundUser(t.Context(), domain.InboundUserSelection{InboundTag: "in", Email: "user"})
-			if result.User != nil || counts.rpcs.Load() != 1 || tc.invalid && (!errors.Is(err, domain.ErrInvalidUserObservation) || !result.ObservedAt.IsZero()) || !tc.invalid && (err != nil || result.ObservedAt.IsZero()) {
+			client := userClient(t, address, time.Second, 4096)
+			result, err := client.ReadInboundUser(t.Context(), userdomain.InboundUserSelection{InboundTag: "in", Email: "user"})
+			if result.User != nil || counts.rpcs.Load() != 1 || tc.invalid && (!errors.Is(err, userdomain.ErrInvalidUserObservation) || !result.ObservedAt.IsZero()) || !tc.invalid && (err != nil || result.ObservedAt.IsZero()) {
 				t.Fatalf("absence/malformed distinction lost: %v", err)
 			}
 		})
@@ -106,7 +107,7 @@ func TestUserListHasOneCallAtEverySizeAndKeepsAllNativeMembers(t *testing.T) {
 				}
 				return &native.GetInboundUserResponse{Users: users}, nil
 			}})
-			client := apiClient(t, address, time.Second, 256*1024)
+			client := userClient(t, address, time.Second, 256*1024)
 			result, err := client.ReadInboundUsers(t.Context(), " exact>>>tag ")
 			if err != nil || len(result.Users) != count || result.ObservedAt.IsZero() || counts.rpcs.Load() != 1 {
 				t.Fatalf("collection truncated or acquired extra native work: %v calls=%d", err, counts.rpcs.Load())
@@ -126,15 +127,15 @@ func TestUserListReceiveLimitOrMalformedMemberNeverReturnsPartialSuccess(t *test
 		limit int
 		cause error
 	}{
-		{[]*protocol.User{observedTestUser("one"), nil}, 4096, domain.ErrInvalidUserObservation},
-		{[]*protocol.User{observedTestUser("one"), {Email: "bad"}}, 4096, domain.ErrInvalidUserObservation},
-		{[]*protocol.User{observedTestUser("one"), {Email: "bad", Account: &serial.TypedMessage{Type: "future.account"}}}, 4096, domain.ErrUserRecordUnsupported},
+		{[]*protocol.User{observedTestUser("one"), nil}, 4096, userdomain.ErrInvalidUserObservation},
+		{[]*protocol.User{observedTestUser("one"), {Email: "bad"}}, 4096, userdomain.ErrInvalidUserObservation},
+		{[]*protocol.User{observedTestUser("one"), {Email: "bad", Account: &serial.TypedMessage{Type: "future.account"}}}, 4096, userdomain.ErrUserRecordUnsupported},
 		{[]*protocol.User{observedTestUser("one")}, 1, domain.ErrAPIResourceLimit},
 	} {
 		address, _ := userAPI(t, userObservationServer{read: func(context.Context, *native.GetInboundUserRequest) (*native.GetInboundUserResponse, error) {
 			return &native.GetInboundUserResponse{Users: tc.users}, nil
 		}})
-		client := apiClient(t, address, time.Second, tc.limit)
+		client := userClient(t, address, time.Second, tc.limit)
 		result, err := client.ReadInboundUsers(t.Context(), "in")
 		if !errors.Is(err, tc.cause) || len(result.Users) != 0 || !result.ObservedAt.IsZero() {
 			t.Fatal("failed collection returned partial accounts or lost its native cause")
@@ -148,8 +149,8 @@ func TestUserObservationsKeepNativeFailureCodesWithoutRetryOrFalseAbsence(t *tes
 			address, counts := userAPI(t, userObservationServer{read: func(context.Context, *native.GetInboundUserRequest) (*native.GetInboundUserResponse, error) {
 				return nil, status.Error(code, "private diagnostics")
 			}})
-			client := apiClient(t, address, time.Second, 4096)
-			one, err := client.ReadInboundUser(t.Context(), domain.InboundUserSelection{InboundTag: "in", Email: "user"})
+			client := userClient(t, address, time.Second, 4096)
+			one, err := client.ReadInboundUser(t.Context(), userdomain.InboundUserSelection{InboundTag: "in", Email: "user"})
 			if status.Code(err) != code || one.User != nil || !one.ObservedAt.IsZero() || counts.rpcs.Load() != 1 {
 				t.Fatal("single native failure became absence or retried")
 			}
@@ -170,11 +171,11 @@ func TestUserObservationSharesAdmissionAndJoinsCanceledCalls(t *testing.T) {
 		<-ctx.Done()
 		return nil, status.FromContextError(ctx.Err()).Err()
 	}})
-	client := apiClient(t, address, time.Second, 4096)
+	client := userClient(t, address, time.Second, 4096)
 	ctx, cancel := context.WithCancel(t.Context())
 	done := make(chan error, 1)
 	go func() {
-		_, err := client.ReadInboundUser(ctx, domain.InboundUserSelection{InboundTag: "in", Email: "user"})
+		_, err := client.ReadInboundUser(ctx, userdomain.InboundUserSelection{InboundTag: "in", Email: "user"})
 		done <- err
 	}()
 	defer func() { cancel(); _ = client.Close() }()

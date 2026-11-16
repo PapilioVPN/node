@@ -14,6 +14,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
+	usergrpc "github.com/PapilioVPN/node/internal/modules/core/users/grpcapi"
 	"github.com/PapilioVPN/node/internal/modules/engines/xray/domain"
 	"github.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi"
 	xrayv1 "github.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi/proto/v1"
@@ -42,7 +43,7 @@ func TestOutboundReadsRequireIdentityBeforeShape(t *testing.T) {
 }
 
 func TestOutboundReadsRequireIndependentGrantBeforeShape(t *testing.T) {
-	h := grpcapi.Handler{AllowInfoRead: true, AllowStatsRead: true, AllowStatsReset: true, AllowOnlineRead: true, AllowUserManagement: true, AllowUsersRead: true, AllowRoutingRead: true, AllowRoutingTest: true, AllowRoutingManagement: true}
+	h := grpcapi.Handler{AllowInfoRead: true, AllowStatsRead: true, AllowStatsReset: true, AllowOnlineRead: true, AllowRoutingRead: true, AllowRoutingTest: true, AllowRoutingManagement: true, UserAPI: usergrpc.UserAPI{AllowUserManagement: true, AllowUsersRead: true}}
 	if _, err := h.GetOutboundStatus(verifiedContext(t), nil); status.Code(err) != codes.PermissionDenied {
 		t.Fatal("other grants enabled outbound lookup")
 	}

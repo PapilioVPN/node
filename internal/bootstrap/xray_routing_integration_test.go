@@ -23,6 +23,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/PapilioVPN/node/internal/bootstrap"
+	userv1 "github.com/PapilioVPN/node/internal/modules/core/users/grpcapi/proto/v1"
 	xrayv1 "github.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi/proto/v1"
 	rpc "github.com/PapilioVPN/node/internal/platform/grpcserver"
 	"github.com/PapilioVPN/node/internal/settings"
@@ -248,10 +249,10 @@ func TestRoutingReadGrantOverMTLSIsIndependent(t *testing.T) {
 					t.Fatalf("balancer shape checked before grant: %v", err)
 				}
 			} else {
-				if _, err := client.GetInboundUserCount(t.Context(), &xrayv1.GetInboundUserCountRequest{}); status.Code(err) != codes.PermissionDenied {
+				if _, err := client.GetInboundUserCount(t.Context(), &userv1.GetInboundUserCountRequest{}); status.Code(err) != codes.PermissionDenied {
 					t.Fatalf("routing enabled user observations: %v", err)
 				}
-				if _, err := client.RemoveInboundUser(t.Context(), &xrayv1.RemoveInboundUserRequest{}); status.Code(err) != codes.PermissionDenied {
+				if _, err := client.RemoveInboundUser(t.Context(), &userv1.RemoveInboundUserRequest{}); status.Code(err) != codes.PermissionDenied {
 					t.Fatalf("routing enabled mutations: %v", err)
 				}
 			}

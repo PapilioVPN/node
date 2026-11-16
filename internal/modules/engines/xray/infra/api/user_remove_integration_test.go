@@ -16,7 +16,10 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	userdomain "github.com/PapilioVPN/node/internal/modules/core/users/domain"
+	userxray "github.com/PapilioVPN/node/internal/modules/core/users/infra/xray"
 	"github.com/PapilioVPN/node/internal/modules/engines/xray/domain"
+	xrayapi "github.com/PapilioVPN/node/internal/modules/engines/xray/infra/api"
 )
 
 // Controlled native service validates the actual wire operation and models loss
@@ -60,15 +63,15 @@ func TestUserRemovalUsesOneExactOperationAndSharesStatsChannel(t *testing.T) {
 		}
 		return &handlers.AlterInboundResponse{}, nil
 	}})
-	client := apiClient(t, address, time.Second, 4096)
-	if _, err := client.RemoveInboundUser(t.Context(), domain.InboundUserSelection{InboundTag: "in", Email: "\xff"}); !errors.Is(err, domain.ErrInvalidUserSelection) || errors.Is(err, domain.ErrUserMutationUnknown) || calls.Load() != 0 || connections.opened.Load() != 0 {
+	client := userClient(t, address, time.Second, 4096)
+	if _, err := client.RemoveInboundUser(t.Context(), userdomain.InboundUserSelection{InboundTag: "in", Email: "\xff"}); !errors.Is(err, userdomain.ErrInvalidUserSelection) || errors.Is(err, userdomain.ErrUserMutationUnknown) || calls.Load() != 0 || connections.opened.Load() != 0 {
 		t.Fatalf("failed encoding reached native or claimed effects: %v", err)
 	}
 	if _, err := client.ReadRuntimeInfo(t.Context()); err != nil {
 		t.Fatal(err)
 	}
 	before := time.Now()
-	ack, err := client.RemoveInboundUser(t.Context(), domain.InboundUserSelection{InboundTag: " exact>>>tag ", Email: " Mixed@Example "})
+	ack, err := client.RemoveInboundUser(t.Context(), userdomain.InboundUserSelection{InboundTag: " exact>>>tag ", Email: " Mixed@Example "})
 	if err != nil || ack.AcknowledgedAt.Before(before) || ack.AcknowledgedAt.After(time.Now()) || calls.Load() != 1 || connections.opened.Load() != 1 {
 		t.Fatalf("removal: %+v %v calls=%d channels=%d", ack, err, calls.Load(), connections.opened.Load())
 	}
@@ -78,7 +81,7 @@ func TestUserRemovalUsesOneExactOperationAndSharesStatsChannel(t *testing.T) {
 	if err := client.Close(); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := client.RemoveInboundUser(t.Context(), domain.InboundUserSelection{}); !errors.Is(err, grpc.ErrClientConnClosing) || errors.Is(err, domain.ErrUserMutationUnknown) || calls.Load() != 1 {
+	if _, err := client.RemoveInboundUser(t.Context(), userdomain.InboundUserSelection{}); !errors.Is(err, grpc.ErrClientConnClosing) || errors.Is(err, userdomain.ErrUserMutationUnknown) || calls.Load() != 1 {
 		t.Fatalf("closed admission: %v calls=%d", err, calls.Load())
 	}
 }
@@ -91,12 +94,12 @@ func TestUserRemovalDoesNotInferNoEffectFromNativeFailureCodes(t *testing.T) {
 				calls.Add(1)
 				return nil, status.Error(code, "private user/endpoint diagnostics")
 			}})
-			client := apiClient(t, address, time.Second, 4096)
-			ack, err := client.RemoveInboundUser(t.Context(), domain.InboundUserSelection{InboundTag: "proxy", Email: "user"})
-			if err == nil || !ack.AcknowledgedAt.IsZero() || errors.Is(err, domain.ErrUserMutationUnknown) != (code != codes.Unimplemented) || status.Code(err) != code || calls.Load() != 1 {
+			client := userClient(t, address, time.Second, 4096)
+			ack, err := client.RemoveInboundUser(t.Context(), userdomain.InboundUserSelection{InboundTag: "proxy", Email: "user"})
+			if err == nil || !ack.AcknowledgedAt.IsZero() || errors.Is(err, userdomain.ErrUserMutationUnknown) != (code != codes.Unimplemented) || status.Code(err) != code || calls.Load() != 1 {
 				t.Fatalf("native failure changed/replayed: %+v %v calls=%d", ack, err, calls.Load())
 			}
-			if code == codes.Unimplemented && !errors.Is(err, domain.ErrUserManagementUnsupported) {
+			if code == codes.Unimplemented && !errors.Is(err, userdomain.ErrUserManagementUnsupported) {
 				t.Fatal(err)
 			}
 		})
@@ -114,13 +117,13 @@ func TestUserRemovalCancellationAfterEffectIsUnknownAndSharedAdmissionIsBounded(
 		<-ctx.Done()
 		return nil, status.FromContextError(ctx.Err()).Err()
 	}})
-	client := apiClient(t, address, 3*time.Second, 4096)
+	client := userClient(t, address, 3*time.Second, 4096)
 	ctx, cancel := context.WithCancel(t.Context())
 	done := make(chan struct{})
 	var removalError error
 	go func() {
 		defer close(done)
-		_, removalError = client.RemoveInboundUser(ctx, domain.InboundUserSelection{InboundTag: "proxy", Email: "user"})
+		_, removalError = client.RemoveInboundUser(ctx, userdomain.InboundUserSelection{InboundTag: "proxy", Email: "user"})
 	}()
 	defer func() { cancel(); _ = client.Close(); <-done }()
 	select {
@@ -131,16 +134,27 @@ func TestUserRemovalCancellationAfterEffectIsUnknownAndSharedAdmissionIsBounded(
 	if _, err := client.ReadRuntimeInfo(t.Context()); !errors.Is(err, domain.ErrAPIBusy) {
 		t.Fatalf("stats bypassed shared admission: %v", err)
 	}
-	if _, err := client.RemoveInboundUser(t.Context(), domain.InboundUserSelection{}); !errors.Is(err, domain.ErrAPIBusy) || errors.Is(err, domain.ErrUserMutationUnknown) {
+	if _, err := client.RemoveInboundUser(t.Context(), userdomain.InboundUserSelection{}); !errors.Is(err, domain.ErrAPIBusy) || errors.Is(err, userdomain.ErrUserMutationUnknown) {
 		t.Fatalf("rejected mutation became uncertain: %v", err)
 	}
 	cancel()
 	<-done
 	err := removalError
-	if !errors.Is(err, context.Canceled) || !errors.Is(err, domain.ErrUserMutationUnknown) || !removed.Load() || calls.Load() != 1 {
+	if !errors.Is(err, context.Canceled) || !errors.Is(err, userdomain.ErrUserMutationUnknown) || !removed.Load() || calls.Load() != 1 {
 		t.Fatalf("applied cancellation lost/replayed effects: %v calls=%d", err, calls.Load())
 	}
-	if _, err := client.RemoveInboundUser(ctx, domain.InboundUserSelection{}); !errors.Is(err, context.Canceled) || errors.Is(err, domain.ErrUserMutationUnknown) || calls.Load() != 1 {
+	if _, err := client.RemoveInboundUser(ctx, userdomain.InboundUserSelection{}); !errors.Is(err, context.Canceled) || errors.Is(err, userdomain.ErrUserMutationUnknown) || calls.Load() != 1 {
 		t.Fatalf("pre-canceled admission: %v", err)
 	}
+}
+
+// Exercise user/stat interoperability through two adapters borrowing one owner.
+type userClientSet struct {
+	*xrayapi.Client
+	*userxray.Adapter
+}
+
+func userClient(t *testing.T, address string, timeout time.Duration, limit int) *userClientSet {
+	client := apiClient(t, address, timeout, limit)
+	return &userClientSet{Client: client, Adapter: &userxray.Adapter{API: client}}
 }

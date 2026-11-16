@@ -158,3 +158,24 @@ func (c *Client) Close() error {
 	})
 	return c.closeError
 }
+
+// Begin admits one operation on the existing instance-wide capacity without
+// creating a channel. Native payload validation may still fail before first I/O.
+func (c *Client) Begin(ctx context.Context) (context.Context, func(), error) {
+	if err := ctx.Err(); err != nil {
+		return nil, nil, err
+	}
+	select {
+	case c.slots <- struct{}{}:
+	default:
+		return nil, nil, domain.ErrAPIBusy
+	}
+	ctx, cancel := context.WithTimeout(ctx, c.timeout)
+	return ctx, func() { cancel(); <-c.slots }, nil
+}
+
+// HandlerClient reuses the native channel owned by this instance resource.
+func (c *Client) HandlerClient() (handlernative.HandlerServiceClient, error) {
+	_, client, err := c.nativeClients()
+	return client, err
+}

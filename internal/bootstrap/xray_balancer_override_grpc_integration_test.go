@@ -13,6 +13,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/PapilioVPN/node/internal/bootstrap"
+	userv1 "github.com/PapilioVPN/node/internal/modules/core/users/grpcapi/proto/v1"
 	xrayv1 "github.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi/proto/v1"
 	rpc "github.com/PapilioVPN/node/internal/platform/grpcserver"
 	"github.com/PapilioVPN/node/internal/shared/testutil"
@@ -89,7 +90,7 @@ func TestRoutingManagementGrantOverMTLSIsIndependent(t *testing.T) {
 				}
 				_, err := client.TestRoute(t.Context(), &xrayv1.TestRouteRequest{InstanceId: "missing", Context: &xrayv1.RoutingContext{}})
 				assertRoutingProbeFailure(t, err, codes.PermissionDenied, xrayv1.RoutingProbeOutcome_ROUTING_PROBE_OUTCOME_NOT_EXECUTED)
-				if _, err := client.RemoveInboundUser(t.Context(), &xrayv1.RemoveInboundUserRequest{}); status.Code(err) != codes.PermissionDenied {
+				if _, err := client.RemoveInboundUser(t.Context(), &userv1.RemoveInboundUserRequest{}); status.Code(err) != codes.PermissionDenied {
 					t.Fatalf("routing grant enabled user mutations: %v", err)
 				}
 			}

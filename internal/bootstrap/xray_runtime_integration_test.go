@@ -22,6 +22,7 @@ import (
 	"github.com/PapilioVPN/node/internal/bootstrap"
 	"github.com/PapilioVPN/node/internal/modules/core/instances"
 	instancesv1 "github.com/PapilioVPN/node/internal/modules/core/instances/grpcapi/proto/v1"
+	userv1 "github.com/PapilioVPN/node/internal/modules/core/users/grpcapi/proto/v1"
 	xraydomain "github.com/PapilioVPN/node/internal/modules/engines/xray/domain"
 	xrayv1 "github.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi/proto/v1"
 	rpc "github.com/PapilioVPN/node/internal/platform/grpcserver"
@@ -118,7 +119,7 @@ func TestXrayRuntimeInfoOverMTLSAndNativeReconnect(t *testing.T) {
 			if result, err := client.GetBalancerInfo(ctx, &xrayv1.GetBalancerInfoRequest{InstanceId: "edge-b", BalancerTag: "pool"}); result != nil || status.Code(err) != codes.FailedPrecondition {
 				t.Fatalf("absent native RoutingService became successful balancer: %v %v", result, err)
 			}
-			if result, err := client.GetInboundUserCount(ctx, &xrayv1.GetInboundUserCountRequest{InstanceId: "edge-b", InboundTag: "in"}); result != nil || status.Code(err) != codes.FailedPrecondition {
+			if result, err := client.GetInboundUserCount(ctx, &userv1.GetInboundUserCountRequest{InstanceId: "edge-b", InboundTag: "in"}); result != nil || status.Code(err) != codes.FailedPrecondition {
 				t.Fatalf("absent native HandlerService became successful count: %v %v", result, err)
 			}
 			if result, err := client.GetTrafficCounter(ctx, &xrayv1.GetTrafficCounterRequest{

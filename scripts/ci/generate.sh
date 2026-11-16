@@ -30,4 +30,5 @@ PATH="$tool_dir:$PATH" "$tool_dir/protoc" \
   --go-grpc_out=. --go-grpc_opt=paths=source_relative \
   internal/modules/system/info/grpcapi/proto/v1/node.proto \
   internal/modules/core/instances/grpcapi/proto/v1/instances.proto \
+  internal/modules/core/users/grpcapi/proto/v1/users.proto \
   internal/modules/engines/xray/grpcapi/proto/v1/xray.proto

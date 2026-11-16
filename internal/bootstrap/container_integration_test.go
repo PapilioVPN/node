@@ -24,6 +24,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	nodev1 "github.com/PapilioVPN/node/internal/modules/core/instances/grpcapi/proto/v1"
+	userv1 "github.com/PapilioVPN/node/internal/modules/core/users/grpcapi/proto/v1"
 	xrayv1 "github.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi/proto/v1"
 	systemv1 "github.com/PapilioVPN/node/internal/modules/system/info/grpcapi/proto/v1"
 	"github.com/PapilioVPN/node/internal/settings"
@@ -172,7 +173,7 @@ func TestContainer(t *testing.T) {
 	if _, err := xrayv1.NewXrayServiceClient(connection).ResetTrafficPair(request, &xrayv1.ResetTrafficPairRequest{InstanceId: "unconfigured", Scope: xrayv1.TrafficScope_TRAFFIC_SCOPE_USER, Name: "user"}); status.Code(err) != codes.NotFound {
 		t.Fatalf("packaged pair reset failed: %v", err)
 	}
-	if _, err := xrayv1.NewXrayServiceClient(connection).GetInboundUserCount(request, &xrayv1.GetInboundUserCountRequest{InstanceId: "unconfigured", InboundTag: "in"}); status.Code(err) != codes.NotFound {
+	if _, err := xrayv1.NewXrayServiceClient(connection).GetInboundUserCount(request, &userv1.GetInboundUserCountRequest{InstanceId: "unconfigured", InboundTag: "in"}); status.Code(err) != codes.NotFound {
 		t.Fatalf("packaged user count not wired: %v", err)
 	}
 	if _, err := xrayv1.NewXrayServiceClient(connection).ListRoutingRules(request, &xrayv1.ListRoutingRulesRequest{InstanceId: "unconfigured"}); status.Code(err) != codes.NotFound {
@@ -218,10 +219,10 @@ func TestContainer(t *testing.T) {
 	if !ok || removalFailure.Outcome != xrayv1.RoutingMutationOutcome_ROUTING_MUTATION_OUTCOME_NOT_APPLIED {
 		t.Fatalf("packaged removal outcome incorrect: %v", removalDetails)
 	}
-	if _, err := xrayv1.NewXrayServiceClient(connection).AddInboundUser(request, &xrayv1.AddInboundUserRequest{InstanceId: "unconfigured", InboundTag: "in", User: &xrayv1.InboundUser{Email: "user", Account: &xrayv1.InboundUser_Vless{Vless: &xrayv1.VLESSAccount{Id: "test-only"}}}}); status.Code(err) != codes.NotFound {
+	if _, err := xrayv1.NewXrayServiceClient(connection).AddInboundUser(request, &userv1.AddInboundUserRequest{InstanceId: "unconfigured", InboundTag: "in", User: &userv1.InboundUser{Email: "user", Account: &userv1.InboundUser_Vless{Vless: &userv1.VLESSAccount{Id: "test-only"}}}}); status.Code(err) != codes.NotFound {
 		t.Fatalf("packaged user addition not wired: %v", err)
 	}
-	if _, err := xrayv1.NewXrayServiceClient(connection).RemoveInboundUser(request, &xrayv1.RemoveInboundUserRequest{InstanceId: "unconfigured", InboundTag: "in", Email: "user"}); status.Code(err) != codes.NotFound {
+	if _, err := xrayv1.NewXrayServiceClient(connection).RemoveInboundUser(request, &userv1.RemoveInboundUserRequest{InstanceId: "unconfigured", InboundTag: "in", Email: "user"}); status.Code(err) != codes.NotFound {
 		t.Fatalf("packaged user removal grant/service failed: %v", err)
 	}
 

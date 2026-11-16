@@ -11,6 +11,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
+	usergrpc "github.com/PapilioVPN/node/internal/modules/core/users/grpcapi"
 	"github.com/PapilioVPN/node/internal/modules/engines/xray/domain"
 	"github.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi"
 	xrayv1 "github.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi/proto/v1"
@@ -28,7 +29,7 @@ func TestRuleRemovalRequiresIdentityBeforeShape(t *testing.T) {
 		t.Fatalf("unverified removal reached shape/application: %v", err)
 	}
 	requireRoutingMutationOutcome(t, err, xrayv1.RoutingMutationOutcome_ROUTING_MUTATION_OUTCOME_NOT_APPLIED)
-	h := grpcapi.Handler{AllowInfoRead: true, AllowStatsRead: true, AllowStatsReset: true, AllowOnlineRead: true, AllowUsersRead: true, AllowUserManagement: true, AllowRoutingRead: true, AllowRoutingTest: true}
+	h := grpcapi.Handler{AllowInfoRead: true, AllowStatsRead: true, AllowStatsReset: true, AllowOnlineRead: true, AllowRoutingRead: true, AllowRoutingTest: true, UserAPI: usergrpc.UserAPI{AllowUsersRead: true, AllowUserManagement: true}}
 	_, err = h.RemoveRoutingRule(verifiedContext(t), nil)
 	if status.Code(err) != codes.PermissionDenied {
 		t.Fatalf("other grants authorized rule removal: %v", err)

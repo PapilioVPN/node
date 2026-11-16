@@ -13,6 +13,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
+	usergrpc "github.com/PapilioVPN/node/internal/modules/core/users/grpcapi"
 	"github.com/PapilioVPN/node/internal/modules/engines/xray/domain"
 	"github.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi"
 	xrayv1 "github.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi/proto/v1"
@@ -39,7 +40,7 @@ func TestRoutingReadsRequireIdentityAndIndependentGrantBeforeShape(t *testing.T)
 	if _, err := h.GetBalancerInfo(t.Context(), nil); status.Code(err) != codes.Unauthenticated {
 		t.Fatalf("unverified balancer read reached shape/application: %v", err)
 	}
-	h = grpcapi.Handler{AllowInfoRead: true, AllowStatsRead: true, AllowUsersRead: true, AllowOnlineRead: true, AllowUserManagement: true, AllowStatsReset: true}
+	h = grpcapi.Handler{AllowInfoRead: true, AllowStatsRead: true, AllowOnlineRead: true, AllowStatsReset: true, UserAPI: usergrpc.UserAPI{AllowUsersRead: true, AllowUserManagement: true}}
 	if _, err := h.ListRoutingRules(verifiedContext(t), nil); status.Code(err) != codes.PermissionDenied {
 		t.Fatalf("other grants enabled routing list: %v", err)
 	}
