@@ -16,6 +16,7 @@ import (
 	routingxray "github.com/PapilioVPN/node/internal/modules/xray/routing/infra/api"
 	trafficservices "github.com/PapilioVPN/node/internal/modules/xray/traffic/app/services"
 	"github.com/PapilioVPN/node/internal/modules/xray/traffic/domain"
+	userservices "github.com/PapilioVPN/node/internal/modules/xray/users/app/services"
 	userdomain "github.com/PapilioVPN/node/internal/modules/xray/users/domain"
 	userxray "github.com/PapilioVPN/node/internal/modules/xray/users/infra/api"
 	"github.com/PapilioVPN/node/internal/settings"
@@ -51,6 +52,7 @@ func TestModuleClosesAPIAdmissionAndExportsFinalCleanup(t *testing.T) {
 		t.Fatal("API owner was not exported for final cleanup")
 	}
 	service := infoservices.NewRuntimeInfoService(resources.runtimeReaders)
+	online := userservices.NewOnlineService(map[instances.InstanceID]userservices.OnlineReader{"edge": &userxray.Online{API: resources.clients[0]}})
 	userAdapter := &userxray.Adapter{API: resources.clients[0]}
 	router := &routingxray.Router{API: resources.clients[0]}
 	traffic := newTrafficBindings(resources).Values[0]
@@ -90,13 +92,13 @@ func TestModuleClosesAPIAdmissionAndExportsFinalCleanup(t *testing.T) {
 	if report, err := pairedResets.ResetTrafficPair(t.Context(), "edge", domain.TrafficPairSelection{Scope: domain.UserTraffic, Name: "user"}); !errors.Is(err, grpc.ErrClientConnClosing) || report.Items[0].State != domain.TrafficResetNotApplied || report.Items[1].State != domain.TrafficResetNotAttempted {
 		t.Fatalf("pair reset admission after close: %+v %v", report, err)
 	}
-	if _, err := newOnlineService(resources).GetUserOnlineStats(t.Context(), "edge", "reader"); !errors.Is(err, grpc.ErrClientConnClosing) {
+	if _, err := online.GetUserOnlineStats(t.Context(), "edge", "reader"); !errors.Is(err, grpc.ErrClientConnClosing) {
 		t.Fatalf("OnStop did not close online count admission: %v", err)
 	}
-	if _, err := newOnlineService(resources).ListUserOnlineIPs(t.Context(), "edge", "reader"); !errors.Is(err, grpc.ErrClientConnClosing) {
+	if _, err := online.ListUserOnlineIPs(t.Context(), "edge", "reader"); !errors.Is(err, grpc.ErrClientConnClosing) {
 		t.Fatalf("OnStop did not close online IP admission: %v", err)
 	}
-	if _, err := newOnlineService(resources).ListOnlineUsers(t.Context(), "edge"); !errors.Is(err, grpc.ErrClientConnClosing) {
+	if _, err := online.ListOnlineUsers(t.Context(), "edge"); !errors.Is(err, grpc.ErrClientConnClosing) {
 		t.Fatalf("OnStop did not close online user admission: %v", err)
 	}
 	if err := resources.Close(); err != nil {

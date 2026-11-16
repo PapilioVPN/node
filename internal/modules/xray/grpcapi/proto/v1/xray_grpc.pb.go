@@ -85,9 +85,9 @@ type XrayServiceClient interface {
 	ListTrafficCounters(ctx context.Context, in *v12.ListTrafficCountersRequest, opts ...grpc.CallOption) (*v12.ListTrafficCountersResponse, error)
 	// Counts distinct IPs tracked by native session contexts, not open connections.
 	// Session cleanup can lag client disconnect; this is not a presence guarantee.
-	GetUserOnlineStats(ctx context.Context, in *GetUserOnlineStatsRequest, opts ...grpc.CallOption) (*GetUserOnlineStatsResponse, error)
-	ListUserOnlineIPs(ctx context.Context, in *ListUserOnlineIPsRequest, opts ...grpc.CallOption) (*ListUserOnlineIPsResponse, error)
-	ListOnlineUsers(ctx context.Context, in *ListOnlineUsersRequest, opts ...grpc.CallOption) (*ListOnlineUsersResponse, error)
+	GetUserOnlineStats(ctx context.Context, in *v1.GetUserOnlineStatsRequest, opts ...grpc.CallOption) (*v1.GetUserOnlineStatsResponse, error)
+	ListUserOnlineIPs(ctx context.Context, in *v1.ListUserOnlineIPsRequest, opts ...grpc.CallOption) (*v1.ListUserOnlineIPsResponse, error)
+	ListOnlineUsers(ctx context.Context, in *v1.ListOnlineUsersRequest, opts ...grpc.CallOption) (*v1.ListOnlineUsersResponse, error)
 	// Native membership count only, not online users or a user-list snapshot.
 	GetInboundUserCount(ctx context.Context, in *v1.GetInboundUserCountRequest, opts ...grpc.CallOption) (*v1.GetInboundUserCountResponse, error)
 	// User-manager observations, not initial config or a complete replay image.
@@ -226,9 +226,9 @@ func (c *xrayServiceClient) ListTrafficCounters(ctx context.Context, in *v12.Lis
 	return out, nil
 }
 
-func (c *xrayServiceClient) GetUserOnlineStats(ctx context.Context, in *GetUserOnlineStatsRequest, opts ...grpc.CallOption) (*GetUserOnlineStatsResponse, error) {
+func (c *xrayServiceClient) GetUserOnlineStats(ctx context.Context, in *v1.GetUserOnlineStatsRequest, opts ...grpc.CallOption) (*v1.GetUserOnlineStatsResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetUserOnlineStatsResponse)
+	out := new(v1.GetUserOnlineStatsResponse)
 	err := c.cc.Invoke(ctx, XrayService_GetUserOnlineStats_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -236,9 +236,9 @@ func (c *xrayServiceClient) GetUserOnlineStats(ctx context.Context, in *GetUserO
 	return out, nil
 }
 
-func (c *xrayServiceClient) ListUserOnlineIPs(ctx context.Context, in *ListUserOnlineIPsRequest, opts ...grpc.CallOption) (*ListUserOnlineIPsResponse, error) {
+func (c *xrayServiceClient) ListUserOnlineIPs(ctx context.Context, in *v1.ListUserOnlineIPsRequest, opts ...grpc.CallOption) (*v1.ListUserOnlineIPsResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ListUserOnlineIPsResponse)
+	out := new(v1.ListUserOnlineIPsResponse)
 	err := c.cc.Invoke(ctx, XrayService_ListUserOnlineIPs_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -246,9 +246,9 @@ func (c *xrayServiceClient) ListUserOnlineIPs(ctx context.Context, in *ListUserO
 	return out, nil
 }
 
-func (c *xrayServiceClient) ListOnlineUsers(ctx context.Context, in *ListOnlineUsersRequest, opts ...grpc.CallOption) (*ListOnlineUsersResponse, error) {
+func (c *xrayServiceClient) ListOnlineUsers(ctx context.Context, in *v1.ListOnlineUsersRequest, opts ...grpc.CallOption) (*v1.ListOnlineUsersResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ListOnlineUsersResponse)
+	out := new(v1.ListOnlineUsersResponse)
 	err := c.cc.Invoke(ctx, XrayService_ListOnlineUsers_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -420,9 +420,9 @@ type XrayServiceServer interface {
 	ListTrafficCounters(context.Context, *v12.ListTrafficCountersRequest) (*v12.ListTrafficCountersResponse, error)
 	// Counts distinct IPs tracked by native session contexts, not open connections.
 	// Session cleanup can lag client disconnect; this is not a presence guarantee.
-	GetUserOnlineStats(context.Context, *GetUserOnlineStatsRequest) (*GetUserOnlineStatsResponse, error)
-	ListUserOnlineIPs(context.Context, *ListUserOnlineIPsRequest) (*ListUserOnlineIPsResponse, error)
-	ListOnlineUsers(context.Context, *ListOnlineUsersRequest) (*ListOnlineUsersResponse, error)
+	GetUserOnlineStats(context.Context, *v1.GetUserOnlineStatsRequest) (*v1.GetUserOnlineStatsResponse, error)
+	ListUserOnlineIPs(context.Context, *v1.ListUserOnlineIPsRequest) (*v1.ListUserOnlineIPsResponse, error)
+	ListOnlineUsers(context.Context, *v1.ListOnlineUsersRequest) (*v1.ListOnlineUsersResponse, error)
 	// Native membership count only, not online users or a user-list snapshot.
 	GetInboundUserCount(context.Context, *v1.GetInboundUserCountRequest) (*v1.GetInboundUserCountResponse, error)
 	// User-manager observations, not initial config or a complete replay image.
@@ -491,13 +491,13 @@ func (UnimplementedXrayServiceServer) ResetTrafficPair(context.Context, *v12.Res
 func (UnimplementedXrayServiceServer) ListTrafficCounters(context.Context, *v12.ListTrafficCountersRequest) (*v12.ListTrafficCountersResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListTrafficCounters not implemented")
 }
-func (UnimplementedXrayServiceServer) GetUserOnlineStats(context.Context, *GetUserOnlineStatsRequest) (*GetUserOnlineStatsResponse, error) {
+func (UnimplementedXrayServiceServer) GetUserOnlineStats(context.Context, *v1.GetUserOnlineStatsRequest) (*v1.GetUserOnlineStatsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetUserOnlineStats not implemented")
 }
-func (UnimplementedXrayServiceServer) ListUserOnlineIPs(context.Context, *ListUserOnlineIPsRequest) (*ListUserOnlineIPsResponse, error) {
+func (UnimplementedXrayServiceServer) ListUserOnlineIPs(context.Context, *v1.ListUserOnlineIPsRequest) (*v1.ListUserOnlineIPsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListUserOnlineIPs not implemented")
 }
-func (UnimplementedXrayServiceServer) ListOnlineUsers(context.Context, *ListOnlineUsersRequest) (*ListOnlineUsersResponse, error) {
+func (UnimplementedXrayServiceServer) ListOnlineUsers(context.Context, *v1.ListOnlineUsersRequest) (*v1.ListOnlineUsersResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListOnlineUsers not implemented")
 }
 func (UnimplementedXrayServiceServer) GetInboundUserCount(context.Context, *v1.GetInboundUserCountRequest) (*v1.GetInboundUserCountResponse, error) {
@@ -741,7 +741,7 @@ func _XrayService_ListTrafficCounters_Handler(srv interface{}, ctx context.Conte
 }
 
 func _XrayService_GetUserOnlineStats_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetUserOnlineStatsRequest)
+	in := new(v1.GetUserOnlineStatsRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -753,13 +753,13 @@ func _XrayService_GetUserOnlineStats_Handler(srv interface{}, ctx context.Contex
 		FullMethod: XrayService_GetUserOnlineStats_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(XrayServiceServer).GetUserOnlineStats(ctx, req.(*GetUserOnlineStatsRequest))
+		return srv.(XrayServiceServer).GetUserOnlineStats(ctx, req.(*v1.GetUserOnlineStatsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _XrayService_ListUserOnlineIPs_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListUserOnlineIPsRequest)
+	in := new(v1.ListUserOnlineIPsRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -771,13 +771,13 @@ func _XrayService_ListUserOnlineIPs_Handler(srv interface{}, ctx context.Context
 		FullMethod: XrayService_ListUserOnlineIPs_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(XrayServiceServer).ListUserOnlineIPs(ctx, req.(*ListUserOnlineIPsRequest))
+		return srv.(XrayServiceServer).ListUserOnlineIPs(ctx, req.(*v1.ListUserOnlineIPsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _XrayService_ListOnlineUsers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListOnlineUsersRequest)
+	in := new(v1.ListOnlineUsersRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -789,7 +789,7 @@ func _XrayService_ListOnlineUsers_Handler(srv interface{}, ctx context.Context, 
 		FullMethod: XrayService_ListOnlineUsers_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(XrayServiceServer).ListOnlineUsers(ctx, req.(*ListOnlineUsersRequest))
+		return srv.(XrayServiceServer).ListOnlineUsers(ctx, req.(*v1.ListOnlineUsersRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }

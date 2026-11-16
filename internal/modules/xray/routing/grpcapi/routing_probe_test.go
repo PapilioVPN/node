@@ -47,7 +47,7 @@ func TestRouteRequiresIdentityAndIndependentGrantBeforeShape(t *testing.T) {
 	if _, err := (grpcapi.Handler{}).TestRoute(t.Context(), nil); status.Code(err) != codes.Unauthenticated {
 		t.Fatalf("unverified probe reached shape/application: %v", err)
 	}
-	h := grpcapi.Handler{AllowOnlineRead: true, UserAPI: usergrpc.UserAPI{AllowUsersRead: true, AllowUserManagement: true}, RoutingAPI: routinggrpc.RoutingAPI{AllowRoutingRead: true}, TrafficAPI: trafficgrpc.TrafficAPI{AllowStatsRead: true, AllowStatsReset: true}, InfoAPI: infogrpc.InfoAPI{AllowInfoRead: true}}
+	h := grpcapi.Handler{UserAPI: usergrpc.UserAPI{AllowUsersRead: true, AllowUserManagement: true, AllowOnlineRead: true}, RoutingAPI: routinggrpc.RoutingAPI{AllowRoutingRead: true}, TrafficAPI: trafficgrpc.TrafficAPI{AllowStatsRead: true, AllowStatsReset: true}, InfoAPI: infogrpc.InfoAPI{AllowInfoRead: true}}
 	if _, err := h.TestRoute(verifiedContext(t), nil); status.Code(err) != codes.PermissionDenied {
 		t.Fatalf("other grants enabled routing probes: %v", err)
 	}

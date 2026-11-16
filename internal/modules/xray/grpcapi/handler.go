@@ -13,8 +13,6 @@ type Handler struct {
 	routinggrpc.RoutingAPI
 	trafficgrpc.TrafficAPI
 	infogrpc.InfoAPI
-	Online             OnlineReader
 	Outbounds          OutboundStatusReader
-	AllowOnlineRead    bool
 	AllowOutboundsRead bool
 }

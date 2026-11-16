@@ -10,6 +10,8 @@ type UserAPI struct {
 	UserRemoval           InboundUserRemover
 	UserAddition          InboundUserAdder
 	UserCounts            InboundUserCountReader
+	Online                OnlineReader
+	AllowOnlineRead       bool
 	Users                 InboundUserReader
 	AllowUserManagement   bool
 	AllowUsersRead        bool

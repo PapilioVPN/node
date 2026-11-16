@@ -234,13 +234,13 @@ func TestContainer(t *testing.T) {
 	}); status.Code(err) != codes.NotFound {
 		t.Fatalf("packaged Xray traffic collection grant/service failed: %v", err)
 	}
-	if _, err := xrayv1.NewXrayServiceClient(connection).GetUserOnlineStats(request, &xrayv1.GetUserOnlineStatsRequest{InstanceId: "unconfigured", Email: "reader"}); status.Code(err) != codes.NotFound {
+	if _, err := xrayv1.NewXrayServiceClient(connection).GetUserOnlineStats(request, &userv1.GetUserOnlineStatsRequest{InstanceId: "unconfigured", Email: "reader"}); status.Code(err) != codes.NotFound {
 		t.Fatalf("packaged online count grant/service: %v", err)
 	}
-	if _, err := xrayv1.NewXrayServiceClient(connection).ListUserOnlineIPs(request, &xrayv1.ListUserOnlineIPsRequest{InstanceId: "unconfigured", Email: "reader"}); status.Code(err) != codes.NotFound {
+	if _, err := xrayv1.NewXrayServiceClient(connection).ListUserOnlineIPs(request, &userv1.ListUserOnlineIPsRequest{InstanceId: "unconfigured", Email: "reader"}); status.Code(err) != codes.NotFound {
 		t.Fatalf("packaged online IP grant/service: %v", err)
 	}
-	if _, err := xrayv1.NewXrayServiceClient(connection).ListOnlineUsers(request, &xrayv1.ListOnlineUsersRequest{InstanceId: "unconfigured"}); status.Code(err) != codes.NotFound {
+	if _, err := xrayv1.NewXrayServiceClient(connection).ListOnlineUsers(request, &userv1.ListOnlineUsersRequest{InstanceId: "unconfigured"}); status.Code(err) != codes.NotFound {
 		t.Fatalf("packaged online users grant/service: %v", err)
 	}
 	verifyContainerRouting(t, request, xrayv1.NewXrayServiceClient(connection), certificates.Directory, runtimeDirectory, originalXrayConfig)

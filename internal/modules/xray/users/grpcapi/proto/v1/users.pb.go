@@ -1806,6 +1806,406 @@ func (x *ListInboundUsersResponse) GetObservedAtUnixMs() int64 {
 	return 0
 }
 
+type GetUserOnlineStatsRequest struct {
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	InstanceId string                 `protobuf:"bytes,1,opt,name=instance_id,json=instanceId,proto3" json:"instance_id,omitempty"`
+	// Exact native email, never normalized.
+	Email         string `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetUserOnlineStatsRequest) Reset() {
+	*x = GetUserOnlineStatsRequest{}
+	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[26]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetUserOnlineStatsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetUserOnlineStatsRequest) ProtoMessage() {}
+
+func (x *GetUserOnlineStatsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[26]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetUserOnlineStatsRequest.ProtoReflect.Descriptor instead.
+func (*GetUserOnlineStatsRequest) Descriptor() ([]byte, []int) {
+	return file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDescGZIP(), []int{26}
+}
+
+func (x *GetUserOnlineStatsRequest) GetInstanceId() string {
+	if x != nil {
+		return x.InstanceId
+	}
+	return ""
+}
+
+func (x *GetUserOnlineStatsRequest) GetEmail() string {
+	if x != nil {
+		return x.Email
+	}
+	return ""
+}
+
+type GetUserOnlineStatsResponse struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	InstanceId       string                 `protobuf:"bytes,1,opt,name=instance_id,json=instanceId,proto3" json:"instance_id,omitempty"`
+	Email            string                 `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
+	OnlineIpCount    int64                  `protobuf:"varint,3,opt,name=online_ip_count,json=onlineIpCount,proto3" json:"online_ip_count,omitempty"`
+	ObservedAtUnixMs int64                  `protobuf:"varint,4,opt,name=observed_at_unix_ms,json=observedAtUnixMs,proto3" json:"observed_at_unix_ms,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *GetUserOnlineStatsResponse) Reset() {
+	*x = GetUserOnlineStatsResponse{}
+	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[27]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetUserOnlineStatsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetUserOnlineStatsResponse) ProtoMessage() {}
+
+func (x *GetUserOnlineStatsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[27]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetUserOnlineStatsResponse.ProtoReflect.Descriptor instead.
+func (*GetUserOnlineStatsResponse) Descriptor() ([]byte, []int) {
+	return file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDescGZIP(), []int{27}
+}
+
+func (x *GetUserOnlineStatsResponse) GetInstanceId() string {
+	if x != nil {
+		return x.InstanceId
+	}
+	return ""
+}
+
+func (x *GetUserOnlineStatsResponse) GetEmail() string {
+	if x != nil {
+		return x.Email
+	}
+	return ""
+}
+
+func (x *GetUserOnlineStatsResponse) GetOnlineIpCount() int64 {
+	if x != nil {
+		return x.OnlineIpCount
+	}
+	return 0
+}
+
+func (x *GetUserOnlineStatsResponse) GetObservedAtUnixMs() int64 {
+	if x != nil {
+		return x.ObservedAtUnixMs
+	}
+	return 0
+}
+
+type ListUserOnlineIPsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	InstanceId    string                 `protobuf:"bytes,1,opt,name=instance_id,json=instanceId,proto3" json:"instance_id,omitempty"`
+	Email         string                 `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListUserOnlineIPsRequest) Reset() {
+	*x = ListUserOnlineIPsRequest{}
+	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[28]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListUserOnlineIPsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListUserOnlineIPsRequest) ProtoMessage() {}
+
+func (x *ListUserOnlineIPsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[28]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListUserOnlineIPsRequest.ProtoReflect.Descriptor instead.
+func (*ListUserOnlineIPsRequest) Descriptor() ([]byte, []int) {
+	return file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDescGZIP(), []int{28}
+}
+
+func (x *ListUserOnlineIPsRequest) GetInstanceId() string {
+	if x != nil {
+		return x.InstanceId
+	}
+	return ""
+}
+
+func (x *ListUserOnlineIPsRequest) GetEmail() string {
+	if x != nil {
+		return x.Email
+	}
+	return ""
+}
+
+type ListUserOnlineIPsResponse struct {
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	InstanceId string                 `protobuf:"bytes,1,opt,name=instance_id,json=instanceId,proto3" json:"instance_id,omitempty"`
+	Email      string                 `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
+	// Complete result, ordered by exact native IP key; no native pagination.
+	Items            []*OnlineIP `protobuf:"bytes,3,rep,name=items,proto3" json:"items,omitempty"`
+	ObservedAtUnixMs int64       `protobuf:"varint,4,opt,name=observed_at_unix_ms,json=observedAtUnixMs,proto3" json:"observed_at_unix_ms,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *ListUserOnlineIPsResponse) Reset() {
+	*x = ListUserOnlineIPsResponse{}
+	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[29]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListUserOnlineIPsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListUserOnlineIPsResponse) ProtoMessage() {}
+
+func (x *ListUserOnlineIPsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[29]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListUserOnlineIPsResponse.ProtoReflect.Descriptor instead.
+func (*ListUserOnlineIPsResponse) Descriptor() ([]byte, []int) {
+	return file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDescGZIP(), []int{29}
+}
+
+func (x *ListUserOnlineIPsResponse) GetInstanceId() string {
+	if x != nil {
+		return x.InstanceId
+	}
+	return ""
+}
+
+func (x *ListUserOnlineIPsResponse) GetEmail() string {
+	if x != nil {
+		return x.Email
+	}
+	return ""
+}
+
+func (x *ListUserOnlineIPsResponse) GetItems() []*OnlineIP {
+	if x != nil {
+		return x.Items
+	}
+	return nil
+}
+
+func (x *ListUserOnlineIPsResponse) GetObservedAtUnixMs() int64 {
+	if x != nil {
+		return x.ObservedAtUnixMs
+	}
+	return 0
+}
+
+type OnlineIP struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Ip    string                 `protobuf:"bytes,1,opt,name=ip,proto3" json:"ip,omitempty"`
+	// Native last connection registration time, not an activity heartbeat.
+	LastSeenUnixSeconds int64 `protobuf:"varint,2,opt,name=last_seen_unix_seconds,json=lastSeenUnixSeconds,proto3" json:"last_seen_unix_seconds,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *OnlineIP) Reset() {
+	*x = OnlineIP{}
+	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[30]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OnlineIP) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OnlineIP) ProtoMessage() {}
+
+func (x *OnlineIP) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[30]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OnlineIP.ProtoReflect.Descriptor instead.
+func (*OnlineIP) Descriptor() ([]byte, []int) {
+	return file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDescGZIP(), []int{30}
+}
+
+func (x *OnlineIP) GetIp() string {
+	if x != nil {
+		return x.Ip
+	}
+	return ""
+}
+
+func (x *OnlineIP) GetLastSeenUnixSeconds() int64 {
+	if x != nil {
+		return x.LastSeenUnixSeconds
+	}
+	return 0
+}
+
+type ListOnlineUsersRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	InstanceId    string                 `protobuf:"bytes,1,opt,name=instance_id,json=instanceId,proto3" json:"instance_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListOnlineUsersRequest) Reset() {
+	*x = ListOnlineUsersRequest{}
+	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[31]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListOnlineUsersRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListOnlineUsersRequest) ProtoMessage() {}
+
+func (x *ListOnlineUsersRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[31]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListOnlineUsersRequest.ProtoReflect.Descriptor instead.
+func (*ListOnlineUsersRequest) Descriptor() ([]byte, []int) {
+	return file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDescGZIP(), []int{31}
+}
+
+func (x *ListOnlineUsersRequest) GetInstanceId() string {
+	if x != nil {
+		return x.InstanceId
+	}
+	return ""
+}
+
+type ListOnlineUsersResponse struct {
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	InstanceId string                 `protobuf:"bytes,1,opt,name=instance_id,json=instanceId,proto3" json:"instance_id,omitempty"`
+	// Exact native emails in lexical order; complete result or resource-limit error.
+	Emails           []string `protobuf:"bytes,2,rep,name=emails,proto3" json:"emails,omitempty"`
+	ObservedAtUnixMs int64    `protobuf:"varint,3,opt,name=observed_at_unix_ms,json=observedAtUnixMs,proto3" json:"observed_at_unix_ms,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *ListOnlineUsersResponse) Reset() {
+	*x = ListOnlineUsersResponse{}
+	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[32]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListOnlineUsersResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListOnlineUsersResponse) ProtoMessage() {}
+
+func (x *ListOnlineUsersResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[32]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListOnlineUsersResponse.ProtoReflect.Descriptor instead.
+func (*ListOnlineUsersResponse) Descriptor() ([]byte, []int) {
+	return file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDescGZIP(), []int{32}
+}
+
+func (x *ListOnlineUsersResponse) GetInstanceId() string {
+	if x != nil {
+		return x.InstanceId
+	}
+	return ""
+}
+
+func (x *ListOnlineUsersResponse) GetEmails() []string {
+	if x != nil {
+		return x.Emails
+	}
+	return nil
+}
+
+func (x *ListOnlineUsersResponse) GetObservedAtUnixMs() int64 {
+	if x != nil {
+		return x.ObservedAtUnixMs
+	}
+	return 0
+}
+
 var File_internal_modules_xray_users_grpcapi_proto_v1_users_proto protoreflect.FileDescriptor
 
 const file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDesc = "" +
@@ -1949,7 +2349,38 @@ const file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDesc = ""
 	"\vinbound_tag\x18\x02 \x01(\tR\n" +
 	"inboundTag\x12=\n" +
 	"\x05users\x18\x03 \x03(\v2'.papilio.node.xray.v1.InboundUserRecordR\x05users\x12-\n" +
-	"\x13observed_at_unix_ms\x18\x04 \x01(\x03R\x10observedAtUnixMs*\x86\x01\n" +
+	"\x13observed_at_unix_ms\x18\x04 \x01(\x03R\x10observedAtUnixMs\"R\n" +
+	"\x19GetUserOnlineStatsRequest\x12\x1f\n" +
+	"\vinstance_id\x18\x01 \x01(\tR\n" +
+	"instanceId\x12\x14\n" +
+	"\x05email\x18\x02 \x01(\tR\x05email\"\xaa\x01\n" +
+	"\x1aGetUserOnlineStatsResponse\x12\x1f\n" +
+	"\vinstance_id\x18\x01 \x01(\tR\n" +
+	"instanceId\x12\x14\n" +
+	"\x05email\x18\x02 \x01(\tR\x05email\x12&\n" +
+	"\x0fonline_ip_count\x18\x03 \x01(\x03R\ronlineIpCount\x12-\n" +
+	"\x13observed_at_unix_ms\x18\x04 \x01(\x03R\x10observedAtUnixMs\"Q\n" +
+	"\x18ListUserOnlineIPsRequest\x12\x1f\n" +
+	"\vinstance_id\x18\x01 \x01(\tR\n" +
+	"instanceId\x12\x14\n" +
+	"\x05email\x18\x02 \x01(\tR\x05email\"\xb7\x01\n" +
+	"\x19ListUserOnlineIPsResponse\x12\x1f\n" +
+	"\vinstance_id\x18\x01 \x01(\tR\n" +
+	"instanceId\x12\x14\n" +
+	"\x05email\x18\x02 \x01(\tR\x05email\x124\n" +
+	"\x05items\x18\x03 \x03(\v2\x1e.papilio.node.xray.v1.OnlineIPR\x05items\x12-\n" +
+	"\x13observed_at_unix_ms\x18\x04 \x01(\x03R\x10observedAtUnixMs\"O\n" +
+	"\bOnlineIP\x12\x0e\n" +
+	"\x02ip\x18\x01 \x01(\tR\x02ip\x123\n" +
+	"\x16last_seen_unix_seconds\x18\x02 \x01(\x03R\x13lastSeenUnixSeconds\"9\n" +
+	"\x16ListOnlineUsersRequest\x12\x1f\n" +
+	"\vinstance_id\x18\x01 \x01(\tR\n" +
+	"instanceId\"\x81\x01\n" +
+	"\x17ListOnlineUsersResponse\x12\x1f\n" +
+	"\vinstance_id\x18\x01 \x01(\tR\n" +
+	"instanceId\x12\x16\n" +
+	"\x06emails\x18\x02 \x03(\tR\x06emails\x12-\n" +
+	"\x13observed_at_unix_ms\x18\x03 \x01(\x03R\x10observedAtUnixMs*\x86\x01\n" +
 	"\x13UserMutationOutcome\x12%\n" +
 	"!USER_MUTATION_OUTCOME_UNSPECIFIED\x10\x00\x12%\n" +
 	"!USER_MUTATION_OUTCOME_NOT_APPLIED\x10\x01\x12!\n" +
@@ -1975,7 +2406,7 @@ func file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDescGZIP()
 }
 
 var file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes = make([]protoimpl.MessageInfo, 26)
+var file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes = make([]protoimpl.MessageInfo, 33)
 var file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_goTypes = []any{
 	(UserMutationOutcome)(0),                // 0: papilio.node.xray.v1.UserMutationOutcome
 	(ShadowsocksCipher)(0),                  // 1: papilio.node.xray.v1.ShadowsocksCipher
@@ -2005,6 +2436,13 @@ var file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_goTypes = []an
 	(*GetInboundUserResponse)(nil),          // 25: papilio.node.xray.v1.GetInboundUserResponse
 	(*ListInboundUsersRequest)(nil),         // 26: papilio.node.xray.v1.ListInboundUsersRequest
 	(*ListInboundUsersResponse)(nil),        // 27: papilio.node.xray.v1.ListInboundUsersResponse
+	(*GetUserOnlineStatsRequest)(nil),       // 28: papilio.node.xray.v1.GetUserOnlineStatsRequest
+	(*GetUserOnlineStatsResponse)(nil),      // 29: papilio.node.xray.v1.GetUserOnlineStatsResponse
+	(*ListUserOnlineIPsRequest)(nil),        // 30: papilio.node.xray.v1.ListUserOnlineIPsRequest
+	(*ListUserOnlineIPsResponse)(nil),       // 31: papilio.node.xray.v1.ListUserOnlineIPsResponse
+	(*OnlineIP)(nil),                        // 32: papilio.node.xray.v1.OnlineIP
+	(*ListOnlineUsersRequest)(nil),          // 33: papilio.node.xray.v1.ListOnlineUsersRequest
+	(*ListOnlineUsersResponse)(nil),         // 34: papilio.node.xray.v1.ListOnlineUsersResponse
 }
 var file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_depIdxs = []int32{
 	0,  // 0: papilio.node.xray.v1.UserMutationFailure.outcome:type_name -> papilio.node.xray.v1.UserMutationOutcome
@@ -2023,11 +2461,12 @@ var file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_depIdxs = []in
 	17, // 13: papilio.node.xray.v1.ListInboundUserMetadataResponse.users:type_name -> papilio.node.xray.v1.InboundUserMetadata
 	19, // 14: papilio.node.xray.v1.GetInboundUserResponse.user:type_name -> papilio.node.xray.v1.InboundUserRecord
 	19, // 15: papilio.node.xray.v1.ListInboundUsersResponse.users:type_name -> papilio.node.xray.v1.InboundUserRecord
-	16, // [16:16] is the sub-list for method output_type
-	16, // [16:16] is the sub-list for method input_type
-	16, // [16:16] is the sub-list for extension type_name
-	16, // [16:16] is the sub-list for extension extendee
-	0,  // [0:16] is the sub-list for field type_name
+	32, // 16: papilio.node.xray.v1.ListUserOnlineIPsResponse.items:type_name -> papilio.node.xray.v1.OnlineIP
+	17, // [17:17] is the sub-list for method output_type
+	17, // [17:17] is the sub-list for method input_type
+	17, // [17:17] is the sub-list for extension type_name
+	17, // [17:17] is the sub-list for extension extendee
+	0,  // [0:17] is the sub-list for field type_name
 }
 
 func init() { file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_init() }
@@ -2052,7 +2491,7 @@ func file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDesc), len(file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   26,
+			NumMessages:   33,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

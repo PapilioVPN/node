@@ -32,6 +32,7 @@ import (
 	routingv1 "github.com/PapilioVPN/node/internal/modules/xray/routing/grpcapi/proto/v1"
 	routingxray "github.com/PapilioVPN/node/internal/modules/xray/routing/infra/api"
 	trafficxray "github.com/PapilioVPN/node/internal/modules/xray/traffic/infra/api"
+	onlineapi "github.com/PapilioVPN/node/internal/modules/xray/users/infra/api"
 	nativeapi "github.com/PapilioVPN/node/internal/platform/engines/xray/api"
 	rpc "github.com/PapilioVPN/node/internal/platform/grpcserver"
 	"github.com/PapilioVPN/node/internal/settings"
@@ -262,6 +263,7 @@ func TestXrayRoutingProbePreservesNativeFieldsProjectionAndEffects(t *testing.T)
 type nativeXrayAPI struct {
 	*trafficxray.Counters
 	*xrayapi.Adapter
+	*onlineapi.Online
 	*infoapi.Reader
 	*routingxray.Router
 }
@@ -278,7 +280,7 @@ func nativeXrayAPIClient(t *testing.T, instance settings.Instance) *nativeXrayAP
 			t.Error(err)
 		}
 	})
-	return &nativeXrayAPI{Counters: &trafficxray.Counters{API: client}, Adapter: &xrayapi.Adapter{API: client}, Reader: &infoapi.Reader{API: client}, Router: &routingxray.Router{API: client}}
+	return &nativeXrayAPI{Counters: &trafficxray.Counters{API: client}, Adapter: &xrayapi.Adapter{API: client}, Online: &onlineapi.Online{API: client}, Reader: &infoapi.Reader{API: client}, Router: &routingxray.Router{API: client}}
 }
 
 func configureXrayProbeRouting(t *testing.T, instance settings.Instance, webhook string) []byte {

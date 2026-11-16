@@ -32,7 +32,7 @@ func TestUserAdditionChecksIdentityAndIndependentGrantBeforeShape(t *testing.T) 
 	if _, err := (grpcapi.Handler{UserAPI: usergrpc.UserAPI{AllowUserManagement: true}}).AddInboundUser(t.Context(), nil); status.Code(err) != codes.Unauthenticated {
 		t.Fatalf("unverified caller reached addition: %v", err)
 	}
-	if _, err := (grpcapi.Handler{AllowOnlineRead: true, TrafficAPI: trafficgrpc.TrafficAPI{AllowStatsRead: true, AllowStatsReset: true}, InfoAPI: infogrpc.InfoAPI{AllowInfoRead: true}}).AddInboundUser(verifiedContext(t), nil); status.Code(err) != codes.PermissionDenied {
+	if _, err := (grpcapi.Handler{TrafficAPI: trafficgrpc.TrafficAPI{AllowStatsRead: true, AllowStatsReset: true}, InfoAPI: infogrpc.InfoAPI{AllowInfoRead: true}, UserAPI: usergrpc.UserAPI{AllowOnlineRead: true}}).AddInboundUser(verifiedContext(t), nil); status.Code(err) != codes.PermissionDenied {
 		t.Fatalf("other grants enabled addition: %v", err)
 	}
 }

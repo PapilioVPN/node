@@ -35,7 +35,6 @@ import (
 	trafficgrpc "github.com/PapilioVPN/node/internal/modules/xray/traffic/grpcapi"
 	trafficxray "github.com/PapilioVPN/node/internal/modules/xray/traffic/infra/api"
 	userowner "github.com/PapilioVPN/node/internal/modules/xray/users"
-	userdomain "github.com/PapilioVPN/node/internal/modules/xray/users/domain"
 	usergrpc "github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi"
 	userxray "github.com/PapilioVPN/node/internal/modules/xray/users/infra/api"
 	nativeapi "github.com/PapilioVPN/node/internal/platform/engines/xray/api"
@@ -48,7 +47,6 @@ func Module(grpcEnabled bool) fx.Option {
 		userowner.Module(grpcEnabled), routingowner.Module(grpcEnabled), trafficowner.Module(grpcEnabled), infoowner.Module(grpcEnabled),
 		fx.Provide(
 			newAPIResources,
-			newOnlineService,
 			newOutboundStatusService,
 			fx.Private,
 		),
@@ -100,7 +98,6 @@ func newRuntimeBindings(config []settings.Instance) (runtimeBindingsResult, erro
 
 type apiResources struct {
 	runtimeReaders  map[instances.InstanceID]infoservices.RuntimeInfoReader
-	onlineReaders   map[instances.InstanceID]services.OnlineReader
 	outboundReaders map[instances.InstanceID]services.OutboundStatusReader
 	clients         []*nativeapi.Client
 	userBindings    []userowner.BackendBinding
@@ -111,7 +108,6 @@ type apiResources struct {
 func newAPIResources(config []settings.Instance) (*apiResources, error) {
 	resources := &apiResources{
 		runtimeReaders:  make(map[instances.InstanceID]infoservices.RuntimeInfoReader),
-		onlineReaders:   make(map[instances.InstanceID]services.OnlineReader),
 		outboundReaders: make(map[instances.InstanceID]services.OutboundStatusReader),
 	}
 	for _, instance := range config {
@@ -119,7 +115,6 @@ func newAPIResources(config []settings.Instance) (*apiResources, error) {
 			continue
 		}
 		resources.runtimeReaders[instance.ID] = nil
-		resources.onlineReaders[instance.ID] = nil
 		resources.outboundReaders[instance.ID] = nil
 		binding := userowner.BackendBinding{InstanceID: instance.ID}
 		routing := routingowner.BackendBinding{InstanceID: instance.ID}
@@ -134,7 +129,7 @@ func newAPIResources(config []settings.Instance) (*apiResources, error) {
 			}
 			adapter := &xrayapi.Adapter{API: client}
 			resources.runtimeReaders[instance.ID] = &infoapi.Reader{API: client}
-			resources.onlineReaders[instance.ID] = adapter
+			binding.Online = &userxray.Online{API: client}
 			resources.outboundReaders[instance.ID] = adapter
 			counters := &trafficxray.Counters{API: client}
 			traffic.Reader, traffic.Collection, traffic.Resetter = counters, counters, counters
@@ -157,10 +152,6 @@ func newAPIResources(config []settings.Instance) (*apiResources, error) {
 	return resources, nil
 }
 
-func newOnlineService(resources *apiResources) *services.OnlineService {
-	return services.NewOnlineService(resources.onlineReaders)
-}
-
 func newOutboundStatusService(resources *apiResources) *services.OutboundStatusService {
 	return services.NewOutboundStatusService(resources.outboundReaders)
 }
@@ -181,7 +172,6 @@ type grpcServices struct {
 	fx.In
 	Registrar   grpc.ServiceRegistrar
 	InfoAPI     infogrpc.InfoAPI
-	Online      *services.OnlineService
 	Outbounds   *services.OutboundStatusService
 	UserAPI     usergrpc.UserAPI
 	RoutingAPI  routinggrpc.RoutingAPI
@@ -191,9 +181,8 @@ type grpcServices struct {
 
 func registerGRPC(p grpcServices) {
 	xrayv1.RegisterXrayServiceServer(p.Registrar, grpcapi.Handler{
-		Online: p.Online, Outbounds: p.Outbounds,
-		UserAPI: p.UserAPI, RoutingAPI: p.RoutingAPI, TrafficAPI: p.TrafficAPI,
-		AllowOnlineRead:    p.Permissions.ReadEngineOnline,
+		Outbounds: p.Outbounds,
+		UserAPI:   p.UserAPI, RoutingAPI: p.RoutingAPI, TrafficAPI: p.TrafficAPI,
 		AllowOutboundsRead: p.Permissions.ReadEngineOutbounds,
 		InfoAPI:            p.InfoAPI,
 	})
@@ -208,12 +197,8 @@ func capability() capabilityResult {
 	return capabilityResult{Values: []system.Capability{
 		trafficdomain.ReadTrafficCounter, trafficdomain.ListTrafficCounters, trafficdomain.ResetTrafficCounter, trafficdomain.ResetTrafficCounters,
 		trafficdomain.ReadTrafficPair, trafficdomain.ResetTrafficPair,
-		userdomain.AddInboundUser, userdomain.RemoveInboundUser, userdomain.ReadInboundUserCount,
-		userdomain.ReadInboundUser, userdomain.ListInboundUsers,
-		userdomain.ReadInboundUserMetadata, userdomain.ListInboundUserMetadata,
 		routingdomain.ListRoutingRules, routingdomain.ReadBalancerInfo,
 		routingdomain.TestRoute, routingdomain.OverrideBalancerTarget, routingdomain.RemoveRoutingRule, routingdomain.AddRoutingRule,
-		domain.ReadUserOnlineStats, domain.ListUserOnlineIPs, domain.ListOnlineUsers,
 		domain.ReadOutboundStatus, domain.ListOutboundStatuses,
 	}}
 }

@@ -18,6 +18,7 @@ import (
 
 	"github.com/PapilioVPN/node/internal/modules/xray/domain"
 	trafficdomain "github.com/PapilioVPN/node/internal/modules/xray/traffic/domain"
+	userdomain "github.com/PapilioVPN/node/internal/modules/xray/users/domain"
 )
 
 // Controlled native servers verify SDK behavior; real flows run in bootstrap.
@@ -79,7 +80,7 @@ func TestOnlineNativeReadsPreserveExactIdentitiesAndPrecision(t *testing.T) {
 		t.Fatalf("IPs: %+v, %v", addresses, err)
 	}
 	online, err := client.ReadOnlineUsers(t.Context())
-	if err != nil || !reflect.DeepEqual(online.Emails, []domain.UserEmail{" Mixed>>>@Example ", "   ", " Mixed>>>@Example "}) || online.ObservedAt.Before(before) {
+	if err != nil || !reflect.DeepEqual(online.Emails, []userdomain.UserEmail{" Mixed>>>@Example ", "   ", " Mixed>>>@Example "}) || online.ObservedAt.Before(before) {
 		t.Fatalf("users: %+v, %v", online, err)
 	}
 	if _, err := client.ReadRuntimeInfo(t.Context()); err != nil {
@@ -146,7 +147,7 @@ func onlineReads(t *testing.T) []onlineRead {
 	return []onlineRead{
 		{"count", func(ctx context.Context, c *apiClientSet) error {
 			v, err := c.ReadUserOnlineStats(ctx, "reader")
-			if err != nil && v != (domain.UserOnline{}) {
+			if err != nil && v != (userdomain.UserOnline{}) {
 				t.Errorf("partial count: %+v", v)
 			}
 			return err
@@ -175,12 +176,12 @@ func TestOnlineNativeErrorsMalformedResponsesAndReceiveLimits(t *testing.T) {
 		limit       int
 		cause       error
 	}{
-		{"missing", status.Error(codes.NotFound, "private identity"), 4096, domain.ErrOnlineObservationNotFound},
-		{"unsupported", status.Error(codes.Unimplemented, "private method"), 4096, domain.ErrOnlineUnsupported},
+		{"missing", status.Error(codes.NotFound, "private identity"), 4096, userdomain.ErrOnlineObservationNotFound},
+		{"unsupported", status.Error(codes.Unimplemented, "private method"), 4096, userdomain.ErrOnlineUnsupported},
 		{"native-limit", status.Error(codes.ResourceExhausted, "private capacity"), 4096, domain.ErrAPIResourceLimit},
 		{"native-deadline", status.Error(codes.DeadlineExceeded, "private endpoint"), 4096, context.DeadlineExceeded},
 		{"receive-limit", nil, 1, domain.ErrAPIResourceLimit},
-		{"malformed", nil, 4096, domain.ErrInvalidOnlineResponse},
+		{"malformed", nil, 4096, userdomain.ErrInvalidOnlineResponse},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			address, _ := apiServer(t, onlineServer{
@@ -207,8 +208,8 @@ func TestOnlineNativeErrorsMalformedResponsesAndReceiveLimits(t *testing.T) {
 		stat  *native.Stat
 		cause error
 	}{
-		{"empty-stat", nil, domain.ErrInvalidOnlineResponse},
-		{"negative-count", &native.Stat{Name: "user>>>reader>>>online", Value: -1}, domain.ErrInvalidOnlineResponse},
+		{"empty-stat", nil, userdomain.ErrInvalidOnlineResponse},
+		{"negative-count", &native.Stat{Name: "user>>>reader>>>online", Value: -1}, userdomain.ErrInvalidOnlineResponse},
 		{"registered-zero", &native.Stat{Name: "user>>>reader>>>online"}, nil},
 	} {
 		t.Run(test.name, func(t *testing.T) {

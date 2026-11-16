@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/PapilioVPN/node/internal/modules/xray/domain"
+	"github.com/PapilioVPN/node/internal/modules/xray/users/domain"
 )
 
 func FuzzOnlineUserEmail(f *testing.F) {

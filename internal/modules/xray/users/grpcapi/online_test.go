@@ -14,11 +14,12 @@ import (
 	"google.golang.org/grpc/status"
 
 	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
-	"github.com/PapilioVPN/node/internal/modules/xray/domain"
 	"github.com/PapilioVPN/node/internal/modules/xray/grpcapi"
-	xrayv1 "github.com/PapilioVPN/node/internal/modules/xray/grpcapi/proto/v1"
 	infogrpc "github.com/PapilioVPN/node/internal/modules/xray/info/grpcapi"
 	trafficgrpc "github.com/PapilioVPN/node/internal/modules/xray/traffic/grpcapi"
+	"github.com/PapilioVPN/node/internal/modules/xray/users/domain"
+	usergrpc "github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi"
+	xrayv1 "github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi/proto/v1"
 )
 
 type onlineService struct {
@@ -45,7 +46,7 @@ func TestOnlineIdentityGrantAndShapePrecedeApplication(t *testing.T) {
 	}{
 		{t.Context(), true, codes.Unauthenticated}, {verifiedContext(t), false, codes.PermissionDenied}, {verifiedContext(t), true, codes.InvalidArgument},
 	} {
-		h := grpcapi.Handler{AllowOnlineRead: test.grant, TrafficAPI: trafficgrpc.TrafficAPI{AllowStatsRead: true}, InfoAPI: infogrpc.InfoAPI{AllowInfoRead: true}}
+		h := grpcapi.Handler{TrafficAPI: trafficgrpc.TrafficAPI{AllowStatsRead: true}, InfoAPI: infogrpc.InfoAPI{AllowInfoRead: true}, UserAPI: usergrpc.UserAPI{AllowOnlineRead: test.grant}}
 		_, count := h.GetUserOnlineStats(test.ctx, nil)
 		_, ips := h.ListUserOnlineIPs(test.ctx, nil)
 		_, users := h.ListOnlineUsers(test.ctx, nil)
@@ -55,7 +56,7 @@ func TestOnlineIdentityGrantAndShapePrecedeApplication(t *testing.T) {
 			}
 		}
 	}
-	h := grpcapi.Handler{AllowOnlineRead: true}
+	h := grpcapi.Handler{UserAPI: usergrpc.UserAPI{AllowOnlineRead: true}}
 	ctx := verifiedContext(t)
 	for _, id := range []string{"", " ", "edge"} {
 		_, count := h.GetUserOnlineStats(ctx, &xrayv1.GetUserOnlineStatsRequest{InstanceId: id})
@@ -80,7 +81,7 @@ func TestOnlineWirePreservesIdentityPrecisionOrderingAndEmptyCollections(t *test
 				t.Fatal("instance/context changed")
 			}
 		}
-		h := grpcapi.Handler{AllowOnlineRead: true, Online: onlineService{
+		h := grpcapi.Handler{UserAPI: usergrpc.UserAPI{AllowOnlineRead: true, Online: onlineService{
 			count: func(received context.Context, id instances.InstanceID, e domain.UserEmail) (domain.InstanceUserOnline, error) {
 				check(received, id)
 				if e != email {
@@ -107,7 +108,7 @@ func TestOnlineWirePreservesIdentityPrecisionOrderingAndEmptyCollections(t *test
 				}
 				return domain.InstanceOnlineUsers{InstanceID: id, Users: result}, nil
 			},
-		}}
+		}}}
 		count, err := h.GetUserOnlineStats(ctx, &xrayv1.GetUserOnlineStatsRequest{InstanceId: " edge ", Email: string(email)})
 		if err != nil || count.InstanceId != " edge " || count.Email != string(email) || count.OnlineIpCount != math.MaxInt64 || count.ObservedAtUnixMs != observed.UnixMilli() {
 			t.Fatalf("count wire: %v, %v", count, err)
@@ -137,12 +138,10 @@ func TestOnlineWirePreservesIdentityPrecisionOrderingAndEmptyCollections(t *test
 
 func TestOnlineErrorsDiscardPartialFactsAndSanitizeNativeCauses(t *testing.T) {
 	for cause, code := range map[error]codes.Code{
-		instances.ErrNotFound: codes.NotFound, domain.ErrOnlineObservationNotFound: codes.NotFound, domain.ErrAPIDisabled: codes.FailedPrecondition, domain.ErrOnlineUnsupported: codes.FailedPrecondition,
-		domain.ErrAPIResourceLimit: codes.ResourceExhausted, domain.ErrAPIBusy: codes.ResourceExhausted, domain.ErrInvalidOnlineResponse: codes.Unavailable,
-		context.Canceled: codes.Canceled, context.DeadlineExceeded: codes.DeadlineExceeded, errors.New("private endpoint"): codes.Unavailable,
+		instances.ErrNotFound: codes.NotFound, domain.ErrOnlineObservationNotFound: codes.NotFound, domain.ErrAPIDisabled: codes.FailedPrecondition, domain.ErrOnlineUnsupported: codes.FailedPrecondition, domain.ErrAPIResourceLimit: codes.ResourceExhausted, domain.ErrAPIBusy: codes.ResourceExhausted, domain.ErrInvalidOnlineResponse: codes.Unavailable, context.Canceled: codes.Canceled, context.DeadlineExceeded: codes.DeadlineExceeded, errors.New("private endpoint"): codes.Unavailable,
 	} {
 		wrapped := fmt.Errorf("private identity/endpoint: %w", cause)
-		h := grpcapi.Handler{AllowOnlineRead: true, Online: onlineService{
+		h := grpcapi.Handler{UserAPI: usergrpc.UserAPI{AllowOnlineRead: true, Online: onlineService{
 			count: func(context.Context, instances.InstanceID, domain.UserEmail) (domain.InstanceUserOnline, error) {
 				return domain.InstanceUserOnline{InstanceID: "private"}, wrapped
 			},
@@ -152,7 +151,7 @@ func TestOnlineErrorsDiscardPartialFactsAndSanitizeNativeCauses(t *testing.T) {
 			users: func(context.Context, instances.InstanceID) (domain.InstanceOnlineUsers, error) {
 				return domain.InstanceOnlineUsers{Users: domain.OnlineUsers{Emails: []domain.UserEmail{"private"}}}, wrapped
 			},
-		}}
+		}}}
 		count, countError := h.GetUserOnlineStats(verifiedContext(t), &xrayv1.GetUserOnlineStatsRequest{InstanceId: "edge", Email: "reader"})
 		ips, ipsError := h.ListUserOnlineIPs(verifiedContext(t), &xrayv1.ListUserOnlineIPsRequest{InstanceId: "edge", Email: "reader"})
 		users, usersError := h.ListOnlineUsers(verifiedContext(t), &xrayv1.ListOnlineUsersRequest{InstanceId: "edge"})

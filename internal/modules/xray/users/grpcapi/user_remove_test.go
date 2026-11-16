@@ -29,7 +29,7 @@ func TestUserRemovalChecksIdentityAndIndependentGrantBeforeShape(t *testing.T) {
 	if _, err := (grpcapi.Handler{UserAPI: usergrpc.UserAPI{AllowUserManagement: true}}).RemoveInboundUser(t.Context(), nil); status.Code(err) != codes.Unauthenticated {
 		t.Fatal(err)
 	}
-	if _, err := (grpcapi.Handler{AllowOnlineRead: true, TrafficAPI: trafficgrpc.TrafficAPI{AllowStatsRead: true, AllowStatsReset: true}, InfoAPI: infogrpc.InfoAPI{AllowInfoRead: true}}).RemoveInboundUser(verifiedContext(t), nil); status.Code(err) != codes.PermissionDenied {
+	if _, err := (grpcapi.Handler{TrafficAPI: trafficgrpc.TrafficAPI{AllowStatsRead: true, AllowStatsReset: true}, InfoAPI: infogrpc.InfoAPI{AllowInfoRead: true}, UserAPI: usergrpc.UserAPI{AllowOnlineRead: true}}).RemoveInboundUser(verifiedContext(t), nil); status.Code(err) != codes.PermissionDenied {
 		t.Fatal(err)
 	}
 	h := grpcapi.Handler{UserAPI: usergrpc.UserAPI{AllowUserManagement: true}}

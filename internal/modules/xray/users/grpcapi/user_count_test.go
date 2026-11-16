@@ -30,7 +30,7 @@ func TestUserCountRequiresIdentityAndItsOwnGrantBeforeShape(t *testing.T) {
 	if _, err := (grpcapi.Handler{}).GetInboundUserCount(t.Context(), nil); status.Code(err) != codes.Unauthenticated {
 		t.Fatalf("unverified count request reached shape/application: %v", err)
 	}
-	if _, err := (grpcapi.Handler{AllowOnlineRead: true, UserAPI: usergrpc.UserAPI{AllowUserManagement: true}, TrafficAPI: trafficgrpc.TrafficAPI{AllowStatsRead: true, AllowStatsReset: true}, InfoAPI: infogrpc.InfoAPI{AllowInfoRead: true}}).GetInboundUserCount(verifiedContext(t), nil); status.Code(err) != codes.PermissionDenied {
+	if _, err := (grpcapi.Handler{UserAPI: usergrpc.UserAPI{AllowUserManagement: true, AllowOnlineRead: true}, TrafficAPI: trafficgrpc.TrafficAPI{AllowStatsRead: true, AllowStatsReset: true}, InfoAPI: infogrpc.InfoAPI{AllowInfoRead: true}}).GetInboundUserCount(verifiedContext(t), nil); status.Code(err) != codes.PermissionDenied {
 		t.Fatalf("other grants enabled user counts: %v", err)
 	}
 }

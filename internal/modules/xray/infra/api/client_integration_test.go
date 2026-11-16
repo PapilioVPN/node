@@ -23,6 +23,7 @@ import (
 	xrayapi "github.com/PapilioVPN/node/internal/modules/xray/infra/api"
 	routingxray "github.com/PapilioVPN/node/internal/modules/xray/routing/infra/api"
 	trafficxray "github.com/PapilioVPN/node/internal/modules/xray/traffic/infra/api"
+	onlineapi "github.com/PapilioVPN/node/internal/modules/xray/users/infra/api"
 	nativeapi "github.com/PapilioVPN/node/internal/platform/engines/xray/api"
 )
 
@@ -77,6 +78,7 @@ type apiClientSet struct {
 	*trafficxray.Counters
 	*nativeapi.Client
 	*xrayapi.Adapter
+	*onlineapi.Online
 	*infoapi.Reader
 	*routingxray.Router
 }
@@ -92,7 +94,7 @@ func apiClient(t *testing.T, address string, timeout time.Duration, limit int) *
 			t.Error(err)
 		}
 	})
-	return &apiClientSet{Counters: &trafficxray.Counters{API: client}, Client: client, Adapter: &xrayapi.Adapter{API: client}, Reader: &infoapi.Reader{API: client}, Router: &routingxray.Router{API: client}}
+	return &apiClientSet{Counters: &trafficxray.Counters{API: client}, Client: client, Adapter: &xrayapi.Adapter{API: client}, Online: &onlineapi.Online{API: client}, Reader: &infoapi.Reader{API: client}, Router: &routingxray.Router{API: client}}
 }
 
 func TestAPIReusesNativeChannelAndPreservesUnsignedCounters(t *testing.T) {

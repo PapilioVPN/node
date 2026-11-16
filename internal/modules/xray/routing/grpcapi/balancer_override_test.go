@@ -46,7 +46,7 @@ func TestBalancerOverrideRequiresVerifiedIdentityBeforeShape(t *testing.T) {
 		t.Fatalf("unverified override reached shape/application: %v", err)
 	}
 	requireRoutingMutationOutcome(t, err, routingv1.RoutingMutationOutcome_ROUTING_MUTATION_OUTCOME_NOT_APPLIED)
-	h := grpcapi.Handler{AllowOnlineRead: true, UserAPI: usergrpc.UserAPI{AllowUsersRead: true, AllowUserManagement: true}, RoutingAPI: routinggrpc.RoutingAPI{AllowRoutingRead: true, AllowRoutingTest: true}, TrafficAPI: trafficgrpc.TrafficAPI{AllowStatsRead: true, AllowStatsReset: true}, InfoAPI: infogrpc.InfoAPI{AllowInfoRead: true}}
+	h := grpcapi.Handler{UserAPI: usergrpc.UserAPI{AllowUsersRead: true, AllowUserManagement: true, AllowOnlineRead: true}, RoutingAPI: routinggrpc.RoutingAPI{AllowRoutingRead: true, AllowRoutingTest: true}, TrafficAPI: trafficgrpc.TrafficAPI{AllowStatsRead: true, AllowStatsReset: true}, InfoAPI: infogrpc.InfoAPI{AllowInfoRead: true}}
 	_, err = h.OverrideBalancerTarget(verifiedContext(t), nil)
 	if status.Code(err) != codes.PermissionDenied {
 		t.Fatalf("other grants authorized a routing mutation: %v", err)

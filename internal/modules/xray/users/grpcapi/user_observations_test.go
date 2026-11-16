@@ -71,9 +71,9 @@ var userReadCalls = []struct {
 func TestUserViewsRequireIndependentGrants(t *testing.T) {
 	for i, op := range userReadCalls {
 		t.Run(op.name, func(t *testing.T) {
-			h := grpcapi.Handler{AllowOnlineRead: true, AllowOutboundsRead: true, UserAPI:
+			h := grpcapi.Handler{AllowOutboundsRead: true, UserAPI:
 			// Also grant the opposite view: it must not enable this operation.
-			usergrpc.UserAPI{AllowUsersRead: true, AllowUserManagement: true}, RoutingAPI: routinggrpc.RoutingAPI{AllowRoutingRead: true, AllowRoutingTest: true, AllowRoutingManagement: true}, TrafficAPI: trafficgrpc.TrafficAPI{AllowStatsRead: true, AllowStatsReset: true}, InfoAPI: infogrpc.InfoAPI{AllowInfoRead: true},
+			usergrpc.UserAPI{AllowUsersRead: true, AllowUserManagement: true, AllowOnlineRead: true}, RoutingAPI: routinggrpc.RoutingAPI{AllowRoutingRead: true, AllowRoutingTest: true, AllowRoutingManagement: true}, TrafficAPI: trafficgrpc.TrafficAPI{AllowStatsRead: true, AllowStatsReset: true}, InfoAPI: infogrpc.InfoAPI{AllowInfoRead: true},
 			}
 
 			if i < 2 {

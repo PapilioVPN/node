@@ -11,11 +11,11 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/PapilioVPN/node/internal/modules/xray/domain"
+	"github.com/PapilioVPN/node/internal/modules/xray/users/domain"
 )
 
 // ReadUserOnlineStats performs one native observation, sharing channel and admission bounds.
-func (c *Adapter) ReadUserOnlineStats(ctx context.Context, email domain.UserEmail) (domain.UserOnline, error) {
+func (c *Online) ReadUserOnlineStats(ctx context.Context, email domain.UserEmail) (domain.UserOnline, error) {
 	if err := ctx.Err(); err != nil {
 		return domain.UserOnline{}, err
 	}
@@ -45,7 +45,7 @@ func (c *Adapter) ReadUserOnlineStats(ctx context.Context, email domain.UserEmai
 }
 
 // ReadUserOnlineIPs performs one native observation, sharing channel and admission bounds.
-func (c *Adapter) ReadUserOnlineIPs(ctx context.Context, email domain.UserEmail) (domain.UserOnlineIPs, error) {
+func (c *Online) ReadUserOnlineIPs(ctx context.Context, email domain.UserEmail) (domain.UserOnlineIPs, error) {
 	if err := ctx.Err(); err != nil {
 		return domain.UserOnlineIPs{}, err
 	}
@@ -85,7 +85,7 @@ func (c *Adapter) ReadUserOnlineIPs(ctx context.Context, email domain.UserEmail)
 }
 
 // ReadOnlineUsers performs one native observation, sharing channel and admission bounds.
-func (c *Adapter) ReadOnlineUsers(ctx context.Context) (domain.OnlineUsers, error) {
+func (c *Online) ReadOnlineUsers(ctx context.Context) (domain.OnlineUsers, error) {
 	if err := ctx.Err(); err != nil {
 		return domain.OnlineUsers{}, err
 	}

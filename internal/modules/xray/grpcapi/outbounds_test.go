@@ -46,7 +46,7 @@ func TestOutboundReadsRequireIdentityBeforeShape(t *testing.T) {
 }
 
 func TestOutboundReadsRequireIndependentGrantBeforeShape(t *testing.T) {
-	h := grpcapi.Handler{AllowOnlineRead: true, UserAPI: usergrpc.UserAPI{AllowUserManagement: true, AllowUsersRead: true}, RoutingAPI: routinggrpc.RoutingAPI{AllowRoutingRead: true, AllowRoutingTest: true, AllowRoutingManagement: true}, TrafficAPI: trafficgrpc.TrafficAPI{AllowStatsRead: true, AllowStatsReset: true}, InfoAPI: infogrpc.InfoAPI{AllowInfoRead: true}}
+	h := grpcapi.Handler{UserAPI: usergrpc.UserAPI{AllowUserManagement: true, AllowUsersRead: true, AllowOnlineRead: true}, RoutingAPI: routinggrpc.RoutingAPI{AllowRoutingRead: true, AllowRoutingTest: true, AllowRoutingManagement: true}, TrafficAPI: trafficgrpc.TrafficAPI{AllowStatsRead: true, AllowStatsReset: true}, InfoAPI: infogrpc.InfoAPI{AllowInfoRead: true}}
 	if _, err := h.GetOutboundStatus(verifiedContext(t), nil); status.Code(err) != codes.PermissionDenied {
 		t.Fatal("other grants enabled outbound lookup")
 	}
