@@ -49,6 +49,8 @@ func TestXrayBinaryInfoOverMTLSKeepsLiveInstancesUnchanged(t *testing.T) {
 	cfg.Instances = []settings.Instance{first, second}
 	cfg.Communications.GRPC.Permissions.ReadEngineInfo = true
 	cfg.Communications.GRPC.Permissions.ReadEngineOutbounds = true
+	cfg.Communications.GRPC.Permissions.ReadEngineUserMetadata = true
+	cfg.Communications.GRPC.Permissions.ReadEngineUserAccounts = true
 	cfg.Communications.GRPC.Permissions.TestEngineRouting = true
 	cfg.Communications.GRPC.Permissions.ManageEngineRouting = true
 	var server *rpc.Server
@@ -93,6 +95,7 @@ func TestXrayBinaryInfoOverMTLSKeepsLiveInstancesUnchanged(t *testing.T) {
 	if _, err := client.GetRuntimeInfo(ctx, &xrayv1.GetRuntimeInfoRequest{InstanceId: "edge-a"}); status.Code(err) != codes.FailedPrecondition {
 		t.Fatalf("absent API settings were ignored: %v", err)
 	}
+	verifyFailedUserViews(t, ctx, client, "edge-a", "in", codes.FailedPrecondition)
 	before := time.Now().UnixMilli()
 	response, err := client.GetBinaryInfo(ctx, &xrayv1.GetBinaryInfoRequest{InstanceId: "edge-a"})
 	if err != nil {

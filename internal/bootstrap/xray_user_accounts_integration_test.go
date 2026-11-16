@@ -114,6 +114,8 @@ func TestLiveUserAdditionUpdatesEveryBaselineNativeUserManager(t *testing.T) {
 	cfg.Instances = []settings.Instance{instance}
 	cfg.Communications.GRPC.Permissions.ManageEngineUsers = true
 	cfg.Communications.GRPC.Permissions.ReadEngineUsers = true
+	cfg.Communications.GRPC.Permissions.ReadEngineUserMetadata = true
+	cfg.Communications.GRPC.Permissions.ReadEngineUserAccounts = true
 	var server *rpc.Server
 	var cleanup struct {
 		fx.In
@@ -163,7 +165,7 @@ func TestLiveUserAdditionUpdatesEveryBaselineNativeUserManager(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer observer.Close()
-	// Private application reads remain independent of the pending public API decision.
+	// Compare public projections against independently read canonical native records.
 	observations := services.NewUserObservationService(map[instances.InstanceID]services.UserObservationReader{instance.ID: observer})
 	client := xrayClient(t, server, certificates)
 	for _, tc := range cases {
@@ -180,6 +182,7 @@ func TestLiveUserAdditionUpdatesEveryBaselineNativeUserManager(t *testing.T) {
 			if err != nil || absent.Observation.User != nil || absent.Observation.ObservedAt.IsZero() {
 				t.Fatal("real missing native user was not a completed absent observation")
 			}
+			verifySingleUserViews(t, ctx, client, "edge", tc.tag, "added@local", nil)
 			tc.user.Email, tc.user.Level = "added@local", 23
 			if _, err := client.AddInboundUser(ctx, &xrayv1.AddInboundUserRequest{InstanceId: "edge", InboundTag: tc.tag, User: tc.user}); err != nil {
 				t.Fatalf("real native addition rejected: %v", err)
@@ -196,6 +199,7 @@ func TestLiveUserAdditionUpdatesEveryBaselineNativeUserManager(t *testing.T) {
 			if err != nil || one.Observation.User == nil || one.Observation.User.Email != "added@local" || one.Observation.User.Level != 23 || one.Observation.User.Account.TypeName != users.Users[0].Account.Type || !bytes.Equal(one.Observation.User.Account.Protobuf, users.Users[0].Account.Value) {
 				t.Fatal("real account observation changed native identity/level/payload; credentials withheld")
 			}
+			verifySingleUserViews(t, ctx, client, "edge", tc.tag, "added@local", one.Observation.User)
 			expected := before.Count + 1
 			if tc.tag == "wireguard" {
 				// Native WireGuard permits multiple keys with one email. Listing must
@@ -212,6 +216,7 @@ func TestLiveUserAdditionUpdatesEveryBaselineNativeUserManager(t *testing.T) {
 			if err != nil || int64(len(list.Observation.Users)) != expected || list.Observation.ObservedAt.IsZero() {
 				t.Fatal("real native user collection was truncated or invalid")
 			}
+			verifyUserListViews(t, ctx, client, list)
 			selected, anonymous := 0, 0
 			for _, user := range list.Observation.Users {
 				if user.Email == "added@local" {
@@ -242,6 +247,7 @@ func TestLiveUserAdditionUpdatesEveryBaselineNativeUserManager(t *testing.T) {
 			if err != nil || absent.Observation.User != nil {
 				t.Fatal("removed native user still appeared in observations")
 			}
+			verifySingleUserViews(t, ctx, client, "edge", tc.tag, "added@local", nil)
 		})
 	}
 	current, err := os.ReadFile(instance.Xray.ConfigFile)
@@ -249,6 +255,7 @@ func TestLiveUserAdditionUpdatesEveryBaselineNativeUserManager(t *testing.T) {
 		t.Fatal("live user mutations changed the persisted configuration")
 	}
 	for _, tag := range []string{"missing", "proxy"} {
+		verifyFailedUserViews(t, ctx, client, "edge", tag, codes.Unavailable)
 		response, err := client.GetInboundUserCount(ctx, &xrayv1.GetInboundUserCountRequest{InstanceId: "edge", InboundTag: tag})
 		if response != nil || status.Code(err) != codes.Unavailable {
 			t.Fatalf("generic native missing/non-user-manager error became a successful count: %v", err)

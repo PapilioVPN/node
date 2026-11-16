@@ -18,11 +18,14 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/PapilioVPN/node/internal/bootstrap"
+	"github.com/PapilioVPN/node/internal/modules/engines/xray/domain"
 	xrayv1 "github.com/PapilioVPN/node/internal/modules/engines/xray/grpcapi/proto/v1"
 	xrayprocess "github.com/PapilioVPN/node/internal/modules/engines/xray/infra/process"
 	rpc "github.com/PapilioVPN/node/internal/platform/grpcserver"
 	"github.com/PapilioVPN/node/internal/settings"
 	"github.com/PapilioVPN/node/internal/shared/testutil"
+	"github.com/xtls/xray-core/common/serial"
+	"github.com/xtls/xray-core/proxy/vless"
 )
 
 func TestLiveUserAdditionOverMTLSEnablesVLESSWithoutRemovingExistingUsers(t *testing.T) {
@@ -49,6 +52,8 @@ func TestLiveUserAdditionOverMTLSEnablesVLESSWithoutRemovingExistingUsers(t *tes
 			cfg.Instances = []settings.Instance{first, second}
 			cfg.Communications.GRPC.Permissions.ManageEngineUsers = true
 			cfg.Communications.GRPC.Permissions.ReadEngineUsers = true
+			cfg.Communications.GRPC.Permissions.ReadEngineUserMetadata = true
+			cfg.Communications.GRPC.Permissions.ReadEngineUserAccounts = true
 			var server *rpc.Server
 			var cleanup struct {
 				fx.In
@@ -100,6 +105,7 @@ func TestLiveUserAdditionOverMTLSEnablesVLESSWithoutRemovingExistingUsers(t *tes
 			if err != nil || before.Count != 1 {
 				t.Fatalf("native initial membership count: %v %v", before, err)
 			}
+			verifySingleUserViews(t, ctx, client, "edge-a", "target", "selected@local", nil)
 			request := &xrayv1.AddInboundUserRequest{InstanceId: "edge-a", InboundTag: "target", User: &xrayv1.InboundUser{Email: "selected@local", Account: &xrayv1.InboundUser_Trojan{Trojan: &xrayv1.PasswordAccount{Password: "test-only"}}}}
 			if _, err := client.AddInboundUser(ctx, request); status.Code(err) != codes.FailedPrecondition {
 				t.Fatalf("wrong account family reached native user manager: %v", err)
@@ -117,6 +123,17 @@ func TestLiveUserAdditionOverMTLSEnablesVLESSWithoutRemovingExistingUsers(t *tes
 				count, err := client.GetInboundUserCount(ctx, &xrayv1.GetInboundUserCountRequest{InstanceId: selection.instance, InboundTag: selection.tag})
 				if err != nil || count.InstanceId != selection.instance || count.InboundTag != selection.tag || count.Count != 2 {
 					t.Fatalf("count crossed instance/inbound membership: %v %v", count, err)
+				}
+			}
+
+			// Read every selected inbound through the public views without changing live traffic.
+			for _, selected := range []struct{ id, tag string }{{"edge-a", "target"}, {"edge-a", "other"}, {"edge-b", "target"}} {
+				native := serial.ToTypedMessage(&vless.Account{Id: selectedID})
+				record := domain.ObservedInboundUser{Email: "selected@local", Account: domain.ObservedUserAccount{TypeName: native.Type, Protobuf: native.Value}}
+				verifySingleUserViews(t, ctx, client, selected.id, selected.tag, "selected@local", &record)
+				all, err := client.ListInboundUserMetadata(ctx, &xrayv1.ListInboundUserMetadataRequest{InstanceId: selected.id, InboundTag: selected.tag})
+				if err != nil || len(all.Users) != 2 {
+					t.Fatal("public user list crossed instance/inbound membership")
 				}
 			}
 			request.User.Account = &xrayv1.InboundUser_Vless{Vless: &xrayv1.VLESSAccount{Id: replacementID}}

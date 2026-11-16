@@ -98,6 +98,12 @@ func TestModuleClosesAPIAdmissionAndExportsFinalCleanup(t *testing.T) {
 	if _, err := newUserCountService(resources).GetInboundUserCount(t.Context(), "edge", "in"); !errors.Is(err, grpc.ErrClientConnClosing) {
 		t.Fatalf("closed native API admitted user count: %v", err)
 	}
+	if _, err := newUserObservationService(resources).GetInboundUser(t.Context(), "edge", domain.InboundUserSelection{InboundTag: "in", Email: "user"}); !errors.Is(err, grpc.ErrClientConnClosing) {
+		t.Fatalf("closed module admitted user lookup: %v", err)
+	}
+	if _, err := newUserObservationService(resources).ListInboundUsers(t.Context(), "edge", "in"); !errors.Is(err, grpc.ErrClientConnClosing) {
+		t.Fatalf("closed module admitted user listing: %v", err)
+	}
 	if _, err := newRoutingService(resources).ListRoutingRules(t.Context(), "edge"); !errors.Is(err, grpc.ErrClientConnClosing) {
 		t.Fatalf("closed native API admitted routing list: %v", err)
 	}

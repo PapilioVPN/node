@@ -19,28 +19,32 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	XrayService_AddInboundUser_FullMethodName         = "/papilio.node.xray.v1.XrayService/AddInboundUser"
-	XrayService_RemoveInboundUser_FullMethodName      = "/papilio.node.xray.v1.XrayService/RemoveInboundUser"
-	XrayService_GetBinaryInfo_FullMethodName          = "/papilio.node.xray.v1.XrayService/GetBinaryInfo"
-	XrayService_GetRuntimeInfo_FullMethodName         = "/papilio.node.xray.v1.XrayService/GetRuntimeInfo"
-	XrayService_GetTrafficCounter_FullMethodName      = "/papilio.node.xray.v1.XrayService/GetTrafficCounter"
-	XrayService_ResetTrafficCounter_FullMethodName    = "/papilio.node.xray.v1.XrayService/ResetTrafficCounter"
-	XrayService_ResetTrafficCounters_FullMethodName   = "/papilio.node.xray.v1.XrayService/ResetTrafficCounters"
-	XrayService_GetTrafficPair_FullMethodName         = "/papilio.node.xray.v1.XrayService/GetTrafficPair"
-	XrayService_ResetTrafficPair_FullMethodName       = "/papilio.node.xray.v1.XrayService/ResetTrafficPair"
-	XrayService_ListTrafficCounters_FullMethodName    = "/papilio.node.xray.v1.XrayService/ListTrafficCounters"
-	XrayService_GetUserOnlineStats_FullMethodName     = "/papilio.node.xray.v1.XrayService/GetUserOnlineStats"
-	XrayService_ListUserOnlineIPs_FullMethodName      = "/papilio.node.xray.v1.XrayService/ListUserOnlineIPs"
-	XrayService_ListOnlineUsers_FullMethodName        = "/papilio.node.xray.v1.XrayService/ListOnlineUsers"
-	XrayService_GetInboundUserCount_FullMethodName    = "/papilio.node.xray.v1.XrayService/GetInboundUserCount"
-	XrayService_ListRoutingRules_FullMethodName       = "/papilio.node.xray.v1.XrayService/ListRoutingRules"
-	XrayService_GetBalancerInfo_FullMethodName        = "/papilio.node.xray.v1.XrayService/GetBalancerInfo"
-	XrayService_TestRoute_FullMethodName              = "/papilio.node.xray.v1.XrayService/TestRoute"
-	XrayService_OverrideBalancerTarget_FullMethodName = "/papilio.node.xray.v1.XrayService/OverrideBalancerTarget"
-	XrayService_RemoveRoutingRule_FullMethodName      = "/papilio.node.xray.v1.XrayService/RemoveRoutingRule"
-	XrayService_AddRoutingRule_FullMethodName         = "/papilio.node.xray.v1.XrayService/AddRoutingRule"
-	XrayService_GetOutboundStatus_FullMethodName      = "/papilio.node.xray.v1.XrayService/GetOutboundStatus"
-	XrayService_ListOutboundStatuses_FullMethodName   = "/papilio.node.xray.v1.XrayService/ListOutboundStatuses"
+	XrayService_AddInboundUser_FullMethodName          = "/papilio.node.xray.v1.XrayService/AddInboundUser"
+	XrayService_RemoveInboundUser_FullMethodName       = "/papilio.node.xray.v1.XrayService/RemoveInboundUser"
+	XrayService_GetBinaryInfo_FullMethodName           = "/papilio.node.xray.v1.XrayService/GetBinaryInfo"
+	XrayService_GetRuntimeInfo_FullMethodName          = "/papilio.node.xray.v1.XrayService/GetRuntimeInfo"
+	XrayService_GetTrafficCounter_FullMethodName       = "/papilio.node.xray.v1.XrayService/GetTrafficCounter"
+	XrayService_ResetTrafficCounter_FullMethodName     = "/papilio.node.xray.v1.XrayService/ResetTrafficCounter"
+	XrayService_ResetTrafficCounters_FullMethodName    = "/papilio.node.xray.v1.XrayService/ResetTrafficCounters"
+	XrayService_GetTrafficPair_FullMethodName          = "/papilio.node.xray.v1.XrayService/GetTrafficPair"
+	XrayService_ResetTrafficPair_FullMethodName        = "/papilio.node.xray.v1.XrayService/ResetTrafficPair"
+	XrayService_ListTrafficCounters_FullMethodName     = "/papilio.node.xray.v1.XrayService/ListTrafficCounters"
+	XrayService_GetUserOnlineStats_FullMethodName      = "/papilio.node.xray.v1.XrayService/GetUserOnlineStats"
+	XrayService_ListUserOnlineIPs_FullMethodName       = "/papilio.node.xray.v1.XrayService/ListUserOnlineIPs"
+	XrayService_ListOnlineUsers_FullMethodName         = "/papilio.node.xray.v1.XrayService/ListOnlineUsers"
+	XrayService_GetInboundUserCount_FullMethodName     = "/papilio.node.xray.v1.XrayService/GetInboundUserCount"
+	XrayService_GetInboundUserMetadata_FullMethodName  = "/papilio.node.xray.v1.XrayService/GetInboundUserMetadata"
+	XrayService_ListInboundUserMetadata_FullMethodName = "/papilio.node.xray.v1.XrayService/ListInboundUserMetadata"
+	XrayService_GetInboundUser_FullMethodName          = "/papilio.node.xray.v1.XrayService/GetInboundUser"
+	XrayService_ListInboundUsers_FullMethodName        = "/papilio.node.xray.v1.XrayService/ListInboundUsers"
+	XrayService_ListRoutingRules_FullMethodName        = "/papilio.node.xray.v1.XrayService/ListRoutingRules"
+	XrayService_GetBalancerInfo_FullMethodName         = "/papilio.node.xray.v1.XrayService/GetBalancerInfo"
+	XrayService_TestRoute_FullMethodName               = "/papilio.node.xray.v1.XrayService/TestRoute"
+	XrayService_OverrideBalancerTarget_FullMethodName  = "/papilio.node.xray.v1.XrayService/OverrideBalancerTarget"
+	XrayService_RemoveRoutingRule_FullMethodName       = "/papilio.node.xray.v1.XrayService/RemoveRoutingRule"
+	XrayService_AddRoutingRule_FullMethodName          = "/papilio.node.xray.v1.XrayService/AddRoutingRule"
+	XrayService_GetOutboundStatus_FullMethodName       = "/papilio.node.xray.v1.XrayService/GetOutboundStatus"
+	XrayService_ListOutboundStatuses_FullMethodName    = "/papilio.node.xray.v1.XrayService/ListOutboundStatuses"
 )
 
 // XrayServiceClient is the client API for XrayService service.
@@ -81,6 +85,12 @@ type XrayServiceClient interface {
 	ListOnlineUsers(ctx context.Context, in *ListOnlineUsersRequest, opts ...grpc.CallOption) (*ListOnlineUsersResponse, error)
 	// Native membership count only, not online users or a user-list snapshot.
 	GetInboundUserCount(ctx context.Context, in *GetInboundUserCountRequest, opts ...grpc.CallOption) (*GetInboundUserCountResponse, error)
+	// User-manager observations, not initial config or a complete replay image.
+	// Metadata excludes account payloads. Full records require their own grant.
+	GetInboundUserMetadata(ctx context.Context, in *GetInboundUserMetadataRequest, opts ...grpc.CallOption) (*GetInboundUserMetadataResponse, error)
+	ListInboundUserMetadata(ctx context.Context, in *ListInboundUserMetadataRequest, opts ...grpc.CallOption) (*ListInboundUserMetadataResponse, error)
+	GetInboundUser(ctx context.Context, in *GetInboundUserRequest, opts ...grpc.CallOption) (*GetInboundUserResponse, error)
+	ListInboundUsers(ctx context.Context, in *ListInboundUsersRequest, opts ...grpc.CallOption) (*ListInboundUsersResponse, error)
 	// Ordered references only; the native API does not return rule conditions.
 	ListRoutingRules(ctx context.Context, in *ListRoutingRulesRequest, opts ...grpc.CallOption) (*ListRoutingRulesResponse, error)
 	// Native field presence is retained; this does not probe or override routing.
@@ -251,6 +261,46 @@ func (c *xrayServiceClient) GetInboundUserCount(ctx context.Context, in *GetInbo
 	return out, nil
 }
 
+func (c *xrayServiceClient) GetInboundUserMetadata(ctx context.Context, in *GetInboundUserMetadataRequest, opts ...grpc.CallOption) (*GetInboundUserMetadataResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetInboundUserMetadataResponse)
+	err := c.cc.Invoke(ctx, XrayService_GetInboundUserMetadata_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *xrayServiceClient) ListInboundUserMetadata(ctx context.Context, in *ListInboundUserMetadataRequest, opts ...grpc.CallOption) (*ListInboundUserMetadataResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListInboundUserMetadataResponse)
+	err := c.cc.Invoke(ctx, XrayService_ListInboundUserMetadata_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *xrayServiceClient) GetInboundUser(ctx context.Context, in *GetInboundUserRequest, opts ...grpc.CallOption) (*GetInboundUserResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetInboundUserResponse)
+	err := c.cc.Invoke(ctx, XrayService_GetInboundUser_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *xrayServiceClient) ListInboundUsers(ctx context.Context, in *ListInboundUsersRequest, opts ...grpc.CallOption) (*ListInboundUsersResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListInboundUsersResponse)
+	err := c.cc.Invoke(ctx, XrayService_ListInboundUsers_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *xrayServiceClient) ListRoutingRules(ctx context.Context, in *ListRoutingRulesRequest, opts ...grpc.CallOption) (*ListRoutingRulesResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ListRoutingRulesResponse)
@@ -369,6 +419,12 @@ type XrayServiceServer interface {
 	ListOnlineUsers(context.Context, *ListOnlineUsersRequest) (*ListOnlineUsersResponse, error)
 	// Native membership count only, not online users or a user-list snapshot.
 	GetInboundUserCount(context.Context, *GetInboundUserCountRequest) (*GetInboundUserCountResponse, error)
+	// User-manager observations, not initial config or a complete replay image.
+	// Metadata excludes account payloads. Full records require their own grant.
+	GetInboundUserMetadata(context.Context, *GetInboundUserMetadataRequest) (*GetInboundUserMetadataResponse, error)
+	ListInboundUserMetadata(context.Context, *ListInboundUserMetadataRequest) (*ListInboundUserMetadataResponse, error)
+	GetInboundUser(context.Context, *GetInboundUserRequest) (*GetInboundUserResponse, error)
+	ListInboundUsers(context.Context, *ListInboundUsersRequest) (*ListInboundUsersResponse, error)
 	// Ordered references only; the native API does not return rule conditions.
 	ListRoutingRules(context.Context, *ListRoutingRulesRequest) (*ListRoutingRulesResponse, error)
 	// Native field presence is retained; this does not probe or override routing.
@@ -440,6 +496,18 @@ func (UnimplementedXrayServiceServer) ListOnlineUsers(context.Context, *ListOnli
 }
 func (UnimplementedXrayServiceServer) GetInboundUserCount(context.Context, *GetInboundUserCountRequest) (*GetInboundUserCountResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetInboundUserCount not implemented")
+}
+func (UnimplementedXrayServiceServer) GetInboundUserMetadata(context.Context, *GetInboundUserMetadataRequest) (*GetInboundUserMetadataResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetInboundUserMetadata not implemented")
+}
+func (UnimplementedXrayServiceServer) ListInboundUserMetadata(context.Context, *ListInboundUserMetadataRequest) (*ListInboundUserMetadataResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListInboundUserMetadata not implemented")
+}
+func (UnimplementedXrayServiceServer) GetInboundUser(context.Context, *GetInboundUserRequest) (*GetInboundUserResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetInboundUser not implemented")
+}
+func (UnimplementedXrayServiceServer) ListInboundUsers(context.Context, *ListInboundUsersRequest) (*ListInboundUsersResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListInboundUsers not implemented")
 }
 func (UnimplementedXrayServiceServer) ListRoutingRules(context.Context, *ListRoutingRulesRequest) (*ListRoutingRulesResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListRoutingRules not implemented")
@@ -738,6 +806,78 @@ func _XrayService_GetInboundUserCount_Handler(srv interface{}, ctx context.Conte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _XrayService_GetInboundUserMetadata_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetInboundUserMetadataRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(XrayServiceServer).GetInboundUserMetadata(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: XrayService_GetInboundUserMetadata_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(XrayServiceServer).GetInboundUserMetadata(ctx, req.(*GetInboundUserMetadataRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _XrayService_ListInboundUserMetadata_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListInboundUserMetadataRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(XrayServiceServer).ListInboundUserMetadata(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: XrayService_ListInboundUserMetadata_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(XrayServiceServer).ListInboundUserMetadata(ctx, req.(*ListInboundUserMetadataRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _XrayService_GetInboundUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetInboundUserRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(XrayServiceServer).GetInboundUser(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: XrayService_GetInboundUser_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(XrayServiceServer).GetInboundUser(ctx, req.(*GetInboundUserRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _XrayService_ListInboundUsers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListInboundUsersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(XrayServiceServer).ListInboundUsers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: XrayService_ListInboundUsers_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(XrayServiceServer).ListInboundUsers(ctx, req.(*ListInboundUsersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _XrayService_ListRoutingRules_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ListRoutingRulesRequest)
 	if err := dec(in); err != nil {
@@ -944,6 +1084,22 @@ var XrayService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetInboundUserCount",
 			Handler:    _XrayService_GetInboundUserCount_Handler,
+		},
+		{
+			MethodName: "GetInboundUserMetadata",
+			Handler:    _XrayService_GetInboundUserMetadata_Handler,
+		},
+		{
+			MethodName: "ListInboundUserMetadata",
+			Handler:    _XrayService_ListInboundUserMetadata_Handler,
+		},
+		{
+			MethodName: "GetInboundUser",
+			Handler:    _XrayService_GetInboundUser_Handler,
+		},
+		{
+			MethodName: "ListInboundUsers",
+			Handler:    _XrayService_ListInboundUsers_Handler,
 		},
 		{
 			MethodName: "ListRoutingRules",

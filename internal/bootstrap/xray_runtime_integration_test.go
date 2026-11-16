@@ -50,6 +50,8 @@ func TestXrayRuntimeInfoOverMTLSAndNativeReconnect(t *testing.T) {
 			cfg.Communications.GRPC.Permissions.ReadEngineUsers = true
 			cfg.Communications.GRPC.Permissions.ReadEngineRouting = true
 			cfg.Communications.GRPC.Permissions.ReadEngineOutbounds = true
+			cfg.Communications.GRPC.Permissions.ReadEngineUserMetadata = true
+			cfg.Communications.GRPC.Permissions.ReadEngineUserAccounts = true
 			cfg.Communications.GRPC.Permissions.TestEngineRouting = true
 			cfg.Communications.GRPC.Permissions.ManageEngineRouting = true
 			cfg.Communications.GRPC.Permissions.ControlInstances = true
@@ -125,6 +127,7 @@ func TestXrayRuntimeInfoOverMTLSAndNativeReconnect(t *testing.T) {
 			}); result != nil || status.Code(err) != codes.FailedPrecondition {
 				t.Fatalf("absent native StatsService became zero usage: %v, %v", result, err)
 			}
+			verifyFailedUserViews(t, ctx, client, "edge-b", "in", codes.FailedPrecondition)
 			info := response.GetRuntime()
 			if response.InstanceId != "edge-a" || info.GetGoroutines() == 0 || info.AllocatedBytes == 0 || info.SysBytes < info.AllocatedBytes || info.Mallocs < info.Frees || info.LiveObjects != info.Mallocs-info.Frees || info.ObservedAtUnixMs <= 0 {
 				t.Fatalf("native runtime facts: %v", response)

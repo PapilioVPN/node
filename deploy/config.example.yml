@@ -65,6 +65,10 @@ communications:
       manage_engine_users: false
       # Native inbound membership counts; independent of user changes and online reads.
       read_engine_users: false
+      # Identity, level and account type only; no credential payload.
+      read_engine_user_metadata: false
+      # Full observed native accounts, including credentials; independent of metadata.
+      read_engine_user_accounts: false
       # Online user identities, distinct-IP counts and IP lists; independent of traffic.
       read_engine_online: false
       # Ordered rule references and balancer observations; no probes or changes.

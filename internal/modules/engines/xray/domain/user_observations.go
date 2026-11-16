@@ -7,6 +7,9 @@ import (
 	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
 )
 
+const ReadInboundUserMetadata = "xray.inbound.user.metadata.read"
+const ListInboundUserMetadata = "xray.inbound.users.metadata.list"
+
 const ReadInboundUser = "xray.inbound.user.read"
 const ListInboundUsers = "xray.inbound.users.list"
 

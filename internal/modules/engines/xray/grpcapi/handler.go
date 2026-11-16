@@ -32,6 +32,7 @@ type Handler struct {
 	UserRemoval            InboundUserRemover
 	UserAddition           InboundUserAdder
 	UserCounts             InboundUserCountReader
+	Users                  InboundUserReader
 	TrafficCounters        TrafficCountersReader
 	Online                 OnlineReader
 	Routing                RoutingReader
@@ -46,6 +47,8 @@ type Handler struct {
 	AllowOnlineRead        bool
 	AllowUserManagement    bool
 	AllowUsersRead         bool
+	AllowUserMetadataRead  bool
+	AllowUserAccountsRead  bool
 	AllowRoutingRead       bool
 	AllowRoutingTest       bool
 	AllowRoutingManagement bool

@@ -30,7 +30,7 @@ func Module(grpcEnabled bool) fx.Option {
 			newBinaryInfoService, newAPIResources, newRuntimeInfoService,
 			newTrafficCounterService, newTrafficCounterResetService, newTrafficCountersResetService,
 			newTrafficCountersService, newTrafficPairServices,
-			newUserRemovalService, newUserAdditionService, newUserCountService, newOnlineService,
+			newUserRemovalService, newUserAdditionService, newUserCountService, newUserObservationService, newOnlineService,
 			newOutboundStatusService,
 			newRoutingService, newRoutingProbeService, newBalancerOverrideService, newRoutingRuleRemovalService, newRoutingRuleAdditionService,
 			fx.Private,
@@ -111,6 +111,7 @@ type apiResources struct {
 	userRemovers       map[instances.InstanceID]services.InboundUserRemover
 	userAdders         map[instances.InstanceID]services.InboundUserAdder
 	userCountReaders   map[instances.InstanceID]services.InboundUserCountReader
+	userReaders        map[instances.InstanceID]services.UserObservationReader
 	routingReaders     map[instances.InstanceID]services.RoutingReader
 	routingProbers     map[instances.InstanceID]services.RoutingProber
 	balancerOverriders map[instances.InstanceID]services.BalancerOverrider
@@ -130,6 +131,7 @@ func newAPIResources(config []settings.Instance) (*apiResources, error) {
 		userRemovers:       make(map[instances.InstanceID]services.InboundUserRemover),
 		userAdders:         make(map[instances.InstanceID]services.InboundUserAdder),
 		userCountReaders:   make(map[instances.InstanceID]services.InboundUserCountReader),
+		userReaders:        make(map[instances.InstanceID]services.UserObservationReader),
 		routingReaders:     make(map[instances.InstanceID]services.RoutingReader),
 		routingProbers:     make(map[instances.InstanceID]services.RoutingProber),
 		balancerOverriders: make(map[instances.InstanceID]services.BalancerOverrider),
@@ -149,6 +151,7 @@ func newAPIResources(config []settings.Instance) (*apiResources, error) {
 		resources.userRemovers[instance.ID] = nil
 		resources.userAdders[instance.ID] = nil
 		resources.userCountReaders[instance.ID] = nil
+		resources.userReaders[instance.ID] = nil
 		resources.routingReaders[instance.ID] = nil
 		resources.routingProbers[instance.ID] = nil
 		resources.balancerOverriders[instance.ID] = nil
@@ -171,6 +174,7 @@ func newAPIResources(config []settings.Instance) (*apiResources, error) {
 			resources.userRemovers[instance.ID] = client
 			resources.userAdders[instance.ID] = client
 			resources.userCountReaders[instance.ID] = client
+			resources.userReaders[instance.ID] = client
 			resources.routingReaders[instance.ID] = client
 			resources.routingProbers[instance.ID] = client
 			resources.balancerOverriders[instance.ID] = client
@@ -232,6 +236,10 @@ func newUserAdditionService(resources *apiResources) *services.UserAdditionServi
 
 func newUserCountService(resources *apiResources) *services.UserCountService {
 	return services.NewUserCountService(resources.userCountReaders)
+}
+
+func newUserObservationService(resources *apiResources) *services.UserObservationService {
+	return services.NewUserObservationService(resources.userReaders)
 }
 
 func newRoutingService(resources *apiResources) *services.RoutingService {
@@ -317,6 +325,7 @@ type grpcServices struct {
 	UserRemoval       *services.UserRemovalService
 	UserAddition      *services.UserAdditionService
 	UserCounts        *services.UserCountService
+	Users             *services.UserObservationService
 	Counters          *services.TrafficCountersService
 	Online            *services.OnlineService
 	Routing           *services.RoutingService
@@ -334,6 +343,7 @@ func registerGRPC(p grpcServices) {
 		Pairs: p.Pairs, PairResets: p.PairResets, TrafficCounters: p.Counters, Online: p.Online,
 		UserRemoval: p.UserRemoval, UserAddition: p.UserAddition, AllowUserManagement: p.Permissions.ManageEngineUsers,
 		UserCounts: p.UserCounts, AllowUsersRead: p.Permissions.ReadEngineUsers,
+		Users: p.Users, AllowUserMetadataRead: p.Permissions.ReadEngineUserMetadata, AllowUserAccountsRead: p.Permissions.ReadEngineUserAccounts,
 		Routing: p.Routing, AllowRoutingRead: p.Permissions.ReadEngineRouting,
 		Probes: p.Probes, AllowRoutingTest: p.Permissions.TestEngineRouting,
 		BalancerOverrides: p.BalancerOverrides, AllowRoutingManagement: p.Permissions.ManageEngineRouting,
@@ -356,6 +366,7 @@ func capability() capabilityResult {
 		domain.ReadTrafficPair, domain.ResetTrafficPair,
 		domain.RemoveInboundUser, domain.AddInboundUser,
 		domain.ReadInboundUserCount,
+		domain.ReadInboundUser, domain.ListInboundUsers, domain.ReadInboundUserMetadata, domain.ListInboundUserMetadata,
 		domain.ListRoutingRules, domain.ReadBalancerInfo,
 		domain.TestRoute, domain.OverrideBalancerTarget, domain.RemoveRoutingRule, domain.AddRoutingRule,
 		domain.ReadUserOnlineStats, domain.ListUserOnlineIPs, domain.ListOnlineUsers,
