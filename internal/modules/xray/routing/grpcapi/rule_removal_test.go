@@ -18,6 +18,9 @@ import (
 	routingv1 "github.com/PapilioVPN/node/internal/modules/xray/routing/grpcapi/proto/v1"
 	trafficgrpc "github.com/PapilioVPN/node/internal/modules/xray/traffic/grpcapi"
 	usergrpc "github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi"
+	"github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi/mutations"
+	"github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi/observations"
+	"github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi/online"
 )
 
 type routingRuleRemoval func(context.Context, instances.InstanceID, string) (domain.InstanceRoutingRuleRemoval, error)
@@ -32,7 +35,7 @@ func TestRuleRemovalRequiresIdentityBeforeShape(t *testing.T) {
 		t.Fatalf("unverified removal reached shape/application: %v", err)
 	}
 	requireRoutingMutationOutcome(t, err, routingv1.RoutingMutationOutcome_ROUTING_MUTATION_OUTCOME_NOT_APPLIED)
-	h := grpcapi.Handler{UserAPI: usergrpc.UserAPI{AllowUsersRead: true, AllowUserManagement: true, AllowOnlineRead: true}, RoutingAPI: routinggrpc.RoutingAPI{AllowRoutingRead: true, AllowRoutingTest: true}, TrafficAPI: trafficgrpc.TrafficAPI{AllowStatsRead: true, AllowStatsReset: true}, InfoAPI: infogrpc.InfoAPI{AllowInfoRead: true}}
+	h := grpcapi.Handler{UserAPI: usergrpc.UserAPI{MutationAPI: mutations.MutationAPI{AllowUserManagement: true}, ObservationAPI: observations.ObservationAPI{AllowUsersRead: true}, OnlineAPI: online.OnlineAPI{AllowOnlineRead: true}}, RoutingAPI: routinggrpc.RoutingAPI{AllowRoutingRead: true, AllowRoutingTest: true}, TrafficAPI: trafficgrpc.TrafficAPI{AllowStatsRead: true, AllowStatsReset: true}, InfoAPI: infogrpc.InfoAPI{AllowInfoRead: true}}
 	_, err = h.RemoveRoutingRule(verifiedContext(t), nil)
 	if status.Code(err) != codes.PermissionDenied {
 		t.Fatalf("other grants authorized rule removal: %v", err)

@@ -1,4 +1,4 @@
-package grpcapi
+package observations
 
 import (
 	"context"
@@ -20,7 +20,7 @@ type InboundUserCountReader interface {
 	GetInboundUserCount(context.Context, instances.InstanceID, string) (domain.InstanceInboundUserCount, error)
 }
 
-func (h UserAPI) GetInboundUserCount(ctx context.Context, request *userv1.GetInboundUserCountRequest) (*userv1.GetInboundUserCountResponse, error) {
+func (h ObservationAPI) GetInboundUserCount(ctx context.Context, request *userv1.GetInboundUserCountRequest) (*userv1.GetInboundUserCountResponse, error) {
 	if err := grpcidentity.VerifyClient(ctx); err != nil {
 		return nil, err
 	}

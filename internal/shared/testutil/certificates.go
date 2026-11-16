@@ -2,6 +2,7 @@
 package testutil
 
 import (
+	"context"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
@@ -18,6 +19,7 @@ import (
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/peer"
 
 	"github.com/PapilioVPN/node/internal/settings"
 )
@@ -139,4 +141,11 @@ func (c Certificates) GRPCClient(t testing.TB, address string) *grpc.ClientConn 
 		}
 	})
 	return connection
+}
+
+// VerifiedGRPCContext supplies a controlled verified peer for unit tests only.
+// It does not validate a certificate; native integration exercises actual mTLS.
+func VerifiedGRPCContext(t testing.TB) context.Context {
+	t.Helper()
+	return peer.NewContext(t.Context(), &peer.Peer{AuthInfo: credentials.TLSInfo{State: tls.ConnectionState{VerifiedChains: [][]*x509.Certificate{{{}}}}}})
 }

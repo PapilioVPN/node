@@ -1,4 +1,4 @@
-package grpcapi_test
+package mutations_test
 
 import (
 	"context"
@@ -15,14 +15,18 @@ import (
 	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
 	"github.com/PapilioVPN/node/internal/modules/xray/users/domain"
 	"github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi"
+	"github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi/mutations"
+	"github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi/observations"
+	"github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi/online"
 	userv1 "github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi/proto/v1"
+	"github.com/PapilioVPN/node/internal/shared/testutil"
 )
 
 func TestUserDeltaChecksIdentityAndWriteGrantBeforeDecoding(t *testing.T) {
-	if _, err := (grpcapi.UserAPI{AllowUserManagement: true}).ApplyInboundUserDelta(t.Context(), nil); status.Code(err) != codes.Unauthenticated {
+	if _, err := (grpcapi.UserAPI{MutationAPI: mutations.MutationAPI{AllowUserManagement: true}}).ApplyInboundUserDelta(t.Context(), nil); status.Code(err) != codes.Unauthenticated {
 		t.Fatalf("delta did not verify identity before decoding: %v", err)
 	}
-	if _, err := (grpcapi.UserAPI{AllowUsersRead: true, AllowUserAccountsRead: true, AllowOnlineRead: true}).ApplyInboundUserDelta(verifiedContext(t), nil); status.Code(err) != codes.PermissionDenied {
+	if _, err := (grpcapi.UserAPI{ObservationAPI: observations.ObservationAPI{AllowUsersRead: true, AllowUserAccountsRead: true}, OnlineAPI: online.OnlineAPI{AllowOnlineRead: true}}).ApplyInboundUserDelta(testutil.VerifiedGRPCContext(t), nil); status.Code(err) != codes.PermissionDenied {
 		t.Fatalf("other grants enabled native delta effects: %v", err)
 	}
 }
@@ -54,10 +58,10 @@ func TestUserDeltaWirePreservesCompleteProgressWithoutCredentials(t *testing.T) 
 						report.Steps[i].Action = domain.UserMutationAdd
 					}
 				}
-				ctx, cancel := context.WithCancel(verifiedContext(t))
+				ctx, cancel := context.WithCancel(testutil.VerifiedGRPCContext(t))
 				defer cancel()
 				calls := 0
-				handler := grpcapi.UserAPI{AllowUserManagement: true, UserDelta: inboundDelta(func(received context.Context, id instances.InstanceID, input domain.InboundUserDelta) (domain.InstanceInboundUserDelta, error) {
+				handler := grpcapi.UserAPI{MutationAPI: mutations.MutationAPI{AllowUserManagement: true, UserDelta: inboundDelta(func(received context.Context, id instances.InstanceID, input domain.InboundUserDelta) (domain.InstanceInboundUserDelta, error) {
 					calls++
 					if received != ctx || id != " edge " || input.InboundTag != request.InboundTag || len(input.Users) != count || len(input.RemoveEmails) != 1 || input.RemoveEmails[0] != " removed " {
 						t.Fatal("delta lost selection/context/removal bytes")
@@ -73,7 +77,7 @@ func TestUserDeltaWirePreservesCompleteProgressWithoutCredentials(t *testing.T) 
 					}
 					cancel()
 					return result, nil
-				})}
+				})}}
 				response, err := handler.ApplyInboundUserDelta(ctx, request)
 				if calls != 1 {
 					t.Fatal("delta split/replayed application work")
@@ -127,14 +131,14 @@ func TestUserDeltaWirePreservesCompleteProgressWithoutCredentials(t *testing.T) 
 }
 
 func TestUserDeltaRejectsInvalidTrailingShapeBeforeApplication(t *testing.T) {
-	h := grpcapi.UserAPI{AllowUserManagement: true}
+	h := grpcapi.UserAPI{MutationAPI: mutations.MutationAPI{AllowUserManagement: true}}
 	valid := &userv1.InboundUser{Email: "user", Account: &userv1.InboundUser_Vless{Vless: &userv1.VLESSAccount{Id: "native-id"}}}
 	for _, request := range []*userv1.ApplyInboundUserDeltaRequest{nil, {}, {InstanceId: "edge", InboundTag: " "}, {InstanceId: " ", InboundTag: "in"}, {InstanceId: "edge", InboundTag: "in", Users: []*userv1.InboundUser{valid, nil}}, {InstanceId: "edge", InboundTag: "in", RemoveEmails: []string{"valid", " "}}, {InstanceId: "edge", InboundTag: "in", RemoveEmails: []string{string([]byte{0xff})}}} {
-		if _, err := h.ApplyInboundUserDelta(verifiedContext(t), request); status.Code(err) != codes.InvalidArgument {
+		if _, err := h.ApplyInboundUserDelta(testutil.VerifiedGRPCContext(t), request); status.Code(err) != codes.InvalidArgument {
 			t.Fatal("malformed delta reached application")
 		}
 	}
-	ctx, cancel := context.WithCancel(verifiedContext(t))
+	ctx, cancel := context.WithCancel(testutil.VerifiedGRPCContext(t))
 	cancel()
 	if _, err := h.ApplyInboundUserDelta(ctx, &userv1.ApplyInboundUserDeltaRequest{InstanceId: "edge", InboundTag: "in"}); status.Code(err) != codes.Canceled {
 		t.Fatal("canceled empty delta reached application")

@@ -1,4 +1,5 @@
-package grpcapi
+// Package online adapts native user presence and IP observations to gRPC.
+package online
 
 import (
 	"context"
@@ -16,13 +17,19 @@ import (
 	"github.com/PapilioVPN/node/internal/shared/grpcresponse"
 )
 
+// OnlineAPI owns online observations and their independent read grant.
+type OnlineAPI struct {
+	Online          OnlineReader
+	AllowOnlineRead bool
+}
+
 type OnlineReader interface {
 	GetUserOnlineStats(context.Context, instances.InstanceID, domain.UserEmail) (domain.InstanceUserOnline, error)
 	ListUserOnlineIPs(context.Context, instances.InstanceID, domain.UserEmail) (domain.InstanceUserOnlineIPs, error)
 	ListOnlineUsers(context.Context, instances.InstanceID) (domain.InstanceOnlineUsers, error)
 }
 
-func (h UserAPI) authorizeOnline(ctx context.Context) error {
+func (h OnlineAPI) authorizeOnline(ctx context.Context) error {
 	if err := grpcidentity.VerifyClient(ctx); err != nil {
 		return err
 	}
@@ -32,7 +39,7 @@ func (h UserAPI) authorizeOnline(ctx context.Context) error {
 	return nil
 }
 
-func (h UserAPI) GetUserOnlineStats(ctx context.Context, request *xrayv1.GetUserOnlineStatsRequest) (*xrayv1.GetUserOnlineStatsResponse, error) {
+func (h OnlineAPI) GetUserOnlineStats(ctx context.Context, request *xrayv1.GetUserOnlineStatsRequest) (*xrayv1.GetUserOnlineStatsResponse, error) {
 	if err := h.authorizeOnline(ctx); err != nil {
 		return nil, err
 	}
@@ -50,7 +57,7 @@ func (h UserAPI) GetUserOnlineStats(ctx context.Context, request *xrayv1.GetUser
 	return &xrayv1.GetUserOnlineStatsResponse{InstanceId: string(result.InstanceID), Email: string(result.Email), OnlineIpCount: result.Online.OnlineIPCount, ObservedAtUnixMs: result.Online.ObservedAt.UnixMilli()}, nil
 }
 
-func (h UserAPI) ListUserOnlineIPs(ctx context.Context, request *xrayv1.ListUserOnlineIPsRequest) (*xrayv1.ListUserOnlineIPsResponse, error) {
+func (h OnlineAPI) ListUserOnlineIPs(ctx context.Context, request *xrayv1.ListUserOnlineIPsRequest) (*xrayv1.ListUserOnlineIPsResponse, error) {
 	if err := h.authorizeOnline(ctx); err != nil {
 		return nil, err
 	}
@@ -75,7 +82,7 @@ func (h UserAPI) ListUserOnlineIPs(ctx context.Context, request *xrayv1.ListUser
 	return &xrayv1.ListUserOnlineIPsResponse{InstanceId: string(result.InstanceID), Email: string(result.Email), Items: items, ObservedAtUnixMs: result.IPs.ObservedAt.UnixMilli()}, nil
 }
 
-func (h UserAPI) ListOnlineUsers(ctx context.Context, request *xrayv1.ListOnlineUsersRequest) (*xrayv1.ListOnlineUsersResponse, error) {
+func (h OnlineAPI) ListOnlineUsers(ctx context.Context, request *xrayv1.ListOnlineUsersRequest) (*xrayv1.ListOnlineUsersResponse, error) {
 	if err := h.authorizeOnline(ctx); err != nil {
 		return nil, err
 	}

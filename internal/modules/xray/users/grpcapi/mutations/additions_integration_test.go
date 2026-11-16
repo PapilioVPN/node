@@ -1,6 +1,6 @@
 //go:build integration
 
-package grpcapi_test
+package mutations_test
 
 import (
 	"context"

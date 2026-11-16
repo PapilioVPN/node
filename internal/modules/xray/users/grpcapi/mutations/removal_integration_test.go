@@ -1,6 +1,6 @@
 //go:build integration
 
-package grpcapi_test
+package mutations_test
 
 import (
 	"context"
@@ -20,6 +20,7 @@ import (
 	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
 	"github.com/PapilioVPN/node/internal/modules/xray/users/app/services"
 	usergrpc "github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi"
+	"github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi/mutations"
 	userv1 "github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi/proto/v1"
 	userxray "github.com/PapilioVPN/node/internal/modules/xray/users/infra/api"
 	"github.com/PapilioVPN/node/internal/platform/grpcserver"
@@ -72,7 +73,7 @@ func TestMTLSUserRemovalFailureRetainsUnknownEffectWithoutReplay(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = management.Close() })
-	xrayv1.RegisterXrayServiceServer(management.Registrar(), grpcapi.Handler{UserAPI: usergrpc.UserAPI{AllowUserManagement: true, UserRemoval: service}})
+	xrayv1.RegisterXrayServiceServer(management.Registrar(), grpcapi.Handler{UserAPI: usergrpc.UserAPI{MutationAPI: mutations.MutationAPI{AllowUserManagement: true, UserRemoval: service}}})
 	if err := management.Start(t.Context()); err != nil {
 		t.Fatal(err)
 	}

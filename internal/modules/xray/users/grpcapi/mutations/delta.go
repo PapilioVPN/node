@@ -1,4 +1,4 @@
-package grpcapi
+package mutations
 
 import (
 	"context"
@@ -19,7 +19,7 @@ type InboundUserDeltaApplier interface {
 	ApplyInboundUserDelta(context.Context, instances.InstanceID, domain.InboundUserDelta) (domain.InstanceInboundUserDelta, error)
 }
 
-func (h UserAPI) ApplyInboundUserDelta(ctx context.Context, request *userv1.ApplyInboundUserDeltaRequest) (*userv1.ApplyInboundUserDeltaResponse, error) {
+func (h MutationAPI) ApplyInboundUserDelta(ctx context.Context, request *userv1.ApplyInboundUserDeltaRequest) (*userv1.ApplyInboundUserDeltaResponse, error) {
 	if err := grpcidentity.VerifyClient(ctx); err != nil {
 		return nil, err
 	}

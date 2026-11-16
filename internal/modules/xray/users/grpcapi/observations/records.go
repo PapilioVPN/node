@@ -1,4 +1,4 @@
-package grpcapi
+package observations
 
 import (
 	"context"
@@ -21,7 +21,7 @@ type InboundUserReader interface {
 	ListInboundUsers(context.Context, instances.InstanceID, string) (domain.InstanceInboundUsersObservation, error)
 }
 
-func (h UserAPI) GetInboundUserMetadata(ctx context.Context, request *userv1.GetInboundUserMetadataRequest) (*userv1.GetInboundUserMetadataResponse, error) {
+func (h ObservationAPI) GetInboundUserMetadata(ctx context.Context, request *userv1.GetInboundUserMetadataRequest) (*userv1.GetInboundUserMetadataResponse, error) {
 	if err := grpcidentity.VerifyClient(ctx); err != nil {
 		return nil, err
 	}
@@ -43,7 +43,7 @@ func (h UserAPI) GetInboundUserMetadata(ctx context.Context, request *userv1.Get
 	return response, nil
 }
 
-func (h UserAPI) ListInboundUserMetadata(ctx context.Context, request *userv1.ListInboundUserMetadataRequest) (*userv1.ListInboundUserMetadataResponse, error) {
+func (h ObservationAPI) ListInboundUserMetadata(ctx context.Context, request *userv1.ListInboundUserMetadataRequest) (*userv1.ListInboundUserMetadataResponse, error) {
 	if err := grpcidentity.VerifyClient(ctx); err != nil {
 		return nil, err
 	}
@@ -70,7 +70,7 @@ func (h UserAPI) ListInboundUserMetadata(ctx context.Context, request *userv1.Li
 	return &userv1.ListInboundUserMetadataResponse{InstanceId: string(result.InstanceID), InboundTag: result.InboundTag, Users: users, ObservedAtUnixMs: result.Observation.ObservedAt.UnixMilli()}, nil
 }
 
-func (h UserAPI) GetInboundUser(ctx context.Context, request *userv1.GetInboundUserRequest) (*userv1.GetInboundUserResponse, error) {
+func (h ObservationAPI) GetInboundUser(ctx context.Context, request *userv1.GetInboundUserRequest) (*userv1.GetInboundUserResponse, error) {
 	if err := grpcidentity.VerifyClient(ctx); err != nil {
 		return nil, err
 	}
@@ -92,7 +92,7 @@ func (h UserAPI) GetInboundUser(ctx context.Context, request *userv1.GetInboundU
 	return response, nil
 }
 
-func (h UserAPI) ListInboundUsers(ctx context.Context, request *userv1.ListInboundUsersRequest) (*userv1.ListInboundUsersResponse, error) {
+func (h ObservationAPI) ListInboundUsers(ctx context.Context, request *userv1.ListInboundUsersRequest) (*userv1.ListInboundUsersResponse, error) {
 	if err := grpcidentity.VerifyClient(ctx); err != nil {
 		return nil, err
 	}

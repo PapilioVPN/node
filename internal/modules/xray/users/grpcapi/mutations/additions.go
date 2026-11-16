@@ -1,4 +1,4 @@
-package grpcapi
+package mutations
 
 import (
 	"context"
@@ -19,7 +19,7 @@ type InboundUsersAdder interface {
 	AddInboundUsers(context.Context, instances.InstanceID, domain.InboundUserAdditions) (domain.InstanceInboundUserAdditions, error)
 }
 
-func (h UserAPI) AddInboundUsers(ctx context.Context, request *userv1.AddInboundUsersRequest) (*userv1.AddInboundUsersResponse, error) {
+func (h MutationAPI) AddInboundUsers(ctx context.Context, request *userv1.AddInboundUsersRequest) (*userv1.AddInboundUsersResponse, error) {
 	if err := grpcidentity.VerifyClient(ctx); err != nil {
 		return nil, err
 	}

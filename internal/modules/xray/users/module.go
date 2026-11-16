@@ -12,6 +12,9 @@ import (
 	"github.com/PapilioVPN/node/internal/modules/xray/users/app/services"
 	"github.com/PapilioVPN/node/internal/modules/xray/users/domain"
 	"github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi"
+	"github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi/mutations"
+	"github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi/observations"
+	"github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi/online"
 	userapi "github.com/PapilioVPN/node/internal/modules/xray/users/infra/api"
 	nativeapi "github.com/PapilioVPN/node/internal/platform/xray"
 	"github.com/PapilioVPN/node/internal/settings"
@@ -86,13 +89,24 @@ func newOperations(bindings backendBindings) (operations, error) {
 
 func newUserAPI(s operations, p settings.GRPCPermissions) grpcapi.UserAPI {
 	return grpcapi.UserAPI{
-		UserAddition: s.addition, UserAdditions: s.additions, UserDelta: s.delta, UserRemoval: s.removal,
-		UserCounts: s.counts, Users: s.observations,
-		Online: s.online, AllowOnlineRead: p.ReadEngineOnline,
-		AllowUserManagement:   p.ManageEngineUsers,
-		AllowUsersRead:        p.ReadEngineUsers,
-		AllowUserMetadataRead: p.ReadEngineUserMetadata,
-		AllowUserAccountsRead: p.ReadEngineUserAccounts,
+		MutationAPI: mutations.MutationAPI{
+			UserAddition:        s.addition,
+			UserAdditions:       s.additions,
+			UserDelta:           s.delta,
+			UserRemoval:         s.removal,
+			AllowUserManagement: p.ManageEngineUsers,
+		},
+		ObservationAPI: observations.ObservationAPI{
+			UserCounts:            s.counts,
+			Users:                 s.observations,
+			AllowUsersRead:        p.ReadEngineUsers,
+			AllowUserMetadataRead: p.ReadEngineUserMetadata,
+			AllowUserAccountsRead: p.ReadEngineUserAccounts,
+		},
+		OnlineAPI: online.OnlineAPI{
+			Online:          s.online,
+			AllowOnlineRead: p.ReadEngineOnline,
+		},
 	}
 }
 

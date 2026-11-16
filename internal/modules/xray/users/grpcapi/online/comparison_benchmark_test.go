@@ -1,6 +1,6 @@
 //go:build integration && linux
 
-package grpcapi_test
+package online_test
 
 import (
 	"context"

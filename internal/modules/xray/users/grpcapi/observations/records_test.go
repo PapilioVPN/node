@@ -1,4 +1,4 @@
-package grpcapi_test
+package observations_test
 
 import (
 	"bytes"
@@ -22,7 +22,11 @@ import (
 	trafficgrpc "github.com/PapilioVPN/node/internal/modules/xray/traffic/grpcapi"
 	"github.com/PapilioVPN/node/internal/modules/xray/users/domain"
 	usergrpc "github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi"
+	"github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi/mutations"
+	"github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi/observations"
+	"github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi/online"
 	userv1 "github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi/proto/v1"
+	"github.com/PapilioVPN/node/internal/shared/testutil"
 )
 
 func TestUserObservationIdentityPrecedesShapeAndSelection(t *testing.T) {
@@ -74,7 +78,7 @@ func TestUserViewsRequireIndependentGrants(t *testing.T) {
 		t.Run(op.name, func(t *testing.T) {
 			h := grpcapi.Handler{UserAPI:
 			// Also grant the opposite view: it must not enable this operation.
-			usergrpc.UserAPI{AllowUsersRead: true, AllowUserManagement: true, AllowOnlineRead: true}, RoutingAPI: routinggrpc.RoutingAPI{AllowRoutingRead: true, AllowRoutingTest: true, AllowRoutingManagement: true}, TrafficAPI: trafficgrpc.TrafficAPI{AllowStatsRead: true, AllowStatsReset: true}, InfoAPI: infogrpc.InfoAPI{AllowInfoRead: true}, OutboundAPI: outboundgrpc.OutboundAPI{AllowOutboundsRead: true},
+			usergrpc.UserAPI{MutationAPI: mutations.MutationAPI{AllowUserManagement: true}, ObservationAPI: observations.ObservationAPI{AllowUsersRead: true}, OnlineAPI: online.OnlineAPI{AllowOnlineRead: true}}, RoutingAPI: routinggrpc.RoutingAPI{AllowRoutingRead: true, AllowRoutingTest: true, AllowRoutingManagement: true}, TrafficAPI: trafficgrpc.TrafficAPI{AllowStatsRead: true, AllowStatsReset: true}, InfoAPI: infogrpc.InfoAPI{AllowInfoRead: true}, OutboundAPI: outboundgrpc.OutboundAPI{AllowOutboundsRead: true},
 			}
 
 			if i < 2 {
@@ -82,7 +86,7 @@ func TestUserViewsRequireIndependentGrants(t *testing.T) {
 			} else {
 				h.AllowUserMetadataRead = true
 			}
-			r, err := op.call(verifiedContext(t), h)
+			r, err := op.call(testutil.VerifiedGRPCContext(t), h)
 			if r.ProtoReflect().IsValid() || status.Code(err) != codes.PermissionDenied {
 				t.Fatalf("other grants enabled %s: %v", op.name, err)
 			}
@@ -91,8 +95,8 @@ func TestUserViewsRequireIndependentGrants(t *testing.T) {
 }
 
 func TestUserViewsRejectMalformedSelectionBeforeApplication(t *testing.T) {
-	h := grpcapi.Handler{UserAPI: usergrpc.UserAPI{AllowUserMetadataRead: true, AllowUserAccountsRead: true}}
-	ctx := verifiedContext(t)
+	h := grpcapi.Handler{UserAPI: usergrpc.UserAPI{ObservationAPI: observations.ObservationAPI{AllowUserMetadataRead: true, AllowUserAccountsRead: true}}}
+	ctx := testutil.VerifiedGRPCContext(t)
 	for _, id := range []string{"", " "} {
 		_, e1 := h.GetInboundUserMetadata(ctx, &userv1.GetInboundUserMetadataRequest{InstanceId: id, InboundTag: "in", Email: "user"})
 		_, e2 := h.ListInboundUserMetadata(ctx, &userv1.ListInboundUserMetadataRequest{InstanceId: id, InboundTag: "in"})
@@ -140,9 +144,9 @@ func TestSingleUserViewsPreserveRequestedAndStoredIdentityAndAbsence(t *testing.
 	payload := []byte("test-only-secret-and-unknown-native-fields")
 	for _, present := range []bool{false, true} {
 		t.Run(fmt.Sprint(present), func(t *testing.T) {
-			ctx := verifiedContext(t)
+			ctx := testutil.VerifiedGRPCContext(t)
 			calls := 0
-			h := grpcapi.Handler{UserAPI: usergrpc.UserAPI{AllowUserMetadataRead: true, AllowUserAccountsRead: true, Users: userObservationReader{one: func(c context.Context, id instances.InstanceID, s domain.InboundUserSelection) (domain.InstanceInboundUserObservation, error) {
+			h := grpcapi.Handler{UserAPI: usergrpc.UserAPI{ObservationAPI: observations.ObservationAPI{AllowUserMetadataRead: true, AllowUserAccountsRead: true, Users: userObservationReader{one: func(c context.Context, id instances.InstanceID, s domain.InboundUserSelection) (domain.InstanceInboundUserObservation, error) {
 				calls++
 				if c != ctx || id != " edge " || s.InboundTag != " exact>>>tag " || s.Email != " Mixed@Example " {
 					t.Fatal("single selection/context changed")
@@ -152,7 +156,7 @@ func TestSingleUserViewsPreserveRequestedAndStoredIdentityAndAbsence(t *testing.
 					result.Observation.User = &domain.ObservedInboundUser{Email: " stored@example ", Level: math.MaxUint32, Account: domain.ObservedUserAccount{TypeName: "native.Account", Protobuf: payload}}
 				}
 				return result, nil
-			}}}}
+			}}}}}
 			metadata, err := h.GetInboundUserMetadata(ctx, &userv1.GetInboundUserMetadataRequest{InstanceId: " edge ", InboundTag: " exact>>>tag ", Email: " Mixed@Example "})
 			if err != nil || calls != 1 || metadata.InstanceId != " edge " || metadata.InboundTag != " exact>>>tag " || metadata.Email != " Mixed@Example " || metadata.ObservedAtUnixMs != observed.UnixMilli() || (metadata.User != nil) != present {
 				t.Fatal("metadata selection/absence/time changed")
@@ -179,7 +183,7 @@ func TestSingleUserViewsPreserveRequestedAndStoredIdentityAndAbsence(t *testing.
 func TestUserListsKeepAllMembersAndUseOneApplicationCall(t *testing.T) {
 	for _, count := range []int{0, 1, 100, 1000} {
 		t.Run(fmt.Sprint(count), func(t *testing.T) {
-			ctx := verifiedContext(t)
+			ctx := testutil.VerifiedGRPCContext(t)
 			calls := 0
 			observed := time.UnixMilli(1700000000123)
 			users := make([]domain.ObservedInboundUser, count)
@@ -189,13 +193,13 @@ func TestUserListsKeepAllMembersAndUseOneApplicationCall(t *testing.T) {
 			if count > 0 {
 				users[0].Email = ""
 			}
-			h := grpcapi.Handler{UserAPI: usergrpc.UserAPI{AllowUserMetadataRead: true, AllowUserAccountsRead: true, Users: userObservationReader{list: func(c context.Context, id instances.InstanceID, tag string) (domain.InstanceInboundUsersObservation, error) {
+			h := grpcapi.Handler{UserAPI: usergrpc.UserAPI{ObservationAPI: observations.ObservationAPI{AllowUserMetadataRead: true, AllowUserAccountsRead: true, Users: userObservationReader{list: func(c context.Context, id instances.InstanceID, tag string) (domain.InstanceInboundUsersObservation, error) {
 				calls++
 				if c != ctx || id != " edge " || tag != " exact>>>tag " {
 					t.Fatal("list selection/context changed")
 				}
 				return domain.InstanceInboundUsersObservation{InstanceID: id, InboundTag: tag, Observation: domain.InboundUsersObservation{Users: users, ObservedAt: observed}}, nil
-			}}}}
+			}}}}}
 			metadata, err := h.ListInboundUserMetadata(ctx, &userv1.ListInboundUserMetadataRequest{InstanceId: " edge ", InboundTag: " exact>>>tag "})
 			if err != nil || calls != 1 || len(metadata.Users) != count || metadata.InstanceId != " edge " || metadata.InboundTag != " exact>>>tag " || metadata.ObservedAtUnixMs != observed.UnixMilli() {
 				t.Fatal("metadata list lost members/selection/time or refetched")
@@ -237,15 +241,15 @@ func TestUserReadFailuresAreSanitizedWithoutPartialAccounts(t *testing.T) {
 		for _, op := range userReadCalls {
 			t.Run(op.name+"/"+tc.cause.Error(), func(t *testing.T) {
 				cause := errors.Join(tc.cause, errors.New("private-account-secret"))
-				h := grpcapi.Handler{UserAPI: usergrpc.UserAPI{AllowUserMetadataRead: true, AllowUserAccountsRead: true, Users: userObservationReader{
+				h := grpcapi.Handler{UserAPI: usergrpc.UserAPI{ObservationAPI: observations.ObservationAPI{AllowUserMetadataRead: true, AllowUserAccountsRead: true, Users: userObservationReader{
 					one: func(context.Context, instances.InstanceID, domain.InboundUserSelection) (domain.InstanceInboundUserObservation, error) {
 						return domain.InstanceInboundUserObservation{Observation: domain.InboundUserObservation{User: &domain.ObservedInboundUser{Email: "partial"}}}, cause
 					},
 					list: func(context.Context, instances.InstanceID, string) (domain.InstanceInboundUsersObservation, error) {
 						return domain.InstanceInboundUsersObservation{Observation: domain.InboundUsersObservation{Users: []domain.ObservedInboundUser{{Email: "partial"}}}}, cause
 					},
-				}}}
-				response, err := op.call(verifiedContext(t), h)
+				}}}}
+				response, err := op.call(testutil.VerifiedGRPCContext(t), h)
 				if response.ProtoReflect().IsValid() || status.Code(err) != tc.code || strings.Contains(err.Error(), "private") {
 					t.Fatalf("failed read returned partial data or private causes: %v", err)
 				}
@@ -254,9 +258,9 @@ func TestUserReadFailuresAreSanitizedWithoutPartialAccounts(t *testing.T) {
 	}
 	for _, op := range userReadCalls {
 		t.Run(op.name+"/late-cancel", func(t *testing.T) {
-			ctx, cancel := context.WithCancel(verifiedContext(t))
+			ctx, cancel := context.WithCancel(testutil.VerifiedGRPCContext(t))
 			defer cancel()
-			h := grpcapi.Handler{UserAPI: usergrpc.UserAPI{AllowUserMetadataRead: true, AllowUserAccountsRead: true, Users: userObservationReader{
+			h := grpcapi.Handler{UserAPI: usergrpc.UserAPI{ObservationAPI: observations.ObservationAPI{AllowUserMetadataRead: true, AllowUserAccountsRead: true, Users: userObservationReader{
 				one: func(context.Context, instances.InstanceID, domain.InboundUserSelection) (domain.InstanceInboundUserObservation, error) {
 					cancel()
 					return domain.InstanceInboundUserObservation{}, nil
@@ -265,7 +269,7 @@ func TestUserReadFailuresAreSanitizedWithoutPartialAccounts(t *testing.T) {
 					cancel()
 					return domain.InstanceInboundUsersObservation{}, nil
 				},
-			}}}
+			}}}}
 			response, err := op.call(ctx, h)
 			if response.ProtoReflect().IsValid() || status.Code(err) != codes.Canceled {
 				t.Fatal("late cancellation became successful read")
