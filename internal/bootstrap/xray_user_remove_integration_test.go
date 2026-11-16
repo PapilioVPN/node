@@ -176,6 +176,11 @@ func TestUserManagementRequiresIndependentGrantOverMTLS(t *testing.T) {
 			if status.Code(additionError) != additionCode {
 				t.Fatalf("addition did not enforce/wire the independent grant: %v", additionError)
 			}
+			_, collectionError := client.AddInboundUsers(t.Context(), &userv1.AddInboundUsersRequest{InstanceId: "missing", InboundTag: "in"})
+			if status.Code(collectionError) != additionCode {
+				t.Fatal("collection did not check write grant before selecting its instance")
+			}
+
 			_, err := client.RemoveInboundUser(t.Context(), &userv1.RemoveInboundUserRequest{InstanceId: "missing", InboundTag: "in", Email: "user"})
 			if !granted {
 				if status.Code(err) != codes.PermissionDenied {

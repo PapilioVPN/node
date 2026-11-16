@@ -24,6 +24,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/PapilioVPN/node/internal/bootstrap"
+	xrayv1 "github.com/PapilioVPN/node/internal/bootstrap/xrayapi/proto/v1"
 	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
 	"github.com/PapilioVPN/node/internal/modules/xray/users/app/services"
 	"github.com/PapilioVPN/node/internal/modules/xray/users/domain"
@@ -108,6 +109,7 @@ func TestLiveUserAdditionUpdatesEveryBaselineNativeUserManager(t *testing.T) {
 	}
 	configureXrayAPI(t, &instance, "unix", []string{"HandlerService"})
 	instance.Xray.API.MaxReceiveBytes = 64 * 1024
+	instance.Xray.Users = &settings.XrayUsers{MaxBatchUsers: 3}
 	original, err := os.ReadFile(instance.Xray.ConfigFile)
 	if err != nil {
 		t.Fatal(err)
@@ -253,6 +255,7 @@ func TestLiveUserAdditionUpdatesEveryBaselineNativeUserManager(t *testing.T) {
 			if tc.tag == "vless" {
 				verifyNativeUserAdditionCollection(t, ctx, &userxray.Adapter{API: observer}, native, tc.tag, before.Count)
 			}
+			verifyPublicUserAdditionCollection(t, ctx, client, tc.tag, tc.user, before.Count)
 		})
 	}
 	current, err := os.ReadFile(instance.Xray.ConfigFile)
@@ -317,5 +320,87 @@ func verifyNativeUserAdditionCollection(t *testing.T, ctx context.Context, adapt
 	count, err = native.GetInboundUsersCount(ctx, &handlers.GetInboundUserRequest{Tag: tag})
 	if err != nil || count.Count != initialCount {
 		t.Fatal("real collection failed to restore original membership")
+	}
+}
+
+func verifyPublicUserAdditionCollection(t *testing.T, ctx context.Context, client xrayv1.XrayServiceClient, tag string, template *userv1.InboundUser, initialCount int64) {
+	t.Helper()
+	first, next := proto.Clone(template).(*userv1.InboundUser), proto.Clone(template).(*userv1.InboundUser)
+	first.Email, next.Email, next.Level = "collection-first@local", "collection-next@local", ^uint32(0)
+	switch account := next.Account.(type) {
+	case *userv1.InboundUser_Vless:
+		account.Vless.Id = "collection-vless-next"
+	case *userv1.InboundUser_Vmess:
+		account.Vmess.Id = "collection-vmess-next"
+	case *userv1.InboundUser_Trojan:
+		account.Trojan.Password += "-collection"
+	case *userv1.InboundUser_Shadowsocks:
+		account.Shadowsocks.Password += "-collection"
+	case *userv1.InboundUser_Shadowsocks_2022:
+		account.Shadowsocks_2022.Key[0] ^= 1
+	case *userv1.InboundUser_Hysteria:
+		account.Hysteria.Auth += "-collection"
+	case *userv1.InboundUser_Masque:
+		account.Masque.Password += "-collection"
+	case *userv1.InboundUser_Wireguard:
+		account.Wireguard.PublicKey[0] ^= 1
+		account.Wireguard.AllowedIps = []string{"10.254.2.5/32"}
+	default:
+		t.Fatal("missing real collection account fixture")
+	}
+	input := &userv1.AddInboundUsersRequest{InstanceId: "edge", InboundTag: tag, Users: []*userv1.InboundUser{first, next}}
+	result, err := client.AddInboundUsers(ctx, input)
+	if err != nil || result.InstanceId != "edge" || result.InboundTag != tag || len(result.Items) != 2 {
+		t.Fatalf("public native collection failed: %v", err)
+	}
+	for i, item := range result.Items {
+		if item.Email != input.Users[i].Email || item.State != userv1.UserAdditionState_USER_ADDITION_STATE_ACKNOWLEDGED || item.AcknowledgedAtUnixMs == nil {
+			t.Fatal("public native collection lost acknowledgement")
+		}
+		stored, err := client.GetInboundUserMetadata(ctx, &userv1.GetInboundUserMetadataRequest{InstanceId: "edge", InboundTag: tag, Email: item.Email})
+		if err != nil || stored.User == nil || stored.User.Email != item.Email || stored.User.Level != input.Users[i].Level {
+			t.Fatal("public native collection did not retain identity/uint32 level")
+		}
+	}
+	count, err := client.GetInboundUserCount(ctx, &userv1.GetInboundUserCountRequest{InstanceId: "edge", InboundTag: tag})
+	if err != nil || count.Count != initialCount+2 {
+		t.Fatal("public native collection changed unrelated membership")
+	}
+	for _, user := range input.Users {
+		if _, err := client.RemoveInboundUser(ctx, &userv1.RemoveInboundUserRequest{InstanceId: "edge", InboundTag: tag, Email: user.Email}); err != nil {
+			t.Fatal("public collection cleanup failed")
+		}
+	}
+	if tag == "vless" {
+		input.Users = []*userv1.InboundUser{first, first, next}
+		response, err := client.AddInboundUsers(ctx, input)
+		if response != nil || status.Code(err) != codes.Unavailable {
+			t.Fatal("real public duplicate did not report a failed collection")
+		}
+		details := status.Convert(err).Details()
+		if len(details) != 1 {
+			t.Fatal("real public partial progress missing")
+		}
+		failure, ok := details[0].(*userv1.UserAdditionsFailure)
+		if !ok || failure.Outcome != userv1.UserMutationOutcome_USER_MUTATION_OUTCOME_UNKNOWN || failure.Progress == nil || len(failure.Progress.Items) != 3 {
+			t.Fatal("real public partial effect was relabeled as not applied")
+		}
+		want := []userv1.UserAdditionState{userv1.UserAdditionState_USER_ADDITION_STATE_ACKNOWLEDGED, userv1.UserAdditionState_USER_ADDITION_STATE_UNKNOWN, userv1.UserAdditionState_USER_ADDITION_STATE_NOT_ATTEMPTED}
+		for i, item := range failure.Progress.Items {
+			if item.Email != input.Users[i].Email || item.State != want[i] {
+				t.Fatal("real public partial effect lost its exact input position")
+			}
+		}
+		count, err = client.GetInboundUserCount(ctx, &userv1.GetInboundUserCountRequest{InstanceId: "edge", InboundTag: tag})
+		if err != nil || count.Count != initialCount+1 {
+			t.Fatal("real public failed collection submitted trailing work")
+		}
+		if _, err := client.RemoveInboundUser(ctx, &userv1.RemoveInboundUserRequest{InstanceId: "edge", InboundTag: tag, Email: first.Email}); err != nil {
+			t.Fatal("public partial collection cleanup failed")
+		}
+	}
+	count, err = client.GetInboundUserCount(ctx, &userv1.GetInboundUserCountRequest{InstanceId: "edge", InboundTag: tag})
+	if err != nil || count.Count != initialCount {
+		t.Fatal("public collection did not restore the original membership")
 	}
 }

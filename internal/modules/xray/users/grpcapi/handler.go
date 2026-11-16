@@ -9,6 +9,7 @@ type UserAPI struct {
 	xrayv1.UnimplementedXrayServiceServer
 	UserRemoval           InboundUserRemover
 	UserAddition          InboundUserAdder
+	UserAdditions         InboundUsersAdder
 	UserCounts            InboundUserCountReader
 	Online                OnlineReader
 	AllowOnlineRead       bool

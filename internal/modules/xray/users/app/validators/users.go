@@ -26,7 +26,18 @@ func InboundUserAddition(addition domain.InboundUserAddition) error {
 	if err := InboundUserSelection(domain.InboundUserSelection{InboundTag: addition.InboundTag, Email: addition.User.Email}); err != nil {
 		return err
 	}
-	a := addition.User.Account
+	return userAccount(addition.User)
+}
+
+func InboundUser(user domain.InboundUser) error {
+	if strings.TrimSpace(user.Email) == "" || !utf8.ValidString(user.Email) {
+		return domain.ErrInvalidUserSelection
+	}
+	return userAccount(user)
+}
+
+func userAccount(user domain.InboundUser) error {
+	a := user.Account
 	count := 0
 	for _, present := range [8]bool{a.VLESS != nil, a.VMess != nil, a.Trojan != nil, a.Shadowsocks != nil, a.Shadowsocks2022 != nil, a.Hysteria != nil, a.MASQUE != nil, a.WireGuard != nil} {
 		if present {
@@ -51,7 +62,7 @@ func InboundUserAddition(addition domain.InboundUserAddition) error {
 			return nil
 		}
 	case domain.MASQUE:
-		if a.MASQUE != nil && validText(a.MASQUE.Password) && !strings.Contains(addition.User.Email, ":") {
+		if a.MASQUE != nil && validText(a.MASQUE.Password) && !strings.Contains(user.Email, ":") {
 			return nil
 		}
 	case domain.Hysteria:

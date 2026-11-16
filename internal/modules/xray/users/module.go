@@ -22,6 +22,7 @@ import (
 type BackendBinding struct {
 	InstanceID instances.InstanceID
 	Adder      services.InboundUserAdder
+	Additions  services.UserAdditionsBinding
 	Remover    services.InboundUserRemover
 	Counter    services.InboundUserCountReader
 	Observer   services.UserObservationReader
@@ -43,6 +44,7 @@ func Module(grpcEnabled bool) fx.Option {
 
 type operations struct {
 	addition     *services.UserAdditionService
+	additions    *services.UserAdditionsService
 	removal      *services.UserRemovalService
 	counts       *services.UserCountService
 	observations *services.UserObservationService
@@ -51,6 +53,7 @@ type operations struct {
 
 func newOperations(bindings backendBindings) (operations, error) {
 	adders := make(map[instances.InstanceID]services.InboundUserAdder, len(bindings.Values))
+	additions := make(map[instances.InstanceID]services.UserAdditionsBinding, len(bindings.Values))
 	removers := make(map[instances.InstanceID]services.InboundUserRemover, len(bindings.Values))
 	counters := make(map[instances.InstanceID]services.InboundUserCountReader, len(bindings.Values))
 	observers := make(map[instances.InstanceID]services.UserObservationReader, len(bindings.Values))
@@ -60,6 +63,7 @@ func newOperations(bindings backendBindings) (operations, error) {
 			return operations{}, errors.New("invalid user backend binding")
 		}
 		adders[b.InstanceID] = b.Adder
+		additions[b.InstanceID] = b.Additions
 		removers[b.InstanceID] = b.Remover
 		counters[b.InstanceID] = b.Counter
 		observers[b.InstanceID] = b.Observer
@@ -67,6 +71,7 @@ func newOperations(bindings backendBindings) (operations, error) {
 	}
 	return operations{
 		addition:     services.NewUserAdditionService(adders),
+		additions:    services.NewUserAdditionsService(additions),
 		removal:      services.NewUserRemovalService(removers),
 		counts:       services.NewUserCountService(counters),
 		observations: services.NewUserObservationService(observers),
@@ -76,7 +81,7 @@ func newOperations(bindings backendBindings) (operations, error) {
 
 func newUserAPI(s operations, p settings.GRPCPermissions) grpcapi.UserAPI {
 	return grpcapi.UserAPI{
-		UserAddition: s.addition, UserRemoval: s.removal,
+		UserAddition: s.addition, UserAdditions: s.additions, UserRemoval: s.removal,
 		UserCounts: s.counts, Users: s.observations,
 		Online: s.online, AllowOnlineRead: p.ReadEngineOnline,
 		AllowUserManagement:   p.ManageEngineUsers,
@@ -93,7 +98,7 @@ type capabilityResult struct {
 
 func capability() capabilityResult {
 	return capabilityResult{Values: []system.Capability{
-		domain.AddInboundUser, domain.RemoveInboundUser, domain.ReadInboundUserCount,
+		domain.AddInboundUser, domain.AddInboundUsers, domain.RemoveInboundUser, domain.ReadInboundUserCount,
 		domain.ReadInboundUser, domain.ListInboundUsers,
 		domain.ReadInboundUserMetadata, domain.ListInboundUserMetadata,
 		domain.ReadUserOnlineStats, domain.ListUserOnlineIPs, domain.ListOnlineUsers,
@@ -119,6 +124,10 @@ func newNativeBindings(config []settings.Instance, resources *nativeapi.Resource
 		if client != nil {
 			adapter := &userapi.Adapter{API: client}
 			binding.Adder, binding.Remover, binding.Counter, binding.Observer = adapter, adapter, adapter, adapter
+			binding.Additions.Adder = adapter
+			if profile := instance.Xray.Users; profile != nil {
+				binding.Additions.MaxUsers = profile.MaxBatchUsers
+			}
 			binding.Online = &userapi.Online{API: client}
 		}
 		result.Values = append(result.Values, binding)

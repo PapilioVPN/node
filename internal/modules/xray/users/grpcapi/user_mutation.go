@@ -14,6 +14,19 @@ import (
 )
 
 func userMutationError(ctx context.Context, cause error) error {
+	mapped := userMutationStatus(ctx, cause).Err()
+	outcome := userv1.UserMutationOutcome_USER_MUTATION_OUTCOME_NOT_APPLIED
+	if errors.Is(cause, domain.ErrUserMutationUnknown) {
+		outcome = userv1.UserMutationOutcome_USER_MUTATION_OUTCOME_UNKNOWN
+	}
+	detailed, err := status.Convert(mapped).WithDetails(&userv1.UserMutationFailure{Outcome: outcome})
+	if err != nil {
+		return mapped
+	}
+	return detailed.Err()
+}
+
+func userMutationStatus(ctx context.Context, cause error) *status.Status {
 	mapped := grpcresponse.ContextError(errors.Join(cause, ctx.Err()))
 	if mapped == nil {
 		code, message := codes.Unavailable, "cannot change Xray inbound user"
@@ -24,6 +37,10 @@ func userMutationError(ctx context.Context, cause error) error {
 			code, message = codes.NotFound, "Xray inbound not found"
 		case errors.Is(cause, domain.ErrAPIDisabled):
 			code, message = codes.FailedPrecondition, "Xray API is not enabled"
+		case errors.Is(cause, domain.ErrUserCollectionsDisabled):
+			code, message = codes.FailedPrecondition, "Xray user collections are not configured"
+		case errors.Is(cause, domain.ErrUserCollectionTooLarge):
+			code, message = codes.ResourceExhausted, "Xray user collection limit exceeded"
 		case errors.Is(cause, domain.ErrUserManagementUnsupported):
 			code, message = codes.FailedPrecondition, "Xray user management is not supported"
 		case errors.Is(cause, domain.ErrInboundProtocolMismatch):
@@ -35,13 +52,5 @@ func userMutationError(ctx context.Context, cause error) error {
 		}
 		mapped = status.Error(code, message)
 	}
-	outcome := userv1.UserMutationOutcome_USER_MUTATION_OUTCOME_NOT_APPLIED
-	if errors.Is(cause, domain.ErrUserMutationUnknown) {
-		outcome = userv1.UserMutationOutcome_USER_MUTATION_OUTCOME_UNKNOWN
-	}
-	detailed, err := status.Convert(mapped).WithDetails(&userv1.UserMutationFailure{Outcome: outcome})
-	if err != nil {
-		return mapped
-	}
-	return detailed.Err()
+	return status.Convert(mapped)
 }

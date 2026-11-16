@@ -96,6 +96,42 @@ message AddInboundUserResponse {
   int64 acknowledged_at_unix_ms = 4;
 }
 
+message AddInboundUsersRequest {
+  string instance_id = 1;
+  string inbound_tag = 2;
+  // Input order and duplicates are preserved. Bounded by the instance's users profile.
+  repeated InboundUser users = 3;
+}
+
+enum UserAdditionState {
+  USER_ADDITION_STATE_UNSPECIFIED = 0;
+  USER_ADDITION_STATE_NOT_ATTEMPTED = 1;
+  USER_ADDITION_STATE_ACKNOWLEDGED = 2;
+  USER_ADDITION_STATE_NOT_APPLIED = 3;
+  USER_ADDITION_STATE_UNKNOWN = 4;
+}
+
+message UserAdditionResult {
+  string email = 1;
+  UserAdditionState state = 2;
+  // Present only for acknowledged native completion, not durable configuration.
+  optional int64 acknowledged_at_unix_ms = 3;
+}
+
+message AddInboundUsersResponse {
+  string instance_id = 1;
+  string inbound_tag = 2;
+  repeated UserAdditionResult items = 3;
+}
+
+// Missing details or an undelivered reply never establish absence of effects.
+// Earlier acknowledgements remain valid when a later addition fails.
+message UserAdditionsFailure {
+  AddInboundUsersResponse progress = 1;
+  // NOT_APPLIED requires that no earlier member was acknowledged or uncertain.
+  UserMutationOutcome outcome = 2;
+}
+
 message GetInboundUserCountRequest {
   string instance_id = 1;
   string inbound_tag = 2;

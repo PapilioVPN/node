@@ -129,6 +129,61 @@ func (ShadowsocksCipher) EnumDescriptor() ([]byte, []int) {
 	return file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDescGZIP(), []int{1}
 }
 
+type UserAdditionState int32
+
+const (
+	UserAdditionState_USER_ADDITION_STATE_UNSPECIFIED   UserAdditionState = 0
+	UserAdditionState_USER_ADDITION_STATE_NOT_ATTEMPTED UserAdditionState = 1
+	UserAdditionState_USER_ADDITION_STATE_ACKNOWLEDGED  UserAdditionState = 2
+	UserAdditionState_USER_ADDITION_STATE_NOT_APPLIED   UserAdditionState = 3
+	UserAdditionState_USER_ADDITION_STATE_UNKNOWN       UserAdditionState = 4
+)
+
+// Enum value maps for UserAdditionState.
+var (
+	UserAdditionState_name = map[int32]string{
+		0: "USER_ADDITION_STATE_UNSPECIFIED",
+		1: "USER_ADDITION_STATE_NOT_ATTEMPTED",
+		2: "USER_ADDITION_STATE_ACKNOWLEDGED",
+		3: "USER_ADDITION_STATE_NOT_APPLIED",
+		4: "USER_ADDITION_STATE_UNKNOWN",
+	}
+	UserAdditionState_value = map[string]int32{
+		"USER_ADDITION_STATE_UNSPECIFIED":   0,
+		"USER_ADDITION_STATE_NOT_ATTEMPTED": 1,
+		"USER_ADDITION_STATE_ACKNOWLEDGED":  2,
+		"USER_ADDITION_STATE_NOT_APPLIED":   3,
+		"USER_ADDITION_STATE_UNKNOWN":       4,
+	}
+)
+
+func (x UserAdditionState) Enum() *UserAdditionState {
+	p := new(UserAdditionState)
+	*p = x
+	return p
+}
+
+func (x UserAdditionState) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (UserAdditionState) Descriptor() protoreflect.EnumDescriptor {
+	return file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_enumTypes[2].Descriptor()
+}
+
+func (UserAdditionState) Type() protoreflect.EnumType {
+	return &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_enumTypes[2]
+}
+
+func (x UserAdditionState) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use UserAdditionState.Descriptor instead.
+func (UserAdditionState) EnumDescriptor() ([]byte, []int) {
+	return file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDescGZIP(), []int{2}
+}
+
 type RemoveInboundUserRequest struct {
 	state      protoimpl.MessageState `protogen:"open.v1"`
 	InstanceId string                 `protobuf:"bytes,1,opt,name=instance_id,json=instanceId,proto3" json:"instance_id,omitempty"`
@@ -989,6 +1044,243 @@ func (x *AddInboundUserResponse) GetAcknowledgedAtUnixMs() int64 {
 	return 0
 }
 
+type AddInboundUsersRequest struct {
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	InstanceId string                 `protobuf:"bytes,1,opt,name=instance_id,json=instanceId,proto3" json:"instance_id,omitempty"`
+	InboundTag string                 `protobuf:"bytes,2,opt,name=inbound_tag,json=inboundTag,proto3" json:"inbound_tag,omitempty"`
+	// Input order and duplicates are preserved. Bounded by the instance's users profile.
+	Users         []*InboundUser `protobuf:"bytes,3,rep,name=users,proto3" json:"users,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AddInboundUsersRequest) Reset() {
+	*x = AddInboundUsersRequest{}
+	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddInboundUsersRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddInboundUsersRequest) ProtoMessage() {}
+
+func (x *AddInboundUsersRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddInboundUsersRequest.ProtoReflect.Descriptor instead.
+func (*AddInboundUsersRequest) Descriptor() ([]byte, []int) {
+	return file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *AddInboundUsersRequest) GetInstanceId() string {
+	if x != nil {
+		return x.InstanceId
+	}
+	return ""
+}
+
+func (x *AddInboundUsersRequest) GetInboundTag() string {
+	if x != nil {
+		return x.InboundTag
+	}
+	return ""
+}
+
+func (x *AddInboundUsersRequest) GetUsers() []*InboundUser {
+	if x != nil {
+		return x.Users
+	}
+	return nil
+}
+
+type UserAdditionResult struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Email string                 `protobuf:"bytes,1,opt,name=email,proto3" json:"email,omitempty"`
+	State UserAdditionState      `protobuf:"varint,2,opt,name=state,proto3,enum=papilio.node.xray.v1.UserAdditionState" json:"state,omitempty"`
+	// Present only for acknowledged native completion, not durable configuration.
+	AcknowledgedAtUnixMs *int64 `protobuf:"varint,3,opt,name=acknowledged_at_unix_ms,json=acknowledgedAtUnixMs,proto3,oneof" json:"acknowledged_at_unix_ms,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
+}
+
+func (x *UserAdditionResult) Reset() {
+	*x = UserAdditionResult{}
+	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UserAdditionResult) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UserAdditionResult) ProtoMessage() {}
+
+func (x *UserAdditionResult) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UserAdditionResult.ProtoReflect.Descriptor instead.
+func (*UserAdditionResult) Descriptor() ([]byte, []int) {
+	return file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *UserAdditionResult) GetEmail() string {
+	if x != nil {
+		return x.Email
+	}
+	return ""
+}
+
+func (x *UserAdditionResult) GetState() UserAdditionState {
+	if x != nil {
+		return x.State
+	}
+	return UserAdditionState_USER_ADDITION_STATE_UNSPECIFIED
+}
+
+func (x *UserAdditionResult) GetAcknowledgedAtUnixMs() int64 {
+	if x != nil && x.AcknowledgedAtUnixMs != nil {
+		return *x.AcknowledgedAtUnixMs
+	}
+	return 0
+}
+
+type AddInboundUsersResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	InstanceId    string                 `protobuf:"bytes,1,opt,name=instance_id,json=instanceId,proto3" json:"instance_id,omitempty"`
+	InboundTag    string                 `protobuf:"bytes,2,opt,name=inbound_tag,json=inboundTag,proto3" json:"inbound_tag,omitempty"`
+	Items         []*UserAdditionResult  `protobuf:"bytes,3,rep,name=items,proto3" json:"items,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AddInboundUsersResponse) Reset() {
+	*x = AddInboundUsersResponse{}
+	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddInboundUsersResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddInboundUsersResponse) ProtoMessage() {}
+
+func (x *AddInboundUsersResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddInboundUsersResponse.ProtoReflect.Descriptor instead.
+func (*AddInboundUsersResponse) Descriptor() ([]byte, []int) {
+	return file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *AddInboundUsersResponse) GetInstanceId() string {
+	if x != nil {
+		return x.InstanceId
+	}
+	return ""
+}
+
+func (x *AddInboundUsersResponse) GetInboundTag() string {
+	if x != nil {
+		return x.InboundTag
+	}
+	return ""
+}
+
+func (x *AddInboundUsersResponse) GetItems() []*UserAdditionResult {
+	if x != nil {
+		return x.Items
+	}
+	return nil
+}
+
+// Missing details or an undelivered reply never establish absence of effects.
+// Earlier acknowledgements remain valid when a later addition fails.
+type UserAdditionsFailure struct {
+	state    protoimpl.MessageState   `protogen:"open.v1"`
+	Progress *AddInboundUsersResponse `protobuf:"bytes,1,opt,name=progress,proto3" json:"progress,omitempty"`
+	// NOT_APPLIED requires that no earlier member was acknowledged or uncertain.
+	Outcome       UserMutationOutcome `protobuf:"varint,2,opt,name=outcome,proto3,enum=papilio.node.xray.v1.UserMutationOutcome" json:"outcome,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UserAdditionsFailure) Reset() {
+	*x = UserAdditionsFailure{}
+	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UserAdditionsFailure) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UserAdditionsFailure) ProtoMessage() {}
+
+func (x *UserAdditionsFailure) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UserAdditionsFailure.ProtoReflect.Descriptor instead.
+func (*UserAdditionsFailure) Descriptor() ([]byte, []int) {
+	return file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *UserAdditionsFailure) GetProgress() *AddInboundUsersResponse {
+	if x != nil {
+		return x.Progress
+	}
+	return nil
+}
+
+func (x *UserAdditionsFailure) GetOutcome() UserMutationOutcome {
+	if x != nil {
+		return x.Outcome
+	}
+	return UserMutationOutcome_USER_MUTATION_OUTCOME_UNSPECIFIED
+}
+
 type GetInboundUserCountRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	InstanceId    string                 `protobuf:"bytes,1,opt,name=instance_id,json=instanceId,proto3" json:"instance_id,omitempty"`
@@ -999,7 +1291,7 @@ type GetInboundUserCountRequest struct {
 
 func (x *GetInboundUserCountRequest) Reset() {
 	*x = GetInboundUserCountRequest{}
-	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[13]
+	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1011,7 +1303,7 @@ func (x *GetInboundUserCountRequest) String() string {
 func (*GetInboundUserCountRequest) ProtoMessage() {}
 
 func (x *GetInboundUserCountRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[13]
+	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1024,7 +1316,7 @@ func (x *GetInboundUserCountRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetInboundUserCountRequest.ProtoReflect.Descriptor instead.
 func (*GetInboundUserCountRequest) Descriptor() ([]byte, []int) {
-	return file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDescGZIP(), []int{13}
+	return file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *GetInboundUserCountRequest) GetInstanceId() string {
@@ -1054,7 +1346,7 @@ type GetInboundUserCountResponse struct {
 
 func (x *GetInboundUserCountResponse) Reset() {
 	*x = GetInboundUserCountResponse{}
-	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[14]
+	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1066,7 +1358,7 @@ func (x *GetInboundUserCountResponse) String() string {
 func (*GetInboundUserCountResponse) ProtoMessage() {}
 
 func (x *GetInboundUserCountResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[14]
+	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1079,7 +1371,7 @@ func (x *GetInboundUserCountResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetInboundUserCountResponse.ProtoReflect.Descriptor instead.
 func (*GetInboundUserCountResponse) Descriptor() ([]byte, []int) {
-	return file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDescGZIP(), []int{14}
+	return file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *GetInboundUserCountResponse) GetInstanceId() string {
@@ -1123,7 +1415,7 @@ type InboundUserMetadata struct {
 
 func (x *InboundUserMetadata) Reset() {
 	*x = InboundUserMetadata{}
-	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[15]
+	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1135,7 +1427,7 @@ func (x *InboundUserMetadata) String() string {
 func (*InboundUserMetadata) ProtoMessage() {}
 
 func (x *InboundUserMetadata) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[15]
+	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1148,7 +1440,7 @@ func (x *InboundUserMetadata) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InboundUserMetadata.ProtoReflect.Descriptor instead.
 func (*InboundUserMetadata) Descriptor() ([]byte, []int) {
-	return file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDescGZIP(), []int{15}
+	return file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *InboundUserMetadata) GetEmail() string {
@@ -1185,7 +1477,7 @@ type NativeUserAccount struct {
 
 func (x *NativeUserAccount) Reset() {
 	*x = NativeUserAccount{}
-	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[16]
+	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1197,7 +1489,7 @@ func (x *NativeUserAccount) String() string {
 func (*NativeUserAccount) ProtoMessage() {}
 
 func (x *NativeUserAccount) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[16]
+	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1210,7 +1502,7 @@ func (x *NativeUserAccount) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NativeUserAccount.ProtoReflect.Descriptor instead.
 func (*NativeUserAccount) Descriptor() ([]byte, []int) {
-	return file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDescGZIP(), []int{16}
+	return file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *NativeUserAccount) GetTypeName() string {
@@ -1238,7 +1530,7 @@ type InboundUserRecord struct {
 
 func (x *InboundUserRecord) Reset() {
 	*x = InboundUserRecord{}
-	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[17]
+	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1250,7 +1542,7 @@ func (x *InboundUserRecord) String() string {
 func (*InboundUserRecord) ProtoMessage() {}
 
 func (x *InboundUserRecord) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[17]
+	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1263,7 +1555,7 @@ func (x *InboundUserRecord) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InboundUserRecord.ProtoReflect.Descriptor instead.
 func (*InboundUserRecord) Descriptor() ([]byte, []int) {
-	return file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDescGZIP(), []int{17}
+	return file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *InboundUserRecord) GetEmail() string {
@@ -1299,7 +1591,7 @@ type GetInboundUserMetadataRequest struct {
 
 func (x *GetInboundUserMetadataRequest) Reset() {
 	*x = GetInboundUserMetadataRequest{}
-	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[18]
+	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1311,7 +1603,7 @@ func (x *GetInboundUserMetadataRequest) String() string {
 func (*GetInboundUserMetadataRequest) ProtoMessage() {}
 
 func (x *GetInboundUserMetadataRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[18]
+	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1324,7 +1616,7 @@ func (x *GetInboundUserMetadataRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetInboundUserMetadataRequest.ProtoReflect.Descriptor instead.
 func (*GetInboundUserMetadataRequest) Descriptor() ([]byte, []int) {
-	return file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDescGZIP(), []int{18}
+	return file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *GetInboundUserMetadataRequest) GetInstanceId() string {
@@ -1363,7 +1655,7 @@ type GetInboundUserMetadataResponse struct {
 
 func (x *GetInboundUserMetadataResponse) Reset() {
 	*x = GetInboundUserMetadataResponse{}
-	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[19]
+	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1375,7 +1667,7 @@ func (x *GetInboundUserMetadataResponse) String() string {
 func (*GetInboundUserMetadataResponse) ProtoMessage() {}
 
 func (x *GetInboundUserMetadataResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[19]
+	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1388,7 +1680,7 @@ func (x *GetInboundUserMetadataResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetInboundUserMetadataResponse.ProtoReflect.Descriptor instead.
 func (*GetInboundUserMetadataResponse) Descriptor() ([]byte, []int) {
-	return file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDescGZIP(), []int{19}
+	return file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *GetInboundUserMetadataResponse) GetInstanceId() string {
@@ -1436,7 +1728,7 @@ type ListInboundUserMetadataRequest struct {
 
 func (x *ListInboundUserMetadataRequest) Reset() {
 	*x = ListInboundUserMetadataRequest{}
-	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[20]
+	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1448,7 +1740,7 @@ func (x *ListInboundUserMetadataRequest) String() string {
 func (*ListInboundUserMetadataRequest) ProtoMessage() {}
 
 func (x *ListInboundUserMetadataRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[20]
+	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1461,7 +1753,7 @@ func (x *ListInboundUserMetadataRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListInboundUserMetadataRequest.ProtoReflect.Descriptor instead.
 func (*ListInboundUserMetadataRequest) Descriptor() ([]byte, []int) {
-	return file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDescGZIP(), []int{20}
+	return file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *ListInboundUserMetadataRequest) GetInstanceId() string {
@@ -1493,7 +1785,7 @@ type ListInboundUserMetadataResponse struct {
 
 func (x *ListInboundUserMetadataResponse) Reset() {
 	*x = ListInboundUserMetadataResponse{}
-	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[21]
+	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1505,7 +1797,7 @@ func (x *ListInboundUserMetadataResponse) String() string {
 func (*ListInboundUserMetadataResponse) ProtoMessage() {}
 
 func (x *ListInboundUserMetadataResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[21]
+	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1518,7 +1810,7 @@ func (x *ListInboundUserMetadataResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListInboundUserMetadataResponse.ProtoReflect.Descriptor instead.
 func (*ListInboundUserMetadataResponse) Descriptor() ([]byte, []int) {
-	return file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDescGZIP(), []int{21}
+	return file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *ListInboundUserMetadataResponse) GetInstanceId() string {
@@ -1560,7 +1852,7 @@ type GetInboundUserRequest struct {
 
 func (x *GetInboundUserRequest) Reset() {
 	*x = GetInboundUserRequest{}
-	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[22]
+	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1572,7 +1864,7 @@ func (x *GetInboundUserRequest) String() string {
 func (*GetInboundUserRequest) ProtoMessage() {}
 
 func (x *GetInboundUserRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[22]
+	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1585,7 +1877,7 @@ func (x *GetInboundUserRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetInboundUserRequest.ProtoReflect.Descriptor instead.
 func (*GetInboundUserRequest) Descriptor() ([]byte, []int) {
-	return file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDescGZIP(), []int{22}
+	return file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *GetInboundUserRequest) GetInstanceId() string {
@@ -1622,7 +1914,7 @@ type GetInboundUserResponse struct {
 
 func (x *GetInboundUserResponse) Reset() {
 	*x = GetInboundUserResponse{}
-	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[23]
+	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1634,7 +1926,7 @@ func (x *GetInboundUserResponse) String() string {
 func (*GetInboundUserResponse) ProtoMessage() {}
 
 func (x *GetInboundUserResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[23]
+	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1647,7 +1939,7 @@ func (x *GetInboundUserResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetInboundUserResponse.ProtoReflect.Descriptor instead.
 func (*GetInboundUserResponse) Descriptor() ([]byte, []int) {
-	return file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDescGZIP(), []int{23}
+	return file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *GetInboundUserResponse) GetInstanceId() string {
@@ -1695,7 +1987,7 @@ type ListInboundUsersRequest struct {
 
 func (x *ListInboundUsersRequest) Reset() {
 	*x = ListInboundUsersRequest{}
-	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[24]
+	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1707,7 +1999,7 @@ func (x *ListInboundUsersRequest) String() string {
 func (*ListInboundUsersRequest) ProtoMessage() {}
 
 func (x *ListInboundUsersRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[24]
+	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1720,7 +2012,7 @@ func (x *ListInboundUsersRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListInboundUsersRequest.ProtoReflect.Descriptor instead.
 func (*ListInboundUsersRequest) Descriptor() ([]byte, []int) {
-	return file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDescGZIP(), []int{24}
+	return file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *ListInboundUsersRequest) GetInstanceId() string {
@@ -1750,7 +2042,7 @@ type ListInboundUsersResponse struct {
 
 func (x *ListInboundUsersResponse) Reset() {
 	*x = ListInboundUsersResponse{}
-	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[25]
+	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1762,7 +2054,7 @@ func (x *ListInboundUsersResponse) String() string {
 func (*ListInboundUsersResponse) ProtoMessage() {}
 
 func (x *ListInboundUsersResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[25]
+	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1775,7 +2067,7 @@ func (x *ListInboundUsersResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListInboundUsersResponse.ProtoReflect.Descriptor instead.
 func (*ListInboundUsersResponse) Descriptor() ([]byte, []int) {
-	return file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDescGZIP(), []int{25}
+	return file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *ListInboundUsersResponse) GetInstanceId() string {
@@ -1817,7 +2109,7 @@ type GetUserOnlineStatsRequest struct {
 
 func (x *GetUserOnlineStatsRequest) Reset() {
 	*x = GetUserOnlineStatsRequest{}
-	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[26]
+	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1829,7 +2121,7 @@ func (x *GetUserOnlineStatsRequest) String() string {
 func (*GetUserOnlineStatsRequest) ProtoMessage() {}
 
 func (x *GetUserOnlineStatsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[26]
+	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1842,7 +2134,7 @@ func (x *GetUserOnlineStatsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetUserOnlineStatsRequest.ProtoReflect.Descriptor instead.
 func (*GetUserOnlineStatsRequest) Descriptor() ([]byte, []int) {
-	return file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDescGZIP(), []int{26}
+	return file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *GetUserOnlineStatsRequest) GetInstanceId() string {
@@ -1871,7 +2163,7 @@ type GetUserOnlineStatsResponse struct {
 
 func (x *GetUserOnlineStatsResponse) Reset() {
 	*x = GetUserOnlineStatsResponse{}
-	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[27]
+	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1883,7 +2175,7 @@ func (x *GetUserOnlineStatsResponse) String() string {
 func (*GetUserOnlineStatsResponse) ProtoMessage() {}
 
 func (x *GetUserOnlineStatsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[27]
+	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1896,7 +2188,7 @@ func (x *GetUserOnlineStatsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetUserOnlineStatsResponse.ProtoReflect.Descriptor instead.
 func (*GetUserOnlineStatsResponse) Descriptor() ([]byte, []int) {
-	return file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDescGZIP(), []int{27}
+	return file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *GetUserOnlineStatsResponse) GetInstanceId() string {
@@ -1937,7 +2229,7 @@ type ListUserOnlineIPsRequest struct {
 
 func (x *ListUserOnlineIPsRequest) Reset() {
 	*x = ListUserOnlineIPsRequest{}
-	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[28]
+	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1949,7 +2241,7 @@ func (x *ListUserOnlineIPsRequest) String() string {
 func (*ListUserOnlineIPsRequest) ProtoMessage() {}
 
 func (x *ListUserOnlineIPsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[28]
+	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1962,7 +2254,7 @@ func (x *ListUserOnlineIPsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListUserOnlineIPsRequest.ProtoReflect.Descriptor instead.
 func (*ListUserOnlineIPsRequest) Descriptor() ([]byte, []int) {
-	return file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDescGZIP(), []int{28}
+	return file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *ListUserOnlineIPsRequest) GetInstanceId() string {
@@ -1992,7 +2284,7 @@ type ListUserOnlineIPsResponse struct {
 
 func (x *ListUserOnlineIPsResponse) Reset() {
 	*x = ListUserOnlineIPsResponse{}
-	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[29]
+	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2004,7 +2296,7 @@ func (x *ListUserOnlineIPsResponse) String() string {
 func (*ListUserOnlineIPsResponse) ProtoMessage() {}
 
 func (x *ListUserOnlineIPsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[29]
+	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2017,7 +2309,7 @@ func (x *ListUserOnlineIPsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListUserOnlineIPsResponse.ProtoReflect.Descriptor instead.
 func (*ListUserOnlineIPsResponse) Descriptor() ([]byte, []int) {
-	return file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDescGZIP(), []int{29}
+	return file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *ListUserOnlineIPsResponse) GetInstanceId() string {
@@ -2059,7 +2351,7 @@ type OnlineIP struct {
 
 func (x *OnlineIP) Reset() {
 	*x = OnlineIP{}
-	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[30]
+	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2071,7 +2363,7 @@ func (x *OnlineIP) String() string {
 func (*OnlineIP) ProtoMessage() {}
 
 func (x *OnlineIP) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[30]
+	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2084,7 +2376,7 @@ func (x *OnlineIP) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OnlineIP.ProtoReflect.Descriptor instead.
 func (*OnlineIP) Descriptor() ([]byte, []int) {
-	return file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDescGZIP(), []int{30}
+	return file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *OnlineIP) GetIp() string {
@@ -2110,7 +2402,7 @@ type ListOnlineUsersRequest struct {
 
 func (x *ListOnlineUsersRequest) Reset() {
 	*x = ListOnlineUsersRequest{}
-	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[31]
+	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2122,7 +2414,7 @@ func (x *ListOnlineUsersRequest) String() string {
 func (*ListOnlineUsersRequest) ProtoMessage() {}
 
 func (x *ListOnlineUsersRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[31]
+	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2135,7 +2427,7 @@ func (x *ListOnlineUsersRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListOnlineUsersRequest.ProtoReflect.Descriptor instead.
 func (*ListOnlineUsersRequest) Descriptor() ([]byte, []int) {
-	return file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDescGZIP(), []int{31}
+	return file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *ListOnlineUsersRequest) GetInstanceId() string {
@@ -2157,7 +2449,7 @@ type ListOnlineUsersResponse struct {
 
 func (x *ListOnlineUsersResponse) Reset() {
 	*x = ListOnlineUsersResponse{}
-	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[32]
+	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2169,7 +2461,7 @@ func (x *ListOnlineUsersResponse) String() string {
 func (*ListOnlineUsersResponse) ProtoMessage() {}
 
 func (x *ListOnlineUsersResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[32]
+	mi := &file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2182,7 +2474,7 @@ func (x *ListOnlineUsersResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListOnlineUsersResponse.ProtoReflect.Descriptor instead.
 func (*ListOnlineUsersResponse) Descriptor() ([]byte, []int) {
-	return file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDescGZIP(), []int{32}
+	return file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *ListOnlineUsersResponse) GetInstanceId() string {
@@ -2274,7 +2566,27 @@ const file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDesc = ""
 	"\vinbound_tag\x18\x02 \x01(\tR\n" +
 	"inboundTag\x12\x14\n" +
 	"\x05email\x18\x03 \x01(\tR\x05email\x125\n" +
-	"\x17acknowledged_at_unix_ms\x18\x04 \x01(\x03R\x14acknowledgedAtUnixMs\"^\n" +
+	"\x17acknowledged_at_unix_ms\x18\x04 \x01(\x03R\x14acknowledgedAtUnixMs\"\x93\x01\n" +
+	"\x16AddInboundUsersRequest\x12\x1f\n" +
+	"\vinstance_id\x18\x01 \x01(\tR\n" +
+	"instanceId\x12\x1f\n" +
+	"\vinbound_tag\x18\x02 \x01(\tR\n" +
+	"inboundTag\x127\n" +
+	"\x05users\x18\x03 \x03(\v2!.papilio.node.xray.v1.InboundUserR\x05users\"\xc1\x01\n" +
+	"\x12UserAdditionResult\x12\x14\n" +
+	"\x05email\x18\x01 \x01(\tR\x05email\x12=\n" +
+	"\x05state\x18\x02 \x01(\x0e2'.papilio.node.xray.v1.UserAdditionStateR\x05state\x12:\n" +
+	"\x17acknowledged_at_unix_ms\x18\x03 \x01(\x03H\x00R\x14acknowledgedAtUnixMs\x88\x01\x01B\x1a\n" +
+	"\x18_acknowledged_at_unix_ms\"\x9b\x01\n" +
+	"\x17AddInboundUsersResponse\x12\x1f\n" +
+	"\vinstance_id\x18\x01 \x01(\tR\n" +
+	"instanceId\x12\x1f\n" +
+	"\vinbound_tag\x18\x02 \x01(\tR\n" +
+	"inboundTag\x12>\n" +
+	"\x05items\x18\x03 \x03(\v2(.papilio.node.xray.v1.UserAdditionResultR\x05items\"\xa6\x01\n" +
+	"\x14UserAdditionsFailure\x12I\n" +
+	"\bprogress\x18\x01 \x01(\v2-.papilio.node.xray.v1.AddInboundUsersResponseR\bprogress\x12C\n" +
+	"\aoutcome\x18\x02 \x01(\x0e2).papilio.node.xray.v1.UserMutationOutcomeR\aoutcome\"^\n" +
 	"\x1aGetInboundUserCountRequest\x12\x1f\n" +
 	"\vinstance_id\x18\x01 \x01(\tR\n" +
 	"instanceId\x12\x1f\n" +
@@ -2391,7 +2703,13 @@ const file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDesc = ""
 	"\x1eSHADOWSOCKS_CIPHER_AES_256_GCM\x10\x02\x12(\n" +
 	"$SHADOWSOCKS_CIPHER_CHACHA20_POLY1305\x10\x03\x12)\n" +
 	"%SHADOWSOCKS_CIPHER_XCHACHA20_POLY1305\x10\x04\x12\x1b\n" +
-	"\x17SHADOWSOCKS_CIPHER_NONE\x10\x05BPZNgithub.com/PapilioVPN/node/internal/modules/xray/users/grpcapi/proto/v1;userv1b\x06proto3"
+	"\x17SHADOWSOCKS_CIPHER_NONE\x10\x05*\xcb\x01\n" +
+	"\x11UserAdditionState\x12#\n" +
+	"\x1fUSER_ADDITION_STATE_UNSPECIFIED\x10\x00\x12%\n" +
+	"!USER_ADDITION_STATE_NOT_ATTEMPTED\x10\x01\x12$\n" +
+	" USER_ADDITION_STATE_ACKNOWLEDGED\x10\x02\x12#\n" +
+	"\x1fUSER_ADDITION_STATE_NOT_APPLIED\x10\x03\x12\x1f\n" +
+	"\x1bUSER_ADDITION_STATE_UNKNOWN\x10\x04BPZNgithub.com/PapilioVPN/node/internal/modules/xray/users/grpcapi/proto/v1;userv1b\x06proto3"
 
 var (
 	file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDescOnce sync.Once
@@ -2405,68 +2723,78 @@ func file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDescGZIP()
 	return file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDescData
 }
 
-var file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes = make([]protoimpl.MessageInfo, 33)
+var file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
+var file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes = make([]protoimpl.MessageInfo, 37)
 var file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_goTypes = []any{
 	(UserMutationOutcome)(0),                // 0: papilio.node.xray.v1.UserMutationOutcome
 	(ShadowsocksCipher)(0),                  // 1: papilio.node.xray.v1.ShadowsocksCipher
-	(*RemoveInboundUserRequest)(nil),        // 2: papilio.node.xray.v1.RemoveInboundUserRequest
-	(*RemoveInboundUserResponse)(nil),       // 3: papilio.node.xray.v1.RemoveInboundUserResponse
-	(*UserMutationFailure)(nil),             // 4: papilio.node.xray.v1.UserMutationFailure
-	(*AddInboundUserRequest)(nil),           // 5: papilio.node.xray.v1.AddInboundUserRequest
-	(*InboundUser)(nil),                     // 6: papilio.node.xray.v1.InboundUser
-	(*VLESSAccount)(nil),                    // 7: papilio.node.xray.v1.VLESSAccount
-	(*VMessAccount)(nil),                    // 8: papilio.node.xray.v1.VMessAccount
-	(*PasswordAccount)(nil),                 // 9: papilio.node.xray.v1.PasswordAccount
-	(*HysteriaAccount)(nil),                 // 10: papilio.node.xray.v1.HysteriaAccount
-	(*ShadowsocksAccount)(nil),              // 11: papilio.node.xray.v1.ShadowsocksAccount
-	(*Shadowsocks2022Account)(nil),          // 12: papilio.node.xray.v1.Shadowsocks2022Account
-	(*WireGuardAccount)(nil),                // 13: papilio.node.xray.v1.WireGuardAccount
-	(*AddInboundUserResponse)(nil),          // 14: papilio.node.xray.v1.AddInboundUserResponse
-	(*GetInboundUserCountRequest)(nil),      // 15: papilio.node.xray.v1.GetInboundUserCountRequest
-	(*GetInboundUserCountResponse)(nil),     // 16: papilio.node.xray.v1.GetInboundUserCountResponse
-	(*InboundUserMetadata)(nil),             // 17: papilio.node.xray.v1.InboundUserMetadata
-	(*NativeUserAccount)(nil),               // 18: papilio.node.xray.v1.NativeUserAccount
-	(*InboundUserRecord)(nil),               // 19: papilio.node.xray.v1.InboundUserRecord
-	(*GetInboundUserMetadataRequest)(nil),   // 20: papilio.node.xray.v1.GetInboundUserMetadataRequest
-	(*GetInboundUserMetadataResponse)(nil),  // 21: papilio.node.xray.v1.GetInboundUserMetadataResponse
-	(*ListInboundUserMetadataRequest)(nil),  // 22: papilio.node.xray.v1.ListInboundUserMetadataRequest
-	(*ListInboundUserMetadataResponse)(nil), // 23: papilio.node.xray.v1.ListInboundUserMetadataResponse
-	(*GetInboundUserRequest)(nil),           // 24: papilio.node.xray.v1.GetInboundUserRequest
-	(*GetInboundUserResponse)(nil),          // 25: papilio.node.xray.v1.GetInboundUserResponse
-	(*ListInboundUsersRequest)(nil),         // 26: papilio.node.xray.v1.ListInboundUsersRequest
-	(*ListInboundUsersResponse)(nil),        // 27: papilio.node.xray.v1.ListInboundUsersResponse
-	(*GetUserOnlineStatsRequest)(nil),       // 28: papilio.node.xray.v1.GetUserOnlineStatsRequest
-	(*GetUserOnlineStatsResponse)(nil),      // 29: papilio.node.xray.v1.GetUserOnlineStatsResponse
-	(*ListUserOnlineIPsRequest)(nil),        // 30: papilio.node.xray.v1.ListUserOnlineIPsRequest
-	(*ListUserOnlineIPsResponse)(nil),       // 31: papilio.node.xray.v1.ListUserOnlineIPsResponse
-	(*OnlineIP)(nil),                        // 32: papilio.node.xray.v1.OnlineIP
-	(*ListOnlineUsersRequest)(nil),          // 33: papilio.node.xray.v1.ListOnlineUsersRequest
-	(*ListOnlineUsersResponse)(nil),         // 34: papilio.node.xray.v1.ListOnlineUsersResponse
+	(UserAdditionState)(0),                  // 2: papilio.node.xray.v1.UserAdditionState
+	(*RemoveInboundUserRequest)(nil),        // 3: papilio.node.xray.v1.RemoveInboundUserRequest
+	(*RemoveInboundUserResponse)(nil),       // 4: papilio.node.xray.v1.RemoveInboundUserResponse
+	(*UserMutationFailure)(nil),             // 5: papilio.node.xray.v1.UserMutationFailure
+	(*AddInboundUserRequest)(nil),           // 6: papilio.node.xray.v1.AddInboundUserRequest
+	(*InboundUser)(nil),                     // 7: papilio.node.xray.v1.InboundUser
+	(*VLESSAccount)(nil),                    // 8: papilio.node.xray.v1.VLESSAccount
+	(*VMessAccount)(nil),                    // 9: papilio.node.xray.v1.VMessAccount
+	(*PasswordAccount)(nil),                 // 10: papilio.node.xray.v1.PasswordAccount
+	(*HysteriaAccount)(nil),                 // 11: papilio.node.xray.v1.HysteriaAccount
+	(*ShadowsocksAccount)(nil),              // 12: papilio.node.xray.v1.ShadowsocksAccount
+	(*Shadowsocks2022Account)(nil),          // 13: papilio.node.xray.v1.Shadowsocks2022Account
+	(*WireGuardAccount)(nil),                // 14: papilio.node.xray.v1.WireGuardAccount
+	(*AddInboundUserResponse)(nil),          // 15: papilio.node.xray.v1.AddInboundUserResponse
+	(*AddInboundUsersRequest)(nil),          // 16: papilio.node.xray.v1.AddInboundUsersRequest
+	(*UserAdditionResult)(nil),              // 17: papilio.node.xray.v1.UserAdditionResult
+	(*AddInboundUsersResponse)(nil),         // 18: papilio.node.xray.v1.AddInboundUsersResponse
+	(*UserAdditionsFailure)(nil),            // 19: papilio.node.xray.v1.UserAdditionsFailure
+	(*GetInboundUserCountRequest)(nil),      // 20: papilio.node.xray.v1.GetInboundUserCountRequest
+	(*GetInboundUserCountResponse)(nil),     // 21: papilio.node.xray.v1.GetInboundUserCountResponse
+	(*InboundUserMetadata)(nil),             // 22: papilio.node.xray.v1.InboundUserMetadata
+	(*NativeUserAccount)(nil),               // 23: papilio.node.xray.v1.NativeUserAccount
+	(*InboundUserRecord)(nil),               // 24: papilio.node.xray.v1.InboundUserRecord
+	(*GetInboundUserMetadataRequest)(nil),   // 25: papilio.node.xray.v1.GetInboundUserMetadataRequest
+	(*GetInboundUserMetadataResponse)(nil),  // 26: papilio.node.xray.v1.GetInboundUserMetadataResponse
+	(*ListInboundUserMetadataRequest)(nil),  // 27: papilio.node.xray.v1.ListInboundUserMetadataRequest
+	(*ListInboundUserMetadataResponse)(nil), // 28: papilio.node.xray.v1.ListInboundUserMetadataResponse
+	(*GetInboundUserRequest)(nil),           // 29: papilio.node.xray.v1.GetInboundUserRequest
+	(*GetInboundUserResponse)(nil),          // 30: papilio.node.xray.v1.GetInboundUserResponse
+	(*ListInboundUsersRequest)(nil),         // 31: papilio.node.xray.v1.ListInboundUsersRequest
+	(*ListInboundUsersResponse)(nil),        // 32: papilio.node.xray.v1.ListInboundUsersResponse
+	(*GetUserOnlineStatsRequest)(nil),       // 33: papilio.node.xray.v1.GetUserOnlineStatsRequest
+	(*GetUserOnlineStatsResponse)(nil),      // 34: papilio.node.xray.v1.GetUserOnlineStatsResponse
+	(*ListUserOnlineIPsRequest)(nil),        // 35: papilio.node.xray.v1.ListUserOnlineIPsRequest
+	(*ListUserOnlineIPsResponse)(nil),       // 36: papilio.node.xray.v1.ListUserOnlineIPsResponse
+	(*OnlineIP)(nil),                        // 37: papilio.node.xray.v1.OnlineIP
+	(*ListOnlineUsersRequest)(nil),          // 38: papilio.node.xray.v1.ListOnlineUsersRequest
+	(*ListOnlineUsersResponse)(nil),         // 39: papilio.node.xray.v1.ListOnlineUsersResponse
 }
 var file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_depIdxs = []int32{
 	0,  // 0: papilio.node.xray.v1.UserMutationFailure.outcome:type_name -> papilio.node.xray.v1.UserMutationOutcome
-	6,  // 1: papilio.node.xray.v1.AddInboundUserRequest.user:type_name -> papilio.node.xray.v1.InboundUser
-	7,  // 2: papilio.node.xray.v1.InboundUser.vless:type_name -> papilio.node.xray.v1.VLESSAccount
-	8,  // 3: papilio.node.xray.v1.InboundUser.vmess:type_name -> papilio.node.xray.v1.VMessAccount
-	9,  // 4: papilio.node.xray.v1.InboundUser.trojan:type_name -> papilio.node.xray.v1.PasswordAccount
-	11, // 5: papilio.node.xray.v1.InboundUser.shadowsocks:type_name -> papilio.node.xray.v1.ShadowsocksAccount
-	12, // 6: papilio.node.xray.v1.InboundUser.shadowsocks_2022:type_name -> papilio.node.xray.v1.Shadowsocks2022Account
-	10, // 7: papilio.node.xray.v1.InboundUser.hysteria:type_name -> papilio.node.xray.v1.HysteriaAccount
-	9,  // 8: papilio.node.xray.v1.InboundUser.masque:type_name -> papilio.node.xray.v1.PasswordAccount
-	13, // 9: papilio.node.xray.v1.InboundUser.wireguard:type_name -> papilio.node.xray.v1.WireGuardAccount
+	7,  // 1: papilio.node.xray.v1.AddInboundUserRequest.user:type_name -> papilio.node.xray.v1.InboundUser
+	8,  // 2: papilio.node.xray.v1.InboundUser.vless:type_name -> papilio.node.xray.v1.VLESSAccount
+	9,  // 3: papilio.node.xray.v1.InboundUser.vmess:type_name -> papilio.node.xray.v1.VMessAccount
+	10, // 4: papilio.node.xray.v1.InboundUser.trojan:type_name -> papilio.node.xray.v1.PasswordAccount
+	12, // 5: papilio.node.xray.v1.InboundUser.shadowsocks:type_name -> papilio.node.xray.v1.ShadowsocksAccount
+	13, // 6: papilio.node.xray.v1.InboundUser.shadowsocks_2022:type_name -> papilio.node.xray.v1.Shadowsocks2022Account
+	11, // 7: papilio.node.xray.v1.InboundUser.hysteria:type_name -> papilio.node.xray.v1.HysteriaAccount
+	10, // 8: papilio.node.xray.v1.InboundUser.masque:type_name -> papilio.node.xray.v1.PasswordAccount
+	14, // 9: papilio.node.xray.v1.InboundUser.wireguard:type_name -> papilio.node.xray.v1.WireGuardAccount
 	1,  // 10: papilio.node.xray.v1.ShadowsocksAccount.cipher:type_name -> papilio.node.xray.v1.ShadowsocksCipher
-	18, // 11: papilio.node.xray.v1.InboundUserRecord.account:type_name -> papilio.node.xray.v1.NativeUserAccount
-	17, // 12: papilio.node.xray.v1.GetInboundUserMetadataResponse.user:type_name -> papilio.node.xray.v1.InboundUserMetadata
-	17, // 13: papilio.node.xray.v1.ListInboundUserMetadataResponse.users:type_name -> papilio.node.xray.v1.InboundUserMetadata
-	19, // 14: papilio.node.xray.v1.GetInboundUserResponse.user:type_name -> papilio.node.xray.v1.InboundUserRecord
-	19, // 15: papilio.node.xray.v1.ListInboundUsersResponse.users:type_name -> papilio.node.xray.v1.InboundUserRecord
-	32, // 16: papilio.node.xray.v1.ListUserOnlineIPsResponse.items:type_name -> papilio.node.xray.v1.OnlineIP
-	17, // [17:17] is the sub-list for method output_type
-	17, // [17:17] is the sub-list for method input_type
-	17, // [17:17] is the sub-list for extension type_name
-	17, // [17:17] is the sub-list for extension extendee
-	0,  // [0:17] is the sub-list for field type_name
+	7,  // 11: papilio.node.xray.v1.AddInboundUsersRequest.users:type_name -> papilio.node.xray.v1.InboundUser
+	2,  // 12: papilio.node.xray.v1.UserAdditionResult.state:type_name -> papilio.node.xray.v1.UserAdditionState
+	17, // 13: papilio.node.xray.v1.AddInboundUsersResponse.items:type_name -> papilio.node.xray.v1.UserAdditionResult
+	18, // 14: papilio.node.xray.v1.UserAdditionsFailure.progress:type_name -> papilio.node.xray.v1.AddInboundUsersResponse
+	0,  // 15: papilio.node.xray.v1.UserAdditionsFailure.outcome:type_name -> papilio.node.xray.v1.UserMutationOutcome
+	23, // 16: papilio.node.xray.v1.InboundUserRecord.account:type_name -> papilio.node.xray.v1.NativeUserAccount
+	22, // 17: papilio.node.xray.v1.GetInboundUserMetadataResponse.user:type_name -> papilio.node.xray.v1.InboundUserMetadata
+	22, // 18: papilio.node.xray.v1.ListInboundUserMetadataResponse.users:type_name -> papilio.node.xray.v1.InboundUserMetadata
+	24, // 19: papilio.node.xray.v1.GetInboundUserResponse.user:type_name -> papilio.node.xray.v1.InboundUserRecord
+	24, // 20: papilio.node.xray.v1.ListInboundUsersResponse.users:type_name -> papilio.node.xray.v1.InboundUserRecord
+	37, // 21: papilio.node.xray.v1.ListUserOnlineIPsResponse.items:type_name -> papilio.node.xray.v1.OnlineIP
+	22, // [22:22] is the sub-list for method output_type
+	22, // [22:22] is the sub-list for method input_type
+	22, // [22:22] is the sub-list for extension type_name
+	22, // [22:22] is the sub-list for extension extendee
+	0,  // [0:22] is the sub-list for field type_name
 }
 
 func init() { file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_init() }
@@ -2485,13 +2813,14 @@ func file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_init() {
 		(*InboundUser_Wireguard)(nil),
 	}
 	file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[11].OneofWrappers = []any{}
+	file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_msgTypes[14].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDesc), len(file_internal_modules_xray_users_grpcapi_proto_v1_users_proto_rawDesc)),
-			NumEnums:      2,
-			NumMessages:   33,
+			NumEnums:      3,
+			NumMessages:   37,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

@@ -16,6 +16,9 @@ service XrayService {
   // One live native addition after an inbound-type preflight. Not atomic against
   // external inbound replacement; no remove-before-add or application retry.
   rpc AddInboundUser(AddInboundUserRequest) returns (AddInboundUserResponse);
+  // Ordered 1+N native fallback with one type preflight and no retry or rollback.
+  // A failure retains per-input progress in UserAdditionsFailure details.
+  rpc AddInboundUsers(AddInboundUsersRequest) returns (AddInboundUsersResponse);
   // One live native removal; no config persistence or established-session claim.
   // Lost replies can hide an applied change. No application retry.
   rpc RemoveInboundUser(RemoveInboundUserRequest) returns (RemoveInboundUserResponse);

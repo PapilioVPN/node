@@ -72,6 +72,22 @@ func TestUserAdditionDecodesEveryTypedAccountAndRetainsLateAcknowledgement(t *te
 			if err != nil || calls != 1 || response.InstanceId != " edge " || response.InboundTag != " exact>>>tag " || response.Email != tc.wire.Email || response.AcknowledgedAtUnixMs != ack.UnixMilli() {
 				t.Fatalf("confirmed addition was lost/replayed: %v", err)
 			}
+			batchCtx, batchCancel := context.WithCancel(verifiedContext(t))
+			defer batchCancel()
+			batchCalls := 0
+			batch := usergrpc.UserAPI{AllowUserManagement: true, UserAdditions: usersAdder(func(received context.Context, id instances.InstanceID, input domain.InboundUserAdditions) (domain.InstanceInboundUserAdditions, error) {
+				batchCalls++
+				if received != batchCtx || id != " edge " || input.InboundTag != " exact>>>tag " || len(input.Users) != 1 || input.Users[0].Email != tc.wire.Email || input.Users[0].Level != math.MaxUint32 || !reflect.DeepEqual(input.Users[0].Account, tc.want) {
+					t.Fatal("typed collection account/context changed")
+				}
+				batchCancel()
+				return domain.InstanceInboundUserAdditions{InstanceID: id, InboundTag: input.InboundTag, Report: domain.UserAdditionsReport{Items: []domain.UserAdditionResult{{Email: input.Users[0].Email, State: domain.UserMutationAcknowledged, AcknowledgedAt: ack}}}}, nil
+			})}
+			got, err := batch.AddInboundUsers(batchCtx, &userv1.AddInboundUsersRequest{InstanceId: " edge ", InboundTag: " exact>>>tag ", Users: []*userv1.InboundUser{tc.wire}})
+			if err != nil || batchCalls != 1 || len(got.Items) != 1 || got.Items[0].Email != tc.wire.Email || got.Items[0].GetAcknowledgedAtUnixMs() != ack.UnixMilli() {
+				t.Fatal("typed collection acknowledgement lost")
+			}
+
 		})
 	}
 }

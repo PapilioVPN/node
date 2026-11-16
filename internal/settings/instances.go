@@ -42,6 +42,13 @@ type Xray struct {
 	Inspection   *BinaryInspection       `yaml:"inspection,omitempty"`
 	API          *XrayAPI                `yaml:"api,omitempty"`
 	RoutingRules *RoutingRulePreparation `yaml:"routing_rules,omitempty"`
+	Users        *XrayUsers              `yaml:"users,omitempty"`
+}
+
+// XrayUsers enables collection mutations with an explicit per-request ceiling.
+// Native API and management request deadlines still bound the entire operation.
+type XrayUsers struct {
+	MaxBatchUsers uint32 `yaml:"max_batch_users"`
 }
 
 // RoutingRulePreparation enables single-rule changes through the configured API.
@@ -113,6 +120,11 @@ func validateInstances(instances []Instance) error {
 		if traffic := instance.Traffic; traffic != nil {
 			if xray.API == nil || traffic.ResetConcurrency <= 0 || traffic.ResetConcurrency > xray.API.MaxConcurrent {
 				return fmt.Errorf("%w: instances[%d].traffic requires an API and positive reset_concurrency within API max_concurrent", ErrInvalidConfig, i)
+			}
+		}
+		if users := xray.Users; users != nil {
+			if xray.API == nil || users.MaxBatchUsers == 0 {
+				return fmt.Errorf("%w: instances[%d].xray.users requires an API and positive max_batch_users", ErrInvalidConfig, i)
 			}
 		}
 		if rules := xray.RoutingRules; rules != nil {

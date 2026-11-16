@@ -22,3 +22,5 @@ var ErrUserReadUnsupported = errors.New("Xray user observations are not supporte
 var ErrInvalidUserCount = errors.New("invalid Xray user count")
 var ErrInvalidUserObservation = errors.New("invalid Xray user observation")
 var ErrUserRecordUnsupported = errors.New("unsupported Xray native user record")
+var ErrUserCollectionsDisabled = errors.New("Xray user collection mutations are not configured")
+var ErrUserCollectionTooLarge = errors.New("Xray user collection exceeds its configured limit")

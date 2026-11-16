@@ -25,6 +25,7 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	XrayService_AddInboundUser_FullMethodName          = "/papilio.node.xray.v1.XrayService/AddInboundUser"
+	XrayService_AddInboundUsers_FullMethodName         = "/papilio.node.xray.v1.XrayService/AddInboundUsers"
 	XrayService_RemoveInboundUser_FullMethodName       = "/papilio.node.xray.v1.XrayService/RemoveInboundUser"
 	XrayService_GetBinaryInfo_FullMethodName           = "/papilio.node.xray.v1.XrayService/GetBinaryInfo"
 	XrayService_GetRuntimeInfo_FullMethodName          = "/papilio.node.xray.v1.XrayService/GetRuntimeInfo"
@@ -59,6 +60,9 @@ type XrayServiceClient interface {
 	// One live native addition after an inbound-type preflight. Not atomic against
 	// external inbound replacement; no remove-before-add or application retry.
 	AddInboundUser(ctx context.Context, in *v1.AddInboundUserRequest, opts ...grpc.CallOption) (*v1.AddInboundUserResponse, error)
+	// Ordered 1+N native fallback with one type preflight and no retry or rollback.
+	// A failure retains per-input progress in UserAdditionsFailure details.
+	AddInboundUsers(ctx context.Context, in *v1.AddInboundUsersRequest, opts ...grpc.CallOption) (*v1.AddInboundUsersResponse, error)
 	// One live native removal; no config persistence or established-session claim.
 	// Lost replies can hide an applied change. No application retry.
 	RemoveInboundUser(ctx context.Context, in *v1.RemoveInboundUserRequest, opts ...grpc.CallOption) (*v1.RemoveInboundUserResponse, error)
@@ -131,6 +135,16 @@ func (c *xrayServiceClient) AddInboundUser(ctx context.Context, in *v1.AddInboun
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(v1.AddInboundUserResponse)
 	err := c.cc.Invoke(ctx, XrayService_AddInboundUser_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *xrayServiceClient) AddInboundUsers(ctx context.Context, in *v1.AddInboundUsersRequest, opts ...grpc.CallOption) (*v1.AddInboundUsersResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(v1.AddInboundUsersResponse)
+	err := c.cc.Invoke(ctx, XrayService_AddInboundUsers_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -394,6 +408,9 @@ type XrayServiceServer interface {
 	// One live native addition after an inbound-type preflight. Not atomic against
 	// external inbound replacement; no remove-before-add or application retry.
 	AddInboundUser(context.Context, *v1.AddInboundUserRequest) (*v1.AddInboundUserResponse, error)
+	// Ordered 1+N native fallback with one type preflight and no retry or rollback.
+	// A failure retains per-input progress in UserAdditionsFailure details.
+	AddInboundUsers(context.Context, *v1.AddInboundUsersRequest) (*v1.AddInboundUsersResponse, error)
 	// One live native removal; no config persistence or established-session claim.
 	// Lost replies can hide an applied change. No application retry.
 	RemoveInboundUser(context.Context, *v1.RemoveInboundUserRequest) (*v1.RemoveInboundUserResponse, error)
@@ -464,6 +481,9 @@ type UnimplementedXrayServiceServer struct{}
 
 func (UnimplementedXrayServiceServer) AddInboundUser(context.Context, *v1.AddInboundUserRequest) (*v1.AddInboundUserResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method AddInboundUser not implemented")
+}
+func (UnimplementedXrayServiceServer) AddInboundUsers(context.Context, *v1.AddInboundUsersRequest) (*v1.AddInboundUsersResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method AddInboundUsers not implemented")
 }
 func (UnimplementedXrayServiceServer) RemoveInboundUser(context.Context, *v1.RemoveInboundUserRequest) (*v1.RemoveInboundUserResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method RemoveInboundUser not implemented")
@@ -575,6 +595,24 @@ func _XrayService_AddInboundUser_Handler(srv interface{}, ctx context.Context, d
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(XrayServiceServer).AddInboundUser(ctx, req.(*v1.AddInboundUserRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _XrayService_AddInboundUsers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(v1.AddInboundUsersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(XrayServiceServer).AddInboundUsers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: XrayService_AddInboundUsers_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(XrayServiceServer).AddInboundUsers(ctx, req.(*v1.AddInboundUsersRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1039,6 +1077,10 @@ var XrayService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "AddInboundUser",
 			Handler:    _XrayService_AddInboundUser_Handler,
+		},
+		{
+			MethodName: "AddInboundUsers",
+			Handler:    _XrayService_AddInboundUsers_Handler,
 		},
 		{
 			MethodName: "RemoveInboundUser",

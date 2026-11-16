@@ -49,6 +49,7 @@ func TestLiveUserAdditionOverMTLSEnablesVLESSWithoutRemovingExistingUsers(t *tes
 				[]int{firstPorts[0], firstPorts[0], firstPorts[1], secondPorts[0], firstPorts[0]},
 				[]string{selectedID, otherID, selectedID, selectedID, replacementID})
 			cfg := certificates.Config()
+			first.Xray.Users = &settings.XrayUsers{MaxBatchUsers: 1}
 			cfg.Instances = []settings.Instance{first, second}
 			cfg.Communications.GRPC.Permissions.ManageEngineUsers = true
 			cfg.Communications.GRPC.Permissions.ReadEngineUsers = true
@@ -111,6 +112,24 @@ func TestLiveUserAdditionOverMTLSEnablesVLESSWithoutRemovingExistingUsers(t *tes
 				t.Fatalf("wrong account family reached native user manager: %v", err)
 			}
 			request.User.Account = &userv1.InboundUser_Vless{Vless: &userv1.VLESSAccount{Id: selectedID}}
+			if _, err := client.AddInboundUsers(ctx, &userv1.AddInboundUsersRequest{InstanceId: "edge-b", InboundTag: "target"}); status.Code(err) != codes.FailedPrecondition {
+				t.Fatal("omitted profile enabled collection writes")
+			}
+			batch := &userv1.AddInboundUsersRequest{InstanceId: "edge-a", InboundTag: "target", Users: []*userv1.InboundUser{request.User, request.User}}
+			if _, err := client.AddInboundUsers(ctx, batch); status.Code(err) != codes.ResourceExhausted {
+				t.Fatal("collection ignored its instance limit")
+			}
+			batch.Users = batch.Users[:1]
+			if result, err := client.AddInboundUsers(ctx, batch); err != nil || len(result.Items) != 1 || result.Items[0].State != userv1.UserAdditionState_USER_ADDITION_STATE_ACKNOWLEDGED {
+				t.Fatal("real native TCP/Unix collection failed")
+			}
+			if err := xrayTraffic(ctx, proxies[0]); err != nil {
+				t.Fatal("collection-added user could not authenticate")
+			}
+			if _, err := client.RemoveInboundUser(ctx, &userv1.RemoveInboundUserRequest{InstanceId: "edge-a", InboundTag: "target", Email: request.User.Email}); err != nil {
+				t.Fatal("collection traffic fixture cleanup failed")
+			}
+
 			started := time.Now().UnixMilli()
 			ack, err := client.AddInboundUser(ctx, request)
 			if err != nil || ack.InstanceId != "edge-a" || ack.InboundTag != "target" || ack.Email != "selected@local" || ack.AcknowledgedAtUnixMs < started {

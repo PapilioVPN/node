@@ -1,6 +1,12 @@
 package domain
 
-import "time"
+import (
+	"time"
+
+	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
+)
+
+const AddInboundUsers = "xray.inbound.users.add"
 
 // InboundUserAdditions borrows an ordered collection for one exact inbound.
 // Repeated identities retain the native protocol's duplicate/upsert semantics.
@@ -31,4 +37,10 @@ type UserAdditionResult struct {
 // A missing report on pre-admission failure never implies partial execution.
 type UserAdditionsReport struct {
 	Items []UserAdditionResult
+}
+
+type InstanceInboundUserAdditions struct {
+	InstanceID instances.InstanceID
+	InboundTag string
+	Report     UserAdditionsReport
 }

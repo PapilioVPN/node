@@ -44,4 +44,29 @@ func verifyContainerUserViews(t *testing.T, ctx context.Context, client xrayv1.X
 	if err != nil || absent.User != nil || absent.ObservedAtUnixMs <= 0 {
 		t.Fatalf("packaged missing user became a fabricated account: %v", err)
 	}
+	verifyContainerUserAdditions(t, ctx, client)
+}
+
+func verifyContainerUserAdditions(t *testing.T, ctx context.Context, client xrayv1.XrayServiceClient) {
+	t.Helper()
+	request := &userv1.AddInboundUsersRequest{InstanceId: "packaged-xray", InboundTag: "users", Users: []*userv1.InboundUser{
+		{Email: "packaged-collection-a@local", Account: &userv1.InboundUser_Trojan{Trojan: &userv1.PasswordAccount{Password: "test-only-collection-a"}}},
+		{Email: "packaged-collection-b@local", Account: &userv1.InboundUser_Trojan{Trojan: &userv1.PasswordAccount{Password: "test-only-collection-b"}}},
+	}}
+	result, err := client.AddInboundUsers(ctx, request)
+	if err != nil || len(result.Items) != 2 {
+		t.Fatalf("packaged user collection failed: %v", err)
+	}
+	for i, item := range result.Items {
+		if item.State != userv1.UserAdditionState_USER_ADDITION_STATE_ACKNOWLEDGED || item.Email != request.Users[i].Email || item.AcknowledgedAtUnixMs == nil {
+			t.Fatal("packaged collection acknowledgement changed")
+		}
+		stored, err := client.GetInboundUserMetadata(ctx, &userv1.GetInboundUserMetadataRequest{InstanceId: "packaged-xray", InboundTag: "users", Email: item.Email})
+		if err != nil || stored.User == nil || stored.User.Email != item.Email {
+			t.Fatal("packaged collection did not change actual membership")
+		}
+		if _, err := client.RemoveInboundUser(ctx, &userv1.RemoveInboundUserRequest{InstanceId: "packaged-xray", InboundTag: "users", Email: item.Email}); err != nil {
+			t.Fatal("packaged collection cleanup failed")
+		}
+	}
 }

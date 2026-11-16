@@ -26,6 +26,10 @@ instances: []
 #        request_timeout: 2s
 #        max_receive_bytes: 4096
 #        max_concurrent: 4
+#      # Optional user collections. Requires API and manage_engine_users below.
+#      # Both request_timeout values bound the whole collection; no automatic retry.
+#      users:
+#        max_batch_users: 1000
 #      # Optional single-rule append/replace. Requires API and an existing work_dir.
 #      # api.request_timeout bounds preparation and application together.
 #      routing_rules:
