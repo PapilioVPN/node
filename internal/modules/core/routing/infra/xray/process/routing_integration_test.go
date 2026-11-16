@@ -319,3 +319,35 @@ func TestRulePreparationKeepsNativeBytesAndRejectsIncompleteOutput(t *testing.T)
 		assertEmptyDirectory(t, cfg.WorkDir)
 	}
 }
+
+func xrayBinary(t *testing.T) string {
+	t.Helper()
+	binary := os.Getenv("XRAY_TEST_BINARY")
+	if binary == "" {
+		t.Fatal("XRAY_TEST_BINARY is required; run make integration")
+	}
+	return binary
+}
+
+func await(t *testing.T, ready func() bool) {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	defer cancel()
+	ticker := time.NewTicker(10 * time.Millisecond)
+	defer ticker.Stop()
+	for !ready() {
+		select {
+		case <-ctx.Done():
+			t.Fatalf("native observation did not complete: %v", ctx.Err())
+		case <-ticker.C:
+		}
+	}
+}
+
+func assertEmptyDirectory(t *testing.T, directory string) {
+	t.Helper()
+	entries, err := os.ReadDir(directory)
+	if err != nil || len(entries) != 0 {
+		t.Fatalf("candidate workspace leaked: %v, %v", entries, err)
+	}
+}

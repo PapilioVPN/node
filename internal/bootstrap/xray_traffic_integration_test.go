@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"net"
 	"net/url"
 	"os"
 	"testing"
@@ -82,10 +83,28 @@ func TestTrafficCountersAndResetOverMTLSPreserveNativeUsageAndInstanceIsolation(
 	for _, network := range []string{"unix", "tcp"} {
 		t.Run(network, func(t *testing.T) {
 			certificates := testutil.NewCertificates(t)
+			// Keep every selected endpoint reserved until composition is complete.
+			// The management listener also needs a distinct fixed port: instance
+			// Start acknowledges spawning before native listeners are necessarily bound.
+			var reservations []net.Listener
+			reserve := func(address string) string {
+				listener, err := net.Listen("tcp", address)
+				if err != nil {
+					t.Fatal(err)
+				}
+				reservations = append(reservations, listener)
+				t.Cleanup(func() { _ = listener.Close() })
+				return listener.Addr().String()
+			}
 			first, firstAddress := configuredXray(t, certificates.Directory, "edge-a")
+			reserve(firstAddress)
 			second, secondAddress := configuredXray(t, certificates.Directory, "edge-b")
+			reserve(secondAddress)
 			for _, instance := range []*settings.Instance{&first, &second} {
 				configureXrayAPI(t, instance, network, []string{"StatsService"})
+				if network == "tcp" {
+					reserve(instance.Xray.API.Address)
+				}
 				configureTrafficCounters(t, instance)
 			}
 			original, err := os.ReadFile(first.Xray.ConfigFile)
@@ -93,6 +112,7 @@ func TestTrafficCountersAndResetOverMTLSPreserveNativeUsageAndInstanceIsolation(
 				t.Fatal(err)
 			}
 			cfg := certificates.Config()
+			cfg.Communications.GRPC.Listen = reserve(cfg.Communications.GRPC.Listen)
 			cfg.Instances = []settings.Instance{first, second}
 			cfg.Communications.GRPC.Permissions.ReadEngineStats = true
 			cfg.Communications.GRPC.Permissions.ResetEngineStats = true
@@ -102,6 +122,11 @@ func TestTrafficCountersAndResetOverMTLSPreserveNativeUsageAndInstanceIsolation(
 				Closers []io.Closer `group:"module_resources"`
 			}
 			application := bootstrap.New(cfg, "test", fx.NopLogger, fx.Populate(&server, &cleanup))
+			for _, listener := range reservations {
+				if err := listener.Close(); err != nil {
+					t.Fatal(err)
+				}
+			}
 			if err := application.Start(t.Context()); err != nil {
 				t.Fatal(err)
 			}
