@@ -44,6 +44,18 @@ func TestAPIConstructionAndCanceledAdmissionCreateNoNativeChannel(t *testing.T) 
 	if _, err := client.RemoveRoutingRule(t.Context(), "\xff"); !errors.Is(err, domain.ErrInvalidRoutingRuleTag) || errors.Is(err, domain.ErrRoutingMutationUnknown) || client.connection != nil {
 		t.Fatalf("unrepresentable removal created workers/effects: %v", err)
 	}
+
+	for _, mode := range []domain.RoutingRuleMode{0, 255} {
+		if _, err := client.ApplyRoutingRule(t.Context(), domain.PreparedRoutingRule{Config: []byte{1}}, mode); !errors.Is(err, domain.ErrInvalidRoutingRuleMode) || errors.Is(err, domain.ErrRoutingMutationUnknown) || client.connection != nil {
+			t.Fatalf("invalid mode created workers/effects: %v", err)
+		}
+	}
+	if _, err := client.ApplyRoutingRule(t.Context(), domain.PreparedRoutingRule{}, domain.AppendRoutingRule); !errors.Is(err, domain.ErrInvalidPreparedRoutingRule) || client.connection != nil {
+		t.Fatal("empty compiled input created native workers")
+	}
+	if _, err := client.ApplyRoutingRule(ctx, domain.PreparedRoutingRule{Config: []byte{1}}, domain.ReplaceRoutingRules); !errors.Is(err, context.Canceled) || errors.Is(err, domain.ErrRoutingMutationUnknown) || client.connection != nil {
+		t.Fatal("canceled application created native workers/effects")
+	}
 	for _, selection := range []domain.BalancerOverride{{BalancerTag: "\xff"}, {BalancerTag: "pool", Target: "\xff"}} {
 		if _, err := client.OverrideBalancerTarget(t.Context(), selection); !errors.Is(err, domain.ErrInvalidBalancerOverride) || errors.Is(err, domain.ErrRoutingMutationUnknown) || client.connection != nil {
 			t.Fatalf("invalid override allocated native workers/effects: %v", err)
@@ -90,6 +102,10 @@ func TestAPIConstructionAndCanceledAdmissionCreateNoNativeChannel(t *testing.T) 
 
 	if _, err := client.RemoveRoutingRule(t.Context(), "rule"); !errors.Is(err, grpc.ErrClientConnClosing) || errors.Is(err, domain.ErrRoutingMutationUnknown) || client.connection != nil {
 		t.Fatalf("closed removal created workers/effects: %v", err)
+	}
+
+	if _, err := client.ApplyRoutingRule(t.Context(), domain.PreparedRoutingRule{Config: []byte{1}}, domain.AppendRoutingRule); !errors.Is(err, grpc.ErrClientConnClosing) || errors.Is(err, domain.ErrRoutingMutationUnknown) || client.connection != nil {
+		t.Fatalf("closed application created workers/effects: %v", err)
 	}
 	if _, err := client.AddInboundUser(t.Context(), addition); !errors.Is(err, grpc.ErrClientConnClosing) || errors.Is(err, domain.ErrUserMutationUnknown) || client.connection != nil {
 		t.Fatalf("closed addition created native effects/workers: %v", err)

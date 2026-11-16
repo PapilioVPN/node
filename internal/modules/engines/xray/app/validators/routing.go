@@ -28,3 +28,10 @@ func RoutingRuleTag(tag string) error {
 	}
 	return nil
 }
+
+func RoutingRuleMode(mode domain.RoutingRuleMode) error {
+	if mode != domain.AppendRoutingRule && mode != domain.ReplaceRoutingRules {
+		return domain.ErrInvalidRoutingRuleMode
+	}
+	return nil
+}
