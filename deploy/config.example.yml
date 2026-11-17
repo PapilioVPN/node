@@ -19,7 +19,7 @@ communications:
       certificate: certs/node.crt
       private_key: certs/node.key
       ca: certs/clients-ca.crt
-    connection_timeout: 5s
+    connection_timeout: 3s
     shutdown_timeout: 5s
     max_recv_message_size: 1048576
     max_send_message_size: 1048576

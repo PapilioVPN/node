@@ -65,7 +65,7 @@ func register(lifecycle fx.Lifecycle, shutdown fx.Shutdowner, server *grpc.Serve
 		},
 		OnStop: func(ctx context.Context) error {
 			stopping.Store(true)
-			ctx, cancel := context.WithTimeout(ctx, config.ShutdownTimeout)
+			drainContext, cancel := context.WithTimeout(ctx, config.ShutdownTimeout)
 			defer cancel()
 			drained := make(chan struct{})
 			go func() { server.GracefulStop(); close(drained) }()
@@ -73,12 +73,16 @@ func register(lifecycle fx.Lifecycle, shutdown fx.Shutdowner, server *grpc.Serve
 			case <-drained:
 				<-done
 				return serveError
-			case <-ctx.Done():
+			case <-drainContext.Done():
 				// Stop cancels active RPCs. Handlers must honor their contexts; Go cannot
 				// forcibly terminate a handler that ignores cancellation.
 				server.Stop()
+				select {
+				case <-drained:
+				case <-ctx.Done():
+				}
 				<-done
-				return errors.Join(ctx.Err(), serveError)
+				return errors.Join(drainContext.Err(), serveError)
 			}
 		},
 	})

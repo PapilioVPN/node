@@ -44,6 +44,7 @@ func TestLoadGRPCConfiguration(t *testing.T) {
 func TestGRPCRejectsUnboundedResources(t *testing.T) {
 	for _, test := range []struct{ name, before, after string }{
 		{"handshake", "connection_timeout: 1s", "connection_timeout: 0s"},
+		{"handshake budget", "connection_timeout: 1s", "connection_timeout: 3s"},
 		{"drain", "shutdown_timeout: 2s", "shutdown_timeout: 0s"},
 		{"receive", "max_recv_message_size: 1024", "max_recv_message_size: 0"},
 		{"send", "max_send_message_size: 1024", "max_send_message_size: -1"},

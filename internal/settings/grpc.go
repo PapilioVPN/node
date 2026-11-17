@@ -29,6 +29,9 @@ func (config GRPC) validate() error {
 	if config.ConnectionTimeout <= 0 || config.ShutdownTimeout <= 0 {
 		return errors.New("timeouts must be positive")
 	}
+	if config.ConnectionTimeout >= config.ShutdownTimeout {
+		return errors.New("connection_timeout must fit inside shutdown_timeout so pending handshakes can finish")
+	}
 	if config.MaxConnections <= 0 || config.MaxRecvMessageSize <= 0 || config.MaxSendMessageSize <= 0 || config.MaxConcurrentStreams == 0 || config.MaxHeaderListSize == 0 {
 		return errors.New("message, stream and header limits must be positive")
 	}
