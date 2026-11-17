@@ -140,13 +140,36 @@ func TestLaterStartupFailureRollsBackHTTPListener(t *testing.T) {
 }
 
 func TestUnexpectedHTTPExitRequestsNodeFailure(t *testing.T) {
-	app, server, addresses := composeServer(t, serverConfig(testutil.NewPKI(t).Server))
+	pki := testutil.NewPKI(t)
+	app, server, addresses := composeServer(t, serverConfig(pki.Server))
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	if err := app.Start(ctx); err != nil {
 		t.Fatal(err)
 	}
-	<-addresses
+	t.Cleanup(func() {
+		stopContext, stopCancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer stopCancel()
+		// The unexpected-exit error is asserted below; still stop after early failures.
+		_ = app.Stop(stopContext)
+	})
+	identity, err := mtls.Client(pki.Client)
+	if err != nil {
+		t.Fatal(err)
+	}
+	transport := &http.Transport{TLSClientConfig: identity, DisableKeepAlives: true}
+	defer transport.CloseIdleConnections()
+	client := &http.Client{Transport: transport, Timeout: time.Second}
+	// Fiber's OnListen hook precedes fasthttp's Serve registration. Complete a
+	// real request before asking Shutdown to close an already-serving listener.
+	response, err := client.Get("https://" + <-addresses + "/unregistered")
+	if err != nil {
+		t.Fatal(err)
+	}
+	response.Body.Close()
+	if response.StatusCode != http.StatusNotFound {
+		t.Fatalf("unexpected fixture response: %d", response.StatusCode)
+	}
 	signal := app.Wait()
 	if err := server.ShutdownWithContext(ctx); err != nil {
 		t.Fatal(err)
