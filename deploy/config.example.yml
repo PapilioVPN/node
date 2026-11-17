@@ -1,0 +1,15 @@
+startup_timeout: 10s
+shutdown_timeout: 15s
+communications:
+  http:
+    address: 127.0.0.1:8443
+    tls:
+      certificate: certs/node.crt
+      private_key: certs/node.key
+      ca: certs/clients-ca.crt
+    read_timeout: 5s
+    write_timeout: 10s
+    idle_timeout: 30s
+    shutdown_timeout: 10s
+    body_limit: 1048576
+    concurrency: 1024
