@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package papilio.node.xray.v1;
 
-option go_package = "github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi/proto/v1;userv1";
+option go_package = "github.com/PapilioVPN/node/internal/modules/xray/online/grpcapi/proto/v1;onlinev1";
 
 message GetUserOnlineStatsRequest {
   string instance_id = 1;

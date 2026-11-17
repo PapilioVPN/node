@@ -14,12 +14,12 @@ import (
 	grpcapi "github.com/PapilioVPN/node/internal/bootstrap/xrayapi"
 	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
 	infogrpc "github.com/PapilioVPN/node/internal/modules/xray/info/grpcapi"
+	online "github.com/PapilioVPN/node/internal/modules/xray/online/grpcapi"
 	trafficgrpc "github.com/PapilioVPN/node/internal/modules/xray/traffic/grpcapi"
 	"github.com/PapilioVPN/node/internal/modules/xray/users/domain"
 	usergrpc "github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi"
 	"github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi/mutations"
 	"github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi/observations"
-	"github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi/online"
 	userv1 "github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi/proto/v1"
 	"github.com/PapilioVPN/node/internal/shared/testutil"
 )
@@ -34,7 +34,7 @@ func TestUserCountRequiresIdentityAndItsOwnGrantBeforeShape(t *testing.T) {
 	if _, err := (grpcapi.Handler{}).GetInboundUserCount(t.Context(), nil); status.Code(err) != codes.Unauthenticated {
 		t.Fatalf("unverified count request reached shape/application: %v", err)
 	}
-	if _, err := (grpcapi.Handler{UserAPI: usergrpc.UserAPI{MutationAPI: mutations.MutationAPI{AllowUserManagement: true}, OnlineAPI: online.OnlineAPI{AllowOnlineRead: true}}, TrafficAPI: trafficgrpc.TrafficAPI{AllowStatsRead: true, AllowStatsReset: true}, InfoAPI: infogrpc.InfoAPI{AllowInfoRead: true}}).GetInboundUserCount(testutil.VerifiedGRPCContext(t), nil); status.Code(err) != codes.PermissionDenied {
+	if _, err := (grpcapi.Handler{UserAPI: usergrpc.UserAPI{MutationAPI: mutations.MutationAPI{AllowUserManagement: true}}, OnlineAPI: online.OnlineAPI{AllowOnlineRead: true}, TrafficAPI: trafficgrpc.TrafficAPI{AllowStatsRead: true, AllowStatsReset: true}, InfoAPI: infogrpc.InfoAPI{AllowInfoRead: true}}).GetInboundUserCount(testutil.VerifiedGRPCContext(t), nil); status.Code(err) != codes.PermissionDenied {
 		t.Fatalf("other grants enabled user counts: %v", err)
 	}
 }

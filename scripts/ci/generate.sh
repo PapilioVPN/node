@@ -33,7 +33,7 @@ PATH="$tool_dir:$PATH" "$tool_dir/protoc" \
   internal/modules/xray/users/grpcapi/proto/v1/accounts.proto \
   internal/modules/xray/users/grpcapi/proto/v1/mutations.proto \
   internal/modules/xray/users/grpcapi/proto/v1/observations.proto \
-  internal/modules/xray/users/grpcapi/proto/v1/online.proto \
+  internal/modules/xray/online/grpcapi/proto/v1/online.proto \
   internal/modules/xray/routing/grpcapi/proto/v1/routing.proto \
   internal/modules/xray/traffic/grpcapi/proto/v1/traffic.proto \
   internal/modules/xray/info/grpcapi/proto/v1/info.proto \

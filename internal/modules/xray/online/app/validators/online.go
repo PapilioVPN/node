@@ -1,6 +1,6 @@
 package validators
 
-import "github.com/PapilioVPN/node/internal/modules/xray/users/domain"
+import "github.com/PapilioVPN/node/internal/modules/xray/online/domain"
 
 // UserEmail requires an identity without trimming an opaque native email.
 func UserEmail(email domain.UserEmail) error {

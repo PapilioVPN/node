@@ -11,7 +11,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/PapilioVPN/node/internal/modules/xray/users/domain"
+	"github.com/PapilioVPN/node/internal/modules/xray/online/domain"
 )
 
 // ReadUserOnlineStats performs one native observation, sharing channel and admission bounds.

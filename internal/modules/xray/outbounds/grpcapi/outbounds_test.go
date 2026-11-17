@@ -16,6 +16,7 @@ import (
 	grpcapi "github.com/PapilioVPN/node/internal/bootstrap/xrayapi"
 	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
 	infogrpc "github.com/PapilioVPN/node/internal/modules/xray/info/grpcapi"
+	online "github.com/PapilioVPN/node/internal/modules/xray/online/grpcapi"
 	"github.com/PapilioVPN/node/internal/modules/xray/outbounds/domain"
 	outboundgrpc "github.com/PapilioVPN/node/internal/modules/xray/outbounds/grpcapi"
 	xrayv1 "github.com/PapilioVPN/node/internal/modules/xray/outbounds/grpcapi/proto/v1"
@@ -24,7 +25,6 @@ import (
 	usergrpc "github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi"
 	"github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi/mutations"
 	"github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi/observations"
-	"github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi/online"
 )
 
 type outboundStatusReader struct {
@@ -50,7 +50,7 @@ func TestOutboundReadsRequireIdentityBeforeShape(t *testing.T) {
 }
 
 func TestOutboundReadsRequireIndependentGrantBeforeShape(t *testing.T) {
-	h := grpcapi.Handler{UserAPI: usergrpc.UserAPI{MutationAPI: mutations.MutationAPI{AllowUserManagement: true}, ObservationAPI: observations.ObservationAPI{AllowUsersRead: true}, OnlineAPI: online.OnlineAPI{AllowOnlineRead: true}}, RoutingAPI: routinggrpc.RoutingAPI{AllowRoutingRead: true, AllowRoutingTest: true, AllowRoutingManagement: true}, TrafficAPI: trafficgrpc.TrafficAPI{AllowStatsRead: true, AllowStatsReset: true}, InfoAPI: infogrpc.InfoAPI{AllowInfoRead: true}}
+	h := grpcapi.Handler{UserAPI: usergrpc.UserAPI{MutationAPI: mutations.MutationAPI{AllowUserManagement: true}, ObservationAPI: observations.ObservationAPI{AllowUsersRead: true}}, OnlineAPI: online.OnlineAPI{AllowOnlineRead: true}, RoutingAPI: routinggrpc.RoutingAPI{AllowRoutingRead: true, AllowRoutingTest: true, AllowRoutingManagement: true}, TrafficAPI: trafficgrpc.TrafficAPI{AllowStatsRead: true, AllowStatsReset: true}, InfoAPI: infogrpc.InfoAPI{AllowInfoRead: true}}
 	if _, err := h.GetOutboundStatus(verifiedContext(t), nil); status.Code(err) != codes.PermissionDenied {
 		t.Fatal("other grants enabled outbound lookup")
 	}

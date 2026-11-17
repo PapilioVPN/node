@@ -12,12 +12,13 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 
+	servicegrpc "github.com/PapilioVPN/node/internal/bootstrap/xrayapi"
 	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
+	online "github.com/PapilioVPN/node/internal/modules/xray/online/grpcapi"
 	"github.com/PapilioVPN/node/internal/modules/xray/users/domain"
 	"github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi"
 	"github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi/mutations"
 	"github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi/observations"
-	"github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi/online"
 	userv1 "github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi/proto/v1"
 	"github.com/PapilioVPN/node/internal/shared/testutil"
 )
@@ -26,7 +27,7 @@ func TestUserDeltaChecksIdentityAndWriteGrantBeforeDecoding(t *testing.T) {
 	if _, err := (grpcapi.UserAPI{MutationAPI: mutations.MutationAPI{AllowUserManagement: true}}).ApplyInboundUserDelta(t.Context(), nil); status.Code(err) != codes.Unauthenticated {
 		t.Fatalf("delta did not verify identity before decoding: %v", err)
 	}
-	if _, err := (grpcapi.UserAPI{ObservationAPI: observations.ObservationAPI{AllowUsersRead: true, AllowUserAccountsRead: true}, OnlineAPI: online.OnlineAPI{AllowOnlineRead: true}}).ApplyInboundUserDelta(testutil.VerifiedGRPCContext(t), nil); status.Code(err) != codes.PermissionDenied {
+	if _, err := (servicegrpc.Handler{UserAPI: grpcapi.UserAPI{ObservationAPI: observations.ObservationAPI{AllowUsersRead: true, AllowUserAccountsRead: true}}, OnlineAPI: online.OnlineAPI{AllowOnlineRead: true}}).ApplyInboundUserDelta(testutil.VerifiedGRPCContext(t), nil); status.Code(err) != codes.PermissionDenied {
 		t.Fatalf("other grants enabled native delta effects: %v", err)
 	}
 }

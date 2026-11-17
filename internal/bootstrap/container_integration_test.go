@@ -27,6 +27,7 @@ import (
 	nodev1 "github.com/PapilioVPN/node/internal/modules/core/instances/grpcapi/proto/v1"
 	systemv1 "github.com/PapilioVPN/node/internal/modules/system/info/grpcapi/proto/v1"
 	infov1 "github.com/PapilioVPN/node/internal/modules/xray/info/grpcapi/proto/v1"
+	onlinev1 "github.com/PapilioVPN/node/internal/modules/xray/online/grpcapi/proto/v1"
 	routingv1 "github.com/PapilioVPN/node/internal/modules/xray/routing/grpcapi/proto/v1"
 	trafficv1 "github.com/PapilioVPN/node/internal/modules/xray/traffic/grpcapi/proto/v1"
 	userv1 "github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi/proto/v1"
@@ -235,13 +236,13 @@ func TestContainer(t *testing.T) {
 	}); status.Code(err) != codes.NotFound {
 		t.Fatalf("packaged Xray traffic collection grant/service failed: %v", err)
 	}
-	if _, err := xrayv1.NewXrayServiceClient(connection).GetUserOnlineStats(request, &userv1.GetUserOnlineStatsRequest{InstanceId: "unconfigured", Email: "reader"}); status.Code(err) != codes.NotFound {
+	if _, err := xrayv1.NewXrayServiceClient(connection).GetUserOnlineStats(request, &onlinev1.GetUserOnlineStatsRequest{InstanceId: "unconfigured", Email: "reader"}); status.Code(err) != codes.NotFound {
 		t.Fatalf("packaged online count grant/service: %v", err)
 	}
-	if _, err := xrayv1.NewXrayServiceClient(connection).ListUserOnlineIPs(request, &userv1.ListUserOnlineIPsRequest{InstanceId: "unconfigured", Email: "reader"}); status.Code(err) != codes.NotFound {
+	if _, err := xrayv1.NewXrayServiceClient(connection).ListUserOnlineIPs(request, &onlinev1.ListUserOnlineIPsRequest{InstanceId: "unconfigured", Email: "reader"}); status.Code(err) != codes.NotFound {
 		t.Fatalf("packaged online IP grant/service: %v", err)
 	}
-	if _, err := xrayv1.NewXrayServiceClient(connection).ListOnlineUsers(request, &userv1.ListOnlineUsersRequest{InstanceId: "unconfigured"}); status.Code(err) != codes.NotFound {
+	if _, err := xrayv1.NewXrayServiceClient(connection).ListOnlineUsers(request, &onlinev1.ListOnlineUsersRequest{InstanceId: "unconfigured"}); status.Code(err) != codes.NotFound {
 		t.Fatalf("packaged online users grant/service: %v", err)
 	}
 	verifyContainerRouting(t, request, xrayv1.NewXrayServiceClient(connection), certificates.Directory, runtimeDirectory, originalXrayConfig)

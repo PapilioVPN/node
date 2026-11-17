@@ -1,19 +1,16 @@
 //go:build integration && linux
 
-package online_test
+package integration_test
 
 import (
 	"bytes"
 	"context"
 	"encoding/json"
 	"io"
-	"net"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"os"
 	"reflect"
-	"sync"
 	"testing"
 	"time"
 
@@ -24,41 +21,12 @@ import (
 	"github.com/PapilioVPN/node/internal/bootstrap"
 	xrayv1 "github.com/PapilioVPN/node/internal/bootstrap/xrayapi/proto/v1"
 	infov1 "github.com/PapilioVPN/node/internal/modules/xray/info/grpcapi/proto/v1"
+	onlinev1 "github.com/PapilioVPN/node/internal/modules/xray/online/grpcapi/proto/v1"
 	trafficv1 "github.com/PapilioVPN/node/internal/modules/xray/traffic/grpcapi/proto/v1"
-	userv1 "github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi/proto/v1"
 	rpc "github.com/PapilioVPN/node/internal/platform/grpcserver"
 	"github.com/PapilioVPN/node/internal/settings"
 	"github.com/PapilioVPN/node/internal/shared/testutil"
 )
-
-func TestOnlineRPCsRejectExistingTrafficAndInfoGrants(t *testing.T) {
-	certificates := testutil.NewCertificates(t)
-	cfg := certificates.Config()
-	cfg.Communications.GRPC.Permissions.ReadEngineInfo = true
-	cfg.Communications.GRPC.Permissions.ReadEngineStats = true
-	var server *rpc.Server
-	application := bootstrap.New(cfg, "test", fx.NopLogger, fx.Populate(&server))
-	if err := application.Start(t.Context()); err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() {
-		if err := application.Stop(context.Background()); err != nil {
-			t.Error(err)
-		}
-		if err := server.Close(); err != nil {
-			t.Error(err)
-		}
-	})
-	client := xrayv1.NewXrayServiceClient(certificates.GRPCClient(t, server.Addr().String()))
-	_, countError := client.GetUserOnlineStats(t.Context(), &userv1.GetUserOnlineStatsRequest{})
-	_, ipsError := client.ListUserOnlineIPs(t.Context(), &userv1.ListUserOnlineIPsRequest{})
-	_, usersError := client.ListOnlineUsers(t.Context(), &userv1.ListOnlineUsersRequest{})
-	for _, err := range []error{countError, ipsError, usersError} {
-		if status.Code(err) != codes.PermissionDenied {
-			t.Errorf("existing grants reached online observations: %v", err)
-		}
-	}
-}
 
 func TestOnlineObservationsOverMTLSFollowRealConnectionLifetimes(t *testing.T) {
 	for _, network := range []string{"tcp", "unix"} {
@@ -136,7 +104,7 @@ func TestOnlineObservationsOverMTLSFollowRealConnectionLifetimes(t *testing.T) {
 			defer ticker.Stop()
 			for _, id := range []string{"edge-a", "edge-b"} {
 				for {
-					users, err := client.ListOnlineUsers(ctx, &userv1.ListOnlineUsersRequest{InstanceId: id})
+					users, err := client.ListOnlineUsers(ctx, &onlinev1.ListOnlineUsersRequest{InstanceId: id})
 					if err == nil {
 						if len(users.Emails) != 0 {
 							t.Fatalf("fresh instance has online users: %v", users)
@@ -154,8 +122,8 @@ func TestOnlineObservationsOverMTLSFollowRealConnectionLifetimes(t *testing.T) {
 				}
 			}
 			for _, id := range []string{"edge-a", "edge-b", "missing"} {
-				_, countErr := client.GetUserOnlineStats(ctx, &userv1.GetUserOnlineStatsRequest{InstanceId: id, Email: "reader@local"})
-				_, ipsErr := client.ListUserOnlineIPs(ctx, &userv1.ListUserOnlineIPsRequest{InstanceId: id, Email: "reader@local"})
+				_, countErr := client.GetUserOnlineStats(ctx, &onlinev1.GetUserOnlineStatsRequest{InstanceId: id, Email: "reader@local"})
+				_, ipsErr := client.ListUserOnlineIPs(ctx, &onlinev1.ListUserOnlineIPsRequest{InstanceId: id, Email: "reader@local"})
 				for _, err := range []error{countErr, ipsErr} {
 					if status.Code(err) != codes.NotFound {
 						t.Fatalf("untracked map became zero/empty: %v", err)
@@ -181,7 +149,7 @@ func TestOnlineObservationsOverMTLSFollowRealConnectionLifetimes(t *testing.T) {
 			awaitOnlineCount(t, ctx, client, 2)
 			for range 2 {
 				before := time.Now().UnixMilli()
-				ips, err := client.ListUserOnlineIPs(ctx, &userv1.ListUserOnlineIPsRequest{InstanceId: "edge-a", Email: "reader@local"})
+				ips, err := client.ListUserOnlineIPs(ctx, &onlinev1.ListUserOnlineIPsRequest{InstanceId: "edge-a", Email: "reader@local"})
 				if err != nil || ips.InstanceId != "edge-a" || ips.Email != "reader@local" || len(ips.Items) != 2 || ips.ObservedAtUnixMs < before {
 					t.Fatalf("active IPs: %v, %v", ips, err)
 				}
@@ -190,7 +158,7 @@ func TestOnlineObservationsOverMTLSFollowRealConnectionLifetimes(t *testing.T) {
 						t.Fatalf("native IP/timestamp: %v", ips)
 					}
 				}
-				users, err := client.ListOnlineUsers(ctx, &userv1.ListOnlineUsersRequest{InstanceId: "edge-a"})
+				users, err := client.ListOnlineUsers(ctx, &onlinev1.ListOnlineUsersRequest{InstanceId: "edge-a"})
 				if err != nil || !reflect.DeepEqual(users.Emails, []string{"reader@local"}) {
 					t.Fatalf("online users: %v, %v", users, err)
 				}
@@ -199,23 +167,23 @@ func TestOnlineObservationsOverMTLSFollowRealConnectionLifetimes(t *testing.T) {
 			awaitOnlineCount(t, ctx, client, 2) // Same-IP second reference remains.
 			secondFlow()
 			awaitOnlineCount(t, ctx, client, 1)
-			remaining, err := client.ListUserOnlineIPs(ctx, &userv1.ListUserOnlineIPsRequest{InstanceId: "edge-a", Email: "reader@local"})
+			remaining, err := client.ListUserOnlineIPs(ctx, &onlinev1.ListUserOnlineIPsRequest{InstanceId: "edge-a", Email: "reader@local"})
 			if err != nil || len(remaining.Items) != 1 || remaining.Items[0].Ip != "127.0.0.3" {
 				t.Fatalf("wrong IP removed: %v, %v", remaining, err)
 			}
 			thirdFlow()
 			awaitOnlineCount(t, ctx, client, 0)
-			empty, err := client.ListUserOnlineIPs(ctx, &userv1.ListUserOnlineIPsRequest{InstanceId: "edge-a", Email: "reader@local"})
+			empty, err := client.ListUserOnlineIPs(ctx, &onlinev1.ListUserOnlineIPsRequest{InstanceId: "edge-a", Email: "reader@local"})
 			if err != nil || len(empty.Items) != 0 {
 				t.Fatalf("registered empty map: %v, %v", empty, err)
 			}
 			for _, id := range []string{"edge-a", "edge-b"} {
-				users, err := client.ListOnlineUsers(ctx, &userv1.ListOnlineUsersRequest{InstanceId: id})
+				users, err := client.ListOnlineUsers(ctx, &onlinev1.ListOnlineUsersRequest{InstanceId: id})
 				if err != nil || len(users.Emails) != 0 {
 					t.Fatalf("disconnected/untouched user is online: %v, %v", users, err)
 				}
 			}
-			_, err = client.GetUserOnlineStats(ctx, &userv1.GetUserOnlineStatsRequest{InstanceId: "edge-b", Email: "reader@local"})
+			_, err = client.GetUserOnlineStats(ctx, &onlinev1.GetUserOnlineStatsRequest{InstanceId: "edge-b", Email: "reader@local"})
 			if status.Code(err) != codes.NotFound {
 				t.Fatalf("other instance map created: %v", err)
 			}
@@ -232,64 +200,5 @@ func TestOnlineObservationsOverMTLSFollowRealConnectionLifetimes(t *testing.T) {
 				t.Fatalf("online observations mutated configuration: %v", err)
 			}
 		})
-	}
-}
-
-// holdOnlineFlow keeps one real proxied response open until its idempotent close.
-// Explicit loopback source addresses avoid Xray's native 127.0.0.1 exclusion.
-func holdOnlineFlow(t *testing.T, proxyAddress string, target *httptest.Server, source string) func() {
-	t.Helper()
-	proxyURL, err := url.Parse("http://" + proxyAddress)
-	if err != nil {
-		t.Fatal(err)
-	}
-	proxyURL.User = url.UserPassword("reader@local", "test-password")
-	dialer := &net.Dialer{LocalAddr: &net.TCPAddr{IP: net.ParseIP(source)}, Timeout: time.Second}
-	// The target's native test client supplies trust for its isolated certificate.
-	transport := target.Client().Transport.(*http.Transport).Clone()
-	transport.Proxy = http.ProxyURL(proxyURL)
-	transport.DialContext = dialer.DialContext
-	transport.DisableKeepAlives = true
-	ctx, cancel := context.WithTimeout(t.Context(), 20*time.Second)
-	request, err := http.NewRequestWithContext(ctx, http.MethodGet, target.URL, nil)
-	if err != nil {
-		cancel()
-		t.Fatal(err)
-	}
-	response, err := (&http.Client{Transport: transport}).Do(request)
-	if err != nil {
-		cancel()
-		transport.CloseIdleConnections()
-		t.Fatal(err)
-	}
-	closeFlow := sync.OnceFunc(func() { cancel(); _ = response.Body.Close(); transport.CloseIdleConnections() })
-	t.Cleanup(closeFlow)
-	var content [1]byte
-	if _, err := io.ReadFull(response.Body, content[:]); err != nil {
-		t.Fatal(err)
-	}
-	if response.StatusCode != http.StatusOK || content[0] != '*' {
-		t.Fatalf("proxy flow failed: %s", response.Status)
-	}
-	return closeFlow
-}
-
-func awaitOnlineCount(t *testing.T, ctx context.Context, client xrayv1.XrayServiceClient, want int64) {
-	t.Helper()
-	ticker := time.NewTicker(10 * time.Millisecond)
-	defer ticker.Stop()
-	for {
-		result, err := client.GetUserOnlineStats(ctx, &userv1.GetUserOnlineStatsRequest{InstanceId: "edge-a", Email: "reader@local"})
-		if err != nil {
-			t.Fatal(err)
-		}
-		if result.OnlineIpCount == want {
-			return
-		}
-		select {
-		case <-ctx.Done():
-			t.Fatalf("online count = %d; want %d: %v", result.OnlineIpCount, want, ctx.Err())
-		case <-ticker.C:
-		}
 	}
 }

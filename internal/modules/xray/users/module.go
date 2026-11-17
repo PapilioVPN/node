@@ -1,4 +1,4 @@
-// Package users composes Xray account management and observations.
+// Package users composes Xray account membership management and observations.
 package users
 
 import (
@@ -14,7 +14,6 @@ import (
 	"github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi"
 	"github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi/mutations"
 	"github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi/observations"
-	"github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi/online"
 	userapi "github.com/PapilioVPN/node/internal/modules/xray/users/infra/api"
 	nativeapi "github.com/PapilioVPN/node/internal/platform/xray"
 	"github.com/PapilioVPN/node/internal/settings"
@@ -30,7 +29,6 @@ type BackendBinding struct {
 	Remover    services.InboundUserRemover
 	Counter    services.InboundUserCountReader
 	Observer   services.UserObservationReader
-	Online     services.OnlineReader
 }
 
 type backendBindings struct {
@@ -53,7 +51,6 @@ type operations struct {
 	removal      *services.UserRemovalService
 	counts       *services.UserCountService
 	observations *services.UserObservationService
-	online       *services.OnlineService
 }
 
 func newOperations(bindings backendBindings) (operations, error) {
@@ -63,7 +60,6 @@ func newOperations(bindings backendBindings) (operations, error) {
 	removers := make(map[instances.InstanceID]services.InboundUserRemover, len(bindings.Values))
 	counters := make(map[instances.InstanceID]services.InboundUserCountReader, len(bindings.Values))
 	observers := make(map[instances.InstanceID]services.UserObservationReader, len(bindings.Values))
-	online := make(map[instances.InstanceID]services.OnlineReader, len(bindings.Values))
 	for _, b := range bindings.Values {
 		if _, duplicate := adders[b.InstanceID]; duplicate || b.InstanceID == "" {
 			return operations{}, errors.New("invalid user backend binding")
@@ -74,7 +70,6 @@ func newOperations(bindings backendBindings) (operations, error) {
 		removers[b.InstanceID] = b.Remover
 		counters[b.InstanceID] = b.Counter
 		observers[b.InstanceID] = b.Observer
-		online[b.InstanceID] = b.Online
 	}
 	return operations{
 		addition:     services.NewUserAdditionService(adders),
@@ -83,7 +78,6 @@ func newOperations(bindings backendBindings) (operations, error) {
 		removal:      services.NewUserRemovalService(removers),
 		counts:       services.NewUserCountService(counters),
 		observations: services.NewUserObservationService(observers),
-		online:       services.NewOnlineService(online),
 	}, nil
 }
 
@@ -103,10 +97,6 @@ func newUserAPI(s operations, p settings.GRPCPermissions) grpcapi.UserAPI {
 			AllowUserMetadataRead: p.ReadEngineUserMetadata,
 			AllowUserAccountsRead: p.ReadEngineUserAccounts,
 		},
-		OnlineAPI: online.OnlineAPI{
-			Online:          s.online,
-			AllowOnlineRead: p.ReadEngineOnline,
-		},
 	}
 }
 
@@ -120,7 +110,6 @@ func capability() capabilityResult {
 		domain.AddInboundUser, domain.AddInboundUsers, domain.ApplyInboundUserDelta, domain.RemoveInboundUser, domain.ReadInboundUserCount,
 		domain.ReadInboundUser, domain.ListInboundUsers,
 		domain.ReadInboundUserMetadata, domain.ListInboundUserMetadata,
-		domain.ReadUserOnlineStats, domain.ListUserOnlineIPs, domain.ListOnlineUsers,
 	}}
 }
 
@@ -149,7 +138,6 @@ func newNativeBindings(config []settings.Instance, resources *nativeapi.Resource
 				binding.Additions.MaxUsers = profile.MaxBatchUsers
 				binding.Delta.MaxUsers = profile.MaxBatchUsers
 			}
-			binding.Online = &userapi.Online{API: client}
 		}
 		result.Values = append(result.Values, binding)
 	}

@@ -16,8 +16,8 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	userdomain "github.com/PapilioVPN/node/internal/modules/xray/online/domain"
 	trafficdomain "github.com/PapilioVPN/node/internal/modules/xray/traffic/domain"
-	userdomain "github.com/PapilioVPN/node/internal/modules/xray/users/domain"
 	"github.com/PapilioVPN/node/internal/shared/engineapi"
 	"github.com/PapilioVPN/node/internal/shared/testutil"
 )

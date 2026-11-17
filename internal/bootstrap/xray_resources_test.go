@@ -13,6 +13,8 @@ import (
 	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
 	infoservices "github.com/PapilioVPN/node/internal/modules/xray/info/app/services"
 	infoapi "github.com/PapilioVPN/node/internal/modules/xray/info/infra/api"
+	onlineservices "github.com/PapilioVPN/node/internal/modules/xray/online/app/services"
+	onlinexray "github.com/PapilioVPN/node/internal/modules/xray/online/infra/api"
 	outboundservices "github.com/PapilioVPN/node/internal/modules/xray/outbounds/app/services"
 	outboundapi "github.com/PapilioVPN/node/internal/modules/xray/outbounds/infra/api"
 	routingdomain "github.com/PapilioVPN/node/internal/modules/xray/routing/domain"
@@ -21,7 +23,6 @@ import (
 	trafficservices "github.com/PapilioVPN/node/internal/modules/xray/traffic/app/services"
 	"github.com/PapilioVPN/node/internal/modules/xray/traffic/domain"
 	trafficapi "github.com/PapilioVPN/node/internal/modules/xray/traffic/infra/api"
-	userservices "github.com/PapilioVPN/node/internal/modules/xray/users/app/services"
 	userdomain "github.com/PapilioVPN/node/internal/modules/xray/users/domain"
 	userxray "github.com/PapilioVPN/node/internal/modules/xray/users/infra/api"
 	nativeapi "github.com/PapilioVPN/node/internal/platform/xray"
@@ -60,7 +61,7 @@ func TestModuleClosesAPIAdmissionAndExportsFinalCleanup(t *testing.T) {
 	client, _ := resources.Client("edge")
 	service := infoservices.NewRuntimeInfoService(map[instances.InstanceID]infoservices.RuntimeInfoReader{"edge": &infoapi.Reader{API: client}})
 	outbounds := outboundservices.NewOutboundStatusService(map[instances.InstanceID]outboundservices.OutboundStatusReader{"edge": &outboundapi.Observer{API: client}})
-	online := userservices.NewOnlineService(map[instances.InstanceID]userservices.OnlineReader{"edge": &userxray.Online{API: client}})
+	online := onlineservices.NewOnlineService(map[instances.InstanceID]onlineservices.OnlineReader{"edge": &onlinexray.Online{API: client}})
 	userAdapter := &userxray.Adapter{API: client}
 	router := &routingxray.Router{API: client}
 	counters := &trafficapi.Counters{API: client}

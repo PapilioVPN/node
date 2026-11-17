@@ -3,6 +3,7 @@ package xrayapi
 
 import (
 	infogrpc "github.com/PapilioVPN/node/internal/modules/xray/info/grpcapi"
+	onlinegrpc "github.com/PapilioVPN/node/internal/modules/xray/online/grpcapi"
 	outboundgrpc "github.com/PapilioVPN/node/internal/modules/xray/outbounds/grpcapi"
 	routinggrpc "github.com/PapilioVPN/node/internal/modules/xray/routing/grpcapi"
 	trafficgrpc "github.com/PapilioVPN/node/internal/modules/xray/traffic/grpcapi"
@@ -11,6 +12,7 @@ import (
 
 type Handler struct {
 	usergrpc.UserAPI
+	onlinegrpc.OnlineAPI
 	routinggrpc.RoutingAPI
 	trafficgrpc.TrafficAPI
 	infogrpc.InfoAPI

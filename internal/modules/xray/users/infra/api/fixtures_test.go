@@ -7,16 +7,12 @@ import (
 	"time"
 
 	infoapi "github.com/PapilioVPN/node/internal/modules/xray/info/infra/api"
-	trafficapi "github.com/PapilioVPN/node/internal/modules/xray/traffic/infra/api"
-	userapi "github.com/PapilioVPN/node/internal/modules/xray/users/infra/api"
 	nativeapi "github.com/PapilioVPN/node/internal/platform/xray"
 )
 
 // The observation adapter verifies shared capacity and channel ownership.
 type apiClientSet struct {
 	*nativeapi.Client
-	*userapi.Online
-	*trafficapi.Counters
 	*infoapi.Reader
 }
 
@@ -31,5 +27,5 @@ func apiClient(t *testing.T, address string, timeout time.Duration, limit int) *
 			t.Error(err)
 		}
 	})
-	return &apiClientSet{Client: client, Online: &userapi.Online{API: client}, Counters: &trafficapi.Counters{API: client}, Reader: &infoapi.Reader{API: client}}
+	return &apiClientSet{Client: client, Reader: &infoapi.Reader{API: client}}
 }

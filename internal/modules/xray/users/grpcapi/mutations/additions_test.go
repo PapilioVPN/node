@@ -12,12 +12,13 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 
+	servicegrpc "github.com/PapilioVPN/node/internal/bootstrap/xrayapi"
 	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
+	online "github.com/PapilioVPN/node/internal/modules/xray/online/grpcapi"
 	"github.com/PapilioVPN/node/internal/modules/xray/users/domain"
 	"github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi"
 	"github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi/mutations"
 	"github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi/observations"
-	"github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi/online"
 	userv1 "github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi/proto/v1"
 	"github.com/PapilioVPN/node/internal/shared/testutil"
 )
@@ -32,7 +33,7 @@ func TestUserAdditionsVerifyIdentityAndWriteGrantBeforeShape(t *testing.T) {
 	if _, err := (grpcapi.UserAPI{MutationAPI: mutations.MutationAPI{AllowUserManagement: true}}).AddInboundUsers(t.Context(), nil); status.Code(err) != codes.Unauthenticated {
 		t.Fatalf("identity did not precede collection decoding: %v", err)
 	}
-	if _, err := (grpcapi.UserAPI{ObservationAPI: observations.ObservationAPI{AllowUsersRead: true, AllowUserAccountsRead: true}, OnlineAPI: online.OnlineAPI{AllowOnlineRead: true}}).AddInboundUsers(testutil.VerifiedGRPCContext(t), nil); status.Code(err) != codes.PermissionDenied {
+	if _, err := (servicegrpc.Handler{UserAPI: grpcapi.UserAPI{ObservationAPI: observations.ObservationAPI{AllowUsersRead: true, AllowUserAccountsRead: true}}, OnlineAPI: online.OnlineAPI{AllowOnlineRead: true}}).AddInboundUsers(testutil.VerifiedGRPCContext(t), nil); status.Code(err) != codes.PermissionDenied {
 		t.Fatalf("read grants enabled collection mutations: %v", err)
 	}
 }

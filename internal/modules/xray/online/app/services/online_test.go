@@ -9,8 +9,8 @@ import (
 	"time"
 
 	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
-	"github.com/PapilioVPN/node/internal/modules/xray/users/app/services"
-	"github.com/PapilioVPN/node/internal/modules/xray/users/domain"
+	"github.com/PapilioVPN/node/internal/modules/xray/online/app/services"
+	"github.com/PapilioVPN/node/internal/modules/xray/online/domain"
 )
 
 type onlineReader struct {

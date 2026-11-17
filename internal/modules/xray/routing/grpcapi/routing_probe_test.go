@@ -18,6 +18,7 @@ import (
 	grpcapi "github.com/PapilioVPN/node/internal/bootstrap/xrayapi"
 	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
 	infogrpc "github.com/PapilioVPN/node/internal/modules/xray/info/grpcapi"
+	online "github.com/PapilioVPN/node/internal/modules/xray/online/grpcapi"
 	"github.com/PapilioVPN/node/internal/modules/xray/routing/domain"
 	routinggrpc "github.com/PapilioVPN/node/internal/modules/xray/routing/grpcapi"
 	routingv1 "github.com/PapilioVPN/node/internal/modules/xray/routing/grpcapi/proto/v1"
@@ -25,7 +26,6 @@ import (
 	usergrpc "github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi"
 	"github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi/mutations"
 	"github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi/observations"
-	"github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi/online"
 )
 
 type routingProber func(context.Context, instances.InstanceID, domain.RoutingProbe) (domain.InstanceRoutingProbe, error)
@@ -50,7 +50,7 @@ func TestRouteRequiresIdentityAndIndependentGrantBeforeShape(t *testing.T) {
 	if _, err := (grpcapi.Handler{}).TestRoute(t.Context(), nil); status.Code(err) != codes.Unauthenticated {
 		t.Fatalf("unverified probe reached shape/application: %v", err)
 	}
-	h := grpcapi.Handler{UserAPI: usergrpc.UserAPI{MutationAPI: mutations.MutationAPI{AllowUserManagement: true}, ObservationAPI: observations.ObservationAPI{AllowUsersRead: true}, OnlineAPI: online.OnlineAPI{AllowOnlineRead: true}}, RoutingAPI: routinggrpc.RoutingAPI{AllowRoutingRead: true}, TrafficAPI: trafficgrpc.TrafficAPI{AllowStatsRead: true, AllowStatsReset: true}, InfoAPI: infogrpc.InfoAPI{AllowInfoRead: true}}
+	h := grpcapi.Handler{UserAPI: usergrpc.UserAPI{MutationAPI: mutations.MutationAPI{AllowUserManagement: true}, ObservationAPI: observations.ObservationAPI{AllowUsersRead: true}}, OnlineAPI: online.OnlineAPI{AllowOnlineRead: true}, RoutingAPI: routinggrpc.RoutingAPI{AllowRoutingRead: true}, TrafficAPI: trafficgrpc.TrafficAPI{AllowStatsRead: true, AllowStatsReset: true}, InfoAPI: infogrpc.InfoAPI{AllowInfoRead: true}}
 	if _, err := h.TestRoute(verifiedContext(t), nil); status.Code(err) != codes.PermissionDenied {
 		t.Fatalf("other grants enabled routing probes: %v", err)
 	}

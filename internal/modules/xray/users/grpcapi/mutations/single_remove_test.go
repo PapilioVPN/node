@@ -13,11 +13,11 @@ import (
 	grpcapi "github.com/PapilioVPN/node/internal/bootstrap/xrayapi"
 	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
 	infogrpc "github.com/PapilioVPN/node/internal/modules/xray/info/grpcapi"
+	online "github.com/PapilioVPN/node/internal/modules/xray/online/grpcapi"
 	trafficgrpc "github.com/PapilioVPN/node/internal/modules/xray/traffic/grpcapi"
 	"github.com/PapilioVPN/node/internal/modules/xray/users/domain"
 	usergrpc "github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi"
 	"github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi/mutations"
-	"github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi/online"
 	userv1 "github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi/proto/v1"
 	"github.com/PapilioVPN/node/internal/shared/testutil"
 )
@@ -32,7 +32,7 @@ func TestUserRemovalChecksIdentityAndIndependentGrantBeforeShape(t *testing.T) {
 	if _, err := (grpcapi.Handler{UserAPI: usergrpc.UserAPI{MutationAPI: mutations.MutationAPI{AllowUserManagement: true}}}).RemoveInboundUser(t.Context(), nil); status.Code(err) != codes.Unauthenticated {
 		t.Fatal(err)
 	}
-	if _, err := (grpcapi.Handler{TrafficAPI: trafficgrpc.TrafficAPI{AllowStatsRead: true, AllowStatsReset: true}, InfoAPI: infogrpc.InfoAPI{AllowInfoRead: true}, UserAPI: usergrpc.UserAPI{OnlineAPI: online.OnlineAPI{AllowOnlineRead: true}}}).RemoveInboundUser(testutil.VerifiedGRPCContext(t), nil); status.Code(err) != codes.PermissionDenied {
+	if _, err := (grpcapi.Handler{TrafficAPI: trafficgrpc.TrafficAPI{AllowStatsRead: true, AllowStatsReset: true}, InfoAPI: infogrpc.InfoAPI{AllowInfoRead: true}, OnlineAPI: online.OnlineAPI{AllowOnlineRead: true}}).RemoveInboundUser(testutil.VerifiedGRPCContext(t), nil); status.Code(err) != codes.PermissionDenied {
 		t.Fatal(err)
 	}
 	h := grpcapi.Handler{UserAPI: usergrpc.UserAPI{MutationAPI: mutations.MutationAPI{AllowUserManagement: true}}}

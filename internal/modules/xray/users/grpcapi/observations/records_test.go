@@ -17,6 +17,7 @@ import (
 	grpcapi "github.com/PapilioVPN/node/internal/bootstrap/xrayapi"
 	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
 	infogrpc "github.com/PapilioVPN/node/internal/modules/xray/info/grpcapi"
+	online "github.com/PapilioVPN/node/internal/modules/xray/online/grpcapi"
 	outboundgrpc "github.com/PapilioVPN/node/internal/modules/xray/outbounds/grpcapi"
 	routinggrpc "github.com/PapilioVPN/node/internal/modules/xray/routing/grpcapi"
 	trafficgrpc "github.com/PapilioVPN/node/internal/modules/xray/traffic/grpcapi"
@@ -24,7 +25,6 @@ import (
 	usergrpc "github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi"
 	"github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi/mutations"
 	"github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi/observations"
-	"github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi/online"
 	userv1 "github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi/proto/v1"
 	"github.com/PapilioVPN/node/internal/shared/testutil"
 )
@@ -78,7 +78,7 @@ func TestUserViewsRequireIndependentGrants(t *testing.T) {
 		t.Run(op.name, func(t *testing.T) {
 			h := grpcapi.Handler{UserAPI:
 			// Also grant the opposite view: it must not enable this operation.
-			usergrpc.UserAPI{MutationAPI: mutations.MutationAPI{AllowUserManagement: true}, ObservationAPI: observations.ObservationAPI{AllowUsersRead: true}, OnlineAPI: online.OnlineAPI{AllowOnlineRead: true}}, RoutingAPI: routinggrpc.RoutingAPI{AllowRoutingRead: true, AllowRoutingTest: true, AllowRoutingManagement: true}, TrafficAPI: trafficgrpc.TrafficAPI{AllowStatsRead: true, AllowStatsReset: true}, InfoAPI: infogrpc.InfoAPI{AllowInfoRead: true}, OutboundAPI: outboundgrpc.OutboundAPI{AllowOutboundsRead: true},
+			usergrpc.UserAPI{MutationAPI: mutations.MutationAPI{AllowUserManagement: true}, ObservationAPI: observations.ObservationAPI{AllowUsersRead: true}}, OnlineAPI: online.OnlineAPI{AllowOnlineRead: true}, RoutingAPI: routinggrpc.RoutingAPI{AllowRoutingRead: true, AllowRoutingTest: true, AllowRoutingManagement: true}, TrafficAPI: trafficgrpc.TrafficAPI{AllowStatsRead: true, AllowStatsReset: true}, InfoAPI: infogrpc.InfoAPI{AllowInfoRead: true}, OutboundAPI: outboundgrpc.OutboundAPI{AllowOutboundsRead: true},
 			}
 
 			if i < 2 {

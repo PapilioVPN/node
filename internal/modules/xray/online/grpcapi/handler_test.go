@@ -1,4 +1,4 @@
-package online_test
+package grpcapi_test
 
 import (
 	"context"
@@ -16,11 +16,10 @@ import (
 	grpcapi "github.com/PapilioVPN/node/internal/bootstrap/xrayapi"
 	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
 	infogrpc "github.com/PapilioVPN/node/internal/modules/xray/info/grpcapi"
+	"github.com/PapilioVPN/node/internal/modules/xray/online/domain"
+	online "github.com/PapilioVPN/node/internal/modules/xray/online/grpcapi"
+	onlinev1 "github.com/PapilioVPN/node/internal/modules/xray/online/grpcapi/proto/v1"
 	trafficgrpc "github.com/PapilioVPN/node/internal/modules/xray/traffic/grpcapi"
-	"github.com/PapilioVPN/node/internal/modules/xray/users/domain"
-	usergrpc "github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi"
-	"github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi/online"
-	xrayv1 "github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi/proto/v1"
 	"github.com/PapilioVPN/node/internal/shared/testutil"
 )
 
@@ -48,7 +47,7 @@ func TestOnlineIdentityGrantAndShapePrecedeApplication(t *testing.T) {
 	}{
 		{t.Context(), true, codes.Unauthenticated}, {testutil.VerifiedGRPCContext(t), false, codes.PermissionDenied}, {testutil.VerifiedGRPCContext(t), true, codes.InvalidArgument},
 	} {
-		h := grpcapi.Handler{TrafficAPI: trafficgrpc.TrafficAPI{AllowStatsRead: true}, InfoAPI: infogrpc.InfoAPI{AllowInfoRead: true}, UserAPI: usergrpc.UserAPI{OnlineAPI: online.OnlineAPI{AllowOnlineRead: test.grant}}}
+		h := grpcapi.Handler{TrafficAPI: trafficgrpc.TrafficAPI{AllowStatsRead: true}, InfoAPI: infogrpc.InfoAPI{AllowInfoRead: true}, OnlineAPI: online.OnlineAPI{AllowOnlineRead: test.grant}}
 		_, count := h.GetUserOnlineStats(test.ctx, nil)
 		_, ips := h.ListUserOnlineIPs(test.ctx, nil)
 		_, users := h.ListOnlineUsers(test.ctx, nil)
@@ -58,11 +57,11 @@ func TestOnlineIdentityGrantAndShapePrecedeApplication(t *testing.T) {
 			}
 		}
 	}
-	h := grpcapi.Handler{UserAPI: usergrpc.UserAPI{OnlineAPI: online.OnlineAPI{AllowOnlineRead: true}}}
+	h := grpcapi.Handler{OnlineAPI: online.OnlineAPI{AllowOnlineRead: true}}
 	ctx := testutil.VerifiedGRPCContext(t)
 	for _, id := range []string{"", " ", "edge"} {
-		_, count := h.GetUserOnlineStats(ctx, &xrayv1.GetUserOnlineStatsRequest{InstanceId: id})
-		_, ips := h.ListUserOnlineIPs(ctx, &xrayv1.ListUserOnlineIPsRequest{InstanceId: id})
+		_, count := h.GetUserOnlineStats(ctx, &onlinev1.GetUserOnlineStatsRequest{InstanceId: id})
+		_, ips := h.ListUserOnlineIPs(ctx, &onlinev1.ListUserOnlineIPsRequest{InstanceId: id})
 		for _, err := range []error{count, ips} {
 			if status.Code(err) != codes.InvalidArgument {
 				t.Fatalf("missing identity reached application: %v", err)
@@ -83,7 +82,7 @@ func TestOnlineWirePreservesIdentityPrecisionOrderingAndEmptyCollections(t *test
 				t.Fatal("instance/context changed")
 			}
 		}
-		h := grpcapi.Handler{UserAPI: usergrpc.UserAPI{OnlineAPI: online.OnlineAPI{AllowOnlineRead: true, Online: onlineService{
+		h := grpcapi.Handler{OnlineAPI: online.OnlineAPI{AllowOnlineRead: true, Online: onlineService{
 			count: func(received context.Context, id instances.InstanceID, e domain.UserEmail) (domain.InstanceUserOnline, error) {
 				check(received, id)
 				if e != email {
@@ -110,16 +109,16 @@ func TestOnlineWirePreservesIdentityPrecisionOrderingAndEmptyCollections(t *test
 				}
 				return domain.InstanceOnlineUsers{InstanceID: id, Users: result}, nil
 			},
-		}}}}
-		count, err := h.GetUserOnlineStats(ctx, &xrayv1.GetUserOnlineStatsRequest{InstanceId: " edge ", Email: string(email)})
+		}}}
+		count, err := h.GetUserOnlineStats(ctx, &onlinev1.GetUserOnlineStatsRequest{InstanceId: " edge ", Email: string(email)})
 		if err != nil || count.InstanceId != " edge " || count.Email != string(email) || count.OnlineIpCount != math.MaxInt64 || count.ObservedAtUnixMs != observed.UnixMilli() {
 			t.Fatalf("count wire: %v, %v", count, err)
 		}
-		ips, err := h.ListUserOnlineIPs(ctx, &xrayv1.ListUserOnlineIPsRequest{InstanceId: " edge ", Email: string(email)})
+		ips, err := h.ListUserOnlineIPs(ctx, &onlinev1.ListUserOnlineIPsRequest{InstanceId: " edge ", Email: string(email)})
 		if err != nil || ips.InstanceId != " edge " || ips.Email != string(email) || ips.ObservedAtUnixMs != observed.UnixMilli() {
 			t.Fatalf("IP wire: %v, %v", ips, err)
 		}
-		users, err := h.ListOnlineUsers(ctx, &xrayv1.ListOnlineUsersRequest{InstanceId: " edge "})
+		users, err := h.ListOnlineUsers(ctx, &onlinev1.ListOnlineUsersRequest{InstanceId: " edge "})
 		if err != nil || users.InstanceId != " edge " || users.ObservedAtUnixMs != observed.UnixMilli() {
 			t.Fatalf("users wire: %v, %v", users, err)
 		}
@@ -143,7 +142,7 @@ func TestOnlineErrorsDiscardPartialFactsAndSanitizeNativeCauses(t *testing.T) {
 		instances.ErrNotFound: codes.NotFound, domain.ErrOnlineObservationNotFound: codes.NotFound, domain.ErrAPIDisabled: codes.FailedPrecondition, domain.ErrOnlineUnsupported: codes.FailedPrecondition, domain.ErrAPIResourceLimit: codes.ResourceExhausted, domain.ErrAPIBusy: codes.ResourceExhausted, domain.ErrInvalidOnlineResponse: codes.Unavailable, context.Canceled: codes.Canceled, context.DeadlineExceeded: codes.DeadlineExceeded, errors.New("private endpoint"): codes.Unavailable,
 	} {
 		wrapped := fmt.Errorf("private identity/endpoint: %w", cause)
-		h := grpcapi.Handler{UserAPI: usergrpc.UserAPI{OnlineAPI: online.OnlineAPI{AllowOnlineRead: true, Online: onlineService{
+		h := grpcapi.Handler{OnlineAPI: online.OnlineAPI{AllowOnlineRead: true, Online: onlineService{
 			count: func(context.Context, instances.InstanceID, domain.UserEmail) (domain.InstanceUserOnline, error) {
 				return domain.InstanceUserOnline{InstanceID: "private"}, wrapped
 			},
@@ -153,10 +152,10 @@ func TestOnlineErrorsDiscardPartialFactsAndSanitizeNativeCauses(t *testing.T) {
 			users: func(context.Context, instances.InstanceID) (domain.InstanceOnlineUsers, error) {
 				return domain.InstanceOnlineUsers{Users: domain.OnlineUsers{Emails: []domain.UserEmail{"private"}}}, wrapped
 			},
-		}}}}
-		count, countError := h.GetUserOnlineStats(testutil.VerifiedGRPCContext(t), &xrayv1.GetUserOnlineStatsRequest{InstanceId: "edge", Email: "reader"})
-		ips, ipsError := h.ListUserOnlineIPs(testutil.VerifiedGRPCContext(t), &xrayv1.ListUserOnlineIPsRequest{InstanceId: "edge", Email: "reader"})
-		users, usersError := h.ListOnlineUsers(testutil.VerifiedGRPCContext(t), &xrayv1.ListOnlineUsersRequest{InstanceId: "edge"})
+		}}}
+		count, countError := h.GetUserOnlineStats(testutil.VerifiedGRPCContext(t), &onlinev1.GetUserOnlineStatsRequest{InstanceId: "edge", Email: "reader"})
+		ips, ipsError := h.ListUserOnlineIPs(testutil.VerifiedGRPCContext(t), &onlinev1.ListUserOnlineIPsRequest{InstanceId: "edge", Email: "reader"})
+		users, usersError := h.ListOnlineUsers(testutil.VerifiedGRPCContext(t), &onlinev1.ListOnlineUsersRequest{InstanceId: "edge"})
 		if count != nil || ips != nil || users != nil {
 			t.Fatal("failed read returned partial facts")
 		}

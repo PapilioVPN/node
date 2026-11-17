@@ -6,7 +6,7 @@ option go_package = "github.com/PapilioVPN/node/internal/bootstrap/xrayapi/proto
 
 import "internal/modules/xray/users/grpcapi/proto/v1/mutations.proto";
 import "internal/modules/xray/users/grpcapi/proto/v1/observations.proto";
-import "internal/modules/xray/users/grpcapi/proto/v1/online.proto";
+import "internal/modules/xray/online/grpcapi/proto/v1/online.proto";
 import "internal/modules/xray/routing/grpcapi/proto/v1/routing.proto";
 import "internal/modules/xray/traffic/grpcapi/proto/v1/traffic.proto";
 

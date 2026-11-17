@@ -1,5 +1,5 @@
-// Package online adapts native user presence and IP observations to gRPC.
-package online
+// Package grpcapi adapts native user presence and IP observations to gRPC.
+package grpcapi
 
 import (
 	"context"
@@ -10,9 +10,9 @@ import (
 	"google.golang.org/grpc/status"
 
 	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
-	"github.com/PapilioVPN/node/internal/modules/xray/users/app/validators"
-	"github.com/PapilioVPN/node/internal/modules/xray/users/domain"
-	xrayv1 "github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi/proto/v1"
+	"github.com/PapilioVPN/node/internal/modules/xray/online/app/validators"
+	"github.com/PapilioVPN/node/internal/modules/xray/online/domain"
+	onlinev1 "github.com/PapilioVPN/node/internal/modules/xray/online/grpcapi/proto/v1"
 	"github.com/PapilioVPN/node/internal/shared/grpcidentity"
 	"github.com/PapilioVPN/node/internal/shared/grpcresponse"
 )
@@ -39,7 +39,7 @@ func (h OnlineAPI) authorizeOnline(ctx context.Context) error {
 	return nil
 }
 
-func (h OnlineAPI) GetUserOnlineStats(ctx context.Context, request *xrayv1.GetUserOnlineStatsRequest) (*xrayv1.GetUserOnlineStatsResponse, error) {
+func (h OnlineAPI) GetUserOnlineStats(ctx context.Context, request *onlinev1.GetUserOnlineStatsRequest) (*onlinev1.GetUserOnlineStatsResponse, error) {
 	if err := h.authorizeOnline(ctx); err != nil {
 		return nil, err
 	}
@@ -54,10 +54,10 @@ func (h OnlineAPI) GetUserOnlineStats(ctx context.Context, request *xrayv1.GetUs
 	if mapped := onlineReadError(ctx, err); mapped != nil {
 		return nil, mapped
 	}
-	return &xrayv1.GetUserOnlineStatsResponse{InstanceId: string(result.InstanceID), Email: string(result.Email), OnlineIpCount: result.Online.OnlineIPCount, ObservedAtUnixMs: result.Online.ObservedAt.UnixMilli()}, nil
+	return &onlinev1.GetUserOnlineStatsResponse{InstanceId: string(result.InstanceID), Email: string(result.Email), OnlineIpCount: result.Online.OnlineIPCount, ObservedAtUnixMs: result.Online.ObservedAt.UnixMilli()}, nil
 }
 
-func (h OnlineAPI) ListUserOnlineIPs(ctx context.Context, request *xrayv1.ListUserOnlineIPsRequest) (*xrayv1.ListUserOnlineIPsResponse, error) {
+func (h OnlineAPI) ListUserOnlineIPs(ctx context.Context, request *onlinev1.ListUserOnlineIPsRequest) (*onlinev1.ListUserOnlineIPsResponse, error) {
 	if err := h.authorizeOnline(ctx); err != nil {
 		return nil, err
 	}
@@ -72,17 +72,17 @@ func (h OnlineAPI) ListUserOnlineIPs(ctx context.Context, request *xrayv1.ListUs
 	if mapped := onlineReadError(ctx, err); mapped != nil {
 		return nil, mapped
 	}
-	items := make([]*xrayv1.OnlineIP, len(result.IPs.Items))
+	items := make([]*onlinev1.OnlineIP, len(result.IPs.Items))
 	for i, item := range result.IPs.Items {
-		items[i] = &xrayv1.OnlineIP{Ip: item.IP, LastSeenUnixSeconds: item.LastSeenUnixSeconds}
+		items[i] = &onlinev1.OnlineIP{Ip: item.IP, LastSeenUnixSeconds: item.LastSeenUnixSeconds}
 	}
 	if mapped := grpcresponse.ContextError(ctx.Err()); mapped != nil {
 		return nil, mapped
 	}
-	return &xrayv1.ListUserOnlineIPsResponse{InstanceId: string(result.InstanceID), Email: string(result.Email), Items: items, ObservedAtUnixMs: result.IPs.ObservedAt.UnixMilli()}, nil
+	return &onlinev1.ListUserOnlineIPsResponse{InstanceId: string(result.InstanceID), Email: string(result.Email), Items: items, ObservedAtUnixMs: result.IPs.ObservedAt.UnixMilli()}, nil
 }
 
-func (h OnlineAPI) ListOnlineUsers(ctx context.Context, request *xrayv1.ListOnlineUsersRequest) (*xrayv1.ListOnlineUsersResponse, error) {
+func (h OnlineAPI) ListOnlineUsers(ctx context.Context, request *onlinev1.ListOnlineUsersRequest) (*onlinev1.ListOnlineUsersResponse, error) {
 	if err := h.authorizeOnline(ctx); err != nil {
 		return nil, err
 	}
@@ -100,7 +100,7 @@ func (h OnlineAPI) ListOnlineUsers(ctx context.Context, request *xrayv1.ListOnli
 	if mapped := grpcresponse.ContextError(ctx.Err()); mapped != nil {
 		return nil, mapped
 	}
-	return &xrayv1.ListOnlineUsersResponse{InstanceId: string(result.InstanceID), Emails: emails, ObservedAtUnixMs: result.Users.ObservedAt.UnixMilli()}, nil
+	return &onlinev1.ListOnlineUsersResponse{InstanceId: string(result.InstanceID), Emails: emails, ObservedAtUnixMs: result.Users.ObservedAt.UnixMilli()}, nil
 }
 
 func onlineReadError(ctx context.Context, err error) error {

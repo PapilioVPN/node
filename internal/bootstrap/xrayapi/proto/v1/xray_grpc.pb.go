@@ -9,8 +9,9 @@ package xrayv1
 import (
 	context "context"
 	v11 "github.com/PapilioVPN/node/internal/modules/xray/info/grpcapi/proto/v1"
-	v14 "github.com/PapilioVPN/node/internal/modules/xray/outbounds/grpcapi/proto/v1"
-	v13 "github.com/PapilioVPN/node/internal/modules/xray/routing/grpcapi/proto/v1"
+	v13 "github.com/PapilioVPN/node/internal/modules/xray/online/grpcapi/proto/v1"
+	v15 "github.com/PapilioVPN/node/internal/modules/xray/outbounds/grpcapi/proto/v1"
+	v14 "github.com/PapilioVPN/node/internal/modules/xray/routing/grpcapi/proto/v1"
 	v12 "github.com/PapilioVPN/node/internal/modules/xray/traffic/grpcapi/proto/v1"
 	v1 "github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi/proto/v1"
 	grpc "google.golang.org/grpc"
@@ -94,9 +95,9 @@ type XrayServiceClient interface {
 	ListTrafficCounters(ctx context.Context, in *v12.ListTrafficCountersRequest, opts ...grpc.CallOption) (*v12.ListTrafficCountersResponse, error)
 	// Counts distinct IPs tracked by native session contexts, not open connections.
 	// Session cleanup can lag client disconnect; this is not a presence guarantee.
-	GetUserOnlineStats(ctx context.Context, in *v1.GetUserOnlineStatsRequest, opts ...grpc.CallOption) (*v1.GetUserOnlineStatsResponse, error)
-	ListUserOnlineIPs(ctx context.Context, in *v1.ListUserOnlineIPsRequest, opts ...grpc.CallOption) (*v1.ListUserOnlineIPsResponse, error)
-	ListOnlineUsers(ctx context.Context, in *v1.ListOnlineUsersRequest, opts ...grpc.CallOption) (*v1.ListOnlineUsersResponse, error)
+	GetUserOnlineStats(ctx context.Context, in *v13.GetUserOnlineStatsRequest, opts ...grpc.CallOption) (*v13.GetUserOnlineStatsResponse, error)
+	ListUserOnlineIPs(ctx context.Context, in *v13.ListUserOnlineIPsRequest, opts ...grpc.CallOption) (*v13.ListUserOnlineIPsResponse, error)
+	ListOnlineUsers(ctx context.Context, in *v13.ListOnlineUsersRequest, opts ...grpc.CallOption) (*v13.ListOnlineUsersResponse, error)
 	// Native membership count only, not online users or a user-list snapshot.
 	GetInboundUserCount(ctx context.Context, in *v1.GetInboundUserCountRequest, opts ...grpc.CallOption) (*v1.GetInboundUserCountResponse, error)
 	// User-manager observations, not initial config or a complete replay image.
@@ -106,25 +107,25 @@ type XrayServiceClient interface {
 	GetInboundUser(ctx context.Context, in *v1.GetInboundUserRequest, opts ...grpc.CallOption) (*v1.GetInboundUserResponse, error)
 	ListInboundUsers(ctx context.Context, in *v1.ListInboundUsersRequest, opts ...grpc.CallOption) (*v1.ListInboundUsersResponse, error)
 	// Ordered references only; the native API does not return rule conditions.
-	ListRoutingRules(ctx context.Context, in *v13.ListRoutingRulesRequest, opts ...grpc.CallOption) (*v13.ListRoutingRulesResponse, error)
+	ListRoutingRules(ctx context.Context, in *v14.ListRoutingRulesRequest, opts ...grpc.CallOption) (*v14.ListRoutingRulesResponse, error)
 	// Native field presence is retained; this does not probe or override routing.
-	GetBalancerInfo(ctx context.Context, in *v13.GetBalancerInfoRequest, opts ...grpc.CallOption) (*v13.GetBalancerInfoResponse, error)
+	GetBalancerInfo(ctx context.Context, in *v14.GetBalancerInfoRequest, opts ...grpc.CallOption) (*v14.GetBalancerInfoResponse, error)
 	// Native route selection can advance balancers, resolve DNS and fire webhooks.
 	// A lost reply may follow effects. Never replay automatically.
-	TestRoute(ctx context.Context, in *v13.TestRouteRequest, opts ...grpc.CallOption) (*v13.TestRouteResponse, error)
+	TestRoute(ctx context.Context, in *v14.TestRouteRequest, opts ...grpc.CallOption) (*v14.TestRouteResponse, error)
 	// One native assignment; an explicitly empty target clears the override.
 	// Completion does not establish outbound existence or persistence. No retry.
-	OverrideBalancerTarget(ctx context.Context, in *v13.OverrideBalancerTargetRequest, opts ...grpc.CallOption) (*v13.OverrideBalancerTargetResponse, error)
+	OverrideBalancerTarget(ctx context.Context, in *v14.OverrideBalancerTargetRequest, opts ...grpc.CallOption) (*v14.OverrideBalancerTargetResponse, error)
 	// Removes exact-tag rules live. Missing tags are acknowledged native no-ops;
 	// no count, persistence or established-session termination is promised.
-	RemoveRoutingRule(ctx context.Context, in *v13.RemoveRoutingRuleRequest, opts ...grpc.CallOption) (*v13.RemoveRoutingRuleResponse, error)
+	RemoveRoutingRule(ctx context.Context, in *v14.RemoveRoutingRuleRequest, opts ...grpc.CallOption) (*v14.RemoveRoutingRuleResponse, error)
 	// Builds one native routing.rules[] object with the selected instance binary,
 	// then applies once. Replace drops previous rules and balancers. No retry.
-	AddRoutingRule(ctx context.Context, in *v13.AddRoutingRuleRequest, opts ...grpc.CallOption) (*v13.AddRoutingRuleResponse, error)
+	AddRoutingRule(ctx context.Context, in *v14.AddRoutingRuleRequest, opts ...grpc.CallOption) (*v14.AddRoutingRuleResponse, error)
 	// Reads existing observatory facts, not a new probe or outbound membership.
 	// Native API has no tag projection; each operation reads its full observation.
-	GetOutboundStatus(ctx context.Context, in *v14.GetOutboundStatusRequest, opts ...grpc.CallOption) (*v14.GetOutboundStatusResponse, error)
-	ListOutboundStatuses(ctx context.Context, in *v14.ListOutboundStatusesRequest, opts ...grpc.CallOption) (*v14.ListOutboundStatusesResponse, error)
+	GetOutboundStatus(ctx context.Context, in *v15.GetOutboundStatusRequest, opts ...grpc.CallOption) (*v15.GetOutboundStatusResponse, error)
+	ListOutboundStatuses(ctx context.Context, in *v15.ListOutboundStatusesRequest, opts ...grpc.CallOption) (*v15.ListOutboundStatusesResponse, error)
 }
 
 type xrayServiceClient struct {
@@ -255,9 +256,9 @@ func (c *xrayServiceClient) ListTrafficCounters(ctx context.Context, in *v12.Lis
 	return out, nil
 }
 
-func (c *xrayServiceClient) GetUserOnlineStats(ctx context.Context, in *v1.GetUserOnlineStatsRequest, opts ...grpc.CallOption) (*v1.GetUserOnlineStatsResponse, error) {
+func (c *xrayServiceClient) GetUserOnlineStats(ctx context.Context, in *v13.GetUserOnlineStatsRequest, opts ...grpc.CallOption) (*v13.GetUserOnlineStatsResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(v1.GetUserOnlineStatsResponse)
+	out := new(v13.GetUserOnlineStatsResponse)
 	err := c.cc.Invoke(ctx, XrayService_GetUserOnlineStats_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -265,9 +266,9 @@ func (c *xrayServiceClient) GetUserOnlineStats(ctx context.Context, in *v1.GetUs
 	return out, nil
 }
 
-func (c *xrayServiceClient) ListUserOnlineIPs(ctx context.Context, in *v1.ListUserOnlineIPsRequest, opts ...grpc.CallOption) (*v1.ListUserOnlineIPsResponse, error) {
+func (c *xrayServiceClient) ListUserOnlineIPs(ctx context.Context, in *v13.ListUserOnlineIPsRequest, opts ...grpc.CallOption) (*v13.ListUserOnlineIPsResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(v1.ListUserOnlineIPsResponse)
+	out := new(v13.ListUserOnlineIPsResponse)
 	err := c.cc.Invoke(ctx, XrayService_ListUserOnlineIPs_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -275,9 +276,9 @@ func (c *xrayServiceClient) ListUserOnlineIPs(ctx context.Context, in *v1.ListUs
 	return out, nil
 }
 
-func (c *xrayServiceClient) ListOnlineUsers(ctx context.Context, in *v1.ListOnlineUsersRequest, opts ...grpc.CallOption) (*v1.ListOnlineUsersResponse, error) {
+func (c *xrayServiceClient) ListOnlineUsers(ctx context.Context, in *v13.ListOnlineUsersRequest, opts ...grpc.CallOption) (*v13.ListOnlineUsersResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(v1.ListOnlineUsersResponse)
+	out := new(v13.ListOnlineUsersResponse)
 	err := c.cc.Invoke(ctx, XrayService_ListOnlineUsers_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -335,9 +336,9 @@ func (c *xrayServiceClient) ListInboundUsers(ctx context.Context, in *v1.ListInb
 	return out, nil
 }
 
-func (c *xrayServiceClient) ListRoutingRules(ctx context.Context, in *v13.ListRoutingRulesRequest, opts ...grpc.CallOption) (*v13.ListRoutingRulesResponse, error) {
+func (c *xrayServiceClient) ListRoutingRules(ctx context.Context, in *v14.ListRoutingRulesRequest, opts ...grpc.CallOption) (*v14.ListRoutingRulesResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(v13.ListRoutingRulesResponse)
+	out := new(v14.ListRoutingRulesResponse)
 	err := c.cc.Invoke(ctx, XrayService_ListRoutingRules_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -345,9 +346,9 @@ func (c *xrayServiceClient) ListRoutingRules(ctx context.Context, in *v13.ListRo
 	return out, nil
 }
 
-func (c *xrayServiceClient) GetBalancerInfo(ctx context.Context, in *v13.GetBalancerInfoRequest, opts ...grpc.CallOption) (*v13.GetBalancerInfoResponse, error) {
+func (c *xrayServiceClient) GetBalancerInfo(ctx context.Context, in *v14.GetBalancerInfoRequest, opts ...grpc.CallOption) (*v14.GetBalancerInfoResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(v13.GetBalancerInfoResponse)
+	out := new(v14.GetBalancerInfoResponse)
 	err := c.cc.Invoke(ctx, XrayService_GetBalancerInfo_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -355,9 +356,9 @@ func (c *xrayServiceClient) GetBalancerInfo(ctx context.Context, in *v13.GetBala
 	return out, nil
 }
 
-func (c *xrayServiceClient) TestRoute(ctx context.Context, in *v13.TestRouteRequest, opts ...grpc.CallOption) (*v13.TestRouteResponse, error) {
+func (c *xrayServiceClient) TestRoute(ctx context.Context, in *v14.TestRouteRequest, opts ...grpc.CallOption) (*v14.TestRouteResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(v13.TestRouteResponse)
+	out := new(v14.TestRouteResponse)
 	err := c.cc.Invoke(ctx, XrayService_TestRoute_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -365,9 +366,9 @@ func (c *xrayServiceClient) TestRoute(ctx context.Context, in *v13.TestRouteRequ
 	return out, nil
 }
 
-func (c *xrayServiceClient) OverrideBalancerTarget(ctx context.Context, in *v13.OverrideBalancerTargetRequest, opts ...grpc.CallOption) (*v13.OverrideBalancerTargetResponse, error) {
+func (c *xrayServiceClient) OverrideBalancerTarget(ctx context.Context, in *v14.OverrideBalancerTargetRequest, opts ...grpc.CallOption) (*v14.OverrideBalancerTargetResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(v13.OverrideBalancerTargetResponse)
+	out := new(v14.OverrideBalancerTargetResponse)
 	err := c.cc.Invoke(ctx, XrayService_OverrideBalancerTarget_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -375,9 +376,9 @@ func (c *xrayServiceClient) OverrideBalancerTarget(ctx context.Context, in *v13.
 	return out, nil
 }
 
-func (c *xrayServiceClient) RemoveRoutingRule(ctx context.Context, in *v13.RemoveRoutingRuleRequest, opts ...grpc.CallOption) (*v13.RemoveRoutingRuleResponse, error) {
+func (c *xrayServiceClient) RemoveRoutingRule(ctx context.Context, in *v14.RemoveRoutingRuleRequest, opts ...grpc.CallOption) (*v14.RemoveRoutingRuleResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(v13.RemoveRoutingRuleResponse)
+	out := new(v14.RemoveRoutingRuleResponse)
 	err := c.cc.Invoke(ctx, XrayService_RemoveRoutingRule_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -385,9 +386,9 @@ func (c *xrayServiceClient) RemoveRoutingRule(ctx context.Context, in *v13.Remov
 	return out, nil
 }
 
-func (c *xrayServiceClient) AddRoutingRule(ctx context.Context, in *v13.AddRoutingRuleRequest, opts ...grpc.CallOption) (*v13.AddRoutingRuleResponse, error) {
+func (c *xrayServiceClient) AddRoutingRule(ctx context.Context, in *v14.AddRoutingRuleRequest, opts ...grpc.CallOption) (*v14.AddRoutingRuleResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(v13.AddRoutingRuleResponse)
+	out := new(v14.AddRoutingRuleResponse)
 	err := c.cc.Invoke(ctx, XrayService_AddRoutingRule_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -395,9 +396,9 @@ func (c *xrayServiceClient) AddRoutingRule(ctx context.Context, in *v13.AddRouti
 	return out, nil
 }
 
-func (c *xrayServiceClient) GetOutboundStatus(ctx context.Context, in *v14.GetOutboundStatusRequest, opts ...grpc.CallOption) (*v14.GetOutboundStatusResponse, error) {
+func (c *xrayServiceClient) GetOutboundStatus(ctx context.Context, in *v15.GetOutboundStatusRequest, opts ...grpc.CallOption) (*v15.GetOutboundStatusResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(v14.GetOutboundStatusResponse)
+	out := new(v15.GetOutboundStatusResponse)
 	err := c.cc.Invoke(ctx, XrayService_GetOutboundStatus_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -405,9 +406,9 @@ func (c *xrayServiceClient) GetOutboundStatus(ctx context.Context, in *v14.GetOu
 	return out, nil
 }
 
-func (c *xrayServiceClient) ListOutboundStatuses(ctx context.Context, in *v14.ListOutboundStatusesRequest, opts ...grpc.CallOption) (*v14.ListOutboundStatusesResponse, error) {
+func (c *xrayServiceClient) ListOutboundStatuses(ctx context.Context, in *v15.ListOutboundStatusesRequest, opts ...grpc.CallOption) (*v15.ListOutboundStatusesResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(v14.ListOutboundStatusesResponse)
+	out := new(v15.ListOutboundStatusesResponse)
 	err := c.cc.Invoke(ctx, XrayService_ListOutboundStatuses_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -455,9 +456,9 @@ type XrayServiceServer interface {
 	ListTrafficCounters(context.Context, *v12.ListTrafficCountersRequest) (*v12.ListTrafficCountersResponse, error)
 	// Counts distinct IPs tracked by native session contexts, not open connections.
 	// Session cleanup can lag client disconnect; this is not a presence guarantee.
-	GetUserOnlineStats(context.Context, *v1.GetUserOnlineStatsRequest) (*v1.GetUserOnlineStatsResponse, error)
-	ListUserOnlineIPs(context.Context, *v1.ListUserOnlineIPsRequest) (*v1.ListUserOnlineIPsResponse, error)
-	ListOnlineUsers(context.Context, *v1.ListOnlineUsersRequest) (*v1.ListOnlineUsersResponse, error)
+	GetUserOnlineStats(context.Context, *v13.GetUserOnlineStatsRequest) (*v13.GetUserOnlineStatsResponse, error)
+	ListUserOnlineIPs(context.Context, *v13.ListUserOnlineIPsRequest) (*v13.ListUserOnlineIPsResponse, error)
+	ListOnlineUsers(context.Context, *v13.ListOnlineUsersRequest) (*v13.ListOnlineUsersResponse, error)
 	// Native membership count only, not online users or a user-list snapshot.
 	GetInboundUserCount(context.Context, *v1.GetInboundUserCountRequest) (*v1.GetInboundUserCountResponse, error)
 	// User-manager observations, not initial config or a complete replay image.
@@ -467,25 +468,25 @@ type XrayServiceServer interface {
 	GetInboundUser(context.Context, *v1.GetInboundUserRequest) (*v1.GetInboundUserResponse, error)
 	ListInboundUsers(context.Context, *v1.ListInboundUsersRequest) (*v1.ListInboundUsersResponse, error)
 	// Ordered references only; the native API does not return rule conditions.
-	ListRoutingRules(context.Context, *v13.ListRoutingRulesRequest) (*v13.ListRoutingRulesResponse, error)
+	ListRoutingRules(context.Context, *v14.ListRoutingRulesRequest) (*v14.ListRoutingRulesResponse, error)
 	// Native field presence is retained; this does not probe or override routing.
-	GetBalancerInfo(context.Context, *v13.GetBalancerInfoRequest) (*v13.GetBalancerInfoResponse, error)
+	GetBalancerInfo(context.Context, *v14.GetBalancerInfoRequest) (*v14.GetBalancerInfoResponse, error)
 	// Native route selection can advance balancers, resolve DNS and fire webhooks.
 	// A lost reply may follow effects. Never replay automatically.
-	TestRoute(context.Context, *v13.TestRouteRequest) (*v13.TestRouteResponse, error)
+	TestRoute(context.Context, *v14.TestRouteRequest) (*v14.TestRouteResponse, error)
 	// One native assignment; an explicitly empty target clears the override.
 	// Completion does not establish outbound existence or persistence. No retry.
-	OverrideBalancerTarget(context.Context, *v13.OverrideBalancerTargetRequest) (*v13.OverrideBalancerTargetResponse, error)
+	OverrideBalancerTarget(context.Context, *v14.OverrideBalancerTargetRequest) (*v14.OverrideBalancerTargetResponse, error)
 	// Removes exact-tag rules live. Missing tags are acknowledged native no-ops;
 	// no count, persistence or established-session termination is promised.
-	RemoveRoutingRule(context.Context, *v13.RemoveRoutingRuleRequest) (*v13.RemoveRoutingRuleResponse, error)
+	RemoveRoutingRule(context.Context, *v14.RemoveRoutingRuleRequest) (*v14.RemoveRoutingRuleResponse, error)
 	// Builds one native routing.rules[] object with the selected instance binary,
 	// then applies once. Replace drops previous rules and balancers. No retry.
-	AddRoutingRule(context.Context, *v13.AddRoutingRuleRequest) (*v13.AddRoutingRuleResponse, error)
+	AddRoutingRule(context.Context, *v14.AddRoutingRuleRequest) (*v14.AddRoutingRuleResponse, error)
 	// Reads existing observatory facts, not a new probe or outbound membership.
 	// Native API has no tag projection; each operation reads its full observation.
-	GetOutboundStatus(context.Context, *v14.GetOutboundStatusRequest) (*v14.GetOutboundStatusResponse, error)
-	ListOutboundStatuses(context.Context, *v14.ListOutboundStatusesRequest) (*v14.ListOutboundStatusesResponse, error)
+	GetOutboundStatus(context.Context, *v15.GetOutboundStatusRequest) (*v15.GetOutboundStatusResponse, error)
+	ListOutboundStatuses(context.Context, *v15.ListOutboundStatusesRequest) (*v15.ListOutboundStatusesResponse, error)
 	mustEmbedUnimplementedXrayServiceServer()
 }
 
@@ -532,13 +533,13 @@ func (UnimplementedXrayServiceServer) ResetTrafficPair(context.Context, *v12.Res
 func (UnimplementedXrayServiceServer) ListTrafficCounters(context.Context, *v12.ListTrafficCountersRequest) (*v12.ListTrafficCountersResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListTrafficCounters not implemented")
 }
-func (UnimplementedXrayServiceServer) GetUserOnlineStats(context.Context, *v1.GetUserOnlineStatsRequest) (*v1.GetUserOnlineStatsResponse, error) {
+func (UnimplementedXrayServiceServer) GetUserOnlineStats(context.Context, *v13.GetUserOnlineStatsRequest) (*v13.GetUserOnlineStatsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetUserOnlineStats not implemented")
 }
-func (UnimplementedXrayServiceServer) ListUserOnlineIPs(context.Context, *v1.ListUserOnlineIPsRequest) (*v1.ListUserOnlineIPsResponse, error) {
+func (UnimplementedXrayServiceServer) ListUserOnlineIPs(context.Context, *v13.ListUserOnlineIPsRequest) (*v13.ListUserOnlineIPsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListUserOnlineIPs not implemented")
 }
-func (UnimplementedXrayServiceServer) ListOnlineUsers(context.Context, *v1.ListOnlineUsersRequest) (*v1.ListOnlineUsersResponse, error) {
+func (UnimplementedXrayServiceServer) ListOnlineUsers(context.Context, *v13.ListOnlineUsersRequest) (*v13.ListOnlineUsersResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListOnlineUsers not implemented")
 }
 func (UnimplementedXrayServiceServer) GetInboundUserCount(context.Context, *v1.GetInboundUserCountRequest) (*v1.GetInboundUserCountResponse, error) {
@@ -556,28 +557,28 @@ func (UnimplementedXrayServiceServer) GetInboundUser(context.Context, *v1.GetInb
 func (UnimplementedXrayServiceServer) ListInboundUsers(context.Context, *v1.ListInboundUsersRequest) (*v1.ListInboundUsersResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListInboundUsers not implemented")
 }
-func (UnimplementedXrayServiceServer) ListRoutingRules(context.Context, *v13.ListRoutingRulesRequest) (*v13.ListRoutingRulesResponse, error) {
+func (UnimplementedXrayServiceServer) ListRoutingRules(context.Context, *v14.ListRoutingRulesRequest) (*v14.ListRoutingRulesResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListRoutingRules not implemented")
 }
-func (UnimplementedXrayServiceServer) GetBalancerInfo(context.Context, *v13.GetBalancerInfoRequest) (*v13.GetBalancerInfoResponse, error) {
+func (UnimplementedXrayServiceServer) GetBalancerInfo(context.Context, *v14.GetBalancerInfoRequest) (*v14.GetBalancerInfoResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetBalancerInfo not implemented")
 }
-func (UnimplementedXrayServiceServer) TestRoute(context.Context, *v13.TestRouteRequest) (*v13.TestRouteResponse, error) {
+func (UnimplementedXrayServiceServer) TestRoute(context.Context, *v14.TestRouteRequest) (*v14.TestRouteResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method TestRoute not implemented")
 }
-func (UnimplementedXrayServiceServer) OverrideBalancerTarget(context.Context, *v13.OverrideBalancerTargetRequest) (*v13.OverrideBalancerTargetResponse, error) {
+func (UnimplementedXrayServiceServer) OverrideBalancerTarget(context.Context, *v14.OverrideBalancerTargetRequest) (*v14.OverrideBalancerTargetResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method OverrideBalancerTarget not implemented")
 }
-func (UnimplementedXrayServiceServer) RemoveRoutingRule(context.Context, *v13.RemoveRoutingRuleRequest) (*v13.RemoveRoutingRuleResponse, error) {
+func (UnimplementedXrayServiceServer) RemoveRoutingRule(context.Context, *v14.RemoveRoutingRuleRequest) (*v14.RemoveRoutingRuleResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method RemoveRoutingRule not implemented")
 }
-func (UnimplementedXrayServiceServer) AddRoutingRule(context.Context, *v13.AddRoutingRuleRequest) (*v13.AddRoutingRuleResponse, error) {
+func (UnimplementedXrayServiceServer) AddRoutingRule(context.Context, *v14.AddRoutingRuleRequest) (*v14.AddRoutingRuleResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method AddRoutingRule not implemented")
 }
-func (UnimplementedXrayServiceServer) GetOutboundStatus(context.Context, *v14.GetOutboundStatusRequest) (*v14.GetOutboundStatusResponse, error) {
+func (UnimplementedXrayServiceServer) GetOutboundStatus(context.Context, *v15.GetOutboundStatusRequest) (*v15.GetOutboundStatusResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetOutboundStatus not implemented")
 }
-func (UnimplementedXrayServiceServer) ListOutboundStatuses(context.Context, *v14.ListOutboundStatusesRequest) (*v14.ListOutboundStatusesResponse, error) {
+func (UnimplementedXrayServiceServer) ListOutboundStatuses(context.Context, *v15.ListOutboundStatusesRequest) (*v15.ListOutboundStatusesResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListOutboundStatuses not implemented")
 }
 func (UnimplementedXrayServiceServer) mustEmbedUnimplementedXrayServiceServer() {}
@@ -818,7 +819,7 @@ func _XrayService_ListTrafficCounters_Handler(srv interface{}, ctx context.Conte
 }
 
 func _XrayService_GetUserOnlineStats_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(v1.GetUserOnlineStatsRequest)
+	in := new(v13.GetUserOnlineStatsRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -830,13 +831,13 @@ func _XrayService_GetUserOnlineStats_Handler(srv interface{}, ctx context.Contex
 		FullMethod: XrayService_GetUserOnlineStats_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(XrayServiceServer).GetUserOnlineStats(ctx, req.(*v1.GetUserOnlineStatsRequest))
+		return srv.(XrayServiceServer).GetUserOnlineStats(ctx, req.(*v13.GetUserOnlineStatsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _XrayService_ListUserOnlineIPs_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(v1.ListUserOnlineIPsRequest)
+	in := new(v13.ListUserOnlineIPsRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -848,13 +849,13 @@ func _XrayService_ListUserOnlineIPs_Handler(srv interface{}, ctx context.Context
 		FullMethod: XrayService_ListUserOnlineIPs_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(XrayServiceServer).ListUserOnlineIPs(ctx, req.(*v1.ListUserOnlineIPsRequest))
+		return srv.(XrayServiceServer).ListUserOnlineIPs(ctx, req.(*v13.ListUserOnlineIPsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _XrayService_ListOnlineUsers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(v1.ListOnlineUsersRequest)
+	in := new(v13.ListOnlineUsersRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -866,7 +867,7 @@ func _XrayService_ListOnlineUsers_Handler(srv interface{}, ctx context.Context, 
 		FullMethod: XrayService_ListOnlineUsers_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(XrayServiceServer).ListOnlineUsers(ctx, req.(*v1.ListOnlineUsersRequest))
+		return srv.(XrayServiceServer).ListOnlineUsers(ctx, req.(*v13.ListOnlineUsersRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -962,7 +963,7 @@ func _XrayService_ListInboundUsers_Handler(srv interface{}, ctx context.Context,
 }
 
 func _XrayService_ListRoutingRules_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(v13.ListRoutingRulesRequest)
+	in := new(v14.ListRoutingRulesRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -974,13 +975,13 @@ func _XrayService_ListRoutingRules_Handler(srv interface{}, ctx context.Context,
 		FullMethod: XrayService_ListRoutingRules_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(XrayServiceServer).ListRoutingRules(ctx, req.(*v13.ListRoutingRulesRequest))
+		return srv.(XrayServiceServer).ListRoutingRules(ctx, req.(*v14.ListRoutingRulesRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _XrayService_GetBalancerInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(v13.GetBalancerInfoRequest)
+	in := new(v14.GetBalancerInfoRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -992,13 +993,13 @@ func _XrayService_GetBalancerInfo_Handler(srv interface{}, ctx context.Context, 
 		FullMethod: XrayService_GetBalancerInfo_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(XrayServiceServer).GetBalancerInfo(ctx, req.(*v13.GetBalancerInfoRequest))
+		return srv.(XrayServiceServer).GetBalancerInfo(ctx, req.(*v14.GetBalancerInfoRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _XrayService_TestRoute_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(v13.TestRouteRequest)
+	in := new(v14.TestRouteRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -1010,13 +1011,13 @@ func _XrayService_TestRoute_Handler(srv interface{}, ctx context.Context, dec fu
 		FullMethod: XrayService_TestRoute_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(XrayServiceServer).TestRoute(ctx, req.(*v13.TestRouteRequest))
+		return srv.(XrayServiceServer).TestRoute(ctx, req.(*v14.TestRouteRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _XrayService_OverrideBalancerTarget_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(v13.OverrideBalancerTargetRequest)
+	in := new(v14.OverrideBalancerTargetRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -1028,13 +1029,13 @@ func _XrayService_OverrideBalancerTarget_Handler(srv interface{}, ctx context.Co
 		FullMethod: XrayService_OverrideBalancerTarget_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(XrayServiceServer).OverrideBalancerTarget(ctx, req.(*v13.OverrideBalancerTargetRequest))
+		return srv.(XrayServiceServer).OverrideBalancerTarget(ctx, req.(*v14.OverrideBalancerTargetRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _XrayService_RemoveRoutingRule_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(v13.RemoveRoutingRuleRequest)
+	in := new(v14.RemoveRoutingRuleRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -1046,13 +1047,13 @@ func _XrayService_RemoveRoutingRule_Handler(srv interface{}, ctx context.Context
 		FullMethod: XrayService_RemoveRoutingRule_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(XrayServiceServer).RemoveRoutingRule(ctx, req.(*v13.RemoveRoutingRuleRequest))
+		return srv.(XrayServiceServer).RemoveRoutingRule(ctx, req.(*v14.RemoveRoutingRuleRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _XrayService_AddRoutingRule_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(v13.AddRoutingRuleRequest)
+	in := new(v14.AddRoutingRuleRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -1064,13 +1065,13 @@ func _XrayService_AddRoutingRule_Handler(srv interface{}, ctx context.Context, d
 		FullMethod: XrayService_AddRoutingRule_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(XrayServiceServer).AddRoutingRule(ctx, req.(*v13.AddRoutingRuleRequest))
+		return srv.(XrayServiceServer).AddRoutingRule(ctx, req.(*v14.AddRoutingRuleRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _XrayService_GetOutboundStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(v14.GetOutboundStatusRequest)
+	in := new(v15.GetOutboundStatusRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -1082,13 +1083,13 @@ func _XrayService_GetOutboundStatus_Handler(srv interface{}, ctx context.Context
 		FullMethod: XrayService_GetOutboundStatus_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(XrayServiceServer).GetOutboundStatus(ctx, req.(*v14.GetOutboundStatusRequest))
+		return srv.(XrayServiceServer).GetOutboundStatus(ctx, req.(*v15.GetOutboundStatusRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _XrayService_ListOutboundStatuses_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(v14.ListOutboundStatusesRequest)
+	in := new(v15.ListOutboundStatusesRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -1100,7 +1101,7 @@ func _XrayService_ListOutboundStatuses_Handler(srv interface{}, ctx context.Cont
 		FullMethod: XrayService_ListOutboundStatuses_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(XrayServiceServer).ListOutboundStatuses(ctx, req.(*v14.ListOutboundStatusesRequest))
+		return srv.(XrayServiceServer).ListOutboundStatuses(ctx, req.(*v15.ListOutboundStatusesRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }

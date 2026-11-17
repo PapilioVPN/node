@@ -13,8 +13,8 @@ import (
 
 	"github.com/PapilioVPN/node/internal/bootstrap"
 	xrayservice "github.com/PapilioVPN/node/internal/bootstrap/xrayapi/proto/v1"
+	onlinev1 "github.com/PapilioVPN/node/internal/modules/xray/online/grpcapi/proto/v1"
 	userv1 "github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi/proto/v1"
-	xrayv1 "github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi/proto/v1"
 	rpc "github.com/PapilioVPN/node/internal/platform/grpcserver"
 	"github.com/PapilioVPN/node/internal/shared/testutil"
 )
@@ -47,7 +47,7 @@ func TestUserCountRequiresIndependentGrantOverMTLS(t *testing.T) {
 				if _, err := client.RemoveInboundUser(t.Context(), &userv1.RemoveInboundUserRequest{InstanceId: "missing", InboundTag: "in", Email: "user"}); status.Code(err) != codes.PermissionDenied {
 					t.Fatalf("count read enabled user mutations: %v", err)
 				}
-				if _, err := client.GetUserOnlineStats(t.Context(), &xrayv1.GetUserOnlineStatsRequest{InstanceId: "missing", Email: "user"}); status.Code(err) != codes.PermissionDenied {
+				if _, err := client.GetUserOnlineStats(t.Context(), &onlinev1.GetUserOnlineStatsRequest{InstanceId: "missing", Email: "user"}); status.Code(err) != codes.PermissionDenied {
 					t.Fatalf("count read enabled online observations: %v", err)
 				}
 			}
