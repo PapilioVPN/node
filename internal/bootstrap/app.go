@@ -4,6 +4,7 @@ package bootstrap
 import (
 	"log/slog"
 
+	"github.com/PapilioVPN/node/internal/platform/grpcserver"
 	"github.com/PapilioVPN/node/internal/platform/httpserver"
 	"github.com/PapilioVPN/node/internal/settings"
 	"go.uber.org/fx"
@@ -19,6 +20,9 @@ func New(config settings.Config, logger *slog.Logger) *fx.App {
 	}
 	if http := config.Communications.HTTP; http != nil {
 		options = append(options, fx.Supply(*http), httpserver.Module)
+	}
+	if grpc := config.Communications.GRPC; grpc != nil {
+		options = append(options, fx.Supply(*grpc), grpcserver.Module)
 	}
 	return fx.New(options...)
 }
