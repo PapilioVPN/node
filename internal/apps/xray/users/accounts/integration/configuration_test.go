@@ -52,6 +52,7 @@ func TestPreparedUserCollectionsExecuteReplaceClearAndReplay(t *testing.T) {
 		if err := runtime.Close(); err != nil {
 			t.Error(err)
 		}
+		fixture.removeStoppedAPISocket(t)
 		fixture.assertReleased(t)
 	})
 	fixture.startClient(t)
@@ -76,7 +77,7 @@ func TestPreparedUserCollectionsExecuteReplaceClearAndReplay(t *testing.T) {
 			}
 			ctx, cancel := context.WithTimeout(t.Context(), 8*time.Second)
 			defer cancel()
-			if err := testutil.XrayTraffic(ctx, fixture.health, fixture.untouchedProxy); err != nil {
+			if err := fixture.traffic(ctx, fixture.health, fixture.untouchedProxy); err != nil {
 				t.Fatalf("prepared engine or untouched inbound unavailable: %v", err)
 			}
 			client := testutil.XrayAPIClient(t, fixture.instance.Xray.API)
@@ -101,12 +102,12 @@ func TestPreparedUserCollectionsExecuteReplaceClearAndReplay(t *testing.T) {
 				}
 			}
 			if phase.accepted != "" {
-				if err := testutil.XrayTraffic(ctx, phase.accepted); err != nil {
+				if err := fixture.traffic(ctx, phase.accepted); err != nil {
 					t.Fatal("configured VLESS credential did not authenticate")
 				}
 			}
 			blocked, release := context.WithTimeout(ctx, 300*time.Millisecond)
-			err = testutil.XrayTraffic(blocked, phase.rejected)
+			err = fixture.traffic(blocked, phase.rejected)
 			release()
 			if err == nil {
 				t.Fatal("absent VLESS credential authenticated a new connection")
@@ -114,6 +115,7 @@ func TestPreparedUserCollectionsExecuteReplaceClearAndReplay(t *testing.T) {
 			if err := runtime.Stop(ctx); err != nil {
 				t.Fatal(err)
 			}
+			fixture.removeStoppedAPISocket(t)
 			if err := client.Close(); err != nil {
 				t.Fatal(err)
 			}
@@ -167,6 +169,7 @@ func TestEmptyShadowsocks2022ConfigurationSupportsPreparedCollections(t *testing
 		if err := runtime.Close(); err != nil {
 			t.Error(err)
 		}
+		fixture.removeStoppedAPISocket(t)
 		fixture.assertReleased(t)
 	})
 	fixture.startClient(t)
@@ -193,7 +196,7 @@ func TestEmptyShadowsocks2022ConfigurationSupportsPreparedCollections(t *testing
 			t.Fatal(err)
 		}
 		ctx, cancel := context.WithTimeout(t.Context(), 8*time.Second)
-		if err := testutil.XrayTraffic(ctx, fixture.health); err != nil {
+		if err := fixture.traffic(ctx, fixture.health); err != nil {
 			cancel()
 			t.Fatal(err)
 		}
@@ -210,6 +213,7 @@ func TestEmptyShadowsocks2022ConfigurationSupportsPreparedCollections(t *testing
 		if err := runtime.Stop(t.Context()); err != nil {
 			t.Fatal(err)
 		}
+		fixture.removeStoppedAPISocket(t)
 		if err := client.Close(); err != nil {
 			t.Fatal(err)
 		}

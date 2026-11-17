@@ -7,12 +7,17 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"syscall"
 	"testing"
 	"time"
 
@@ -30,6 +35,7 @@ type configurationFixture struct {
 	untouchedProxy, clientConfig string
 	tcp, udp                     []string
 	reservations                 []io.Closer
+	target                       *httptest.Server
 }
 
 func nativeConfiguration(t *testing.T) *configurationFixture {
@@ -86,7 +92,12 @@ func nativeConfiguration(t *testing.T) *configurationFixture {
 	config["outbounds"] = []map[string]any{{"protocol": "freedom", "settings": map[string]any{"finalRules": []map[string]any{{"action": "allow", "ip": []string{"127.0.0.1/32"}}}}}}
 	var vlessPort int
 	for _, tc := range cases {
-		port := f.port(t, tc.network)
+		var port int
+		if tc.tag == "shadowsocks" || tc.tag == "ss2022" {
+			port = f.pairedPort(t)
+		} else {
+			port = f.port(t, tc.network)
+		}
 		field := "clients"
 		if tc.tag == "wireguard" {
 			field = "peers"
@@ -100,9 +111,6 @@ func nativeConfiguration(t *testing.T) *configurationFixture {
 		config["inbounds"] = append(config["inbounds"].([]any), inbound)
 		if tc.tag == "vless" {
 			vlessPort = port
-		}
-		if tc.tag == "shadowsocks" || tc.tag == "ss2022" {
-			f.reserve(t, "udp", net.JoinHostPort("127.0.0.1", fmt.Sprint(port)))
 		}
 		f.users = append(f.users, domain.InboundUserSet{InboundTag: tc.tag, Users: []domain.InboundUser{{Email: "desired@local", Level: 7, Account: tc.account}}})
 	}
@@ -133,7 +141,53 @@ func nativeConfiguration(t *testing.T) *configurationFixture {
 	}
 	writeJSON(t, f.clientConfig, map[string]any{"log": map[string]string{"loglevel": "none"}, "inbounds": inbounds, "outbounds": outbounds, "routing": map[string]any{"rules": rules}})
 	f.oldProxy, f.newProxy, f.untouchedProxy = proxies[0], proxies[1], proxies[2]
+	// Bind the target while every child endpoint is still reserved. Allocating
+	// an ephemeral target during startup could steal a not-yet-bound engine port.
+	f.target = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = io.WriteString(w, "prepared-users")
+	}))
+	t.Cleanup(f.target.Close)
 	return f
+}
+
+func (f *configurationFixture) traffic(ctx context.Context, addresses ...string) error {
+	for _, address := range addresses {
+		proxy, err := url.Parse("http://" + address)
+		if err != nil {
+			return err
+		}
+		transport := &http.Transport{Proxy: http.ProxyURL(proxy), DisableKeepAlives: true}
+		defer transport.CloseIdleConnections()
+		client := &http.Client{Transport: transport, Timeout: 200 * time.Millisecond}
+		deadline, cancel := context.WithTimeout(ctx, 5*time.Second)
+		ticker := time.NewTicker(10 * time.Millisecond)
+		for {
+			request, err := http.NewRequestWithContext(deadline, http.MethodGet, f.target.URL, nil)
+			if err != nil {
+				ticker.Stop()
+				cancel()
+				return err
+			}
+			response, err := client.Do(request)
+			if err == nil {
+				body, readErr := io.ReadAll(io.LimitReader(response.Body, 64))
+				_ = response.Body.Close()
+				if readErr == nil && response.StatusCode == http.StatusOK && string(body) == "prepared-users" {
+					break
+				}
+			}
+			select {
+			case <-deadline.Done():
+				ticker.Stop()
+				cancel()
+				return fmt.Errorf("prepared instance did not proxy local traffic: %w", deadline.Err())
+			case <-ticker.C:
+			}
+		}
+		ticker.Stop()
+		cancel()
+	}
+	return nil
 }
 
 func compileConfiguration(t *testing.T, instance settings.Instance) []byte {
@@ -185,6 +239,33 @@ func (f *configurationFixture) port(t *testing.T, network string) int {
 	return f.reserve(t, network, "127.0.0.1:0")
 }
 
+// Shadowsocks binds TCP and UDP on the same port. An available TCP port alone
+// need not be available for UDP; retain only candidates reserved on both.
+func (f *configurationFixture) pairedPort(t *testing.T) int {
+	t.Helper()
+	for range 10 {
+		tcp, err := net.Listen("tcp", "127.0.0.1:0")
+		if err != nil {
+			t.Fatal(err)
+		}
+		address := tcp.Addr().String()
+		udp, err := net.ListenPacket("udp", address)
+		if err != nil {
+			_ = tcp.Close()
+			if errors.Is(err, syscall.EADDRINUSE) {
+				continue
+			}
+			t.Fatal(err)
+		}
+		f.tcp, f.udp = append(f.tcp, address), append(f.udp, address)
+		f.reservations = append(f.reservations, tcp, udp)
+		t.Cleanup(func() { _ = tcp.Close(); _ = udp.Close() })
+		return tcp.Addr().(*net.TCPAddr).Port
+	}
+	t.Fatal("cannot reserve a fixture port available for both TCP and UDP")
+	return 0
+}
+
 func (f *configurationFixture) startClient(t *testing.T) {
 	t.Helper()
 	client, err := xrayprocess.New(xrayprocess.Config{Binary: f.instance.Xray.Binary, ConfigFile: f.clientConfig, StopTimeout: time.Second})
@@ -219,6 +300,33 @@ func (f *configurationFixture) assertReleased(t *testing.T) {
 	}
 	if _, err := os.Lstat(f.instance.Xray.API.Address); !os.IsNotExist(err) {
 		t.Errorf("owned Unix listener was not removed: %v", err)
+	}
+}
+
+// Call only after the process owner has joined Stop/Close. The standalone CLI
+// can receive SIGTERM after API readiness but before it installs signal.Notify;
+// that exit closes descriptors without unlinking a filesystem Unix socket.
+// This fixture owns the private endpoint, not the operator's runtime paths.
+func (f *configurationFixture) removeStoppedAPISocket(t *testing.T) {
+	t.Helper()
+	path := f.instance.Xray.API.Address
+	info, err := os.Lstat(path)
+	if errors.Is(err, os.ErrNotExist) {
+		return
+	}
+	if err != nil || info.Mode()&os.ModeSocket == 0 {
+		t.Fatalf("stopped fixture API path is not an owned socket: %v", err)
+	}
+	connection, err := net.DialTimeout("unix", path, 100*time.Millisecond)
+	if err == nil {
+		_ = connection.Close()
+		t.Fatal("stopped fixture API still accepts connections")
+	}
+	if !errors.Is(err, syscall.ECONNREFUSED) {
+		t.Fatalf("cannot establish that the stopped fixture socket has no listener: %v", err)
+	}
+	if err := os.Remove(path); err != nil {
+		t.Fatal(err)
 	}
 }
 
