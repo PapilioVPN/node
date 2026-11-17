@@ -20,7 +20,7 @@ import (
 )
 
 func serverConfig(files mtls.Files) settings.GRPC {
-	return settings.GRPC{Address: "127.0.0.1:0", TLS: files, ConnectionTimeout: time.Second, ShutdownTimeout: time.Second,
+	return settings.GRPC{Address: "127.0.0.1:0", TLS: files, ConnectionTimeout: 500 * time.Millisecond, ShutdownTimeout: time.Second,
 		MaxRecvMessageSize: 64, MaxSendMessageSize: 64, MaxConnections: 16, MaxConcurrentStreams: 8, MaxHeaderListSize: 8192}
 }
 

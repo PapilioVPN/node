@@ -93,3 +93,21 @@ func TestDeploymentExampleIsValid(t *testing.T) {
 		t.Fatalf("deployment example: %v", err)
 	}
 }
+
+func FuzzLoad(f *testing.F) {
+	for _, seed := range []string{validConfig, grpcConfig, natsConfig, "", validConfig + "---\n", validConfig + "startup_timeout: 0s\n"} {
+		f.Add(seed)
+	}
+	path := filepath.Join(f.TempDir(), "config.yml")
+	f.Fuzz(func(t *testing.T, input string) {
+		// The loader's 1 MiB boundary has a deterministic regression test. Bound
+		// generated inputs here so fuzzing explores parsing rather than disk volume.
+		if len(input) > 64<<10 {
+			t.Skip()
+		}
+		if err := os.WriteFile(path, []byte(input), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		_, _ = settings.Load(path)
+	})
+}

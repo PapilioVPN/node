@@ -54,7 +54,9 @@ func TestDrainCompletesAcceptedRequestBeforeClosing(t *testing.T) {
 	}
 	defer requester.Close()
 	response := make(chan error, 1)
+	requestDone := make(chan struct{})
 	go func() {
+		defer close(requestDone)
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 		defer cancel()
 		msg, err := requester.RequestWithContext(ctx, "fixture.drain", nil)
@@ -63,6 +65,7 @@ func TestDrainCompletesAcceptedRequestBeforeClosing(t *testing.T) {
 		}
 		response <- err
 	}()
+	t.Cleanup(func() { <-requestDone })
 	select {
 	case <-entered:
 	case <-time.After(time.Second):
@@ -70,11 +73,14 @@ func TestDrainCompletesAcceptedRequestBeforeClosing(t *testing.T) {
 	}
 	statuses := conn.StatusChanged(nats.DRAINING_SUBS)
 	stopped := make(chan error, 1)
+	stopDone := make(chan struct{})
 	go func() {
+		defer close(stopDone)
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 		defer cancel()
 		stopped <- app.Stop(ctx)
 	}()
+	t.Cleanup(func() { <-stopDone })
 	select {
 	case <-statuses:
 	case <-time.After(time.Second):

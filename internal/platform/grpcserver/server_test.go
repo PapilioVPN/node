@@ -95,7 +95,7 @@ func TestSendLimit(t *testing.T) {
 func TestShutdownCancelsLongLivedStreamAfterDrainBudget(t *testing.T) {
 	pki := testutil.NewPKI(t)
 	config := serverConfig(pki.Server)
-	config.ShutdownTimeout = 100 * time.Millisecond
+	config.ShutdownTimeout = 750 * time.Millisecond
 	app, _, address := composeServer(t, config)
 	bound := startServer(t, app, address)
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
@@ -163,4 +163,65 @@ func TestUnexpectedStopRequestsFatalExit(t *testing.T) {
 	if err := app.Stop(ctx); err == nil {
 		t.Fatal("unexpected exit cause was lost")
 	}
+}
+
+func TestStreamLimitQueuesWorkUntilCapacityIsAvailable(t *testing.T) {
+	pki := testutil.NewPKI(t)
+	config := serverConfig(pki.Server)
+	config.MaxConcurrentStreams = 1
+	app, _, address := composeServer(t, config)
+	bound := startServer(t, app, address)
+	defer stopServer(t, app)
+	client := healthv1.NewHealthClient(connect(t, bound, pki.Client))
+	streamContext, cancelStream := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancelStream()
+	stream, err := client.Watch(streamContext, &healthv1.HealthCheckRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := stream.Recv(); err != nil {
+		t.Fatal(err)
+	}
+	limitedContext, cancelLimited := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	_, err = client.Check(limitedContext, &healthv1.HealthCheckRequest{})
+	cancelLimited()
+	if status.Code(err) != codes.DeadlineExceeded {
+		t.Fatalf("stream capacity was exceeded: %v", err)
+	}
+	cancelStream()
+	if _, err := stream.Recv(); err == nil {
+		t.Fatal("stream did not cancel")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	if _, err := client.Check(ctx, &healthv1.HealthCheckRequest{}); err != nil {
+		t.Fatalf("stream capacity did not recover: %v", err)
+	}
+}
+
+func TestConnectionLimitReleasesCapacityOnClose(t *testing.T) {
+	pki := testutil.NewPKI(t)
+	config := serverConfig(pki.Server)
+	config.MaxConnections = 1
+	app, _, address := composeServer(t, config)
+	bound := startServer(t, app, address)
+	defer stopServer(t, app)
+	first := connect(t, bound, pki.Client)
+	second := connect(t, bound, pki.Client)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	if _, err := healthv1.NewHealthClient(first).Check(ctx, &healthv1.HealthCheckRequest{}); err != nil {
+		t.Fatal(err)
+	}
+	limitedContext, cancelLimited := context.WithTimeout(ctx, 100*time.Millisecond)
+	_, err := healthv1.NewHealthClient(second).Check(limitedContext, &healthv1.HealthCheckRequest{})
+	cancelLimited()
+	if status.Code(err) != codes.DeadlineExceeded {
+		t.Fatalf("connection capacity was exceeded: %v", err)
+	}
+	first.Close()
+	if _, err := healthv1.NewHealthClient(second).Check(ctx, &healthv1.HealthCheckRequest{}, grpc.WaitForReady(true)); err != nil {
+		t.Fatalf("connection capacity did not recover: %v", err)
+	}
+	second.Close()
 }

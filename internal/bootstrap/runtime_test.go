@@ -15,13 +15,17 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PapilioVPN/node/internal/settings"
 	"github.com/PapilioVPN/node/internal/shared/mtls"
 	"github.com/PapilioVPN/node/internal/testutil"
 	"go.yaml.in/yaml/v3"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials"
+	healthv1 "google.golang.org/grpc/health/grpc_health_v1"
+	"google.golang.org/grpc/status"
 )
 
-func TestExecutableServesMutualTLSAndStopsOnSIGTERM(t *testing.T) {
+func TestExecutableStartsAllTransportsAndStopsOnSIGTERM(t *testing.T) {
 	dir := t.TempDir()
 	binary := filepath.Join(dir, "node")
 	buildContext, cancelBuild := context.WithTimeout(context.Background(), time.Minute)
@@ -31,15 +35,8 @@ func TestExecutableServesMutualTLSAndStopsOnSIGTERM(t *testing.T) {
 		t.Fatalf("build runtime: %v\n%s", err, output)
 	}
 	pki := testutil.NewPKI(t)
-	config := settings.Config{
-		StartupTimeout: 3 * time.Second, ShutdownTimeout: 3 * time.Second,
-		Communications: settings.Communications{HTTP: &settings.HTTP{
-			Address: "127.0.0.1:0", TLS: pki.Server,
-			ReadTimeout: time.Second, WriteTimeout: time.Second,
-			IdleTimeout: time.Second, ShutdownTimeout: time.Second,
-			BodyLimit: 1024, Concurrency: 16,
-		}},
-	}
+	broker := testutil.NewNATSBroker(t, pki.Server, true)
+	config := foundationConfig(pki, broker.ClientURL())
 	contents, err := yaml.Marshal(config)
 	if err != nil {
 		t.Fatal(err)
@@ -60,6 +57,8 @@ func TestExecutableServesMutualTLSAndStopsOnSIGTERM(t *testing.T) {
 	var exitError error
 	go func() { exitError = command.Wait(); close(done) }()
 	address := make(chan string, 1)
+	grpcAddress := make(chan string, 1)
+	natsReady := make(chan struct{}, 1)
 	go func() {
 		defer close(logsDone)
 		scanner := bufio.NewScanner(stderr)
@@ -68,9 +67,23 @@ func TestExecutableServesMutualTLSAndStopsOnSIGTERM(t *testing.T) {
 				Message string `json:"msg"`
 				Address string `json:"address"`
 			}
-			if json.Unmarshal(scanner.Bytes(), &event) == nil && event.Message == "HTTP listening" {
+			if json.Unmarshal(scanner.Bytes(), &event) != nil {
+				continue
+			}
+			switch event.Message {
+			case "HTTP listening":
 				select {
 				case address <- event.Address:
+				default:
+				}
+			case "gRPC listening":
+				select {
+				case grpcAddress <- event.Address:
+				default:
+				}
+			case "NATS connected":
+				select {
+				case natsReady <- struct{}{}:
 				default:
 				}
 			}
@@ -94,6 +107,21 @@ func TestExecutableServesMutualTLSAndStopsOnSIGTERM(t *testing.T) {
 	case <-time.After(5 * time.Second):
 		t.Fatal("runtime did not start")
 	}
+	var grpcBound string
+	select {
+	case grpcBound = <-grpcAddress:
+	case <-time.After(5 * time.Second):
+		t.Fatal("runtime gRPC did not start")
+	}
+	select {
+	case <-natsReady:
+	case <-time.After(5 * time.Second):
+		t.Fatal("runtime NATS did not connect")
+	}
+	if broker.NumClients() != 1 {
+		t.Fatal("runtime has not established its broker connection")
+	}
+
 	tlsConfig, err := mtls.Client(pki.Client)
 	if err != nil {
 		t.Fatal(err)
@@ -110,6 +138,19 @@ func TestExecutableServesMutualTLSAndStopsOnSIGTERM(t *testing.T) {
 	if copyError != nil || response.StatusCode != http.StatusNotFound {
 		t.Fatal("unexpected foundation response")
 	}
+	grpcClient, err := grpc.NewClient(grpcBound, grpc.WithTransportCredentials(credentials.NewTLS(tlsConfig)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer grpcClient.Close()
+	rpcContext, cancelRPC := context.WithTimeout(context.Background(), 2*time.Second)
+	_, err = healthv1.NewHealthClient(grpcClient).Check(rpcContext, &healthv1.HealthCheckRequest{})
+	cancelRPC()
+	if status.Code(err) != codes.Unimplemented {
+		t.Fatalf("unexpected foundation gRPC response: %v", err)
+	}
+	grpcClient.Close()
+
 	transport.CloseIdleConnections()
 	if err := command.Process.Signal(syscall.SIGTERM); err != nil {
 		t.Fatal(err)
@@ -121,5 +162,13 @@ func TestExecutableServesMutualTLSAndStopsOnSIGTERM(t *testing.T) {
 		}
 	case <-time.After(5 * time.Second):
 		t.Fatal("runtime did not join shutdown")
+	}
+	// Native client drain and the process exit must release the actual broker socket.
+	deadline := time.Now().Add(time.Second)
+	for broker.NumClients() != 0 && time.Now().Before(deadline) {
+		time.Sleep(5 * time.Millisecond)
+	}
+	if broker.NumClients() != 0 {
+		t.Fatal("runtime left a broker connection open")
 	}
 }

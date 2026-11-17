@@ -85,7 +85,6 @@ func TestBrokerRejectsInvalidClientAndServerTrust(t *testing.T) {
 		conn.Close()
 		t.Fatal("broker accepted a missing client certificate")
 	}
-
 }
 
 func TestBrokerACLRejectsForbiddenSubject(t *testing.T) {
