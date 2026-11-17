@@ -16,7 +16,7 @@ import (
 	xrayservice "github.com/PapilioVPN/node/internal/bootstrap/xrayapi/proto/v1"
 	xrayv1 "github.com/PapilioVPN/node/internal/modules/xray/outbounds/grpcapi/proto/v1"
 	rpc "github.com/PapilioVPN/node/internal/platform/grpcserver"
-	"github.com/PapilioVPN/node/internal/shared/testutil"
+	"github.com/PapilioVPN/node/internal/testutil"
 )
 
 func TestOutboundReadGrantOverMTLSIsIndependent(t *testing.T) {

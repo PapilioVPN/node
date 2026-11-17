@@ -19,7 +19,7 @@ import (
 	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
 	"github.com/PapilioVPN/node/internal/modules/xray/traffic/app/services"
 	"github.com/PapilioVPN/node/internal/modules/xray/traffic/domain"
-	"github.com/PapilioVPN/node/internal/shared/testutil"
+	"github.com/PapilioVPN/node/internal/testutil"
 )
 
 // Official manager/service executes reads/swaps; instrumentation forbids scans

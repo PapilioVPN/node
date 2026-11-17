@@ -23,7 +23,7 @@ import (
 	"github.com/PapilioVPN/node/internal/modules/core/instances/app/services"
 	"github.com/PapilioVPN/node/internal/modules/core/instances/domain"
 	xrayprocess "github.com/PapilioVPN/node/internal/modules/core/instances/infra/xray/process"
-	"github.com/PapilioVPN/node/internal/shared/testutil"
+	"github.com/PapilioVPN/node/internal/testutil"
 )
 
 func TestIndependentXrayInstances(t *testing.T) {

@@ -20,7 +20,7 @@ import (
 	"google.golang.org/protobuf/encoding/protowire"
 
 	"github.com/PapilioVPN/node/internal/modules/xray/outbounds/domain"
-	"github.com/PapilioVPN/node/internal/shared/testutil"
+	"github.com/PapilioVPN/node/internal/testutil"
 )
 
 // Controlled SDK responses verify Node's adapter, not engine probe execution.

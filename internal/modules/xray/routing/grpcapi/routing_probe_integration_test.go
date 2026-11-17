@@ -36,7 +36,7 @@ import (
 	trafficxray "github.com/PapilioVPN/node/internal/modules/xray/traffic/infra/api"
 	rpc "github.com/PapilioVPN/node/internal/platform/grpcserver"
 	"github.com/PapilioVPN/node/internal/settings"
-	"github.com/PapilioVPN/node/internal/shared/testutil"
+	"github.com/PapilioVPN/node/internal/testutil"
 )
 
 // Native and mTLS paths share one isolated engine fixture and independent oracles.

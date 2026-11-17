@@ -16,7 +16,7 @@ import (
 
 	trafficdomain "github.com/PapilioVPN/node/internal/modules/xray/traffic/domain"
 	"github.com/PapilioVPN/node/internal/shared/engineapi"
-	"github.com/PapilioVPN/node/internal/shared/testutil"
+	"github.com/PapilioVPN/node/internal/testutil"
 )
 
 // Controlled native servers verify SDK requests; real Xray runs in bootstrap tests.

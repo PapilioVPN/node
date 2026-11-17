@@ -26,7 +26,7 @@ import (
 	"github.com/PapilioVPN/node/internal/modules/xray/traffic/infra/api"
 	"github.com/PapilioVPN/node/internal/platform/grpcserver"
 	nativeapi "github.com/PapilioVPN/node/internal/platform/xray"
-	"github.com/PapilioVPN/node/internal/shared/testutil"
+	"github.com/PapilioVPN/node/internal/testutil"
 )
 
 // Actual SDK swaps followed by an injected lost reply verify partial progress

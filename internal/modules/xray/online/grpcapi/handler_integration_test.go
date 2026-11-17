@@ -14,7 +14,7 @@ import (
 	xrayv1 "github.com/PapilioVPN/node/internal/bootstrap/xrayapi/proto/v1"
 	onlinev1 "github.com/PapilioVPN/node/internal/modules/xray/online/grpcapi/proto/v1"
 	rpc "github.com/PapilioVPN/node/internal/platform/grpcserver"
-	"github.com/PapilioVPN/node/internal/shared/testutil"
+	"github.com/PapilioVPN/node/internal/testutil"
 )
 
 func TestOnlineRPCsRejectExistingTrafficAndInfoGrants(t *testing.T) {

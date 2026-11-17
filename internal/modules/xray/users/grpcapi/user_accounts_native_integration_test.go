@@ -35,7 +35,7 @@ import (
 	rpc "github.com/PapilioVPN/node/internal/platform/grpcserver"
 	nativeapi "github.com/PapilioVPN/node/internal/platform/xray"
 	"github.com/PapilioVPN/node/internal/settings"
-	"github.com/PapilioVPN/node/internal/shared/testutil"
+	"github.com/PapilioVPN/node/internal/testutil"
 )
 
 // This verifies changes to real native user managers for all eight families.

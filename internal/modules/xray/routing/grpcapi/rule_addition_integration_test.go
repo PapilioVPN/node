@@ -30,7 +30,7 @@ import (
 	xrayprocess "github.com/PapilioVPN/node/internal/modules/xray/routing/infra/process"
 	rpc "github.com/PapilioVPN/node/internal/platform/grpcserver"
 	"github.com/PapilioVPN/node/internal/settings"
-	"github.com/PapilioVPN/node/internal/shared/testutil"
+	"github.com/PapilioVPN/node/internal/testutil"
 )
 
 func TestXrayRuleAdditionNativePipelinePreservesAppendReplaceAssetsAndInstances(t *testing.T) {

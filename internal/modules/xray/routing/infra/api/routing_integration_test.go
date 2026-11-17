@@ -19,7 +19,7 @@ import (
 
 	routingdomain "github.com/PapilioVPN/node/internal/modules/xray/routing/domain"
 	"github.com/PapilioVPN/node/internal/shared/engineapi"
-	"github.com/PapilioVPN/node/internal/shared/testutil"
+	"github.com/PapilioVPN/node/internal/testutil"
 )
 
 // Controlled native services verify SDK dispatch/bounds, not real Xray routing.

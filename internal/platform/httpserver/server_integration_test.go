@@ -16,7 +16,7 @@ import (
 
 	"github.com/PapilioVPN/node/internal/platform/httpserver"
 	"github.com/PapilioVPN/node/internal/settings"
-	"github.com/PapilioVPN/node/internal/shared/testutil"
+	"github.com/PapilioVPN/node/internal/testutil"
 	"github.com/gofiber/fiber/v3"
 )
 

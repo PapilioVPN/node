@@ -17,7 +17,7 @@ import (
 	"github.com/PapilioVPN/node/internal/modules/core/instances"
 	rpc "github.com/PapilioVPN/node/internal/platform/grpcserver"
 	"github.com/PapilioVPN/node/internal/settings"
-	"github.com/PapilioVPN/node/internal/shared/testutil"
+	"github.com/PapilioVPN/node/internal/testutil"
 )
 
 func TestConfiguredInstancesStartAndStop(t *testing.T) {

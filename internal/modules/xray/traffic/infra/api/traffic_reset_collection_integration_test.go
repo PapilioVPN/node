@@ -20,7 +20,7 @@ import (
 	"github.com/PapilioVPN/node/internal/modules/xray/traffic/domain"
 	trafficapi "github.com/PapilioVPN/node/internal/modules/xray/traffic/infra/api"
 	nativeapi "github.com/PapilioVPN/node/internal/platform/xray"
-	"github.com/PapilioVPN/node/internal/shared/testutil"
+	"github.com/PapilioVPN/node/internal/testutil"
 )
 
 // The official manager/service executes real atomic swaps; controlled wrappers

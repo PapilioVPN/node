@@ -18,7 +18,7 @@ import (
 	"github.com/PapilioVPN/node/internal/modules/core/instances/domain"
 	controlprocess "github.com/PapilioVPN/node/internal/modules/core/instances/infra/xray/process"
 	xrayprocess "github.com/PapilioVPN/node/internal/modules/xray/configs/infra/process"
-	"github.com/PapilioVPN/node/internal/shared/testutil"
+	"github.com/PapilioVPN/node/internal/testutil"
 )
 
 func TestNativeConfigBuildingWithoutRuntimeOrFileMutation(t *testing.T) {

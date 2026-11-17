@@ -20,7 +20,7 @@ import (
 	online "github.com/PapilioVPN/node/internal/modules/xray/online/grpcapi"
 	onlinev1 "github.com/PapilioVPN/node/internal/modules/xray/online/grpcapi/proto/v1"
 	trafficgrpc "github.com/PapilioVPN/node/internal/modules/xray/traffic/grpcapi"
-	"github.com/PapilioVPN/node/internal/shared/testutil"
+	"github.com/PapilioVPN/node/internal/testutil"
 )
 
 type onlineService struct {

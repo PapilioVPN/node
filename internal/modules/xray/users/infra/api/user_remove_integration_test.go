@@ -19,7 +19,7 @@ import (
 	userdomain "github.com/PapilioVPN/node/internal/modules/xray/users/domain"
 	userxray "github.com/PapilioVPN/node/internal/modules/xray/users/infra/api"
 	"github.com/PapilioVPN/node/internal/shared/engineapi"
-	"github.com/PapilioVPN/node/internal/shared/testutil"
+	"github.com/PapilioVPN/node/internal/testutil"
 )
 
 // Controlled native service validates the actual wire operation and models loss

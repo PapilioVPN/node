@@ -24,7 +24,7 @@ import (
 	"github.com/PapilioVPN/node/internal/modules/xray/traffic/infra/api"
 	"github.com/PapilioVPN/node/internal/platform/grpcserver"
 	nativeapi "github.com/PapilioVPN/node/internal/platform/xray"
-	"github.com/PapilioVPN/node/internal/shared/testutil"
+	"github.com/PapilioVPN/node/internal/testutil"
 )
 
 // The official native manager/service performs the actual swap. Only transport

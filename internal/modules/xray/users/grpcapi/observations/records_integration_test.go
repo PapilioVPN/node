@@ -15,7 +15,7 @@ import (
 	xrayv1 "github.com/PapilioVPN/node/internal/bootstrap/xrayapi/proto/v1"
 	userv1 "github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi/proto/v1"
 	rpc "github.com/PapilioVPN/node/internal/platform/grpcserver"
-	"github.com/PapilioVPN/node/internal/shared/testutil"
+	"github.com/PapilioVPN/node/internal/testutil"
 )
 
 func TestUserObservationGrantsStayIndependentOverMTLS(t *testing.T) {

@@ -19,7 +19,7 @@ import (
 	userdomain "github.com/PapilioVPN/node/internal/modules/xray/online/domain"
 	trafficdomain "github.com/PapilioVPN/node/internal/modules/xray/traffic/domain"
 	"github.com/PapilioVPN/node/internal/shared/engineapi"
-	"github.com/PapilioVPN/node/internal/shared/testutil"
+	"github.com/PapilioVPN/node/internal/testutil"
 )
 
 // Controlled native servers verify SDK behavior; real flows run in bootstrap.

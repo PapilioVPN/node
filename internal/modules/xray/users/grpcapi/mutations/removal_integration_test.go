@@ -25,7 +25,7 @@ import (
 	userxray "github.com/PapilioVPN/node/internal/modules/xray/users/infra/api"
 	"github.com/PapilioVPN/node/internal/platform/grpcserver"
 	nativeapi "github.com/PapilioVPN/node/internal/platform/xray"
-	"github.com/PapilioVPN/node/internal/shared/testutil"
+	"github.com/PapilioVPN/node/internal/testutil"
 )
 
 // This controlled native server models a removal followed by a lost reply.

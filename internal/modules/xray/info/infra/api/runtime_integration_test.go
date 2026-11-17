@@ -16,7 +16,7 @@ import (
 
 	"github.com/PapilioVPN/node/internal/modules/xray/info/domain"
 	"github.com/PapilioVPN/node/internal/shared/engineapi"
-	"github.com/PapilioVPN/node/internal/shared/testutil"
+	"github.com/PapilioVPN/node/internal/testutil"
 )
 
 // Controlled SDK servers exercise native channel contracts, not Xray behavior.

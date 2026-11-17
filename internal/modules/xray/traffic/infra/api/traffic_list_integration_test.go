@@ -18,7 +18,7 @@ import (
 
 	trafficdomain "github.com/PapilioVPN/node/internal/modules/xray/traffic/domain"
 	"github.com/PapilioVPN/node/internal/shared/engineapi"
-	"github.com/PapilioVPN/node/internal/shared/testutil"
+	"github.com/PapilioVPN/node/internal/testutil"
 )
 
 // Controlled native servers expose exact request selection and external-call growth.

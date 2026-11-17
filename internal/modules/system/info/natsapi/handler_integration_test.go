@@ -14,7 +14,7 @@ import (
 	"github.com/PapilioVPN/node/internal/modules/system/info/domain"
 	"github.com/PapilioVPN/node/internal/modules/system/info/natsapi"
 	"github.com/PapilioVPN/node/internal/platform/natsserver"
-	"github.com/PapilioVPN/node/internal/shared/testutil"
+	"github.com/PapilioVPN/node/internal/testutil"
 )
 
 type infoReader func(context.Context) (domain.NodeInfo, error)

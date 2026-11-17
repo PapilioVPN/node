@@ -21,7 +21,7 @@ import (
 	outboundapi "github.com/PapilioVPN/node/internal/modules/xray/outbounds/infra/api"
 	rpc "github.com/PapilioVPN/node/internal/platform/grpcserver"
 	"github.com/PapilioVPN/node/internal/settings"
-	"github.com/PapilioVPN/node/internal/shared/testutil"
+	"github.com/PapilioVPN/node/internal/testutil"
 )
 
 func TestOutboundObservationsRejectMissingNativeCapabilitiesOverMTLS(t *testing.T) {

@@ -14,7 +14,7 @@ import (
 
 	"github.com/PapilioVPN/node/internal/platform/natsserver"
 	"github.com/PapilioVPN/node/internal/shared/natsresponse"
-	"github.com/PapilioVPN/node/internal/shared/testutil"
+	"github.com/PapilioVPN/node/internal/testutil"
 	"github.com/nats-io/nats.go"
 )
 

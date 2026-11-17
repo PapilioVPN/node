@@ -16,7 +16,7 @@ import (
 
 	"github.com/PapilioVPN/node/internal/modules/xray/info/domain"
 	xrayprocess "github.com/PapilioVPN/node/internal/modules/xray/info/infra/process"
-	"github.com/PapilioVPN/node/internal/shared/testutil"
+	"github.com/PapilioVPN/node/internal/testutil"
 )
 
 func TestBinaryInspectorReadsOfficialXray(t *testing.T) {
