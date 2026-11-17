@@ -15,5 +15,9 @@ go test -race -tags=integration ./...
 go test -run="^$" -fuzz="^FuzzLoad$" -fuzztime=10s -parallel=2 ./internal/settings
 govulncheck ./...
 mkdir -p dist
-go build -trimpath -o dist/node ./cmd/node
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -o dist/node ./cmd/node
 dist/node -help
+revision=$(git rev-parse HEAD)
+sh scripts/ci/package.sh dist/node "$revision" dist
+go test -race -tags=integration,distribution ./internal/bootstrap/distribution \
+    -run="^TestDistribution" -count=1 -args -bundle="$PWD/dist/node-linux-amd64-$revision.tar.gz"
