@@ -68,8 +68,8 @@ func TestLoadDoesNotEnableAnUnconfiguredTransport(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if config.Communications.HTTP != nil {
-		t.Fatal("unconfigured HTTP was enabled")
+	if config.Communications.HTTP != nil || config.Communications.GRPC != nil || config.Communications.NATS != nil {
+		t.Fatal("an unconfigured transport was enabled")
 	}
 }
 
@@ -85,5 +85,11 @@ func TestRelativeConfigPathProducesAbsoluteIdentityPaths(t *testing.T) {
 	}
 	if config.Communications.HTTP.TLS.Certificate != filepath.Join(dir, "certs/node.crt") {
 		t.Fatal("loaded identity still depends on the current working directory")
+	}
+}
+
+func TestDeploymentExampleIsValid(t *testing.T) {
+	if _, err := settings.Load("../../deploy/config.example.yml"); err != nil {
+		t.Fatalf("deployment example: %v", err)
 	}
 }

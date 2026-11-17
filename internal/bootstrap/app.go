@@ -6,6 +6,7 @@ import (
 
 	"github.com/PapilioVPN/node/internal/platform/grpcserver"
 	"github.com/PapilioVPN/node/internal/platform/httpserver"
+	"github.com/PapilioVPN/node/internal/platform/natsclient"
 	"github.com/PapilioVPN/node/internal/settings"
 	"go.uber.org/fx"
 	"go.uber.org/fx/fxevent"
@@ -23,6 +24,9 @@ func New(config settings.Config, logger *slog.Logger) *fx.App {
 	}
 	if grpc := config.Communications.GRPC; grpc != nil {
 		options = append(options, fx.Supply(*grpc), grpcserver.Module)
+	}
+	if nats := config.Communications.NATS; nats != nil {
+		options = append(options, fx.Supply(*nats), natsclient.Module)
 	}
 	return fx.New(options...)
 }

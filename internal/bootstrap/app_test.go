@@ -11,12 +11,12 @@ import (
 	"github.com/PapilioVPN/node/internal/settings"
 )
 
-func TestUnconfiguredHTTPIsNotConstructed(t *testing.T) {
+func TestUnconfiguredTransportsAreNotConstructed(t *testing.T) {
 	config := settings.Config{StartupTimeout: time.Second, ShutdownTimeout: time.Second}
 	app := bootstrap.New(config, slog.New(slog.NewTextHandler(io.Discard, nil)))
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
-	// No certificate files are present: constructing HTTP would fail before startup.
+	// No certificate files are present: constructing a transport would fail before startup.
 	if err := app.Start(ctx); err != nil {
 		t.Fatal(err)
 	}

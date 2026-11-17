@@ -22,6 +22,7 @@ type Config struct {
 type Communications struct {
 	HTTP *HTTP `yaml:"http"`
 	GRPC *GRPC `yaml:"grpc"`
+	NATS *NATS `yaml:"nats"`
 }
 
 // Load accepts one strictly typed YAML document. Relative identity paths are
@@ -67,7 +68,9 @@ func Load(path string) (Config, error) {
 	if grpc := config.Communications.GRPC; grpc != nil {
 		grpc.TLS = resolveTLS(base, grpc.TLS)
 	}
-
+	if nats := config.Communications.NATS; nats != nil {
+		nats.TLS = resolveTLS(base, nats.TLS)
+	}
 	return config, nil
 }
 
@@ -90,6 +93,15 @@ func (config Config) Validate() error {
 			return fmt.Errorf("communications.grpc: %w", err)
 		}
 		if grpc.ShutdownTimeout >= remaining {
+			return errors.New("transport shutdown budgets must fit inside Node shutdown_timeout")
+		}
+		remaining -= grpc.ShutdownTimeout
+	}
+	if nats := config.Communications.NATS; nats != nil {
+		if err := nats.validate(); err != nil {
+			return fmt.Errorf("communications.nats: %w", err)
+		}
+		if nats.ShutdownTimeout >= remaining {
 			return errors.New("transport shutdown budgets must fit inside Node shutdown_timeout")
 		}
 	}
