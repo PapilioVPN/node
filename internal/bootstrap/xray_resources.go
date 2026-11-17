@@ -6,8 +6,8 @@ import (
 
 	"go.uber.org/fx"
 
+	instances "github.com/PapilioVPN/node/internal/apps/core/engines/instances/domain"
 	"github.com/PapilioVPN/node/internal/bootstrap/xrayapi"
-	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
 	nativeapi "github.com/PapilioVPN/node/internal/platform/xray"
 	"github.com/PapilioVPN/node/internal/settings"
 )

@@ -1,0 +1,174 @@
+syntax = "proto3";
+
+package papilio.node.xray.v1;
+
+option go_package = "github.com/PapilioVPN/node/internal/apps/xray/network/traffic/grpcapi/proto/v1;trafficv1";
+
+enum TrafficScope {
+  TRAFFIC_SCOPE_UNSPECIFIED = 0;
+  TRAFFIC_SCOPE_USER = 1;
+  TRAFFIC_SCOPE_INBOUND = 2;
+  TRAFFIC_SCOPE_OUTBOUND = 3;
+}
+
+enum TrafficDirection {
+  TRAFFIC_DIRECTION_UNSPECIFIED = 0;
+  TRAFFIC_DIRECTION_UPLINK = 1;
+  TRAFFIC_DIRECTION_DOWNLINK = 2;
+}
+
+message GetTrafficCounterRequest {
+  string instance_id = 1;
+  TrafficScope scope = 2;
+  // Exact native user email or inbound/outbound tag; never trimmed or normalized.
+  string name = 3;
+  TrafficDirection direction = 4;
+}
+
+message GetTrafficCounterResponse {
+  string instance_id = 1;
+  TrafficScope scope = 2;
+  string name = 3;
+  TrafficDirection direction = 4;
+  // Native signed int64 bytes, preserving overflow/reset semantics.
+  int64 bytes = 5;
+  int64 observed_at_unix_ms = 6;
+}
+
+message ListTrafficCountersRequest {
+  string instance_id = 1;
+  TrafficScope scope = 2;
+}
+
+message ListTrafficCountersResponse {
+  string instance_id = 1;
+  TrafficScope scope = 2;
+  // Ordered by exact name then lexical direction (downlink, uplink).
+  repeated TrafficCounterEntry items = 3;
+  // Completion of the observation, not an atomic snapshot time.
+  int64 observed_at_unix_ms = 4;
+}
+
+message TrafficCounterEntry {
+  string name = 1;
+  TrafficDirection direction = 2;
+  int64 bytes = 3;
+}
+
+message ResetTrafficCounterRequest {
+  string instance_id = 1;
+  TrafficScope scope = 2;
+  string name = 3;
+  TrafficDirection direction = 4;
+}
+
+message ResetTrafficCounterResponse {
+  string instance_id = 1;
+  TrafficScope scope = 2;
+  string name = 3;
+  TrafficDirection direction = 4;
+  // Previous native signed int64 bytes, before one atomic swap with zero.
+  int64 previous_bytes = 5;
+  // Node's receipt of the acknowledgement, not the native reset's timestamp.
+  int64 acknowledged_at_unix_ms = 6;
+}
+
+enum TrafficCounterResetOutcome {
+  TRAFFIC_COUNTER_RESET_OUTCOME_UNSPECIFIED = 0;
+  TRAFFIC_COUNTER_RESET_OUTCOME_NOT_APPLIED = 1;
+  TRAFFIC_COUNTER_RESET_OUTCOME_UNKNOWN = 2;
+}
+
+// Delivered in gRPC error details after application selection. Missing details or
+// an undelivered response never establish NOT_APPLIED. A read cannot recover prior
+// usage after an unknown reset; blindly retrying can discard more usage.
+message TrafficCounterResetFailure {
+  TrafficCounterResetOutcome outcome = 1;
+}
+
+message ResetTrafficCountersRequest {
+  string instance_id = 1;
+  TrafficScope scope = 2;
+  // Required positive bound. Excess selection fails before any reset.
+  uint32 max_counters = 3;
+}
+
+enum TrafficCounterResetState {
+  TRAFFIC_COUNTER_RESET_STATE_UNSPECIFIED = 0;
+  TRAFFIC_COUNTER_RESET_STATE_NOT_ATTEMPTED = 1;
+  TRAFFIC_COUNTER_RESET_STATE_ACKNOWLEDGED = 2;
+  TRAFFIC_COUNTER_RESET_STATE_NOT_APPLIED = 3;
+  TRAFFIC_COUNTER_RESET_STATE_UNKNOWN = 4;
+  // Pair direction absent at its exact native request; no counter was created.
+  TRAFFIC_COUNTER_RESET_STATE_MISSING = 5;
+}
+
+message TrafficCounterResetAcknowledgement {
+  // Previous native signed bytes from the atomic swap, not from discovery.
+  int64 previous_bytes = 1;
+  int64 acknowledged_at_unix_ms = 2;
+}
+
+message TrafficCounterResetEntry {
+  string name = 1;
+  TrafficDirection direction = 2;
+  TrafficCounterResetState state = 3;
+  // Present only when state is ACKNOWLEDGED; zero bytes are valid.
+  TrafficCounterResetAcknowledgement acknowledgement = 4;
+}
+
+message ResetTrafficCountersResponse {
+  string instance_id = 1;
+  TrafficScope scope = 2;
+  // Every selected identity, ordered by exact name then direction.
+  repeated TrafficCounterResetEntry items = 3;
+  // Absent when preflight did not complete. This is not an atomic snapshot.
+  optional int64 selected_at_unix_ms = 4;
+}
+
+// A failed operation is never a successful partial reset. Delivered details retain
+// Node's observed effects; an empty report means no swaps were invoked. Missing
+// details/lost replies can hide effects, including all swaps. Do not blindly replay.
+message TrafficCountersResetFailure {
+  ResetTrafficCountersResponse progress = 1;
+}
+
+message GetTrafficPairRequest {
+  string instance_id = 1;
+  TrafficScope scope = 2;
+  string name = 3;
+}
+
+message TrafficCounterObservation {
+  int64 bytes = 1;
+  int64 observed_at_unix_ms = 2;
+}
+
+message GetTrafficPairResponse {
+  string instance_id = 1;
+  TrafficScope scope = 2;
+  string name = 3;
+  // Independent observations, not an atomic snapshot. Absent means missing.
+  TrafficCounterObservation uplink = 4;
+  TrafficCounterObservation downlink = 5;
+}
+
+message ResetTrafficPairRequest {
+  string instance_id = 1;
+  TrafficScope scope = 2;
+  string name = 3;
+}
+
+message ResetTrafficPairResponse {
+  string instance_id = 1;
+  TrafficScope scope = 2;
+  string name = 3;
+  // Exactly uplink then downlink, including missing/unattempted directions.
+  repeated TrafficCounterResetEntry items = 4;
+}
+
+// Failure retains confirmed, missing, unattempted and uncertain effects. Lost or
+// absent details can hide effects; a current read cannot recover previous bytes.
+message TrafficPairResetFailure {
+  ResetTrafficPairResponse progress = 1;
+}

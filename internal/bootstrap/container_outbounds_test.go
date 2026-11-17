@@ -11,8 +11,8 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 
+	outboundsv1 "github.com/PapilioVPN/node/internal/apps/xray/network/outbounds/grpcapi/proto/v1"
 	xrayv1 "github.com/PapilioVPN/node/internal/bootstrap/xrayapi/proto/v1"
-	outboundsv1 "github.com/PapilioVPN/node/internal/modules/xray/outbounds/grpcapi/proto/v1"
 )
 
 func verifyContainerOutbounds(t *testing.T, ctx context.Context, client xrayv1.XrayServiceClient) {

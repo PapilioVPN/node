@@ -8,12 +8,12 @@ package xrayv1
 
 import (
 	context "context"
-	v11 "github.com/PapilioVPN/node/internal/modules/xray/info/grpcapi/proto/v1"
-	v13 "github.com/PapilioVPN/node/internal/modules/xray/online/grpcapi/proto/v1"
-	v15 "github.com/PapilioVPN/node/internal/modules/xray/outbounds/grpcapi/proto/v1"
-	v14 "github.com/PapilioVPN/node/internal/modules/xray/routing/grpcapi/proto/v1"
-	v12 "github.com/PapilioVPN/node/internal/modules/xray/traffic/grpcapi/proto/v1"
-	v1 "github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi/proto/v1"
+	v15 "github.com/PapilioVPN/node/internal/apps/xray/network/outbounds/grpcapi/proto/v1"
+	v14 "github.com/PapilioVPN/node/internal/apps/xray/network/routing/grpcapi/proto/v1"
+	v12 "github.com/PapilioVPN/node/internal/apps/xray/network/traffic/grpcapi/proto/v1"
+	v11 "github.com/PapilioVPN/node/internal/apps/xray/runtime/info/grpcapi/proto/v1"
+	v1 "github.com/PapilioVPN/node/internal/apps/xray/users/accounts/grpcapi/proto/v1"
+	v13 "github.com/PapilioVPN/node/internal/apps/xray/users/online/grpcapi/proto/v1"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"

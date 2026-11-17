@@ -7,12 +7,12 @@
 package xrayv1
 
 import (
-	v11 "github.com/PapilioVPN/node/internal/modules/xray/info/grpcapi/proto/v1"
-	v13 "github.com/PapilioVPN/node/internal/modules/xray/online/grpcapi/proto/v1"
-	v15 "github.com/PapilioVPN/node/internal/modules/xray/outbounds/grpcapi/proto/v1"
-	v14 "github.com/PapilioVPN/node/internal/modules/xray/routing/grpcapi/proto/v1"
-	v12 "github.com/PapilioVPN/node/internal/modules/xray/traffic/grpcapi/proto/v1"
-	v1 "github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi/proto/v1"
+	v15 "github.com/PapilioVPN/node/internal/apps/xray/network/outbounds/grpcapi/proto/v1"
+	v14 "github.com/PapilioVPN/node/internal/apps/xray/network/routing/grpcapi/proto/v1"
+	v12 "github.com/PapilioVPN/node/internal/apps/xray/network/traffic/grpcapi/proto/v1"
+	v11 "github.com/PapilioVPN/node/internal/apps/xray/runtime/info/grpcapi/proto/v1"
+	v1 "github.com/PapilioVPN/node/internal/apps/xray/users/accounts/grpcapi/proto/v1"
+	v13 "github.com/PapilioVPN/node/internal/apps/xray/users/online/grpcapi/proto/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -30,7 +30,7 @@ var File_internal_bootstrap_xrayapi_proto_v1_xray_proto protoreflect.FileDescrip
 
 const file_internal_bootstrap_xrayapi_proto_v1_xray_proto_rawDesc = "" +
 	"\n" +
-	".internal/bootstrap/xrayapi/proto/v1/xray.proto\x12\x14papilio.node.xray.v1\x1a<internal/modules/xray/users/grpcapi/proto/v1/mutations.proto\x1a?internal/modules/xray/users/grpcapi/proto/v1/observations.proto\x1a:internal/modules/xray/online/grpcapi/proto/v1/online.proto\x1a<internal/modules/xray/routing/grpcapi/proto/v1/routing.proto\x1a<internal/modules/xray/traffic/grpcapi/proto/v1/traffic.proto\x1a6internal/modules/xray/info/grpcapi/proto/v1/info.proto\x1a@internal/modules/xray/outbounds/grpcapi/proto/v1/outbounds.proto2\xf0\x19\n" +
+	".internal/bootstrap/xrayapi/proto/v1/xray.proto\x12\x14papilio.node.xray.v1\x1aBinternal/apps/xray/users/accounts/grpcapi/proto/v1/mutations.proto\x1aEinternal/apps/xray/users/accounts/grpcapi/proto/v1/observations.proto\x1a=internal/apps/xray/users/online/grpcapi/proto/v1/online.proto\x1aAinternal/apps/xray/network/routing/grpcapi/proto/v1/routing.proto\x1aAinternal/apps/xray/network/traffic/grpcapi/proto/v1/traffic.proto\x1a;internal/apps/xray/runtime/info/grpcapi/proto/v1/info.proto\x1aEinternal/apps/xray/network/outbounds/grpcapi/proto/v1/outbounds.proto2\xf0\x19\n" +
 	"\vXrayService\x12k\n" +
 	"\x0eAddInboundUser\x12+.papilio.node.xray.v1.AddInboundUserRequest\x1a,.papilio.node.xray.v1.AddInboundUserResponse\x12n\n" +
 	"\x0fAddInboundUsers\x12,.papilio.node.xray.v1.AddInboundUsersRequest\x1a-.papilio.node.xray.v1.AddInboundUsersResponse\x12\x80\x01\n" +

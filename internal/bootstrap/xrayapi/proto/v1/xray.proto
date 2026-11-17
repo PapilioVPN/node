@@ -4,15 +4,15 @@ package papilio.node.xray.v1;
 
 option go_package = "github.com/PapilioVPN/node/internal/bootstrap/xrayapi/proto/v1;xrayv1";
 
-import "internal/modules/xray/users/grpcapi/proto/v1/mutations.proto";
-import "internal/modules/xray/users/grpcapi/proto/v1/observations.proto";
-import "internal/modules/xray/online/grpcapi/proto/v1/online.proto";
-import "internal/modules/xray/routing/grpcapi/proto/v1/routing.proto";
-import "internal/modules/xray/traffic/grpcapi/proto/v1/traffic.proto";
+import "internal/apps/xray/users/accounts/grpcapi/proto/v1/mutations.proto";
+import "internal/apps/xray/users/accounts/grpcapi/proto/v1/observations.proto";
+import "internal/apps/xray/users/online/grpcapi/proto/v1/online.proto";
+import "internal/apps/xray/network/routing/grpcapi/proto/v1/routing.proto";
+import "internal/apps/xray/network/traffic/grpcapi/proto/v1/traffic.proto";
 
-import "internal/modules/xray/info/grpcapi/proto/v1/info.proto";
+import "internal/apps/xray/runtime/info/grpcapi/proto/v1/info.proto";
 
-import "internal/modules/xray/outbounds/grpcapi/proto/v1/outbounds.proto";
+import "internal/apps/xray/network/outbounds/grpcapi/proto/v1/outbounds.proto";
 
 service XrayService {
   // One live native addition after an inbound-type preflight. Not atomic against

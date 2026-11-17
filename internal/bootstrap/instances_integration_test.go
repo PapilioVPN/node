@@ -13,8 +13,8 @@ import (
 	"go.uber.org/fx"
 	"go.yaml.in/yaml/v3"
 
+	"github.com/PapilioVPN/node/internal/apps/core/engines/instances"
 	"github.com/PapilioVPN/node/internal/bootstrap"
-	"github.com/PapilioVPN/node/internal/modules/core/instances"
 	rpc "github.com/PapilioVPN/node/internal/platform/grpcserver"
 	"github.com/PapilioVPN/node/internal/settings"
 	"github.com/PapilioVPN/node/internal/testutil"

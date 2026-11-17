@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+package papilio.node.xray.v1;
+
+option go_package = "github.com/PapilioVPN/node/internal/apps/xray/users/online/grpcapi/proto/v1;onlinev1";
+
+message GetUserOnlineStatsRequest {
+  string instance_id = 1;
+  // Exact native email, never normalized.
+  string email = 2;
+}
+message GetUserOnlineStatsResponse {
+  string instance_id = 1;
+  string email = 2;
+  int64 online_ip_count = 3;
+  int64 observed_at_unix_ms = 4;
+}
+message ListUserOnlineIPsRequest {
+  string instance_id = 1;
+  string email = 2;
+}
+message ListUserOnlineIPsResponse {
+  string instance_id = 1;
+  string email = 2;
+  // Complete result, ordered by exact native IP key; no native pagination.
+  repeated OnlineIP items = 3;
+  int64 observed_at_unix_ms = 4;
+}
+message OnlineIP {
+  string ip = 1;
+  // Native last connection registration time, not an activity heartbeat.
+  int64 last_seen_unix_seconds = 2;
+}
+message ListOnlineUsersRequest {
+  string instance_id = 1;
+}
+message ListOnlineUsersResponse {
+  string instance_id = 1;
+  // Exact native emails in lexical order; complete result or resource-limit error.
+  repeated string emails = 2;
+  int64 observed_at_unix_ms = 3;
+}

@@ -2,12 +2,12 @@
 package xrayapi
 
 import (
-	infogrpc "github.com/PapilioVPN/node/internal/modules/xray/info/grpcapi"
-	onlinegrpc "github.com/PapilioVPN/node/internal/modules/xray/online/grpcapi"
-	outboundgrpc "github.com/PapilioVPN/node/internal/modules/xray/outbounds/grpcapi"
-	routinggrpc "github.com/PapilioVPN/node/internal/modules/xray/routing/grpcapi"
-	trafficgrpc "github.com/PapilioVPN/node/internal/modules/xray/traffic/grpcapi"
-	usergrpc "github.com/PapilioVPN/node/internal/modules/xray/users/grpcapi"
+	outboundgrpc "github.com/PapilioVPN/node/internal/apps/xray/network/outbounds/grpcapi"
+	routinggrpc "github.com/PapilioVPN/node/internal/apps/xray/network/routing/grpcapi"
+	trafficgrpc "github.com/PapilioVPN/node/internal/apps/xray/network/traffic/grpcapi"
+	infogrpc "github.com/PapilioVPN/node/internal/apps/xray/runtime/info/grpcapi"
+	usergrpc "github.com/PapilioVPN/node/internal/apps/xray/users/accounts/grpcapi"
+	onlinegrpc "github.com/PapilioVPN/node/internal/apps/xray/users/online/grpcapi"
 )
 
 type Handler struct {

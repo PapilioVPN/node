@@ -17,10 +17,10 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 
+	instances "github.com/PapilioVPN/node/internal/apps/core/engines/instances/domain"
+	routingv1 "github.com/PapilioVPN/node/internal/apps/xray/network/routing/grpcapi/proto/v1"
+	trafficv1 "github.com/PapilioVPN/node/internal/apps/xray/network/traffic/grpcapi/proto/v1"
 	xrayv1 "github.com/PapilioVPN/node/internal/bootstrap/xrayapi/proto/v1"
-	instances "github.com/PapilioVPN/node/internal/modules/core/instances/domain"
-	routingv1 "github.com/PapilioVPN/node/internal/modules/xray/routing/grpcapi/proto/v1"
-	trafficv1 "github.com/PapilioVPN/node/internal/modules/xray/traffic/grpcapi/proto/v1"
 	"github.com/PapilioVPN/node/internal/settings"
 )
 

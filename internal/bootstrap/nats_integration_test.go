@@ -17,8 +17,8 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 
+	nodev1 "github.com/PapilioVPN/node/internal/apps/system/node/info/grpcapi/proto/v1"
 	"github.com/PapilioVPN/node/internal/bootstrap"
-	nodev1 "github.com/PapilioVPN/node/internal/modules/system/info/grpcapi/proto/v1"
 	rpc "github.com/PapilioVPN/node/internal/platform/grpcserver"
 	"github.com/PapilioVPN/node/internal/platform/httpserver"
 	"github.com/PapilioVPN/node/internal/settings"

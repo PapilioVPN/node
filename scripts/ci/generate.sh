@@ -28,14 +28,14 @@ GOBIN="$tool_dir" go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.6.
 PATH="$tool_dir:$PATH" "$tool_dir/protoc" \
   --go_out=. --go_opt=paths=source_relative \
   --go-grpc_out=. --go-grpc_opt=paths=source_relative \
-  internal/modules/system/info/grpcapi/proto/v1/node.proto \
-  internal/modules/core/instances/grpcapi/proto/v1/instances.proto \
-  internal/modules/xray/users/grpcapi/proto/v1/accounts.proto \
-  internal/modules/xray/users/grpcapi/proto/v1/mutations.proto \
-  internal/modules/xray/users/grpcapi/proto/v1/observations.proto \
-  internal/modules/xray/online/grpcapi/proto/v1/online.proto \
-  internal/modules/xray/routing/grpcapi/proto/v1/routing.proto \
-  internal/modules/xray/traffic/grpcapi/proto/v1/traffic.proto \
-  internal/modules/xray/info/grpcapi/proto/v1/info.proto \
-  internal/modules/xray/outbounds/grpcapi/proto/v1/outbounds.proto \
+  internal/apps/system/node/info/grpcapi/proto/v1/node.proto \
+  internal/apps/core/engines/instances/grpcapi/proto/v1/instances.proto \
+  internal/apps/xray/users/accounts/grpcapi/proto/v1/accounts.proto \
+  internal/apps/xray/users/accounts/grpcapi/proto/v1/mutations.proto \
+  internal/apps/xray/users/accounts/grpcapi/proto/v1/observations.proto \
+  internal/apps/xray/users/online/grpcapi/proto/v1/online.proto \
+  internal/apps/xray/network/routing/grpcapi/proto/v1/routing.proto \
+  internal/apps/xray/network/traffic/grpcapi/proto/v1/traffic.proto \
+  internal/apps/xray/runtime/info/grpcapi/proto/v1/info.proto \
+  internal/apps/xray/network/outbounds/grpcapi/proto/v1/outbounds.proto \
   internal/bootstrap/xrayapi/proto/v1/xray.proto

@@ -1,0 +1,92 @@
+syntax = "proto3";
+
+package papilio.node.xray.v1;
+
+option go_package = "github.com/PapilioVPN/node/internal/apps/xray/users/accounts/grpcapi/proto/v1;userv1";
+
+message GetInboundUserCountRequest {
+  string instance_id = 1;
+  string inbound_tag = 2;
+}
+
+message GetInboundUserCountResponse {
+  string instance_id = 1;
+  string inbound_tag = 2;
+  // Preserve the full nonnegative native int64 range. Zero is a valid count.
+  int64 count = 3;
+  int64 observed_at_unix_ms = 4;
+}
+
+// Credential-free projection of one observed native user-manager record.
+message InboundUserMetadata {
+  string email = 1;
+  uint32 level = 2;
+  // Fully qualified native protobuf message name, not a Node dispatch key.
+  string account_type = 3;
+}
+
+// Original observed account message, including credentials and extensions.
+// This is not the AddInboundUser input: native readback may omit initial settings
+// (e.g. Shadowsocks IVCheck) or differ from device state (e.g. WireGuard PSK).
+message NativeUserAccount {
+  string type_name = 1;
+  bytes protobuf = 2;
+}
+
+message InboundUserRecord {
+  string email = 1;
+  uint32 level = 2;
+  NativeUserAccount account = 3;
+}
+
+message GetInboundUserMetadataRequest {
+  string instance_id = 1;
+  string inbound_tag = 2;
+  // Nonblank exact email; native protocols own matching and stored identity.
+  string email = 3;
+}
+message GetInboundUserMetadataResponse {
+  string instance_id = 1;
+  string inbound_tag = 2;
+  // Requested identity. The returned stored email may differ.
+  string email = 3;
+  // Absent on a completed missing lookup, never synthesized as an empty user.
+  InboundUserMetadata user = 4;
+  int64 observed_at_unix_ms = 5;
+}
+message ListInboundUserMetadataRequest {
+  string instance_id = 1;
+  string inbound_tag = 2;
+}
+message ListInboundUserMetadataResponse {
+  string instance_id = 1;
+  string inbound_tag = 2;
+  // Complete collection, including anonymous users and duplicates. Ordered by
+  // email, level and account type; native relative order for equal keys.
+  repeated InboundUserMetadata users = 3;
+  // Node completion time, not an atomic snapshot or native membership revision.
+  int64 observed_at_unix_ms = 4;
+}
+message GetInboundUserRequest {
+  string instance_id = 1;
+  string inbound_tag = 2;
+  string email = 3;
+}
+message GetInboundUserResponse {
+  string instance_id = 1;
+  string inbound_tag = 2;
+  string email = 3;
+  InboundUserRecord user = 4;
+  int64 observed_at_unix_ms = 5;
+}
+message ListInboundUsersRequest {
+  string instance_id = 1;
+  string inbound_tag = 2;
+}
+message ListInboundUsersResponse {
+  string instance_id = 1;
+  string inbound_tag = 2;
+  // Same complete membership/ordering contract as the metadata collection.
+  repeated InboundUserRecord users = 3;
+  int64 observed_at_unix_ms = 4;
+}

@@ -9,9 +9,9 @@ import (
 	"go.uber.org/fx"
 	"go.uber.org/fx/fxevent"
 
-	"github.com/PapilioVPN/node/internal/modules/core"
-	"github.com/PapilioVPN/node/internal/modules/system"
-	"github.com/PapilioVPN/node/internal/modules/xray"
+	"github.com/PapilioVPN/node/internal/apps/core"
+	"github.com/PapilioVPN/node/internal/apps/system"
+	"github.com/PapilioVPN/node/internal/apps/xray"
 	"github.com/PapilioVPN/node/internal/settings"
 )
 
