@@ -11,6 +11,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/PapilioVPN/node/internal/apps/xray/users/accounts/domain"
+	"github.com/PapilioVPN/node/internal/apps/xray/users/accounts/infra/accounts"
 )
 
 // AddInboundUser checks the target's native configuration type before AddUser.
@@ -26,7 +27,7 @@ func (c *Adapter) AddInboundUser(ctx context.Context, addition domain.InboundUse
 		return domain.UserMutationAcknowledgement{}, err
 	}
 	defer done()
-	user, expectedType, err := nativeUser(addition.User)
+	user, expectedType, err := accounts.EncodeUser(addition.User)
 	if err != nil {
 		return domain.UserMutationAcknowledgement{}, err
 	}

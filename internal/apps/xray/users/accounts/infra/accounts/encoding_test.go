@@ -1,4 +1,4 @@
-package api
+package accounts
 
 import (
 	"bytes"
@@ -43,7 +43,7 @@ func TestAccountEncodingPreservesEveryBaselineFamily(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(string(tc.account.Protocol), func(t *testing.T) {
-			user, inbound, err := nativeUser(domain.InboundUser{Email: " Mixed@Example ", Level: math.MaxUint32, Account: tc.account})
+			user, inbound, err := EncodeUser(domain.InboundUser{Email: " Mixed@Example ", Level: math.MaxUint32, Account: tc.account})
 			if err != nil || inbound != tc.inbound || user.Email != " Mixed@Example " || user.Level != math.MaxUint32 {
 				t.Fatalf("native user identity/type changed: %v", err)
 			}
@@ -60,7 +60,7 @@ func TestAccountEncodingPreservesEveryBaselineFamily(t *testing.T) {
 
 func TestNativeUUIDFormsAndWireGuardOptionalKeepalive(t *testing.T) {
 	for _, id := range []string{"short-id", "8e781ad6-dae6-4ed4-9d7b-8c247f735869"} {
-		user, _, err := nativeUser(domain.InboundUser{Account: domain.UserAccount{Protocol: domain.VLESS, VLESS: &domain.VLESSAccount{ID: id}}})
+		user, _, err := EncodeUser(domain.InboundUser{Account: domain.UserAccount{Protocol: domain.VLESS, VLESS: &domain.VLESSAccount{ID: id}}})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -70,11 +70,11 @@ func TestNativeUUIDFormsAndWireGuardOptionalKeepalive(t *testing.T) {
 			t.Fatal("native UUID normalization changed")
 		}
 	}
-	if _, _, err := nativeUser(domain.InboundUser{Account: domain.UserAccount{Protocol: domain.VMess, VMess: &domain.VMessAccount{ID: "not-a-valid-native-uuid-with-more-than-thirty-characters"}}}); !errors.Is(err, domain.ErrInvalidUserAccount) {
+	if _, _, err := EncodeUser(domain.InboundUser{Account: domain.UserAccount{Protocol: domain.VMess, VMess: &domain.VMessAccount{ID: "not-a-valid-native-uuid-with-more-than-thirty-characters"}}}); !errors.Is(err, domain.ErrInvalidUserAccount) {
 		t.Fatal("invalid native UUID did not retain typed cause")
 	}
 	account := &domain.WireGuardAccount{PublicKey: bytes.Repeat([]byte{7}, 32), AllowedIPs: []string{"10.0.0.2/32"}}
-	user, _, err := nativeUser(domain.InboundUser{Account: domain.UserAccount{Protocol: domain.WireGuard, WireGuard: account}})
+	user, _, err := EncodeUser(domain.InboundUser{Account: domain.UserAccount{Protocol: domain.WireGuard, WireGuard: account}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -89,7 +89,7 @@ func TestEveryShadowsocksCipherHasAnExplicitNativeValue(t *testing.T) {
 		domain.AES128GCM: shadowsocks.CipherType_AES_128_GCM, domain.AES256GCM: shadowsocks.CipherType_AES_256_GCM,
 		domain.ChaCha20Poly1305: shadowsocks.CipherType_CHACHA20_POLY1305, domain.XChaCha20Poly1305: shadowsocks.CipherType_XCHACHA20_POLY1305, domain.CipherNone: 9,
 	} {
-		user, _, err := nativeUser(domain.InboundUser{Account: domain.UserAccount{Protocol: domain.Shadowsocks, Shadowsocks: &domain.ShadowsocksAccount{Password: "test-only", Cipher: cipher}}})
+		user, _, err := EncodeUser(domain.InboundUser{Account: domain.UserAccount{Protocol: domain.Shadowsocks, Shadowsocks: &domain.ShadowsocksAccount{Password: "test-only", Cipher: cipher}}})
 		if err != nil {
 			t.Fatal(err)
 		}

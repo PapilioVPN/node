@@ -10,6 +10,7 @@ import (
 	"github.com/xtls/xray-core/common/serial"
 
 	"github.com/PapilioVPN/node/internal/apps/xray/users/accounts/domain"
+	"github.com/PapilioVPN/node/internal/apps/xray/users/accounts/infra/accounts"
 )
 
 // AddInboundUsers encodes the complete validated collection before any native
@@ -40,7 +41,7 @@ func (c *Adapter) AddInboundUsers(ctx context.Context, input domain.InboundUserA
 		if err := ctx.Err(); err != nil {
 			return report, err
 		}
-		user, inboundType, err := nativeUser(item)
+		user, inboundType, err := accounts.EncodeUser(item)
 		if err != nil {
 			return report, err
 		}

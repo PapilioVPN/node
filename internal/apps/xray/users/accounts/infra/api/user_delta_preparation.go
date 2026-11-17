@@ -11,6 +11,7 @@ import (
 	"github.com/xtls/xray-core/common/serial"
 
 	"github.com/PapilioVPN/node/internal/apps/xray/users/accounts/domain"
+	"github.com/PapilioVPN/node/internal/apps/xray/users/accounts/infra/accounts"
 )
 
 func prepareUserDelta(ctx context.Context, input domain.InboundUserDelta) ([]*serial.TypedMessage, string, error) {
@@ -26,7 +27,7 @@ func prepareUserDelta(ctx context.Context, input domain.InboundUserDelta) ([]*se
 		if item.Email == "" {
 			return nil, "", domain.ErrInvalidUserSelection
 		}
-		user, kind, err := nativeUser(item)
+		user, kind, err := accounts.EncodeUser(item)
 		if err != nil {
 			return nil, "", err
 		}

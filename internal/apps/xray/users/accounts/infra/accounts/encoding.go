@@ -1,4 +1,4 @@
-package api
+package accounts
 
 import (
 	"encoding/base64"
@@ -22,10 +22,10 @@ import (
 	"github.com/PapilioVPN/node/internal/apps/xray/users/accounts/domain"
 )
 
-// nativeUser consumes a boundary-validated tagged account. Configuration type
+// EncodeUser consumes a boundary-validated tagged account. Configuration type
 // names for VLESS/VMess/Hysteria are pinned wire contracts; their generated Go
 // config packages also embed engine implementations, unnecessary for this client.
-func nativeUser(user domain.InboundUser) (*protocol.User, string, error) {
+func EncodeUser(user domain.InboundUser) (*protocol.User, string, error) {
 	a := user.Account
 	var message proto.Message
 	var inboundType string
@@ -87,9 +87,9 @@ func nativeUser(user domain.InboundUser) (*protocol.User, string, error) {
 	default:
 		return nil, "", domain.ErrInvalidUserAccount
 	}
-	account, err := encodeUserOperation(message)
+	payload, err := proto.Marshal(message)
 	if err != nil {
 		return nil, "", errors.Join(domain.ErrInvalidUserAccount, err)
 	}
-	return &protocol.User{Email: user.Email, Level: user.Level, Account: account}, inboundType, nil
+	return &protocol.User{Email: user.Email, Level: user.Level, Account: &serial.TypedMessage{Type: serial.GetMessageType(message), Value: payload}}, inboundType, nil
 }
