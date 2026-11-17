@@ -4,6 +4,12 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
+    inputs:
+      publish_image:
+        description: Publish the checked image to GHCR
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -16,6 +22,8 @@ jobs:
   check:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    outputs:
+      runtime_artifact_id: ${{ steps.runtime.outputs.artifact-id }}
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
@@ -26,5 +34,40 @@ jobs:
           cache: true
       - name: Install pinned vulnerability scanner
         run: go install golang.org/x/vuln/cmd/govulncheck@v1.9.0
-      - name: Verify source and build the foundation binary
+      - name: Verify source, package and smoke-test the runtime
         run: sh scripts/ci/check.sh
+      - name: Preserve the tested runtime bundle
+        id: runtime
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: node-linux-amd64-${{ github.sha }}
+          path: |
+            dist/node-linux-amd64-${{ github.sha }}.tar.gz
+            dist/node-linux-amd64-${{ github.sha }}.tar.gz.sha256
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
+          overwrite: true
+
+  publish:
+    if: github.event_name == 'workflow_dispatch' && inputs.publish_image && github.ref == 'refs/heads/main'
+    needs: check
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          artifact-ids: ${{ needs.check.outputs.runtime_artifact_id }}
+          merge-multiple: true
+          path: dist
+          digest-mismatch: error
+      - name: Publish the exact checked image
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: sh scripts/ci/publish.sh "dist/node-linux-amd64-$GITHUB_SHA.tar.gz"
