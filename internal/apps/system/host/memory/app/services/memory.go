@@ -12,7 +12,15 @@ type Reader interface {
 	Read(context.Context) (domain.Snapshot, error)
 }
 
-type Service struct{ Reader Reader }
+type SwapReader interface {
+	Read(context.Context) (domain.SwapSnapshot, error)
+}
+
+// Service coordinates the focused RAM and swap observations of host memory.
+type Service struct {
+	Reader     Reader
+	SwapReader SwapReader
+}
 
 func (service Service) Read(ctx context.Context) (domain.Observation, error) {
 	started := time.Now()
@@ -22,4 +30,14 @@ func (service Service) Read(ctx context.Context) (domain.Observation, error) {
 	}
 	completed := time.Now()
 	return domain.Observation{Memory: memory, ObservedAt: completed.UTC(), Duration: completed.Sub(started)}, nil
+}
+
+func (service Service) ReadSwap(ctx context.Context) (domain.SwapObservation, error) {
+	started := time.Now()
+	swap, err := service.SwapReader.Read(ctx)
+	if err != nil {
+		return domain.SwapObservation{}, err
+	}
+	completed := time.Now()
+	return domain.SwapObservation{Swap: swap, ObservedAt: completed.UTC(), Duration: completed.Sub(started)}, nil
 }

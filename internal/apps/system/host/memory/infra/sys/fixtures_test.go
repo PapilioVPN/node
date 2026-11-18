@@ -26,3 +26,7 @@ func procFixture(t *testing.T, input string) string {
 	}
 	return root
 }
+
+type readerFunc func([]byte) (int, error)
+
+func (read readerFunc) Read(p []byte) (int, error) { return read(p) }
