@@ -2,9 +2,9 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.2
 // - protoc             v7.36.2
-// source: internal/apps/system/host/load/grpcapi/proto/v1/load.proto
+// source: internal/apps/system/host/cpu/grpcapi/proto/v1/load.proto
 
-package loadv1
+package cpuv1
 
 import (
 	context "context"
@@ -117,5 +117,5 @@ var HostLoadService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "internal/apps/system/host/load/grpcapi/proto/v1/load.proto",
+	Metadata: "internal/apps/system/host/cpu/grpcapi/proto/v1/load.proto",
 }

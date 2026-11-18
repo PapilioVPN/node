@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PapilioVPN/node/internal/apps/system/host/load/domain"
-	"github.com/PapilioVPN/node/internal/apps/system/host/load/infra/sys"
+	"github.com/PapilioVPN/node/internal/apps/system/host/cpu/domain"
+	"github.com/PapilioVPN/node/internal/apps/system/host/cpu/infra/sys"
 )
 
 func TestActualHostLoadMatchesProcAverages(t *testing.T) {

@@ -1,9 +1,9 @@
-package grpcapi_test
+package httpapi_test
 
 import (
 	"context"
 
-	"github.com/PapilioVPN/node/internal/apps/system/host/load/domain"
+	"github.com/PapilioVPN/node/internal/apps/system/host/cpu/domain"
 )
 
 type readerFunc func(context.Context) (domain.Averages, error)

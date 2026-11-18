@@ -12,9 +12,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PapilioVPN/node/internal/apps/system/host/load/domain"
-	loadv1 "github.com/PapilioVPN/node/internal/apps/system/host/load/grpcapi/proto/v1"
-	"github.com/PapilioVPN/node/internal/apps/system/host/load/infra/sys"
+	"github.com/PapilioVPN/node/internal/apps/system/host/cpu/domain"
+	loadv1 "github.com/PapilioVPN/node/internal/apps/system/host/cpu/grpcapi/proto/v1"
+	"github.com/PapilioVPN/node/internal/apps/system/host/cpu/infra/sys"
 	"github.com/PapilioVPN/node/internal/testutil"
 	"github.com/nats-io/nats.go"
 	"google.golang.org/grpc/codes"

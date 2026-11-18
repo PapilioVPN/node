@@ -1,12 +1,12 @@
-// Package load composes the host load reader, operation and adapters.
-package load
+// Package cpu composes host processor observations and their adapters.
+package cpu
 
 import (
-	"github.com/PapilioVPN/node/internal/apps/system/host/load/app/services"
-	"github.com/PapilioVPN/node/internal/apps/system/host/load/grpcapi"
-	"github.com/PapilioVPN/node/internal/apps/system/host/load/httpapi"
-	"github.com/PapilioVPN/node/internal/apps/system/host/load/infra/sys"
-	"github.com/PapilioVPN/node/internal/apps/system/host/load/natsapi"
+	"github.com/PapilioVPN/node/internal/apps/system/host/cpu/app/services"
+	"github.com/PapilioVPN/node/internal/apps/system/host/cpu/grpcapi"
+	"github.com/PapilioVPN/node/internal/apps/system/host/cpu/httpapi"
+	"github.com/PapilioVPN/node/internal/apps/system/host/cpu/infra/sys"
+	"github.com/PapilioVPN/node/internal/apps/system/host/cpu/natsapi"
 	"github.com/PapilioVPN/node/internal/platform/natsclient"
 	"github.com/PapilioVPN/node/internal/settings"
 	"github.com/gofiber/fiber/v3"
@@ -15,7 +15,7 @@ import (
 )
 
 func Module(requests settings.Requests) fx.Option {
-	return fx.Module("load", fx.Supply(requests, fx.Private),
+	return fx.Module("cpu", fx.Supply(requests, fx.Private),
 		fx.Provide(func() services.Service { return services.Service{Reader: sys.Reader{}} }, fx.Private),
 		fx.Invoke(register), fx.Provide(subscribe),
 	)

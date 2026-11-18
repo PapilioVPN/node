@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PapilioVPN/node/internal/apps/system/host/load/app/services"
-	"github.com/PapilioVPN/node/internal/apps/system/host/load/domain"
+	"github.com/PapilioVPN/node/internal/apps/system/host/cpu/app/services"
+	"github.com/PapilioVPN/node/internal/apps/system/host/cpu/domain"
 )
 
 func TestFreshReadsPreserveWindowsAndMeasureCompletion(t *testing.T) {

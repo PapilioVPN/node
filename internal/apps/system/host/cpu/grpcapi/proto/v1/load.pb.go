@@ -2,9 +2,9 @@
 // versions:
 // 	protoc-gen-go v1.36.12
 // 	protoc        v7.36.2
-// source: internal/apps/system/host/load/grpcapi/proto/v1/load.proto
+// source: internal/apps/system/host/cpu/grpcapi/proto/v1/load.proto
 
-package loadv1
+package cpuv1
 
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
@@ -30,7 +30,7 @@ type GetHostLoadRequest struct {
 
 func (x *GetHostLoadRequest) Reset() {
 	*x = GetHostLoadRequest{}
-	mi := &file_internal_apps_system_host_load_grpcapi_proto_v1_load_proto_msgTypes[0]
+	mi := &file_internal_apps_system_host_cpu_grpcapi_proto_v1_load_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -42,7 +42,7 @@ func (x *GetHostLoadRequest) String() string {
 func (*GetHostLoadRequest) ProtoMessage() {}
 
 func (x *GetHostLoadRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_apps_system_host_load_grpcapi_proto_v1_load_proto_msgTypes[0]
+	mi := &file_internal_apps_system_host_cpu_grpcapi_proto_v1_load_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -55,7 +55,7 @@ func (x *GetHostLoadRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetHostLoadRequest.ProtoReflect.Descriptor instead.
 func (*GetHostLoadRequest) Descriptor() ([]byte, []int) {
-	return file_internal_apps_system_host_load_grpcapi_proto_v1_load_proto_rawDescGZIP(), []int{0}
+	return file_internal_apps_system_host_cpu_grpcapi_proto_v1_load_proto_rawDescGZIP(), []int{0}
 }
 
 type GetHostLoadResponse struct {
@@ -72,7 +72,7 @@ type GetHostLoadResponse struct {
 
 func (x *GetHostLoadResponse) Reset() {
 	*x = GetHostLoadResponse{}
-	mi := &file_internal_apps_system_host_load_grpcapi_proto_v1_load_proto_msgTypes[1]
+	mi := &file_internal_apps_system_host_cpu_grpcapi_proto_v1_load_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -84,7 +84,7 @@ func (x *GetHostLoadResponse) String() string {
 func (*GetHostLoadResponse) ProtoMessage() {}
 
 func (x *GetHostLoadResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_apps_system_host_load_grpcapi_proto_v1_load_proto_msgTypes[1]
+	mi := &file_internal_apps_system_host_cpu_grpcapi_proto_v1_load_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -97,7 +97,7 @@ func (x *GetHostLoadResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetHostLoadResponse.ProtoReflect.Descriptor instead.
 func (*GetHostLoadResponse) Descriptor() ([]byte, []int) {
-	return file_internal_apps_system_host_load_grpcapi_proto_v1_load_proto_rawDescGZIP(), []int{1}
+	return file_internal_apps_system_host_cpu_grpcapi_proto_v1_load_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *GetHostLoadResponse) GetOneMinute() float64 {
@@ -135,11 +135,11 @@ func (x *GetHostLoadResponse) GetDurationNs() int64 {
 	return 0
 }
 
-var File_internal_apps_system_host_load_grpcapi_proto_v1_load_proto protoreflect.FileDescriptor
+var File_internal_apps_system_host_cpu_grpcapi_proto_v1_load_proto protoreflect.FileDescriptor
 
-const file_internal_apps_system_host_load_grpcapi_proto_v1_load_proto_rawDesc = "" +
+const file_internal_apps_system_host_cpu_grpcapi_proto_v1_load_proto_rawDesc = "" +
 	"\n" +
-	":internal/apps/system/host/load/grpcapi/proto/v1/load.proto\x12\x1bpapilio.system.host.load.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\x14\n" +
+	"9internal/apps/system/host/cpu/grpcapi/proto/v1/load.proto\x12\x1bpapilio.system.host.load.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\x14\n" +
 	"\x12GetHostLoadRequest\"\xde\x01\n" +
 	"\x13GetHostLoadResponse\x12\x1d\n" +
 	"\n" +
@@ -151,27 +151,27 @@ const file_internal_apps_system_host_load_grpcapi_proto_v1_load_proto_rawDesc = 
 	"\vduration_ns\x18\x05 \x01(\x03R\n" +
 	"durationNs2\x83\x01\n" +
 	"\x0fHostLoadService\x12p\n" +
-	"\vGetHostLoad\x12/.papilio.system.host.load.v1.GetHostLoadRequest\x1a0.papilio.system.host.load.v1.GetHostLoadResponseBSZQgithub.com/PapilioVPN/node/internal/apps/system/host/load/grpcapi/proto/v1;loadv1b\x06proto3"
+	"\vGetHostLoad\x12/.papilio.system.host.load.v1.GetHostLoadRequest\x1a0.papilio.system.host.load.v1.GetHostLoadResponseBQZOgithub.com/PapilioVPN/node/internal/apps/system/host/cpu/grpcapi/proto/v1;cpuv1b\x06proto3"
 
 var (
-	file_internal_apps_system_host_load_grpcapi_proto_v1_load_proto_rawDescOnce sync.Once
-	file_internal_apps_system_host_load_grpcapi_proto_v1_load_proto_rawDescData []byte
+	file_internal_apps_system_host_cpu_grpcapi_proto_v1_load_proto_rawDescOnce sync.Once
+	file_internal_apps_system_host_cpu_grpcapi_proto_v1_load_proto_rawDescData []byte
 )
 
-func file_internal_apps_system_host_load_grpcapi_proto_v1_load_proto_rawDescGZIP() []byte {
-	file_internal_apps_system_host_load_grpcapi_proto_v1_load_proto_rawDescOnce.Do(func() {
-		file_internal_apps_system_host_load_grpcapi_proto_v1_load_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_internal_apps_system_host_load_grpcapi_proto_v1_load_proto_rawDesc), len(file_internal_apps_system_host_load_grpcapi_proto_v1_load_proto_rawDesc)))
+func file_internal_apps_system_host_cpu_grpcapi_proto_v1_load_proto_rawDescGZIP() []byte {
+	file_internal_apps_system_host_cpu_grpcapi_proto_v1_load_proto_rawDescOnce.Do(func() {
+		file_internal_apps_system_host_cpu_grpcapi_proto_v1_load_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_internal_apps_system_host_cpu_grpcapi_proto_v1_load_proto_rawDesc), len(file_internal_apps_system_host_cpu_grpcapi_proto_v1_load_proto_rawDesc)))
 	})
-	return file_internal_apps_system_host_load_grpcapi_proto_v1_load_proto_rawDescData
+	return file_internal_apps_system_host_cpu_grpcapi_proto_v1_load_proto_rawDescData
 }
 
-var file_internal_apps_system_host_load_grpcapi_proto_v1_load_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
-var file_internal_apps_system_host_load_grpcapi_proto_v1_load_proto_goTypes = []any{
+var file_internal_apps_system_host_cpu_grpcapi_proto_v1_load_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_internal_apps_system_host_cpu_grpcapi_proto_v1_load_proto_goTypes = []any{
 	(*GetHostLoadRequest)(nil),    // 0: papilio.system.host.load.v1.GetHostLoadRequest
 	(*GetHostLoadResponse)(nil),   // 1: papilio.system.host.load.v1.GetHostLoadResponse
 	(*timestamppb.Timestamp)(nil), // 2: google.protobuf.Timestamp
 }
-var file_internal_apps_system_host_load_grpcapi_proto_v1_load_proto_depIdxs = []int32{
+var file_internal_apps_system_host_cpu_grpcapi_proto_v1_load_proto_depIdxs = []int32{
 	2, // 0: papilio.system.host.load.v1.GetHostLoadResponse.observed_at:type_name -> google.protobuf.Timestamp
 	0, // 1: papilio.system.host.load.v1.HostLoadService.GetHostLoad:input_type -> papilio.system.host.load.v1.GetHostLoadRequest
 	1, // 2: papilio.system.host.load.v1.HostLoadService.GetHostLoad:output_type -> papilio.system.host.load.v1.GetHostLoadResponse
@@ -182,26 +182,26 @@ var file_internal_apps_system_host_load_grpcapi_proto_v1_load_proto_depIdxs = []
 	0, // [0:1] is the sub-list for field type_name
 }
 
-func init() { file_internal_apps_system_host_load_grpcapi_proto_v1_load_proto_init() }
-func file_internal_apps_system_host_load_grpcapi_proto_v1_load_proto_init() {
-	if File_internal_apps_system_host_load_grpcapi_proto_v1_load_proto != nil {
+func init() { file_internal_apps_system_host_cpu_grpcapi_proto_v1_load_proto_init() }
+func file_internal_apps_system_host_cpu_grpcapi_proto_v1_load_proto_init() {
+	if File_internal_apps_system_host_cpu_grpcapi_proto_v1_load_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_internal_apps_system_host_load_grpcapi_proto_v1_load_proto_rawDesc), len(file_internal_apps_system_host_load_grpcapi_proto_v1_load_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_internal_apps_system_host_cpu_grpcapi_proto_v1_load_proto_rawDesc), len(file_internal_apps_system_host_cpu_grpcapi_proto_v1_load_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   2,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_internal_apps_system_host_load_grpcapi_proto_v1_load_proto_goTypes,
-		DependencyIndexes: file_internal_apps_system_host_load_grpcapi_proto_v1_load_proto_depIdxs,
-		MessageInfos:      file_internal_apps_system_host_load_grpcapi_proto_v1_load_proto_msgTypes,
+		GoTypes:           file_internal_apps_system_host_cpu_grpcapi_proto_v1_load_proto_goTypes,
+		DependencyIndexes: file_internal_apps_system_host_cpu_grpcapi_proto_v1_load_proto_depIdxs,
+		MessageInfos:      file_internal_apps_system_host_cpu_grpcapi_proto_v1_load_proto_msgTypes,
 	}.Build()
-	File_internal_apps_system_host_load_grpcapi_proto_v1_load_proto = out.File
-	file_internal_apps_system_host_load_grpcapi_proto_v1_load_proto_goTypes = nil
-	file_internal_apps_system_host_load_grpcapi_proto_v1_load_proto_depIdxs = nil
+	File_internal_apps_system_host_cpu_grpcapi_proto_v1_load_proto = out.File
+	file_internal_apps_system_host_cpu_grpcapi_proto_v1_load_proto_goTypes = nil
+	file_internal_apps_system_host_cpu_grpcapi_proto_v1_load_proto_depIdxs = nil
 }

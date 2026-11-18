@@ -6,8 +6,8 @@ import (
 	"errors"
 	"time"
 
-	"github.com/PapilioVPN/node/internal/apps/system/host/load/app/services"
-	loadv1 "github.com/PapilioVPN/node/internal/apps/system/host/load/grpcapi/proto/v1"
+	"github.com/PapilioVPN/node/internal/apps/system/host/cpu/app/services"
+	loadv1 "github.com/PapilioVPN/node/internal/apps/system/host/cpu/grpcapi/proto/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

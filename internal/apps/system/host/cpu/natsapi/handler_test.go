@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PapilioVPN/node/internal/apps/system/host/load/app/services"
-	"github.com/PapilioVPN/node/internal/apps/system/host/load/domain"
-	"github.com/PapilioVPN/node/internal/apps/system/host/load/natsapi"
+	"github.com/PapilioVPN/node/internal/apps/system/host/cpu/app/services"
+	"github.com/PapilioVPN/node/internal/apps/system/host/cpu/domain"
+	"github.com/PapilioVPN/node/internal/apps/system/host/cpu/natsapi"
 	"github.com/nats-io/nats.go"
 )
 

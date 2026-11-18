@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/PapilioVPN/node/internal/apps/system/host/load/app/services"
+	"github.com/PapilioVPN/node/internal/apps/system/host/cpu/app/services"
 	"github.com/gofiber/fiber/v3"
 )
 

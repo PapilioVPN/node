@@ -2,8 +2,8 @@
 package host
 
 import (
+	"github.com/PapilioVPN/node/internal/apps/system/host/cpu"
 	"github.com/PapilioVPN/node/internal/apps/system/host/identity"
-	"github.com/PapilioVPN/node/internal/apps/system/host/load"
 	"github.com/PapilioVPN/node/internal/apps/system/host/memory"
 	"github.com/PapilioVPN/node/internal/apps/system/host/uptime"
 	"github.com/PapilioVPN/node/internal/settings"
@@ -11,5 +11,5 @@ import (
 )
 
 func Module(requests settings.Requests) fx.Option {
-	return fx.Module("host", identity.Module(requests), uptime.Module(requests), load.Module(requests), memory.Module(requests))
+	return fx.Module("host", identity.Module(requests), uptime.Module(requests), cpu.Module(requests), memory.Module(requests))
 }

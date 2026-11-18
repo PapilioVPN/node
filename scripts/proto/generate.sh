@@ -32,7 +32,7 @@ cd "$root"
 for schema in \
     internal/apps/system/host/identity/grpcapi/proto/v1/identity \
     internal/apps/system/host/uptime/grpcapi/proto/v1/uptime \
-    internal/apps/system/host/load/grpcapi/proto/v1/load \
+    internal/apps/system/host/cpu/grpcapi/proto/v1/load \
     internal/apps/system/host/memory/grpcapi/proto/v1/memory; do
     protoc -I . -I "$tools/include" --go_out="$temporary" --go_opt=paths=source_relative \
         --go-grpc_out="$temporary" --go-grpc_opt=paths=source_relative "$schema.proto"

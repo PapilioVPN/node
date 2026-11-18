@@ -3,7 +3,7 @@ package sys
 import (
 	"testing"
 
-	"github.com/PapilioVPN/node/internal/apps/system/host/load/domain"
+	"github.com/PapilioVPN/node/internal/apps/system/host/cpu/domain"
 )
 
 func TestKernelFixedPointLoadConversion(t *testing.T) {
