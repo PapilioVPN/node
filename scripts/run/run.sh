@@ -6,6 +6,7 @@ if [ "$#" -lt 2 ] || [ "$1" = --help ]; then
         'Starts the installed immutable image using Docker and the invoking UID/GID.' \
         'Mounts the config directory read-only at /etc/node; requires config.yml.' \
         'Choose native Docker network/port options, such as --network host, explicitly.' \
+        'For host identity, add --uts=host; no host filesystem mount is required.' \
         'Add --detach for background execution; inspect logs and stop with native Docker commands.'
     [ "${1-}" = --help ] && exit 0
     exit 2

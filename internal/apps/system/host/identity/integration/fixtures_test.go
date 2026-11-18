@@ -4,9 +4,11 @@ package integration_test
 
 import (
 	"context"
+	"encoding/json"
 	"io"
 	"log/slog"
 	"net/http"
+	"os/exec"
 	"strings"
 	"sync"
 	"testing"
@@ -130,4 +132,49 @@ func connectClients(t *testing.T, files mtls.Files, config settings.Config, addr
 		t.Cleanup(result.NATS.Close)
 	}
 	return result
+}
+
+func docker(t *testing.T, args ...string) string {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	command := exec.CommandContext(ctx, "docker", args...)
+	command.WaitDelay = time.Second
+	output, err := command.CombinedOutput()
+	if err != nil {
+		t.Fatalf("docker %s: %v\n%s", args[0], err, output)
+	}
+	return string(output)
+}
+
+func containerAddresses(t *testing.T, name string) map[string]string {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
+	defer cancel()
+	ticker := time.NewTicker(25 * time.Millisecond)
+	defer ticker.Stop()
+	for {
+		addresses := make(map[string]string)
+		subscribed := false
+		for line := range strings.SplitSeq(docker(t, "logs", "--tail", "128", name), "\n") {
+			var event struct {
+				Message string `json:"msg"`
+				Address string `json:"address"`
+			}
+			if json.Unmarshal([]byte(line), &event) == nil && event.Address != "" {
+				addresses[event.Message] = event.Address
+			}
+			if event.Message == "host identity NATS subscribed" {
+				subscribed = true
+			}
+		}
+		if addresses["HTTP listening"] != "" && addresses["gRPC listening"] != "" && subscribed {
+			return addresses
+		}
+		select {
+		case <-ctx.Done():
+			t.Fatal("packaged identity endpoints did not start")
+		case <-ticker.C:
+		}
+	}
 }

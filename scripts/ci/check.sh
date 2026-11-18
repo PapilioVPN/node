@@ -22,3 +22,5 @@ revision=$(git rev-parse HEAD)
 sh scripts/ci/package.sh dist/node "$revision" dist
 go test -race -tags=integration,distribution ./internal/bootstrap/distribution \
     -run="^TestDistribution" -count=1 -args -bundle="$PWD/dist/node-linux-amd64-$revision.tar.gz"
+go test -race -tags=integration,distribution ./internal/apps/system/host/identity/integration \
+    -run="^TestPackagedHostIdentity$" -count=1 -args -image="papilio-node-build:$revision"
