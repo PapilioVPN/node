@@ -24,11 +24,11 @@ func TestActualSubscriptionCountReservesStopBudgetsBeforeStartup(t *testing.T) {
 	for _, budget := range []time.Duration{2 * time.Second, 2*time.Second + time.Nanosecond} {
 		app := fx.New(fx.NopLogger,
 			fx.Supply(clientConfig("tls://127.0.0.1:1", pki.Client), slog.New(slog.NewTextHandler(io.Discard, nil))),
-			natsclient.Module, natsclient.RequestsModule(budget),
+			natsclient.Module, natsclient.RequestsModule(settings.NATSRequests{SubjectPrefix: "fixture", PendingMessages: 1, PendingBytes: 1024, ShutdownTimeout: time.Second}, budget),
 			fx.Provide(func() natsclient.Subscriptions {
 				return natsclient.Subscriptions{Endpoints: []natsclient.Subscription{
-					{Name: "first", Config: settings.NATSSubscription{Subject: "fixture.first", PendingMessages: 1, PendingBytes: 1024, ShutdownTimeout: time.Second}, Handle: func(context.Context, []byte, nats.Header) []byte { return nil }},
-					{Name: "second", Config: settings.NATSSubscription{Subject: "fixture.second", PendingMessages: 1, PendingBytes: 1024, ShutdownTimeout: time.Second}, Handle: func(context.Context, []byte, nats.Header) []byte { return nil }},
+					{Name: "first", SubjectSuffix: "first", Handle: func(context.Context, []byte, nats.Header) []byte { return nil }},
+					{Name: "second", SubjectSuffix: "second", Handle: func(context.Context, []byte, nats.Header) []byte { return nil }},
 				}}
 			}))
 		if budget == 2*time.Second {

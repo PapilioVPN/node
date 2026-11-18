@@ -11,18 +11,17 @@ import (
 	"go.uber.org/fx"
 )
 
-// Subscription owns a serial request/reply receiver and its bounded native queue.
-// Handle belongs to the capability; the shared connection has a separate owner.
+// Subscription declares a capability-owned request/reply contract. The shared
+// resource applies queue limits and lifecycle settings to its native receiver.
 type Subscription struct {
-	Name   string
-	Config settings.NATSSubscription
-	Handle func(context.Context, []byte, nats.Header) []byte
+	Name          string
+	SubjectSuffix string
+	Handle        func(context.Context, []byte, nats.Header) []byte
 }
 
-// Register joins the subscription's lifecycle to the Node and preserves failures.
-func (endpoint Subscription) Register(lifecycle fx.Lifecycle, shutdown fx.Shutdowner, connection func() (*nats.Conn, error), logger *slog.Logger) {
-	config := endpoint.Config
-	logger = logger.With("subject", config.Subject)
+func (endpoint Subscription) register(config settings.NATSRequests, lifecycle fx.Lifecycle, shutdown fx.Shutdowner, connection func() (*nats.Conn, error), logger *slog.Logger) {
+	subject := config.SubjectPrefix + "." + endpoint.SubjectSuffix
+	logger = logger.With("subject", subject)
 
 	var subscription *nats.Subscription
 	var conn *nats.Conn
@@ -39,7 +38,7 @@ func (endpoint Subscription) Register(lifecycle fx.Lifecycle, shutdown fx.Shutdo
 			}
 			// Direct subscription: requests must reach this configured Node,
 			// rather than a load-balanced queue of unrelated nodes.
-			subscription, err = conn.SubscribeSync(config.Subject)
+			subscription, err = conn.SubscribeSync(subject)
 			if err != nil {
 				return err
 			}

@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/PapilioVPN/node/internal/settings"
 	"go.uber.org/fx"
 )
 
@@ -19,8 +20,8 @@ type requestBudget struct{ remaining time.Duration }
 
 // RequestsModule reserves stop time for actual subscriptions before any listener
 // starts. Settings do not need a list or count of application capabilities.
-func RequestsModule(drainBudget time.Duration) fx.Option {
-	return fx.Module("nats-requests", fx.Supply(requestBudget{drainBudget}, fx.Private), fx.Invoke(registerRequests))
+func RequestsModule(config settings.NATSRequests, drainBudget time.Duration) fx.Option {
+	return fx.Module("nats-requests", fx.Supply(config, requestBudget{drainBudget}, fx.Private), fx.Invoke(registerRequests))
 }
 
 type requests struct {
@@ -30,19 +31,20 @@ type requests struct {
 	Client    *Client
 	Logger    *slog.Logger
 	Budget    requestBudget
+	Config    settings.NATSRequests
 	Endpoints []Subscription `group:"nats-request-subscriptions"`
 }
 
 func registerRequests(in requests) error {
 	remaining := in.Budget.remaining
-	for _, endpoint := range in.Endpoints {
-		if endpoint.Config.ShutdownTimeout >= remaining {
+	for range in.Endpoints {
+		if in.Config.ShutdownTimeout >= remaining {
 			return errors.New("request subscription and transport drain budgets must fit inside shutdown_timeout")
 		}
-		remaining -= endpoint.Config.ShutdownTimeout
+		remaining -= in.Config.ShutdownTimeout
 	}
 	for _, endpoint := range in.Endpoints {
-		endpoint.Register(in.Lifecycle, in.Shutdown, in.Client.Conn, in.Logger)
+		endpoint.register(in.Config, in.Lifecycle, in.Shutdown, in.Client.Conn, in.Logger)
 	}
 	return nil
 }

@@ -39,11 +39,8 @@ func register(in adapters) {
 }
 
 func subscribe(in adapters) natsclient.Subscriptions {
-	if in.Requests.NATS == nil {
-		return natsclient.Subscriptions{}
-	}
 	handler := natsapi.Handler{Service: in.Service, Timeout: in.Requests.Timeout}
 	return natsclient.Subscriptions{Endpoints: []natsclient.Subscription{{
-		Name: "host identity", Config: in.Requests.NATS.Subscription("system.host.identity.v1.get"), Handle: handler.Read,
+		Name: "host identity", SubjectSuffix: "system.host.identity.v1.get", Handle: handler.Read,
 	}}}
 }

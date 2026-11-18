@@ -21,13 +21,6 @@ type NATSRequests struct {
 	ShutdownTimeout time.Duration `yaml:"shutdown_timeout"`
 }
 
-// Subscription combines the deployment prefix with a capability's wire contract.
-func (config NATSRequests) Subscription(suffix string) NATSSubscription {
-	return NATSSubscription{Subject: config.SubjectPrefix + "." + suffix,
-		PendingMessages: config.PendingMessages, PendingBytes: config.PendingBytes,
-		ShutdownTimeout: config.ShutdownTimeout}
-}
-
 func (config Requests) validate(communications Communications) error {
 	if config.Timeout <= 0 {
 		return errors.New("communications.requests.timeout must be positive")
