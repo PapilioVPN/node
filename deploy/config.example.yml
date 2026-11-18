@@ -12,6 +12,7 @@ system:
         subject: papilio.example-node.system.host.identity.v1.get
         pending_messages: 64
         pending_bytes: 65536
+        shutdown_timeout: 1s
 communications:
   http:
     address: 127.0.0.1:8443

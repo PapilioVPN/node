@@ -145,3 +145,15 @@ func TestBrokerDeniedSubscriptionRequestsNodeFailure(t *testing.T) {
 		t.Fatal("broker rejection left Node running with an unusable endpoint")
 	}
 }
+
+func TestShortReadDeadlineDoesNotPreventCleanSubscriptionShutdown(t *testing.T) {
+	pki := testutil.NewPKI(t)
+	config := nodeConfig(t, pki, true, "nats")
+	config.System.Host.Identity.RequestTimeout = time.Nanosecond
+	client := startConfiguredNode(t, pki, config)
+	if _, err := client.NATS.Request(subject, []byte("{}"), time.Second); err != nil {
+		t.Fatal(err)
+	}
+	// Cleanup must drain/join successfully with its own budget, independently
+	// of the deliberately expired application read deadline.
+}

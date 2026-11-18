@@ -56,6 +56,11 @@ func startNode(t *testing.T, allow bool, transport string) clients {
 	t.Helper()
 	pki := testutil.NewPKI(t)
 	config := nodeConfig(t, pki, allow, transport)
+	return startConfiguredNode(t, pki, config)
+}
+
+func startConfiguredNode(t *testing.T, pki testutil.PKI, config settings.Config) clients {
+	t.Helper()
 	log := &listenerLog{Handler: slog.NewTextHandler(io.Discard, nil), addresses: make(map[string]string)}
 	app := bootstrap.New(config, slog.New(log))
 	ctx, cancel := context.WithTimeout(context.Background(), config.StartupTimeout)
@@ -97,7 +102,7 @@ func nodeConfig(t *testing.T, pki testutil.PKI, allow bool, transport string) se
 		config.Communications.NATS = &settings.NATS{Servers: []string{brokerURL}, TLS: pki.Client, TLSHandshakeFirst: true,
 			ConnectTimeout: time.Second, ShutdownTimeout: time.Second, WriteTimeout: time.Second,
 			ReconnectWait: time.Second, MaxReconnects: 0, ReconnectBufferSize: -1, PingInterval: time.Second, MaxPingsOutstanding: 2}
-		identity.NATS = &settings.HostIdentityNATS{Subject: subject, PendingMessages: 8, PendingBytes: 8192}
+		identity.NATS = &settings.HostIdentityNATS{Subject: subject, PendingMessages: 8, PendingBytes: 8192, ShutdownTimeout: time.Second}
 	}
 	if err := config.Validate(); err != nil {
 		t.Fatal(err)

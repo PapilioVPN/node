@@ -74,7 +74,7 @@ func Register(lifecycle fx.Lifecycle, shutdown fx.Shutdowner, connection func() 
 		OnStop: func(ctx context.Context) error {
 			stopping.Store(true)
 			defer cancel()
-			drain, stop := context.WithTimeout(ctx, handler.Timeout)
+			drain, stop := context.WithTimeout(ctx, config.ShutdownTimeout)
 			defer stop()
 			err := subscription.Drain()
 			if err != nil {

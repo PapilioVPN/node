@@ -22,9 +22,10 @@ type HostIdentity struct {
 }
 
 type HostIdentityNATS struct {
-	Subject         string `yaml:"subject"`
-	PendingMessages int    `yaml:"pending_messages"`
-	PendingBytes    int    `yaml:"pending_bytes"`
+	Subject         string        `yaml:"subject"`
+	PendingMessages int           `yaml:"pending_messages"`
+	PendingBytes    int           `yaml:"pending_bytes"`
+	ShutdownTimeout time.Duration `yaml:"shutdown_timeout"`
 }
 
 func (config Config) validateSystem(remaining time.Duration) error {
@@ -53,9 +54,12 @@ func (config Config) validateSystem(remaining time.Duration) error {
 		if nats.PendingMessages <= 0 || nats.PendingBytes <= 0 {
 			return errors.New("host identity NATS pending limits must be positive")
 		}
+		if nats.ShutdownTimeout <= 0 {
+			return errors.New("host identity NATS shutdown_timeout must be positive")
+		}
 		// The capability drains its subscription before the shared connection.
 		remaining -= config.Communications.NATS.ShutdownTimeout
-		if identity.RequestTimeout >= remaining {
+		if nats.ShutdownTimeout >= remaining {
 			return errors.New("host identity NATS drain and transport budgets must fit inside shutdown_timeout")
 		}
 	}

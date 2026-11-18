@@ -50,6 +50,7 @@ func TestHostIdentityNATSSelectionAndCapacityValidation(t *testing.T) {
         subject: fixture.node-a.identity
         pending_messages: 8
         pending_bytes: 8192
+        shutdown_timeout: 1s
 `
 	for _, test := range []struct{ old, replacement string }{
 		{"fixture.node-a.identity", "fixture.*.identity"},
@@ -57,7 +58,8 @@ func TestHostIdentityNATSSelectionAndCapacityValidation(t *testing.T) {
 		{"fixture.node-a.identity", "fixture node-a"},
 		{"pending_messages: 8", "pending_messages: 0"},
 		{"pending_bytes: 8192", "pending_bytes: -1"},
-		{"request_timeout: 100ms", "request_timeout: 99h"},
+		{"shutdown_timeout: 1s", "shutdown_timeout: 0s"},
+		{"shutdown_timeout: 1s", "shutdown_timeout: 99h"},
 	} {
 		path := filepath.Join(t.TempDir(), "config.yml")
 		input := natsConfig + strings.Replace(capability, test.old, test.replacement, 1)
