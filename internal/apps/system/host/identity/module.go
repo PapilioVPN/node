@@ -17,8 +17,8 @@ import (
 	"google.golang.org/grpc"
 )
 
-func Module(config settings.HostIdentity) fx.Option {
-	return fx.Module("identity", fx.Supply(config, fx.Private),
+func Module(config settings.ReadAccess, requests settings.Requests) fx.Option {
+	return fx.Module("identity", fx.Supply(config, requests, fx.Private),
 		fx.Provide(func() services.Service { return services.Service{Reader: sys.Reader{}} }, fx.Private),
 		fx.Invoke(register),
 	)
@@ -29,7 +29,8 @@ type adapters struct {
 	Lifecycle fx.Lifecycle
 	Shutdown  fx.Shutdowner
 	Service   services.Service
-	Config    settings.HostIdentity
+	Config    settings.ReadAccess
+	Requests  settings.Requests
 	Logger    *slog.Logger
 	HTTP      *fiber.App         `optional:"true"`
 	GRPC      *grpc.Server       `optional:"true"`
@@ -38,17 +39,17 @@ type adapters struct {
 
 func register(in adapters) error {
 	if in.HTTP != nil {
-		httpapi.Handler{Service: in.Service, AllowRead: in.Config.AllowRead, Timeout: in.Config.RequestTimeout}.Register(in.HTTP)
+		httpapi.Handler{Service: in.Service, AllowRead: in.Config.AllowRead, Timeout: in.Requests.Timeout}.Register(in.HTTP)
 	}
 	if in.GRPC != nil {
-		grpcapi.Handler{Service: in.Service, AllowRead: in.Config.AllowRead, Timeout: in.Config.RequestTimeout}.Register(in.GRPC)
+		grpcapi.Handler{Service: in.Service, AllowRead: in.Config.AllowRead, Timeout: in.Requests.Timeout}.Register(in.GRPC)
 	}
-	if in.Config.NATS != nil {
+	if in.Requests.NATS != nil {
 		if in.NATS == nil {
 			return errors.New("host identity NATS endpoint requires a shared connection")
 		}
-		handler := natsapi.Handler{Service: in.Service, AllowRead: in.Config.AllowRead, Timeout: in.Config.RequestTimeout}
-		natsclient.Subscription{Name: "host identity", Config: *in.Config.NATS, Handle: handler.Read}.
+		handler := natsapi.Handler{Service: in.Service, AllowRead: in.Config.AllowRead, Timeout: in.Requests.Timeout}
+		natsclient.Subscription{Name: "host identity", Config: in.Requests.NATS.Subscription("system.host.identity.v1.get"), Handle: handler.Read}.
 			Register(in.Lifecycle, in.Shutdown, in.NATS.Conn, in.Logger)
 	}
 	return nil

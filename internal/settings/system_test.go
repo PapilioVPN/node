@@ -1,8 +1,6 @@
 package settings_test
 
 import (
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -10,64 +8,56 @@ import (
 	"github.com/PapilioVPN/node/internal/settings"
 )
 
-func TestHostIdentityRequiresBoundedExplicitConfiguration(t *testing.T) {
-	base := func() settings.Config {
-		return settings.Config{StartupTimeout: time.Second, ShutdownTimeout: 5 * time.Second,
-			System: settings.System{Host: settings.Host{Identity: &settings.HostIdentity{RequestTimeout: time.Second}}}}
-	}
-	for _, test := range []struct {
-		name   string
-		mutate func(*settings.Config)
-	}{
-		{"zero timeout", func(c *settings.Config) { c.System.Host.Identity.RequestTimeout = 0 }},
-		{"missing broker", func(c *settings.Config) {
-			c.System.Host.Identity.NATS = &settings.NATSSubscription{Subject: "node.a", PendingMessages: 1, PendingBytes: 1024}
-		}},
-	} {
-		t.Run(test.name, func(t *testing.T) {
-			config := base()
-			test.mutate(&config)
-			if err := config.Validate(); err == nil {
-				t.Fatal("invalid capability configuration accepted")
-			}
-		})
-	}
-	config := base()
+func TestHostReadUsesCommonExecutionBoundsAndExplicitGrant(t *testing.T) {
+	config := hostReadConfig()
 	if err := config.Validate(); err != nil {
 		t.Fatal(err)
 	}
 	if config.System.Host.Identity.AllowRead {
 		t.Fatal("read permission must be explicit")
 	}
+	config.Communications.Requests.Timeout = 0
+	if err := config.Validate(); err == nil {
+		t.Fatal("installed capability accepted an unbounded timeout")
+	}
 }
 
-func TestHostIdentityNATSSelectionAndCapacityValidation(t *testing.T) {
-	const capability = `system:
-  host:
-    identity:
-      request_timeout: 100ms
-      nats:
-        subject: fixture.node-a.identity
-        pending_messages: 8
-        pending_bytes: 8192
-        shutdown_timeout: 1s
-`
+func TestRequestBoundsRespectTransportConfiguration(t *testing.T) {
+	config := hostReadConfig()
+	config.Communications.Requests.NATS = &settings.NATSRequests{SubjectPrefix: "fixture.node-a", PendingMessages: 8, PendingBytes: 8192, ShutdownTimeout: time.Second}
+	if err := config.Validate(); err == nil {
+		t.Fatal("NATS requests accepted without a connection")
+	}
+	// Load a valid native transport before exercising the common request bound.
+	_, err := loadConfiguration(t, strings.Replace(validConfig, "communications:\n", "communications:\n  requests:\n    timeout: 2s\n", 1)+"system:\n  host:\n    identity: {}\n")
+	if err == nil {
+		t.Fatal("request timeout equal to HTTP write_timeout was accepted")
+	}
+}
+
+func TestNATSRequestPrefixAndCapacityValidation(t *testing.T) {
+	input := strings.Replace(natsConfig, "communications:\n", "communications:\n"+commonNATSRequests, 1) + "system:\n  host:\n    identity: {}\n"
+	_, err := loadConfiguration(t, input)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	for _, test := range []struct{ old, replacement string }{
-		{"fixture.node-a.identity", "fixture.*.identity"},
-		{"fixture.node-a.identity", "fixture..identity"},
-		{"fixture.node-a.identity", "fixture node-a"},
-		{"pending_messages: 8", "pending_messages: 0"},
+		{"fixture.node-a", "fixture.*"}, {"fixture.node-a", "fixture..node"},
+		{"fixture.node-a", "fixture node"}, {"pending_messages: 8", "pending_messages: 0"},
 		{"pending_bytes: 8192", "pending_bytes: -1"},
 		{"shutdown_timeout: 1s", "shutdown_timeout: 0s"},
 		{"shutdown_timeout: 1s", "shutdown_timeout: 99h"},
 	} {
-		path := filepath.Join(t.TempDir(), "config.yml")
-		input := natsConfig + strings.Replace(capability, test.old, test.replacement, 1)
-		if err := os.WriteFile(path, []byte(input), 0600); err != nil {
-			t.Fatal(err)
+		if _, err := loadConfiguration(t, strings.Replace(input, test.old, test.replacement, 1)); err == nil {
+			t.Fatalf("invalid request setting accepted: %q", test.replacement)
 		}
-		if _, err := settings.Load(path); err == nil {
-			t.Fatalf("invalid setting accepted: %q", test.replacement)
-		}
+	}
+}
+
+func TestLegacyPerCapabilityExecutionSettingsAreRejected(t *testing.T) {
+	input := "startup_timeout: 1s\nshutdown_timeout: 5s\nsystem:\n  host:\n    identity:\n      request_timeout: 1s\n"
+	if _, err := loadConfiguration(t, input); err == nil {
+		t.Fatal("obsolete per-capability timeout was silently accepted")
 	}
 }

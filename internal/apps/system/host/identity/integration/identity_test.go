@@ -122,7 +122,7 @@ func TestAllTransportsDenyReadsWithoutExplicitGrant(t *testing.T) {
 
 func TestBrokerDeniedSubscriptionRequestsNodeFailure(t *testing.T) {
 	config := nodeConfig(t, testutil.NewPKI(t), true, "nats")
-	config.System.Host.Identity.NATS.Subject = "forbidden.identity"
+	config.Communications.Requests.NATS.SubjectPrefix = "forbidden"
 	app := bootstrap.New(config, slog.New(slog.NewTextHandler(io.Discard, nil)))
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
@@ -149,7 +149,7 @@ func TestBrokerDeniedSubscriptionRequestsNodeFailure(t *testing.T) {
 func TestShortReadDeadlineDoesNotPreventCleanSubscriptionShutdown(t *testing.T) {
 	pki := testutil.NewPKI(t)
 	config := nodeConfig(t, pki, true, "nats")
-	config.System.Host.Identity.RequestTimeout = time.Nanosecond
+	config.Communications.Requests.Timeout = time.Nanosecond
 	client := startConfiguredNode(t, pki, config)
 	if _, err := client.NATS.Request(subject, []byte("{}"), time.Second); err != nil {
 		t.Fatal(err)

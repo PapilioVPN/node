@@ -83,8 +83,8 @@ func startConfiguredNode(t *testing.T, pki testutil.PKI, config settings.Config)
 func nodeConfig(t *testing.T, pki testutil.PKI, allow bool, transport string) settings.Config {
 	t.Helper()
 	config := settings.Config{StartupTimeout: 5 * time.Second, ShutdownTimeout: 5 * time.Second,
-		System: settings.System{Host: settings.Host{Identity: &settings.HostIdentity{AllowRead: allow, RequestTimeout: 200 * time.Millisecond}}}}
-	identity := config.System.Host.Identity
+		System: settings.System{Host: settings.Host{Identity: &settings.ReadAccess{AllowRead: allow}}}}
+	config.Communications.Requests.Timeout = 200 * time.Millisecond
 	var brokerURL string
 	if transport == "all" || transport == "http" {
 		config.Communications.HTTP = &settings.HTTP{Address: "127.0.0.1:0", TLS: pki.Server,
@@ -102,7 +102,7 @@ func nodeConfig(t *testing.T, pki testutil.PKI, allow bool, transport string) se
 		config.Communications.NATS = &settings.NATS{Servers: []string{brokerURL}, TLS: pki.Client, TLSHandshakeFirst: true,
 			ConnectTimeout: time.Second, ShutdownTimeout: time.Second, WriteTimeout: time.Second,
 			ReconnectWait: time.Second, MaxReconnects: 0, ReconnectBufferSize: -1, PingInterval: time.Second, MaxPingsOutstanding: 2}
-		identity.NATS = &settings.NATSSubscription{Subject: subject, PendingMessages: 8, PendingBytes: 8192, ShutdownTimeout: time.Second}
+		config.Communications.Requests.NATS = &settings.NATSRequests{SubjectPrefix: "fixture.node-a", PendingMessages: 8, PendingBytes: 8192, ShutdownTimeout: time.Second}
 	}
 	if err := config.Validate(); err != nil {
 		t.Fatal(err)

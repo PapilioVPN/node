@@ -6,14 +6,16 @@ system:
   host:
     identity:
       allow_read: false
-      request_timeout: 1s
-      nats:
-        # Use one unique literal subject per Node; provision its broker ACLs.
-        subject: papilio.example-node.system.host.identity.v1.get
-        pending_messages: 64
-        pending_bytes: 65536
-        shutdown_timeout: 1s
 communications:
+  requests:
+    timeout: 1s
+    nats:
+      # Unique deployment prefix; operation suffixes belong to the versioned API.
+      subject_prefix: papilio.example-node
+      # Applied per subscription, configured once for all installed operations.
+      pending_messages: 64
+      pending_bytes: 65536
+      shutdown_timeout: 1s
   http:
     address: 127.0.0.1:8443
     tls:

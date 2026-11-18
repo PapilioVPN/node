@@ -21,9 +21,10 @@ type Config struct {
 }
 
 type Communications struct {
-	HTTP *HTTP `yaml:"http"`
-	GRPC *GRPC `yaml:"grpc"`
-	NATS *NATS `yaml:"nats"`
+	Requests Requests `yaml:"requests"`
+	HTTP     *HTTP    `yaml:"http"`
+	GRPC     *GRPC    `yaml:"grpc"`
+	NATS     *NATS    `yaml:"nats"`
 }
 
 // Load accepts one strictly typed YAML document. Relative identity paths are
@@ -105,6 +106,7 @@ func (config Config) Validate() error {
 		if nats.ShutdownTimeout >= remaining {
 			return errors.New("transport shutdown budgets must fit inside Node shutdown_timeout")
 		}
+		remaining -= nats.ShutdownTimeout
 	}
 	return config.validateSystem(remaining)
 }

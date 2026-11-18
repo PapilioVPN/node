@@ -29,5 +29,5 @@ func New(config settings.Config, logger *slog.Logger) *fx.App {
 	if nats := config.Communications.NATS; nats != nil {
 		options = append(options, fx.Supply(*nats), natsclient.Module)
 	}
-	return fx.New(append(options, system.Module(config.System))...)
+	return fx.New(append(options, system.Module(config.System, config.Communications.Requests))...)
 }

@@ -7,9 +7,9 @@ import (
 	"go.uber.org/fx"
 )
 
-func Module(config settings.Host) fx.Option {
+func Module(config settings.Host, requests settings.Requests) fx.Option {
 	if config.Identity == nil {
 		return fx.Module("host")
 	}
-	return fx.Module("host", identity.Module(*config.Identity))
+	return fx.Module("host", identity.Module(*config.Identity, requests))
 }
