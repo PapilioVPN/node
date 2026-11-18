@@ -1,6 +1,7 @@
 #!/bin/sh
 set -eu
 
+sh scripts/proto/generate.sh --check
 unformatted=$(gofmt -l cmd internal)
 if [ -n "$unformatted" ]; then
     printf '%s\n' "$unformatted"

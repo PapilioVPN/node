@@ -1,5 +1,17 @@
 startup_timeout: 10s
 shutdown_timeout: 25s
+# Omit identity to leave this capability uninstalled. Read access is opt-in.
+# For actual host identity in Docker, pass --uts=host to run.sh.
+system:
+  host:
+    identity:
+      allow_read: false
+      request_timeout: 1s
+      nats:
+        # Use one unique literal subject per Node; provision its broker ACLs.
+        subject: papilio.example-node.system.host.identity.v1.get
+        pending_messages: 64
+        pending_bytes: 65536
 communications:
   http:
     address: 127.0.0.1:8443

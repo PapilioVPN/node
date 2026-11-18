@@ -4,6 +4,7 @@ package bootstrap
 import (
 	"log/slog"
 
+	"github.com/PapilioVPN/node/internal/apps/system"
 	"github.com/PapilioVPN/node/internal/platform/grpcserver"
 	"github.com/PapilioVPN/node/internal/platform/httpserver"
 	"github.com/PapilioVPN/node/internal/platform/natsclient"
@@ -28,5 +29,5 @@ func New(config settings.Config, logger *slog.Logger) *fx.App {
 	if nats := config.Communications.NATS; nats != nil {
 		options = append(options, fx.Supply(*nats), natsclient.Module)
 	}
-	return fx.New(options...)
+	return fx.New(append(options, system.Module(config.System))...)
 }

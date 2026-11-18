@@ -55,6 +55,7 @@ func New(lifecycle fx.Lifecycle, shutdown fx.Shutdowner, config settings.NATS, l
 	options.PingInterval = config.PingInterval
 	options.MaxPingsOut = config.MaxPingsOutstanding
 	options.CustomDialer = dialer{context: run, timeout: config.ConnectTimeout}
+	options.PermissionErrOnSubscribe = true
 	options.DisconnectedErrCB = func(_ *nats.Conn, err error) {
 		if !stopping.Load() {
 			logger.Warn("NATS disconnected", "error", err)

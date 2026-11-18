@@ -17,6 +17,7 @@ type Config struct {
 	StartupTimeout  time.Duration  `yaml:"startup_timeout"`
 	ShutdownTimeout time.Duration  `yaml:"shutdown_timeout"`
 	Communications  Communications `yaml:"communications"`
+	System          System         `yaml:"system"`
 }
 
 type Communications struct {
@@ -105,5 +106,5 @@ func (config Config) Validate() error {
 			return errors.New("transport shutdown budgets must fit inside Node shutdown_timeout")
 		}
 	}
-	return nil
+	return config.validateSystem(remaining)
 }
