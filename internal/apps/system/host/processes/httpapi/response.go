@@ -1,8 +1,9 @@
 package httpapi
 
 import (
-	"github.com/PapilioVPN/node/internal/apps/system/host/processes/domain"
 	"time"
+
+	"github.com/PapilioVPN/node/internal/apps/system/host/processes/domain"
 )
 
 type processResponse struct {

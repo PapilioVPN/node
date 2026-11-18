@@ -53,11 +53,11 @@ func (reader *Reader) Read(ctx context.Context, pid int32) (domain.Process, erro
 	}
 	process, err := reader.fs.Proc(int(pid))
 	if err != nil {
-		return domain.Process{}, classify(err)
+		return domain.Process{}, errors.Join(ctx.Err(), classify(err))
 	}
 	stat, err := process.Stat()
 	if err != nil {
-		return domain.Process{}, classify(err)
+		return domain.Process{}, errors.Join(ctx.Err(), classify(err))
 	}
 	if err := ctx.Err(); err != nil {
 		return domain.Process{}, err
@@ -94,7 +94,7 @@ func (reader *Reader) inventory(ctx context.Context) (procfs.Procs, error) {
 	}
 	rows, err := reader.fs.AllProcs()
 	if err != nil {
-		return nil, fmt.Errorf("enumerate processes: %w", err)
+		return nil, errors.Join(ctx.Err(), fmt.Errorf("enumerate processes: %w", err))
 	}
 	if err := ctx.Err(); err != nil {
 		return nil, err
@@ -170,8 +170,17 @@ func classify(err error) error {
 }
 
 func convert(stat procfs.ProcStat, pageSize uint64) (domain.Process, error) {
-	if stat.PID <= 0 || stat.PID > math.MaxInt32 || stat.PPID < 0 || stat.PPID > math.MaxInt32 || stat.NumThreads < 0 || uint64(stat.NumThreads) > math.MaxUint32 || stat.Priority < math.MinInt32 || stat.Priority > math.MaxInt32 || stat.Nice < math.MinInt32 || stat.Nice > math.MaxInt32 || stat.RSS < 0 || pageSize == 0 || uint64(stat.RSS) > math.MaxUint64/pageSize || !utf8.ValidString(stat.Comm) || len(stat.State) != 1 || !utf8.ValidString(stat.State) {
-		return domain.Process{}, errors.New("invalid native process stat")
+	if stat.PID <= 0 || stat.PID > math.MaxInt32 || stat.PPID < 0 || stat.PPID > math.MaxInt32 {
+		return domain.Process{}, errors.New("invalid native process identity")
+	}
+	if stat.NumThreads < 0 || uint64(stat.NumThreads) > math.MaxUint32 || stat.Priority < math.MinInt32 || stat.Priority > math.MaxInt32 || stat.Nice < math.MinInt32 || stat.Nice > math.MaxInt32 {
+		return domain.Process{}, errors.New("invalid native process scheduling values")
+	}
+	if stat.RSS < 0 || pageSize == 0 || uint64(stat.RSS) > math.MaxUint64/pageSize {
+		return domain.Process{}, errors.New("invalid native resident memory")
+	}
+	if !utf8.ValidString(stat.Comm) || len(stat.State) != 1 || !utf8.ValidString(stat.State) {
+		return domain.Process{}, errors.New("invalid native process text")
 	}
 	return domain.Process{PID: int32(stat.PID), ParentPID: int32(stat.PPID), Name: stat.Comm, State: stat.State, Threads: uint32(stat.NumThreads), Priority: int32(stat.Priority), Nice: int32(stat.Nice), StartTicks: stat.Starttime, UserTicks: uint64(stat.UTime), SystemTicks: uint64(stat.STime), VirtualBytes: uint64(stat.VSize), ResidentBytes: uint64(stat.RSS) * pageSize}, nil
 }

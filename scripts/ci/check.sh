@@ -38,3 +38,6 @@ go test -race -tags=integration,distribution ./internal/apps/system/host/memory/
 
 go test -race -tags=integration,distribution ./internal/apps/system/network/interfaces/integration \
     -run="^TestPackagedNetworkInterfaces$" -count=1 -args -image="papilio-node-build:$revision"
+
+go test -race -tags=integration,distribution ./internal/apps/system/host/processes/integration \
+    -run="^TestPackagedHostProcesses$" -count=1 -args -image="papilio-node-build:$revision"
