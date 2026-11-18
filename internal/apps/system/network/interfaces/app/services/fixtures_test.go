@@ -2,6 +2,7 @@ package services_test
 
 import (
 	"context"
+
 	"github.com/PapilioVPN/node/internal/apps/system/network/interfaces/domain"
 )
 

@@ -30,11 +30,25 @@ func interfaceRecord(link native.Link) (domain.Interface, error) {
 	if attrs.MTU < 0 || uint64(attrs.MTU) > math.MaxUint32 || attrs.ParentIndex < 0 || uint64(attrs.ParentIndex) > math.MaxUint32 || attrs.MasterIndex < 0 || uint64(attrs.MasterIndex) > math.MaxUint32 {
 		return domain.Interface{}, errors.New("invalid interface dimensions")
 	}
+	var parentNamespace *int32
+	if attrs.NetNsID < -1 || int64(attrs.NetNsID) > math.MaxInt32 {
+		return domain.Interface{}, errors.New("invalid parent network namespace ID")
+	}
+	if attrs.NetNsID >= 0 {
+		value := int32(attrs.NetNsID)
+		parentNamespace = &value
+	}
 	kind := link.Type()
 	if !utf8.ValidString(kind) {
 		return domain.Interface{}, errors.New("invalid interface kind encoding")
 	}
-	return domain.Interface{Index: uint32(attrs.Index), Name: attrs.Name, Kind: kind, MTU: uint32(attrs.MTU), HardwareAddress: attrs.HardwareAddr.String(), Flags: attrs.RawFlags, OperationalState: uint32(attrs.OperState), ParentIndex: uint32(attrs.ParentIndex), MasterIndex: uint32(attrs.MasterIndex), Addresses: []domain.Address{}}, nil
+	return domain.Interface{
+		Index: uint32(attrs.Index), Name: attrs.Name, Kind: kind, MTU: uint32(attrs.MTU),
+		HardwareAddress: attrs.HardwareAddr.String(), Flags: attrs.RawFlags,
+		OperationalState: uint32(attrs.OperState), ParentNamespaceID: parentNamespace,
+		ParentIndex: uint32(attrs.ParentIndex), MasterIndex: uint32(attrs.MasterIndex),
+		Addresses: []domain.Address{},
+	}, nil
 }
 
 func addressRecord(value native.Addr) (domain.Address, error) {

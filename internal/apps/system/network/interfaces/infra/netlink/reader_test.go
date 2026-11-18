@@ -100,3 +100,18 @@ func TestAddressProjectionRetainsPeerLifetimeFlagsAndIPv6Family(t *testing.T) {
 		}
 	}
 }
+
+func TestParentNamespaceRetainsKnownZeroAndUnreported(t *testing.T) {
+	link := fixtureLinks(1)[0]
+	link.Attrs().ParentIndex = 42
+	link.Attrs().NetNsID = -1
+	absent, err := interfaceRecord(link)
+	if err != nil || absent.ParentNamespaceID != nil || absent.ParentIndex != 42 {
+		t.Fatalf("unreported parent namespace: %+v %v", absent, err)
+	}
+	link.Attrs().NetNsID = 0
+	known, err := interfaceRecord(link)
+	if err != nil || known.ParentNamespaceID == nil || *known.ParentNamespaceID != 0 || known.ParentIndex != 42 {
+		t.Fatalf("lost namespace zero: %+v %v", known, err)
+	}
+}

@@ -13,9 +13,11 @@ type Interface struct {
 	HardwareAddress  string
 	Flags            uint32
 	OperationalState uint32
-	ParentIndex      uint32
-	MasterIndex      uint32
-	Addresses        []Address
+	// A parent may belong to a peer namespace; nil namespace ID means unreported.
+	ParentNamespaceID *int32
+	ParentIndex       uint32
+	MasterIndex       uint32
+	Addresses         []Address
 }
 
 type Address struct {

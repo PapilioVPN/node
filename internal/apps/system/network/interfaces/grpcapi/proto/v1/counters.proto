@@ -1,0 +1,45 @@
+syntax = "proto3";
+package papilio.system.network.interfaces.v1;
+option go_package = "github.com/PapilioVPN/node/internal/apps/system/network/interfaces/grpcapi/proto/v1;interfacesv1";
+import "google/protobuf/timestamp.proto";
+
+message GetInterfaceCountersRequest {}
+
+// Exact standard link counters exposed by the SDK. Bytes use bytes; other
+// fields count packets/events. Counters can reset/wrap; these are not rates.
+message Counters {
+  uint64 receive_packets = 1;
+  uint64 transmit_packets = 2;
+  uint64 receive_bytes = 3;
+  uint64 transmit_bytes = 4;
+  uint64 receive_errors = 5;
+  uint64 transmit_errors = 6;
+  uint64 receive_dropped = 7;
+  uint64 transmit_dropped = 8;
+  uint64 multicast = 9;
+  uint64 collisions = 10;
+  uint64 receive_length_errors = 11;
+  uint64 receive_over_errors = 12;
+  uint64 receive_crc_errors = 13;
+  uint64 receive_frame_errors = 14;
+  uint64 receive_fifo_errors = 15;
+  uint64 receive_missed_errors = 16;
+  uint64 transmit_aborted_errors = 17;
+  uint64 transmit_carrier_errors = 18;
+  uint64 transmit_fifo_errors = 19;
+  uint64 transmit_heartbeat_errors = 20;
+  uint64 transmit_window_errors = 21;
+  uint64 receive_compressed = 22;
+  uint64 transmit_compressed = 23;
+}
+message InterfaceCounters {
+  uint32 index = 1;
+  string name = 2;
+  // Absent means unavailable, not known zero traffic.
+  Counters counters = 3;
+}
+message GetInterfaceCountersResponse {
+  repeated InterfaceCounters interfaces = 1;
+  google.protobuf.Timestamp observed_at = 2;
+  int64 duration_ns = 3;
+}
