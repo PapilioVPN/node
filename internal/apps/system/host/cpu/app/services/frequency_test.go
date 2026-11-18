@@ -3,11 +3,12 @@ package services_test
 import (
 	"context"
 	"errors"
-	"github.com/PapilioVPN/node/internal/apps/system/host/cpu/app/services"
-	"github.com/PapilioVPN/node/internal/apps/system/host/cpu/domain"
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/PapilioVPN/node/internal/apps/system/host/cpu/app/services"
+	"github.com/PapilioVPN/node/internal/apps/system/host/cpu/domain"
 )
 
 func TestFrequencyServiceMakesOneFreshReadAndPreservesAbsence(t *testing.T) {

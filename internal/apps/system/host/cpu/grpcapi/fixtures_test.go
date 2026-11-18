@@ -45,3 +45,13 @@ func sampleProcessors() []domain.Processor {
 	cache := uint64(1<<64 - 1024)
 	return []domain.Processor{{ID: 4, VendorID: &vendor, Family: &family, Model: &model, ModelName: &name, Stepping: &step, Microcode: &code, PackageID: &pkg, CoreID: &core, ReportedCores: &cores, ReportedSiblings: &siblings, ReportedMHz: &mhz, CacheBytes: &cache, ReportedFeatures: []string{"f1", "f2"}, ReportedBugs: []string{"b1"}}, {ID: 9, ReportedFeatures: []string{}, ReportedBugs: []string{}}}
 }
+
+type frequencyReaderFunc func(context.Context) (domain.Frequencies, error)
+
+func (read frequencyReaderFunc) Read(ctx context.Context) (domain.Frequencies, error) {
+	return read(ctx)
+}
+
+func sampleFrequencies() domain.Frequencies {
+	return domain.Frequencies{InterfacePresent: true, Policies: []domain.FrequencyPolicy{{ID: 2, RelatedCPUs: []uint32{2, 3}, AffectedCPUs: []uint32{2}, ScalingCurrentKHz: new(uint64(9007199254740993)), HardwareMinKHz: new(uint64(0)), Driver: new("driver"), AvailableKHz: []uint64{9007199254740993}, Unavailable: []domain.FrequencyAttribute{{Attribute: "cpuinfo_cur_freq", Reason: "permission_denied"}}}}}
+}

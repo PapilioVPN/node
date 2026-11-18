@@ -5,10 +5,13 @@ import "google/protobuf/timestamp.proto";
 import "internal/apps/system/host/cpu/grpcapi/proto/v1/info.proto";
 import "internal/apps/system/host/cpu/grpcapi/proto/v1/usage.proto";
 
+import "internal/apps/system/host/cpu/grpcapi/proto/v1/frequency.proto";
+
 service HostCPUService {
   rpc GetHostCPUTimes(GetHostCPUTimesRequest) returns (GetHostCPUTimesResponse);
   rpc GetHostCPUUsage(GetHostCPUUsageRequest) returns (GetHostCPUUsageResponse);
   rpc GetHostCPUInfo(GetHostCPUInfoRequest) returns (GetHostCPUInfoResponse);
+  rpc GetHostCPUFrequency(GetHostCPUFrequencyRequest) returns (GetHostCPUFrequencyResponse);
 }
 
 message GetHostCPUTimesRequest {

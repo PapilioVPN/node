@@ -5,11 +5,13 @@ package integration_test
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"log/slog"
 	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -79,7 +81,7 @@ func nodeConfig(t *testing.T, pki testutil.PKI) settings.Config {
 	t.Helper()
 	broker := testutil.NewNATSBroker(t, pki.Server, true)
 	brokerURL := strings.Replace(broker.ClientURL(), "nats://", "tls://", 1)
-	config := settings.Config{StartupTimeout: 5 * time.Second, ShutdownTimeout: 12 * time.Second,
+	config := settings.Config{StartupTimeout: 5 * time.Second, ShutdownTimeout: 15 * time.Second,
 		Communications: settings.Communications{
 			Requests: settings.Requests{Timeout: 200 * time.Millisecond, NATS: &settings.NATSRequests{SubjectPrefix: "fixture.node-a", PendingMessages: 8, PendingBytes: 8192, ShutdownTimeout: time.Second}},
 			HTTP: &settings.HTTP{Address: "127.0.0.1:0", TLS: pki.Server,
@@ -148,7 +150,7 @@ func containerAddresses(t *testing.T, name string) map[string]string {
 	defer ticker.Stop()
 	for {
 		addresses := make(map[string]string)
-		loadSubscribed, timesSubscribed, usageSubscribed, infoSubscribed := false, false, false, false
+		loadSubscribed, timesSubscribed, usageSubscribed, infoSubscribed, frequencySubscribed := false, false, false, false, false
 		for line := range strings.SplitSeq(docker(t, "logs", "--tail", "128", name), "\n") {
 			var event struct {
 				Message string `json:"msg"`
@@ -156,6 +158,9 @@ func containerAddresses(t *testing.T, name string) map[string]string {
 			}
 			if json.Unmarshal([]byte(line), &event) == nil && event.Address != "" {
 				addresses[event.Message] = event.Address
+			}
+			if event.Message == "host CPU frequency NATS subscribed" {
+				frequencySubscribed = true
 			}
 			if event.Message == "host CPU info NATS subscribed" {
 				infoSubscribed = true
@@ -170,7 +175,7 @@ func containerAddresses(t *testing.T, name string) map[string]string {
 				loadSubscribed = true
 			}
 		}
-		if addresses["HTTP listening"] != "" && addresses["gRPC listening"] != "" && loadSubscribed && timesSubscribed && usageSubscribed && infoSubscribed {
+		if addresses["HTTP listening"] != "" && addresses["gRPC listening"] != "" && loadSubscribed && timesSubscribed && usageSubscribed && infoSubscribed && frequencySubscribed {
 			return addresses
 		}
 		select {
@@ -222,4 +227,39 @@ func hostCPUInfo(t *testing.T) map[uint32]map[string]string {
 		result[uint32(id)] = fields
 	}
 	return result
+}
+
+// This reference uses outside-Node raw sysfs attributes, not the Node adapter.
+type frequencySource struct {
+	text string
+	err  error
+}
+
+func hostFrequencies(t *testing.T) (map[uint32]map[string]frequencySource, bool) {
+	t.Helper()
+	root := "/sys/devices/system/cpu/cpufreq"
+	entries, err := os.ReadDir(root)
+	if errors.Is(err, os.ErrNotExist) {
+		return map[uint32]map[string]frequencySource{}, false
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+	result := map[uint32]map[string]frequencySource{}
+	for _, entry := range entries {
+		if !entry.IsDir() || !strings.HasPrefix(entry.Name(), "policy") {
+			continue
+		}
+		id, err := strconv.ParseUint(strings.TrimPrefix(entry.Name(), "policy"), 10, 32)
+		if err != nil {
+			t.Fatal(err)
+		}
+		fields := map[string]frequencySource{}
+		for _, name := range []string{"related_cpus", "affected_cpus", "cpuinfo_cur_freq", "cpuinfo_avg_freq", "cpuinfo_min_freq", "cpuinfo_max_freq", "scaling_cur_freq", "scaling_min_freq", "scaling_max_freq", "cpuinfo_transition_latency", "scaling_driver", "scaling_governor", "scaling_available_governors", "scaling_available_frequencies"} {
+			data, err := os.ReadFile(filepath.Join(root, entry.Name(), name))
+			fields[name] = frequencySource{text: strings.TrimSpace(string(data)), err: err}
+		}
+		result[uint32(id)] = fields
+	}
+	return result, true
 }
