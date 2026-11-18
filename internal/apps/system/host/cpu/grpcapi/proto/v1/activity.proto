@@ -1,0 +1,19 @@
+syntax = "proto3";
+package papilio.system.host.cpu.v1;
+option go_package = "github.com/PapilioVPN/node/internal/apps/system/host/cpu/grpcapi/proto/v1;cpuv1";
+import "google/protobuf/timestamp.proto";
+message GetHostCPUActivityRequest {}
+
+// Counts are system-wide, unscaled by cgroup quota and not an atomic snapshot.
+// Context switches, interrupts, soft interrupts and created tasks are cumulative
+// since boot. Runnable and I/O-blocked tasks are instantaneous gauges.
+message GetHostCPUActivityResponse {
+  uint64 context_switches = 1;
+  uint64 interrupts = 2;
+  uint64 soft_interrupts = 3;
+  uint64 created_tasks = 4;
+  uint64 runnable_tasks = 5;
+  uint64 io_blocked_tasks = 6;
+  google.protobuf.Timestamp observed_at = 7;
+  int64 duration_ns = 8;
+}

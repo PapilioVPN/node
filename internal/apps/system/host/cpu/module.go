@@ -17,7 +17,7 @@ import (
 func Module(requests settings.Requests) fx.Option {
 	return fx.Module("cpu", fx.Supply(requests, fx.Private),
 		fx.Provide(func() services.Service {
-			return services.Service{Reader: sys.Reader{}, TimesReader: sys.TimesReader{}, InfoReader: sys.InfoReader{}, FrequencyReader: sys.FrequencyReader{}}
+			return services.Service{Reader: sys.Reader{}, TimesReader: sys.TimesReader{}, InfoReader: sys.InfoReader{}, FrequencyReader: sys.FrequencyReader{}, ActivityReader: sys.ActivityReader{}}
 		}, fx.Private),
 		fx.Invoke(register), fx.Provide(subscribe),
 	)
@@ -48,6 +48,8 @@ func subscribe(in adapters) natsclient.Subscriptions {
 		Name: "host CPU times", SubjectSuffix: "system.host.cpu.times.v1.get", Handle: handler.ReadTimes,
 	}, {
 		Name: "host CPU usage", SubjectSuffix: "system.host.cpu.usage.v1.get", Handle: handler.SampleUsage,
+	}, {
+		Name: "host CPU activity", SubjectSuffix: "system.host.cpu.activity.v1.get", Handle: handler.ReadActivity,
 	}, {
 		Name: "host CPU frequency", SubjectSuffix: "system.host.cpu.frequency.v1.get", Handle: handler.ReadFrequency,
 	}, {

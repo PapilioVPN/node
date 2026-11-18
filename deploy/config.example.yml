@@ -1,5 +1,5 @@
 startup_timeout: 10s
-shutdown_timeout: 30s
+shutdown_timeout: 35s
 # Management API: only provision trusted controller certificates and broker ACLs.
 # For actual host identity in Docker, pass --uts=host to run.sh.
 # Host uptime requires a zero BOOTTIME namespace offset, verified in packaged tests.

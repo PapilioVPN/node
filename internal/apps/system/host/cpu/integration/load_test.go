@@ -70,6 +70,7 @@ func assertFreshReads(t *testing.T, client clients) {
 	assertSampledUsage(t, client)
 	assertProcessorInfo(t, client)
 	assertFrequencyReads(t, client)
+	assertActivityReads(t, client)
 	if client.HTTP != nil {
 		before, lower := time.Now(), hostLoad(t)
 		response, err := client.HTTP.Get(client.HTTPAddress)

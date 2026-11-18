@@ -55,3 +55,10 @@ func (read frequencyReaderFunc) Read(ctx context.Context) (domain.Frequencies, e
 func sampleFrequencies() domain.Frequencies {
 	return domain.Frequencies{InterfacePresent: true, Policies: []domain.FrequencyPolicy{{ID: 2, RelatedCPUs: []uint32{2, 3}, AffectedCPUs: []uint32{2}, ScalingCurrentKHz: new(uint64(9007199254740993)), HardwareMinKHz: new(uint64(0)), Driver: new("driver"), AvailableKHz: []uint64{9007199254740993}, Unavailable: []domain.FrequencyAttribute{{Attribute: "cpuinfo_cur_freq", Reason: "permission_denied"}}}}}
 }
+
+type activityReaderFunc func(context.Context) (domain.Activity, error)
+
+func (read activityReaderFunc) Read(ctx context.Context) (domain.Activity, error) { return read(ctx) }
+func sampleActivity() domain.Activity {
+	return domain.Activity{ContextSwitches: 9007199254740993, Interrupts: 1<<64 - 1, SoftInterrupts: 200, CreatedTasks: 300, RunnableTasks: 0, IOBlockedTasks: 2}
+}

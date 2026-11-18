@@ -23,6 +23,7 @@ const (
 	HostCPUService_GetHostCPUUsage_FullMethodName     = "/papilio.system.host.cpu.v1.HostCPUService/GetHostCPUUsage"
 	HostCPUService_GetHostCPUInfo_FullMethodName      = "/papilio.system.host.cpu.v1.HostCPUService/GetHostCPUInfo"
 	HostCPUService_GetHostCPUFrequency_FullMethodName = "/papilio.system.host.cpu.v1.HostCPUService/GetHostCPUFrequency"
+	HostCPUService_GetHostCPUActivity_FullMethodName  = "/papilio.system.host.cpu.v1.HostCPUService/GetHostCPUActivity"
 )
 
 // HostCPUServiceClient is the client API for HostCPUService service.
@@ -33,6 +34,7 @@ type HostCPUServiceClient interface {
 	GetHostCPUUsage(ctx context.Context, in *GetHostCPUUsageRequest, opts ...grpc.CallOption) (*GetHostCPUUsageResponse, error)
 	GetHostCPUInfo(ctx context.Context, in *GetHostCPUInfoRequest, opts ...grpc.CallOption) (*GetHostCPUInfoResponse, error)
 	GetHostCPUFrequency(ctx context.Context, in *GetHostCPUFrequencyRequest, opts ...grpc.CallOption) (*GetHostCPUFrequencyResponse, error)
+	GetHostCPUActivity(ctx context.Context, in *GetHostCPUActivityRequest, opts ...grpc.CallOption) (*GetHostCPUActivityResponse, error)
 }
 
 type hostCPUServiceClient struct {
@@ -83,6 +85,16 @@ func (c *hostCPUServiceClient) GetHostCPUFrequency(ctx context.Context, in *GetH
 	return out, nil
 }
 
+func (c *hostCPUServiceClient) GetHostCPUActivity(ctx context.Context, in *GetHostCPUActivityRequest, opts ...grpc.CallOption) (*GetHostCPUActivityResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetHostCPUActivityResponse)
+	err := c.cc.Invoke(ctx, HostCPUService_GetHostCPUActivity_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // HostCPUServiceServer is the server API for HostCPUService service.
 // All implementations must embed UnimplementedHostCPUServiceServer
 // for forward compatibility.
@@ -91,6 +103,7 @@ type HostCPUServiceServer interface {
 	GetHostCPUUsage(context.Context, *GetHostCPUUsageRequest) (*GetHostCPUUsageResponse, error)
 	GetHostCPUInfo(context.Context, *GetHostCPUInfoRequest) (*GetHostCPUInfoResponse, error)
 	GetHostCPUFrequency(context.Context, *GetHostCPUFrequencyRequest) (*GetHostCPUFrequencyResponse, error)
+	GetHostCPUActivity(context.Context, *GetHostCPUActivityRequest) (*GetHostCPUActivityResponse, error)
 	mustEmbedUnimplementedHostCPUServiceServer()
 }
 
@@ -112,6 +125,9 @@ func (UnimplementedHostCPUServiceServer) GetHostCPUInfo(context.Context, *GetHos
 }
 func (UnimplementedHostCPUServiceServer) GetHostCPUFrequency(context.Context, *GetHostCPUFrequencyRequest) (*GetHostCPUFrequencyResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetHostCPUFrequency not implemented")
+}
+func (UnimplementedHostCPUServiceServer) GetHostCPUActivity(context.Context, *GetHostCPUActivityRequest) (*GetHostCPUActivityResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetHostCPUActivity not implemented")
 }
 func (UnimplementedHostCPUServiceServer) mustEmbedUnimplementedHostCPUServiceServer() {}
 func (UnimplementedHostCPUServiceServer) testEmbeddedByValue()                        {}
@@ -206,6 +222,24 @@ func _HostCPUService_GetHostCPUFrequency_Handler(srv interface{}, ctx context.Co
 	return interceptor(ctx, in, info, handler)
 }
 
+func _HostCPUService_GetHostCPUActivity_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetHostCPUActivityRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(HostCPUServiceServer).GetHostCPUActivity(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: HostCPUService_GetHostCPUActivity_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(HostCPUServiceServer).GetHostCPUActivity(ctx, req.(*GetHostCPUActivityRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // HostCPUService_ServiceDesc is the grpc.ServiceDesc for HostCPUService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -228,6 +262,10 @@ var HostCPUService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetHostCPUFrequency",
 			Handler:    _HostCPUService_GetHostCPUFrequency_Handler,
+		},
+		{
+			MethodName: "GetHostCPUActivity",
+			Handler:    _HostCPUService_GetHostCPUActivity_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

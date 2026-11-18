@@ -150,7 +150,7 @@ func containerAddresses(t *testing.T, name string) map[string]string {
 	defer ticker.Stop()
 	for {
 		addresses := make(map[string]string)
-		loadSubscribed, timesSubscribed, usageSubscribed, infoSubscribed, frequencySubscribed := false, false, false, false, false
+		loadSubscribed, timesSubscribed, usageSubscribed, infoSubscribed, frequencySubscribed, activitySubscribed := false, false, false, false, false, false
 		for line := range strings.SplitSeq(docker(t, "logs", "--tail", "128", name), "\n") {
 			var event struct {
 				Message string `json:"msg"`
@@ -158,6 +158,9 @@ func containerAddresses(t *testing.T, name string) map[string]string {
 			}
 			if json.Unmarshal([]byte(line), &event) == nil && event.Address != "" {
 				addresses[event.Message] = event.Address
+			}
+			if event.Message == "host CPU activity NATS subscribed" {
+				activitySubscribed = true
 			}
 			if event.Message == "host CPU frequency NATS subscribed" {
 				frequencySubscribed = true
@@ -175,7 +178,7 @@ func containerAddresses(t *testing.T, name string) map[string]string {
 				loadSubscribed = true
 			}
 		}
-		if addresses["HTTP listening"] != "" && addresses["gRPC listening"] != "" && loadSubscribed && timesSubscribed && usageSubscribed && infoSubscribed && frequencySubscribed {
+		if addresses["HTTP listening"] != "" && addresses["gRPC listening"] != "" && loadSubscribed && timesSubscribed && usageSubscribed && infoSubscribed && frequencySubscribed && activitySubscribed {
 			return addresses
 		}
 		select {
@@ -262,4 +265,37 @@ func hostFrequencies(t *testing.T) (map[uint32]map[string]frequencySource, bool)
 		result[uint32(id)] = fields
 	}
 	return result, true
+}
+
+func hostActivity(t *testing.T) map[string]uint64 {
+	t.Helper()
+	data, err := os.ReadFile("/proc/stat")
+	if err != nil {
+		t.Fatal(err)
+	}
+	result := map[string]uint64{}
+	for line := range strings.SplitSeq(string(data), "\n") {
+		key, values, ok := strings.Cut(line, " ")
+		if !ok {
+			continue
+		}
+		switch key {
+		case "ctxt", "intr", "softirq", "processes", "procs_running", "procs_blocked":
+		default:
+			continue
+		}
+		fields := strings.Fields(values)
+		if len(fields) == 0 {
+			t.Fatal("missing reference activity")
+		}
+		value, err := strconv.ParseUint(fields[0], 10, 64)
+		if err != nil {
+			t.Fatal(err)
+		}
+		result[key] = value
+	}
+	if len(result) != 6 {
+		t.Fatal("incomplete reference activity")
+	}
+	return result
 }

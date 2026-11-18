@@ -274,7 +274,7 @@ var File_internal_apps_system_host_cpu_grpcapi_proto_v1_cpu_proto protoreflect.F
 
 const file_internal_apps_system_host_cpu_grpcapi_proto_v1_cpu_proto_rawDesc = "" +
 	"\n" +
-	"8internal/apps/system/host/cpu/grpcapi/proto/v1/cpu.proto\x12\x1apapilio.system.host.cpu.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a9internal/apps/system/host/cpu/grpcapi/proto/v1/info.proto\x1a:internal/apps/system/host/cpu/grpcapi/proto/v1/usage.proto\x1a>internal/apps/system/host/cpu/grpcapi/proto/v1/frequency.proto\"1\n" +
+	"8internal/apps/system/host/cpu/grpcapi/proto/v1/cpu.proto\x12\x1apapilio.system.host.cpu.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a9internal/apps/system/host/cpu/grpcapi/proto/v1/info.proto\x1a:internal/apps/system/host/cpu/grpcapi/proto/v1/usage.proto\x1a>internal/apps/system/host/cpu/grpcapi/proto/v1/frequency.proto\x1a=internal/apps/system/host/cpu/grpcapi/proto/v1/activity.proto\"1\n" +
 	"\x16GetHostCPUTimesRequest\x12\x17\n" +
 	"\aper_cpu\x18\x01 \x01(\bR\x06perCpu\"\xed\x02\n" +
 	"\bCPUTicks\x12\x10\n" +
@@ -302,12 +302,13 @@ const file_internal_apps_system_host_cpu_grpcapi_proto_v1_cpu_proto_rawDesc = ""
 	"\vobserved_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
 	"observedAt\x12\x1f\n" +
 	"\vduration_ns\x18\x05 \x01(\x03R\n" +
-	"durationNs2\x8a\x04\n" +
+	"durationNs2\x90\x05\n" +
 	"\x0eHostCPUService\x12z\n" +
 	"\x0fGetHostCPUTimes\x122.papilio.system.host.cpu.v1.GetHostCPUTimesRequest\x1a3.papilio.system.host.cpu.v1.GetHostCPUTimesResponse\x12z\n" +
 	"\x0fGetHostCPUUsage\x122.papilio.system.host.cpu.v1.GetHostCPUUsageRequest\x1a3.papilio.system.host.cpu.v1.GetHostCPUUsageResponse\x12w\n" +
 	"\x0eGetHostCPUInfo\x121.papilio.system.host.cpu.v1.GetHostCPUInfoRequest\x1a2.papilio.system.host.cpu.v1.GetHostCPUInfoResponse\x12\x86\x01\n" +
-	"\x13GetHostCPUFrequency\x126.papilio.system.host.cpu.v1.GetHostCPUFrequencyRequest\x1a7.papilio.system.host.cpu.v1.GetHostCPUFrequencyResponseBQZOgithub.com/PapilioVPN/node/internal/apps/system/host/cpu/grpcapi/proto/v1;cpuv1b\x06proto3"
+	"\x13GetHostCPUFrequency\x126.papilio.system.host.cpu.v1.GetHostCPUFrequencyRequest\x1a7.papilio.system.host.cpu.v1.GetHostCPUFrequencyResponse\x12\x83\x01\n" +
+	"\x12GetHostCPUActivity\x125.papilio.system.host.cpu.v1.GetHostCPUActivityRequest\x1a6.papilio.system.host.cpu.v1.GetHostCPUActivityResponseBQZOgithub.com/PapilioVPN/node/internal/apps/system/host/cpu/grpcapi/proto/v1;cpuv1b\x06proto3"
 
 var (
 	file_internal_apps_system_host_cpu_grpcapi_proto_v1_cpu_proto_rawDescOnce sync.Once
@@ -330,26 +331,30 @@ var file_internal_apps_system_host_cpu_grpcapi_proto_v1_cpu_proto_goTypes = []an
 	(*GetHostCPUUsageRequest)(nil),      // 4: papilio.system.host.cpu.v1.GetHostCPUUsageRequest
 	(*GetHostCPUInfoRequest)(nil),       // 5: papilio.system.host.cpu.v1.GetHostCPUInfoRequest
 	(*GetHostCPUFrequencyRequest)(nil),  // 6: papilio.system.host.cpu.v1.GetHostCPUFrequencyRequest
-	(*GetHostCPUUsageResponse)(nil),     // 7: papilio.system.host.cpu.v1.GetHostCPUUsageResponse
-	(*GetHostCPUInfoResponse)(nil),      // 8: papilio.system.host.cpu.v1.GetHostCPUInfoResponse
-	(*GetHostCPUFrequencyResponse)(nil), // 9: papilio.system.host.cpu.v1.GetHostCPUFrequencyResponse
+	(*GetHostCPUActivityRequest)(nil),   // 7: papilio.system.host.cpu.v1.GetHostCPUActivityRequest
+	(*GetHostCPUUsageResponse)(nil),     // 8: papilio.system.host.cpu.v1.GetHostCPUUsageResponse
+	(*GetHostCPUInfoResponse)(nil),      // 9: papilio.system.host.cpu.v1.GetHostCPUInfoResponse
+	(*GetHostCPUFrequencyResponse)(nil), // 10: papilio.system.host.cpu.v1.GetHostCPUFrequencyResponse
+	(*GetHostCPUActivityResponse)(nil),  // 11: papilio.system.host.cpu.v1.GetHostCPUActivityResponse
 }
 var file_internal_apps_system_host_cpu_grpcapi_proto_v1_cpu_proto_depIdxs = []int32{
-	1, // 0: papilio.system.host.cpu.v1.GetHostCPUTimesResponse.counters:type_name -> papilio.system.host.cpu.v1.CPUTicks
-	3, // 1: papilio.system.host.cpu.v1.GetHostCPUTimesResponse.observed_at:type_name -> google.protobuf.Timestamp
-	0, // 2: papilio.system.host.cpu.v1.HostCPUService.GetHostCPUTimes:input_type -> papilio.system.host.cpu.v1.GetHostCPUTimesRequest
-	4, // 3: papilio.system.host.cpu.v1.HostCPUService.GetHostCPUUsage:input_type -> papilio.system.host.cpu.v1.GetHostCPUUsageRequest
-	5, // 4: papilio.system.host.cpu.v1.HostCPUService.GetHostCPUInfo:input_type -> papilio.system.host.cpu.v1.GetHostCPUInfoRequest
-	6, // 5: papilio.system.host.cpu.v1.HostCPUService.GetHostCPUFrequency:input_type -> papilio.system.host.cpu.v1.GetHostCPUFrequencyRequest
-	2, // 6: papilio.system.host.cpu.v1.HostCPUService.GetHostCPUTimes:output_type -> papilio.system.host.cpu.v1.GetHostCPUTimesResponse
-	7, // 7: papilio.system.host.cpu.v1.HostCPUService.GetHostCPUUsage:output_type -> papilio.system.host.cpu.v1.GetHostCPUUsageResponse
-	8, // 8: papilio.system.host.cpu.v1.HostCPUService.GetHostCPUInfo:output_type -> papilio.system.host.cpu.v1.GetHostCPUInfoResponse
-	9, // 9: papilio.system.host.cpu.v1.HostCPUService.GetHostCPUFrequency:output_type -> papilio.system.host.cpu.v1.GetHostCPUFrequencyResponse
-	6, // [6:10] is the sub-list for method output_type
-	2, // [2:6] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	1,  // 0: papilio.system.host.cpu.v1.GetHostCPUTimesResponse.counters:type_name -> papilio.system.host.cpu.v1.CPUTicks
+	3,  // 1: papilio.system.host.cpu.v1.GetHostCPUTimesResponse.observed_at:type_name -> google.protobuf.Timestamp
+	0,  // 2: papilio.system.host.cpu.v1.HostCPUService.GetHostCPUTimes:input_type -> papilio.system.host.cpu.v1.GetHostCPUTimesRequest
+	4,  // 3: papilio.system.host.cpu.v1.HostCPUService.GetHostCPUUsage:input_type -> papilio.system.host.cpu.v1.GetHostCPUUsageRequest
+	5,  // 4: papilio.system.host.cpu.v1.HostCPUService.GetHostCPUInfo:input_type -> papilio.system.host.cpu.v1.GetHostCPUInfoRequest
+	6,  // 5: papilio.system.host.cpu.v1.HostCPUService.GetHostCPUFrequency:input_type -> papilio.system.host.cpu.v1.GetHostCPUFrequencyRequest
+	7,  // 6: papilio.system.host.cpu.v1.HostCPUService.GetHostCPUActivity:input_type -> papilio.system.host.cpu.v1.GetHostCPUActivityRequest
+	2,  // 7: papilio.system.host.cpu.v1.HostCPUService.GetHostCPUTimes:output_type -> papilio.system.host.cpu.v1.GetHostCPUTimesResponse
+	8,  // 8: papilio.system.host.cpu.v1.HostCPUService.GetHostCPUUsage:output_type -> papilio.system.host.cpu.v1.GetHostCPUUsageResponse
+	9,  // 9: papilio.system.host.cpu.v1.HostCPUService.GetHostCPUInfo:output_type -> papilio.system.host.cpu.v1.GetHostCPUInfoResponse
+	10, // 10: papilio.system.host.cpu.v1.HostCPUService.GetHostCPUFrequency:output_type -> papilio.system.host.cpu.v1.GetHostCPUFrequencyResponse
+	11, // 11: papilio.system.host.cpu.v1.HostCPUService.GetHostCPUActivity:output_type -> papilio.system.host.cpu.v1.GetHostCPUActivityResponse
+	7,  // [7:12] is the sub-list for method output_type
+	2,  // [2:7] is the sub-list for method input_type
+	2,  // [2:2] is the sub-list for extension type_name
+	2,  // [2:2] is the sub-list for extension extendee
+	0,  // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_internal_apps_system_host_cpu_grpcapi_proto_v1_cpu_proto_init() }
@@ -360,6 +365,7 @@ func file_internal_apps_system_host_cpu_grpcapi_proto_v1_cpu_proto_init() {
 	file_internal_apps_system_host_cpu_grpcapi_proto_v1_info_proto_init()
 	file_internal_apps_system_host_cpu_grpcapi_proto_v1_usage_proto_init()
 	file_internal_apps_system_host_cpu_grpcapi_proto_v1_frequency_proto_init()
+	file_internal_apps_system_host_cpu_grpcapi_proto_v1_activity_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
