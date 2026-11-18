@@ -17,12 +17,8 @@ type readerFunc func(context.Context) (domain.Identity, error)
 
 func (read readerFunc) Read(ctx context.Context) (domain.Identity, error) { return read(ctx) }
 
-func TestReadRejectsUnpermittedAndInvalidRequestsBeforeService(t *testing.T) {
+func TestReadRejectsInvalidRequestsBeforeService(t *testing.T) {
 	handler := natsapi.Handler{Timeout: time.Second}
-	if got := string(handler.Read(context.Background(), []byte("invalid"), nil)); got != `{"error":"permission_denied"}` {
-		t.Fatal(got)
-	}
-	handler.AllowRead = true
 	for _, input := range []string{"", "null", "[]", `{"unknown":1}`, "{}{}", strings.Repeat(" ", 1025)} {
 		result := handler.Read(context.Background(), []byte(input), nil)
 		var response struct {
@@ -40,7 +36,7 @@ func TestReadRejectsUnpermittedAndInvalidRequestsBeforeService(t *testing.T) {
 }
 
 func TestCallerDeadlineOnlyShortensConfiguredTimeout(t *testing.T) {
-	handler := natsapi.Handler{AllowRead: true, Timeout: 20 * time.Millisecond, Service: services.Service{Reader: readerFunc(func(ctx context.Context) (domain.Identity, error) {
+	handler := natsapi.Handler{Timeout: 20 * time.Millisecond, Service: services.Service{Reader: readerFunc(func(ctx context.Context) (domain.Identity, error) {
 		<-ctx.Done()
 		return domain.Identity{}, ctx.Err()
 	})}}

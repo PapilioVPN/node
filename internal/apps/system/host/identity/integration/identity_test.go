@@ -17,8 +17,6 @@ import (
 	"github.com/PapilioVPN/node/internal/apps/system/host/identity/infra/sys"
 	"github.com/PapilioVPN/node/internal/bootstrap"
 	"github.com/PapilioVPN/node/internal/testutil"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 type observation struct {
@@ -49,7 +47,7 @@ func assertObservation(t *testing.T, contents []byte, want domain.Identity, befo
 func TestActualIdentityOverEachIndependentlyEnabledTransport(t *testing.T) {
 	for _, transport := range []string{"http", "grpc", "nats", "all"} {
 		t.Run(transport, func(t *testing.T) {
-			client := startNode(t, true, transport)
+			client := startNode(t, transport)
 			want, err := (sys.Reader{}).Read(context.Background())
 			if err != nil {
 				t.Fatal(err)
@@ -98,30 +96,8 @@ func TestActualIdentityOverEachIndependentlyEnabledTransport(t *testing.T) {
 	}
 }
 
-func TestAllTransportsDenyReadsWithoutExplicitGrant(t *testing.T) {
-	client := startNode(t, false, "all")
-	response, err := client.HTTP.Get(client.HTTPAddress + "?invalid=value")
-	if err != nil {
-		t.Fatal(err)
-	}
-	response.Body.Close()
-	if response.StatusCode != http.StatusForbidden {
-		t.Fatal("ungranted HTTP read accepted")
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
-	_, err = identityv1.NewHostIdentityServiceClient(client.GRPC).GetHostIdentity(ctx, &identityv1.GetHostIdentityRequest{})
-	if status.Code(err) != codes.PermissionDenied {
-		t.Fatalf("gRPC permission: %v", err)
-	}
-	message, err := client.NATS.Request(subject, []byte("invalid"), time.Second)
-	if err != nil || string(message.Data) != `{"error":"permission_denied"}` {
-		t.Fatalf("NATS permission: %v %v", message, err)
-	}
-}
-
 func TestBrokerDeniedSubscriptionRequestsNodeFailure(t *testing.T) {
-	config := nodeConfig(t, testutil.NewPKI(t), true, "nats")
+	config := nodeConfig(t, testutil.NewPKI(t), "nats")
 	config.Communications.Requests.NATS.SubjectPrefix = "forbidden"
 	app := bootstrap.New(config, slog.New(slog.NewTextHandler(io.Discard, nil)))
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
@@ -148,7 +124,7 @@ func TestBrokerDeniedSubscriptionRequestsNodeFailure(t *testing.T) {
 
 func TestShortReadDeadlineDoesNotPreventCleanSubscriptionShutdown(t *testing.T) {
 	pki := testutil.NewPKI(t)
-	config := nodeConfig(t, pki, true, "nats")
+	config := nodeConfig(t, pki, "nats")
 	config.Communications.Requests.Timeout = time.Nanosecond
 	client := startConfiguredNode(t, pki, config)
 	if _, err := client.NATS.Request(subject, []byte("{}"), time.Second); err != nil {

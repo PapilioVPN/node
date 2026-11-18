@@ -29,7 +29,7 @@ func TestPackagedHostIdentity(t *testing.T) {
 		t.Fatal("-image must select the prebuilt checked image")
 	}
 	pki := testutil.NewPKI(t)
-	config := nodeConfig(t, pki, true, "all")
+	config := nodeConfig(t, pki, "all")
 	// Mount only the private configuration/identities. Host UTS exposes uname
 	// identity without a host filesystem mount or added Linux capabilities.
 	directory := filepath.Dir(pki.Server.Certificate)

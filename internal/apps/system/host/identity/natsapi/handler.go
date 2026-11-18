@@ -13,17 +13,13 @@ import (
 )
 
 type Handler struct {
-	Service   services.Service
-	AllowRead bool
-	Timeout   time.Duration
+	Service services.Service
+	Timeout time.Duration
 }
 
 // Read accepts an empty JSON object. An optional absolute deadline only shortens
 // the operation timeout; Core NATS does not propagate caller disconnection.
 func (handler Handler) Read(ctx context.Context, data []byte, headers nats.Header) []byte {
-	if !handler.AllowRead {
-		return failure("permission_denied")
-	}
 	if len(data) > 1024 {
 		return failure("resource_exhausted")
 	}

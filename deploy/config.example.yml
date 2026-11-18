@@ -1,11 +1,8 @@
 startup_timeout: 10s
 shutdown_timeout: 25s
-# Omit identity to leave this capability uninstalled. Read access is opt-in.
+# Management API: only provision trusted controller certificates and broker ACLs.
 # For actual host identity in Docker, pass --uts=host to run.sh.
-system:
-  host:
-    identity:
-      allow_read: false
+# Host uptime requires a zero BOOTTIME namespace offset, verified in packaged tests.
 communications:
   requests:
     timeout: 1s

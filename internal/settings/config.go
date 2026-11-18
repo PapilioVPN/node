@@ -17,7 +17,6 @@ type Config struct {
 	StartupTimeout  time.Duration  `yaml:"startup_timeout"`
 	ShutdownTimeout time.Duration  `yaml:"shutdown_timeout"`
 	Communications  Communications `yaml:"communications"`
-	System          System         `yaml:"system"`
 }
 
 type Communications struct {
@@ -108,5 +107,31 @@ func (config Config) Validate() error {
 		}
 		remaining -= nats.ShutdownTimeout
 	}
-	return config.validateSystem(remaining)
+	requests := config.Communications.Requests
+	if config.Communications.HTTP == nil && config.Communications.GRPC == nil && requests.Timeout == 0 && requests.NATS == nil {
+		return nil
+	}
+	if err := requests.validate(config.Communications); err != nil {
+		return err
+	}
+	if requests.NATS != nil && requests.NATS.ShutdownTimeout >= remaining {
+		return errors.New("request drain must fit inside the remaining Node shutdown_timeout")
+	}
+	return nil
+}
+
+// RequestDrainBudget is the stop time left after the configured transports.
+// Subscription composition validates its actual native receivers against it.
+func (config Config) RequestDrainBudget() time.Duration {
+	remaining := config.ShutdownTimeout
+	if http := config.Communications.HTTP; http != nil {
+		remaining -= http.ShutdownTimeout
+	}
+	if grpc := config.Communications.GRPC; grpc != nil {
+		remaining -= grpc.ShutdownTimeout
+	}
+	if nats := config.Communications.NATS; nats != nil {
+		remaining -= nats.ShutdownTimeout
+	}
+	return remaining
 }

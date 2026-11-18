@@ -52,10 +52,10 @@ type clients struct {
 	NATS        *nats.Conn
 }
 
-func startNode(t *testing.T, allow bool, transport string) clients {
+func startNode(t *testing.T, transport string) clients {
 	t.Helper()
 	pki := testutil.NewPKI(t)
-	config := nodeConfig(t, pki, allow, transport)
+	config := nodeConfig(t, pki, transport)
 	return startConfiguredNode(t, pki, config)
 }
 
@@ -80,10 +80,9 @@ func startConfiguredNode(t *testing.T, pki testutil.PKI, config settings.Config)
 	return connectClients(t, pki.Client, config, log.addresses)
 }
 
-func nodeConfig(t *testing.T, pki testutil.PKI, allow bool, transport string) settings.Config {
+func nodeConfig(t *testing.T, pki testutil.PKI, transport string) settings.Config {
 	t.Helper()
-	config := settings.Config{StartupTimeout: 5 * time.Second, ShutdownTimeout: 5 * time.Second,
-		System: settings.System{Host: settings.Host{Identity: &settings.ReadAccess{AllowRead: allow}}}}
+	config := settings.Config{StartupTimeout: 5 * time.Second, ShutdownTimeout: 7 * time.Second}
 	config.Communications.Requests.Timeout = 200 * time.Millisecond
 	var brokerURL string
 	if transport == "all" || transport == "http" {

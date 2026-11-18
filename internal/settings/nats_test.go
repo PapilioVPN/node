@@ -76,7 +76,7 @@ func TestNATSRejectsInvalidConfiguration(t *testing.T) {
 }
 
 func TestAllTransportShutdownBudgets(t *testing.T) {
-	contents := validConfig + strings.Split(grpcConfig, "communications:\n")[1] + strings.Split(natsConfig, "communications:\n")[1]
+	contents := validConfig + ("  grpc:" + strings.Split(grpcConfig, "  grpc:")[1]) + strings.Split(natsConfig, "communications:\n")[1]
 	for _, test := range []struct {
 		name, budget string
 		valid        bool

@@ -15,7 +15,7 @@ import (
 func foundationConfig(pki testutil.PKI, brokerURL string) settings.Config {
 	return settings.Config{
 		StartupTimeout: 5 * time.Second, ShutdownTimeout: 5 * time.Second,
-		Communications: settings.Communications{HTTP: &settings.HTTP{
+		Communications: settings.Communications{Requests: settings.Requests{Timeout: 100 * time.Millisecond}, HTTP: &settings.HTTP{
 			Address: "127.0.0.1:0", TLS: pki.Server,
 			ReadTimeout: time.Second, WriteTimeout: time.Second,
 			IdleTimeout: time.Second, ShutdownTimeout: time.Second,

@@ -30,6 +30,9 @@ func New(config settings.Config, logger *slog.Logger) *fx.App {
 	}
 	if nats := config.Communications.NATS; nats != nil {
 		options = append(options, fx.Supply(*nats), natsclient.Module)
+		if config.Communications.Requests.NATS != nil {
+			options = append(options, natsclient.RequestsModule(config.RequestDrainBudget()))
+		}
 	}
-	return fx.New(append(options, system.Module(config.System, config.Communications.Requests))...)
+	return fx.New(append(options, system.Module(config.Communications.Requests))...)
 }

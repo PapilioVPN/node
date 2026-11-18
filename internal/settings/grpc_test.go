@@ -12,6 +12,8 @@ import (
 const grpcConfig = `startup_timeout: 5s
 shutdown_timeout: 10s
 communications:
+  requests:
+    timeout: 100ms
   grpc:
     address: 127.0.0.1:0
     tls:
@@ -66,7 +68,7 @@ func TestGRPCRejectsUnboundedResources(t *testing.T) {
 
 func TestCombinedShutdownBudgets(t *testing.T) {
 	// Each budget fits alone, but Fx stops resources sequentially.
-	contents := strings.Replace(validConfig, "shutdown_timeout: 10s", "shutdown_timeout: 6s", 1) + strings.Split(grpcConfig, "communications:\n")[1]
+	contents := strings.Replace(validConfig, "shutdown_timeout: 10s", "shutdown_timeout: 6s", 1) + "  grpc:" + strings.Split(grpcConfig, "  grpc:")[1]
 	path := filepath.Join(t.TempDir(), "config.yml")
 	if err := os.WriteFile(path, []byte(contents), 0o600); err != nil {
 		t.Fatal(err)

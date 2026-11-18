@@ -12,9 +12,8 @@ import (
 )
 
 type Handler struct {
-	Service   services.Service
-	AllowRead bool
-	Timeout   time.Duration
+	Service services.Service
+	Timeout time.Duration
 }
 
 func (handler Handler) Register(router fiber.Router) {
@@ -23,13 +22,6 @@ func (handler Handler) Register(router fiber.Router) {
 
 func (handler Handler) Read(request fiber.Ctx) error {
 	request.Set(fiber.HeaderCacheControl, "no-store")
-	identity := request.RequestCtx().TLSConnectionState()
-	if identity == nil || len(identity.VerifiedChains) == 0 {
-		return request.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "unauthenticated"})
-	}
-	if !handler.AllowRead {
-		return request.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "permission_denied"})
-	}
 	if len(request.Body()) != 0 || len(request.Request().URI().QueryString()) != 0 {
 		return request.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid_argument"})
 	}

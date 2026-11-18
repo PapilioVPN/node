@@ -10,17 +10,14 @@ import (
 	identityv1 "github.com/PapilioVPN/node/internal/apps/system/host/identity/grpcapi/proto/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type Handler struct {
 	identityv1.UnimplementedHostIdentityServiceServer
-	Service   services.Service
-	AllowRead bool
-	Timeout   time.Duration
+	Service services.Service
+	Timeout time.Duration
 }
 
 func (handler Handler) Register(server grpc.ServiceRegistrar) {
@@ -28,17 +25,6 @@ func (handler Handler) Register(server grpc.ServiceRegistrar) {
 }
 
 func (handler Handler) GetHostIdentity(ctx context.Context, _ *identityv1.GetHostIdentityRequest) (*identityv1.GetHostIdentityResponse, error) {
-	remote, ok := peer.FromContext(ctx)
-	if !ok {
-		return nil, status.Error(codes.Unauthenticated, "verified client certificate required")
-	}
-	identity, ok := remote.AuthInfo.(credentials.TLSInfo)
-	if !ok || len(identity.State.VerifiedChains) == 0 {
-		return nil, status.Error(codes.Unauthenticated, "verified client certificate required")
-	}
-	if !handler.AllowRead {
-		return nil, status.Error(codes.PermissionDenied, "host identity read is disabled")
-	}
 	ctx, cancel := context.WithTimeout(ctx, handler.Timeout)
 	defer cancel()
 	result, err := handler.Service.Read(ctx)

@@ -4,7 +4,6 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
-	"time"
 
 	"github.com/PapilioVPN/node/internal/settings"
 )
@@ -12,6 +11,8 @@ import (
 const validConfig = `startup_timeout: 5s
 shutdown_timeout: 10s
 communications:
+  requests:
+    timeout: 100ms
   http:
     address: 127.0.0.1:0
     tls:
@@ -25,12 +26,6 @@ communications:
     body_limit: 1024
     concurrency: 8
 `
-
-func hostReadConfig() settings.Config {
-	return settings.Config{StartupTimeout: time.Second, ShutdownTimeout: 5 * time.Second,
-		Communications: settings.Communications{Requests: settings.Requests{Timeout: time.Second}},
-		System:         settings.System{Host: settings.Host{Identity: &settings.ReadAccess{}}}}
-}
 
 func loadConfiguration(t *testing.T, input string) (settings.Config, error) {
 	t.Helper()
