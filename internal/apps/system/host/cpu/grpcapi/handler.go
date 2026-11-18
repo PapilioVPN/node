@@ -1,4 +1,4 @@
-// Package grpcapi adapts the host load operation to its versioned gRPC API.
+// Package grpcapi adapts host processor operations to its versioned gRPC API.
 package grpcapi
 
 import (
@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/PapilioVPN/node/internal/apps/system/host/cpu/app/services"
-	loadv1 "github.com/PapilioVPN/node/internal/apps/system/host/cpu/grpcapi/proto/v1"
+	cpuv1 "github.com/PapilioVPN/node/internal/apps/system/host/cpu/grpcapi/proto/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -15,16 +15,18 @@ import (
 )
 
 type Handler struct {
-	loadv1.UnimplementedHostLoadServiceServer
+	cpuv1.UnimplementedHostLoadServiceServer
+	cpuv1.UnimplementedHostCPUServiceServer
 	Service services.Service
 	Timeout time.Duration
 }
 
 func (handler Handler) Register(server grpc.ServiceRegistrar) {
-	loadv1.RegisterHostLoadServiceServer(server, handler)
+	cpuv1.RegisterHostLoadServiceServer(server, handler)
+	cpuv1.RegisterHostCPUServiceServer(server, handler)
 }
 
-func (handler Handler) GetHostLoad(ctx context.Context, _ *loadv1.GetHostLoadRequest) (*loadv1.GetHostLoadResponse, error) {
+func (handler Handler) GetHostLoad(ctx context.Context, _ *cpuv1.GetHostLoadRequest) (*cpuv1.GetHostLoadResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, handler.Timeout)
 	defer cancel()
 	result, err := handler.Service.Read(ctx)
@@ -34,7 +36,7 @@ func (handler Handler) GetHostLoad(ctx context.Context, _ *loadv1.GetHostLoadReq
 		}
 		return nil, status.Error(codes.Unavailable, "host load unavailable")
 	}
-	return &loadv1.GetHostLoadResponse{
+	return &cpuv1.GetHostLoadResponse{
 		OneMinute: result.Averages.OneMinute, FiveMinutes: result.Averages.FiveMinutes, FifteenMinutes: result.Averages.FifteenMinutes,
 		ObservedAt: timestamppb.New(result.ObservedAt), DurationNs: int64(result.Duration),
 	}, nil

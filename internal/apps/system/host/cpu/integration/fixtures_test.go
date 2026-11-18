@@ -84,7 +84,7 @@ func nodeConfig(t *testing.T, pki testutil.PKI) settings.Config {
 				ReadTimeout: time.Second, WriteTimeout: time.Second, IdleTimeout: time.Second, ShutdownTimeout: time.Second, BodyLimit: 2048, Concurrency: 16},
 			GRPC: &settings.GRPC{Address: "127.0.0.1:0", TLS: pki.Server,
 				ConnectionTimeout: 100 * time.Millisecond, ShutdownTimeout: time.Second,
-				MaxRecvMessageSize: 2048, MaxSendMessageSize: 2048, MaxConnections: 16, MaxConcurrentStreams: 8, MaxHeaderListSize: 8192},
+				MaxRecvMessageSize: 2048, MaxSendMessageSize: 1 << 20, MaxConnections: 16, MaxConcurrentStreams: 8, MaxHeaderListSize: 8192},
 			NATS: &settings.NATS{Servers: []string{brokerURL}, TLS: pki.Client, TLSHandshakeFirst: true,
 				ConnectTimeout: time.Second, ShutdownTimeout: time.Second, WriteTimeout: time.Second,
 				ReconnectWait: time.Second, MaxReconnects: 0, ReconnectBufferSize: -1, PingInterval: time.Second, MaxPingsOutstanding: 2},
@@ -146,7 +146,7 @@ func containerAddresses(t *testing.T, name string) map[string]string {
 	defer ticker.Stop()
 	for {
 		addresses := make(map[string]string)
-		subscribed := false
+		loadSubscribed, timesSubscribed := false, false
 		for line := range strings.SplitSeq(docker(t, "logs", "--tail", "128", name), "\n") {
 			var event struct {
 				Message string `json:"msg"`
@@ -155,11 +155,14 @@ func containerAddresses(t *testing.T, name string) map[string]string {
 			if json.Unmarshal([]byte(line), &event) == nil && event.Address != "" {
 				addresses[event.Message] = event.Address
 			}
+			if event.Message == "host CPU times NATS subscribed" {
+				timesSubscribed = true
+			}
 			if event.Message == "host load NATS subscribed" {
-				subscribed = true
+				loadSubscribed = true
 			}
 		}
-		if addresses["HTTP listening"] != "" && addresses["gRPC listening"] != "" && subscribed {
+		if addresses["HTTP listening"] != "" && addresses["gRPC listening"] != "" && loadSubscribed && timesSubscribed {
 			return addresses
 		}
 		select {

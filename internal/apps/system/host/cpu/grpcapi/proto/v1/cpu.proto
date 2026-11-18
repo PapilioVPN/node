@@ -1,0 +1,38 @@
+syntax = "proto3";
+package papilio.system.host.cpu.v1;
+option go_package = "github.com/PapilioVPN/node/internal/apps/system/host/cpu/grpcapi/proto/v1;cpuv1";
+import "google/protobuf/timestamp.proto";
+
+service HostCPUService {
+  rpc GetHostCPUTimes(GetHostCPUTimesRequest) returns (GetHostCPUTimesResponse);
+}
+
+message GetHostCPUTimesRequest {
+  // false selects one aggregate; true selects the native-order per-CPU rows.
+  bool per_cpu = 1;
+}
+
+// Unscaled Linux USER_HZ counters. User includes Guest; Nice includes GuestNice.
+// Counters can decrease between reads, notably I/O wait. CPU names preserve
+// kernel identity: cpu-total for aggregate, cpu0/cpu1/... for logical processors.
+message CPUTicks {
+  string cpu = 1;
+  uint64 user_ticks = 2;
+  uint64 nice_ticks = 3;
+  uint64 system_ticks = 4;
+  uint64 idle_ticks = 5;
+  uint64 iowait_ticks = 6;
+  uint64 irq_ticks = 7;
+  uint64 softirq_ticks = 8;
+  uint64 steal_ticks = 9;
+  uint64 guest_ticks = 10;
+  uint64 guest_nice_ticks = 11;
+}
+
+message GetHostCPUTimesResponse {
+  bool per_cpu = 1;
+  uint64 ticks_per_second = 2;
+  repeated CPUTicks counters = 3;
+  google.protobuf.Timestamp observed_at = 4;
+  int64 duration_ns = 5;
+}

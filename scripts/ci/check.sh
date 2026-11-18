@@ -29,7 +29,7 @@ go test -race -tags=integration,distribution ./internal/apps/system/host/uptime/
     -run="^TestPackagedHostUptime$" -count=1 -args -image="papilio-node-build:$revision"
 
 go test -race -tags=integration,distribution ./internal/apps/system/host/cpu/integration \
-    -run="^TestPackagedHostLoad$" -count=1 -args -image="papilio-node-build:$revision"
+    -run="^TestPackagedHostCPU$" -count=1 -args -image="papilio-node-build:$revision"
 
 go test -race -tags=integration,distribution ./internal/apps/system/host/memory/integration \
     -run="^TestPackagedHostMemory$" -count=1 -args -image="papilio-node-build:$revision"

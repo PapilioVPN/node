@@ -1,4 +1,4 @@
-// Package natsapi exposes host load through bounded Core NATS request/reply.
+// Package natsapi exposes host processor observations through bounded Core NATS request/reply.
 package natsapi
 
 import (
@@ -27,29 +27,14 @@ func (handler Handler) Read(ctx context.Context, data []byte, headers nats.Heade
 	if err := json.Unmarshal(data, &input); err != nil || input == nil || len(input) != 0 {
 		return failure("invalid_argument")
 	}
-	ctx, cancel := context.WithTimeout(ctx, handler.Timeout)
-	defer cancel()
-	if values, ok := headers["Papilio-Deadline"]; ok {
-		if len(values) != 1 {
-			return failure("invalid_argument")
-		}
-		deadline, err := time.Parse(time.RFC3339Nano, values[0])
-		if err != nil {
-			return failure("invalid_argument")
-		}
-		var cancelDeadline context.CancelFunc
-		ctx, cancelDeadline = context.WithDeadline(ctx, deadline)
-		defer cancelDeadline()
+	ctx, cancel, code := requestContext(ctx, headers, handler.Timeout)
+	if code != "" {
+		return failure(code)
 	}
+	defer cancel()
 	result, err := handler.Service.Read(ctx)
 	if err != nil {
-		if errors.Is(err, context.DeadlineExceeded) {
-			return failure("deadline_exceeded")
-		}
-		if errors.Is(err, context.Canceled) {
-			return failure("canceled")
-		}
-		return failure("unavailable")
+		return readError(err)
 	}
 	encoded, err := json.Marshal(response{
 		OneMinute: result.Averages.OneMinute, FiveMinutes: result.Averages.FiveMinutes, FifteenMinutes: result.Averages.FifteenMinutes,
@@ -69,4 +54,32 @@ type response struct {
 	FifteenMinutes float64   `json:"fifteen_minutes"`
 	ObservedAt     time.Time `json:"observed_at"`
 	DurationNS     string    `json:"duration_ns"`
+}
+
+func requestContext(ctx context.Context, headers nats.Header, timeout time.Duration) (context.Context, context.CancelFunc, string) {
+	deadline := time.Now().Add(timeout)
+	if values, ok := headers["Papilio-Deadline"]; ok {
+		if len(values) != 1 {
+			return nil, nil, "invalid_argument"
+		}
+		requested, err := time.Parse(time.RFC3339Nano, values[0])
+		if err != nil {
+			return nil, nil, "invalid_argument"
+		}
+		if requested.Before(deadline) {
+			deadline = requested
+		}
+	}
+	ctx, cancel := context.WithDeadline(ctx, deadline)
+	return ctx, cancel, ""
+}
+
+func readError(err error) []byte {
+	if errors.Is(err, context.DeadlineExceeded) {
+		return failure("deadline_exceeded")
+	}
+	if errors.Is(err, context.Canceled) {
+		return failure("canceled")
+	}
+	return failure("unavailable")
 }

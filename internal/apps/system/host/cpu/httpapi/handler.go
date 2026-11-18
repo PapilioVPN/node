@@ -1,4 +1,4 @@
-// Package httpapi exposes the authenticated host load read through Fiber.
+// Package httpapi exposes authenticated host processor observations through Fiber.
 package httpapi
 
 import (
@@ -18,6 +18,7 @@ type Handler struct {
 
 func (handler Handler) Register(router fiber.Router) {
 	router.Get("/v1/system/host/load", handler.Read)
+	router.Get("/v1/system/host/cpu/times", handler.ReadTimes)
 }
 
 func (handler Handler) Read(request fiber.Ctx) error {
@@ -31,18 +32,22 @@ func (handler Handler) Read(request fiber.Ctx) error {
 	defer cancel()
 	result, err := handler.Service.Read(ctx)
 	if err != nil {
-		if errors.Is(err, context.DeadlineExceeded) {
-			return request.Status(fiber.StatusGatewayTimeout).JSON(fiber.Map{"error": "deadline_exceeded"})
-		}
-		if errors.Is(err, context.Canceled) {
-			return request.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{"error": "canceled"})
-		}
-		return request.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{"error": "unavailable"})
+		return readError(request, err)
 	}
 	return request.JSON(response{
 		OneMinute: result.Averages.OneMinute, FiveMinutes: result.Averages.FiveMinutes, FifteenMinutes: result.Averages.FifteenMinutes,
 		ObservedAt: result.ObservedAt, DurationNS: strconv.FormatInt(int64(result.Duration), 10),
 	})
+}
+
+func readError(request fiber.Ctx, err error) error {
+	if errors.Is(err, context.DeadlineExceeded) {
+		return request.Status(fiber.StatusGatewayTimeout).JSON(fiber.Map{"error": "deadline_exceeded"})
+	}
+	if errors.Is(err, context.Canceled) {
+		return request.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{"error": "canceled"})
+	}
+	return request.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{"error": "unavailable"})
 }
 
 type response struct {
