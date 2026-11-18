@@ -6,6 +6,7 @@ require (
 	github.com/gofiber/fiber/v3 v3.7.0
 	github.com/nats-io/nats-server/v2 v2.15.3
 	github.com/nats-io/nats.go v1.56.0
+	github.com/prometheus/procfs v0.22.0
 	github.com/shirou/gopsutil/v4 v4.26.10
 	github.com/tklauser/go-sysconf v0.4.0
 	github.com/vishvananda/netlink v1.3.1
