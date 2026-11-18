@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os/exec"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -77,7 +78,7 @@ func nodeConfig(t *testing.T, pki testutil.PKI) settings.Config {
 	t.Helper()
 	broker := testutil.NewNATSBroker(t, pki.Server, true)
 	brokerURL := strings.Replace(broker.ClientURL(), "nats://", "tls://", 1)
-	config := settings.Config{StartupTimeout: 5 * time.Second, ShutdownTimeout: 10 * time.Second,
+	config := settings.Config{StartupTimeout: 5 * time.Second, ShutdownTimeout: 12 * time.Second,
 		Communications: settings.Communications{
 			Requests: settings.Requests{Timeout: 200 * time.Millisecond, NATS: &settings.NATSRequests{SubjectPrefix: "fixture.node-a", PendingMessages: 8, PendingBytes: 8192, ShutdownTimeout: time.Second}},
 			HTTP: &settings.HTTP{Address: "127.0.0.1:0", TLS: pki.Server,
@@ -146,7 +147,7 @@ func containerAddresses(t *testing.T, name string) map[string]string {
 	defer ticker.Stop()
 	for {
 		addresses := make(map[string]string)
-		loadSubscribed, timesSubscribed := false, false
+		loadSubscribed, timesSubscribed, usageSubscribed := false, false, false
 		for line := range strings.SplitSeq(docker(t, "logs", "--tail", "128", name), "\n") {
 			var event struct {
 				Message string `json:"msg"`
@@ -155,6 +156,9 @@ func containerAddresses(t *testing.T, name string) map[string]string {
 			if json.Unmarshal([]byte(line), &event) == nil && event.Address != "" {
 				addresses[event.Message] = event.Address
 			}
+			if event.Message == "host CPU usage NATS subscribed" {
+				usageSubscribed = true
+			}
 			if event.Message == "host CPU times NATS subscribed" {
 				timesSubscribed = true
 			}
@@ -162,7 +166,7 @@ func containerAddresses(t *testing.T, name string) map[string]string {
 				loadSubscribed = true
 			}
 		}
-		if addresses["HTTP listening"] != "" && addresses["gRPC listening"] != "" && loadSubscribed && timesSubscribed {
+		if addresses["HTTP listening"] != "" && addresses["gRPC listening"] != "" && loadSubscribed && timesSubscribed && usageSubscribed {
 			return addresses
 		}
 		select {
@@ -171,4 +175,19 @@ func containerAddresses(t *testing.T, name string) map[string]string {
 		case <-ticker.C:
 		}
 	}
+}
+
+func hostTickRate(t *testing.T) uint64 {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	output, err := exec.CommandContext(ctx, "getconf", "CLK_TCK").Output()
+	if err != nil {
+		t.Fatalf("read independent host tick rate: %v", err)
+	}
+	rate, err := strconv.ParseUint(strings.TrimSpace(string(output)), 10, 64)
+	if err != nil || rate == 0 {
+		t.Fatalf("invalid host tick rate: %s %v", output, err)
+	}
+	return rate
 }

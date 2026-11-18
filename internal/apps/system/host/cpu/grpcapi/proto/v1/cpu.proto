@@ -2,9 +2,11 @@ syntax = "proto3";
 package papilio.system.host.cpu.v1;
 option go_package = "github.com/PapilioVPN/node/internal/apps/system/host/cpu/grpcapi/proto/v1;cpuv1";
 import "google/protobuf/timestamp.proto";
+import "internal/apps/system/host/cpu/grpcapi/proto/v1/usage.proto";
 
 service HostCPUService {
   rpc GetHostCPUTimes(GetHostCPUTimesRequest) returns (GetHostCPUTimesResponse);
+  rpc GetHostCPUUsage(GetHostCPUUsageRequest) returns (GetHostCPUUsageResponse);
 }
 
 message GetHostCPUTimesRequest {

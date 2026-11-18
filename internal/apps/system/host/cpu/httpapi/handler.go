@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/PapilioVPN/node/internal/apps/system/host/cpu/app/services"
+	"github.com/PapilioVPN/node/internal/apps/system/host/cpu/domain"
 	"github.com/gofiber/fiber/v3"
 )
 
@@ -19,6 +20,7 @@ type Handler struct {
 func (handler Handler) Register(router fiber.Router) {
 	router.Get("/v1/system/host/load", handler.Read)
 	router.Get("/v1/system/host/cpu/times", handler.ReadTimes)
+	router.Get("/v1/system/host/cpu/usage", handler.SampleUsage)
 }
 
 func (handler Handler) Read(request fiber.Ctx) error {
@@ -41,6 +43,9 @@ func (handler Handler) Read(request fiber.Ctx) error {
 }
 
 func readError(request fiber.Ctx, err error) error {
+	if errors.Is(err, domain.ErrInvalidSampleInterval) {
+		return request.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid_argument"})
+	}
 	if errors.Is(err, context.DeadlineExceeded) {
 		return request.Status(fiber.StatusGatewayTimeout).JSON(fiber.Map{"error": "deadline_exceeded"})
 	}

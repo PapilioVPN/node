@@ -44,5 +44,7 @@ func subscribe(in adapters) natsclient.Subscriptions {
 		Name: "host load", SubjectSuffix: "system.host.load.v1.get", Handle: handler.Read,
 	}, {
 		Name: "host CPU times", SubjectSuffix: "system.host.cpu.times.v1.get", Handle: handler.ReadTimes,
+	}, {
+		Name: "host CPU usage", SubjectSuffix: "system.host.cpu.usage.v1.get", Handle: handler.SampleUsage,
 	}}}
 }

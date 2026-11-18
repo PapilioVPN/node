@@ -20,6 +20,7 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	HostCPUService_GetHostCPUTimes_FullMethodName = "/papilio.system.host.cpu.v1.HostCPUService/GetHostCPUTimes"
+	HostCPUService_GetHostCPUUsage_FullMethodName = "/papilio.system.host.cpu.v1.HostCPUService/GetHostCPUUsage"
 )
 
 // HostCPUServiceClient is the client API for HostCPUService service.
@@ -27,6 +28,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type HostCPUServiceClient interface {
 	GetHostCPUTimes(ctx context.Context, in *GetHostCPUTimesRequest, opts ...grpc.CallOption) (*GetHostCPUTimesResponse, error)
+	GetHostCPUUsage(ctx context.Context, in *GetHostCPUUsageRequest, opts ...grpc.CallOption) (*GetHostCPUUsageResponse, error)
 }
 
 type hostCPUServiceClient struct {
@@ -47,11 +49,22 @@ func (c *hostCPUServiceClient) GetHostCPUTimes(ctx context.Context, in *GetHostC
 	return out, nil
 }
 
+func (c *hostCPUServiceClient) GetHostCPUUsage(ctx context.Context, in *GetHostCPUUsageRequest, opts ...grpc.CallOption) (*GetHostCPUUsageResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetHostCPUUsageResponse)
+	err := c.cc.Invoke(ctx, HostCPUService_GetHostCPUUsage_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // HostCPUServiceServer is the server API for HostCPUService service.
 // All implementations must embed UnimplementedHostCPUServiceServer
 // for forward compatibility.
 type HostCPUServiceServer interface {
 	GetHostCPUTimes(context.Context, *GetHostCPUTimesRequest) (*GetHostCPUTimesResponse, error)
+	GetHostCPUUsage(context.Context, *GetHostCPUUsageRequest) (*GetHostCPUUsageResponse, error)
 	mustEmbedUnimplementedHostCPUServiceServer()
 }
 
@@ -64,6 +77,9 @@ type UnimplementedHostCPUServiceServer struct{}
 
 func (UnimplementedHostCPUServiceServer) GetHostCPUTimes(context.Context, *GetHostCPUTimesRequest) (*GetHostCPUTimesResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetHostCPUTimes not implemented")
+}
+func (UnimplementedHostCPUServiceServer) GetHostCPUUsage(context.Context, *GetHostCPUUsageRequest) (*GetHostCPUUsageResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetHostCPUUsage not implemented")
 }
 func (UnimplementedHostCPUServiceServer) mustEmbedUnimplementedHostCPUServiceServer() {}
 func (UnimplementedHostCPUServiceServer) testEmbeddedByValue()                        {}
@@ -104,6 +120,24 @@ func _HostCPUService_GetHostCPUTimes_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _HostCPUService_GetHostCPUUsage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetHostCPUUsageRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(HostCPUServiceServer).GetHostCPUUsage(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: HostCPUService_GetHostCPUUsage_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(HostCPUServiceServer).GetHostCPUUsage(ctx, req.(*GetHostCPUUsageRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // HostCPUService_ServiceDesc is the grpc.ServiceDesc for HostCPUService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -114,6 +148,10 @@ var HostCPUService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetHostCPUTimes",
 			Handler:    _HostCPUService_GetHostCPUTimes_Handler,
+		},
+		{
+			MethodName: "GetHostCPUUsage",
+			Handler:    _HostCPUService_GetHostCPUUsage_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

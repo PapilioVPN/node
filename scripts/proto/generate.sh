@@ -34,10 +34,19 @@ for schema in \
     internal/apps/system/host/uptime/grpcapi/proto/v1/uptime \
     internal/apps/system/host/cpu/grpcapi/proto/v1/load \
     internal/apps/system/host/cpu/grpcapi/proto/v1/cpu \
+    internal/apps/system/host/cpu/grpcapi/proto/v1/usage \
     internal/apps/system/host/memory/grpcapi/proto/v1/memory; do
     protoc -I . -I "$tools/include" --go_out="$temporary" --go_opt=paths=source_relative \
         --go-grpc_out="$temporary" --go-grpc_opt=paths=source_relative "$schema.proto"
     for generated in "$schema.pb.go" "${schema}_grpc.pb.go"; do
+        # Message-only schemas have no generated gRPC service file.
+        if [ "$generated" = "${schema}_grpc.pb.go" ] && [ ! -f "$temporary/$generated" ]; then
+            if [ -e "$generated" ]; then
+                printf '%s\n' "Unexpected generated service file: $generated" >&2
+                exit 1
+            fi
+            continue
+        fi
         if [ "${1-}" = --check ]; then
             diff -u "$generated" "$temporary/$generated"
         else

@@ -67,6 +67,7 @@ func TestHostLoadOverEachIndependentlyEnabledTransport(t *testing.T) {
 func assertFreshReads(t *testing.T, client clients) {
 	t.Helper()
 	assertFreshTimes(t, client)
+	assertSampledUsage(t, client)
 	if client.HTTP != nil {
 		before, lower := time.Now(), hostLoad(t)
 		response, err := client.HTTP.Get(client.HTTPAddress)

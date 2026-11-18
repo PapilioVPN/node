@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/PapilioVPN/node/internal/apps/system/host/cpu/app/services"
+	"github.com/PapilioVPN/node/internal/apps/system/host/cpu/domain"
 	"github.com/nats-io/nats.go"
 )
 
@@ -75,6 +76,9 @@ func requestContext(ctx context.Context, headers nats.Header, timeout time.Durat
 }
 
 func readError(err error) []byte {
+	if errors.Is(err, domain.ErrInvalidSampleInterval) {
+		return failure("invalid_argument")
+	}
 	if errors.Is(err, context.DeadlineExceeded) {
 		return failure("deadline_exceeded")
 	}

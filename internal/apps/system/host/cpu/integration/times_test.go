@@ -8,7 +8,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"os/exec"
 	"strconv"
 	"strings"
 	"testing"
@@ -25,16 +24,7 @@ const timesSubject = "fixture.node-a.system.host.cpu.times.v1.get"
 
 func assertFreshTimes(t *testing.T, client clients) {
 	t.Helper()
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
-	output, err := exec.CommandContext(ctx, "getconf", "CLK_TCK").Output()
-	if err != nil {
-		t.Fatalf("read independent host tick rate: %v", err)
-	}
-	rate, err := strconv.ParseUint(strings.TrimSpace(string(output)), 10, 64)
-	if err != nil || rate == 0 {
-		t.Fatalf("invalid host tick rate: %s %v", output, err)
-	}
+	rate := hostTickRate(t)
 	for _, perCPU := range []bool{false, true} {
 		if client.HTTP != nil {
 			before := readStat(t, perCPU)
