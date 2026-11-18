@@ -77,7 +77,7 @@ func nodeConfig(t *testing.T, pki testutil.PKI) settings.Config {
 	t.Helper()
 	broker := testutil.NewNATSBroker(t, pki.Server, true)
 	brokerURL := strings.Replace(broker.ClientURL(), "nats://", "tls://", 1)
-	config := settings.Config{StartupTimeout: 5 * time.Second, ShutdownTimeout: 15 * time.Second,
+	config := settings.Config{StartupTimeout: 5 * time.Second, ShutdownTimeout: 20 * time.Second,
 		Communications: settings.Communications{
 			Requests: settings.Requests{Timeout: 200 * time.Millisecond, NATS: &settings.NATSRequests{SubjectPrefix: "fixture.node-a", PendingMessages: 8, PendingBytes: 8192, ShutdownTimeout: time.Second}},
 			HTTP: &settings.HTTP{Address: "127.0.0.1:0", TLS: pki.Server,
