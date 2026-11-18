@@ -3,6 +3,7 @@ module github.com/PapilioVPN/node
 go 1.27.4
 
 require (
+	github.com/godbus/dbus/v5 v5.2.4
 	github.com/gofiber/fiber/v3 v3.7.0
 	github.com/nats-io/nats-server/v2 v2.15.3
 	github.com/nats-io/nats.go v1.56.0
