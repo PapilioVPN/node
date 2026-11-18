@@ -25,3 +25,7 @@ type frequencyReaderFunc func(context.Context) (domain.Frequencies, error)
 func (read frequencyReaderFunc) Read(ctx context.Context) (domain.Frequencies, error) {
 	return read(ctx)
 }
+
+type activityReaderFunc func(context.Context) (domain.Activity, error)
+
+func (read activityReaderFunc) Read(ctx context.Context) (domain.Activity, error) { return read(ctx) }

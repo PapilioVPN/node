@@ -25,7 +25,12 @@ type FrequencyReader interface {
 	Read(context.Context) (domain.Frequencies, error)
 }
 
+type ActivityReader interface {
+	Read(context.Context) (domain.Activity, error)
+}
+
 type Service struct {
+	ActivityReader  ActivityReader
 	FrequencyReader FrequencyReader
 	InfoReader      InfoReader
 	Reader          Reader
@@ -77,4 +82,17 @@ func (service Service) ReadInfo(ctx context.Context) (domain.InfoObservation, er
 	}
 	completed := time.Now()
 	return domain.InfoObservation{Info: info, ObservedAt: completed.UTC(), Duration: completed.Sub(started)}, nil
+}
+
+func (service Service) ReadActivity(ctx context.Context) (domain.ActivityObservation, error) {
+	started := time.Now()
+	activity, err := service.ActivityReader.Read(ctx)
+	if err != nil {
+		return domain.ActivityObservation{}, err
+	}
+	if err := ctx.Err(); err != nil {
+		return domain.ActivityObservation{}, err
+	}
+	completed := time.Now()
+	return domain.ActivityObservation{Activity: activity, ObservedAt: completed.UTC(), Duration: completed.Sub(started)}, nil
 }

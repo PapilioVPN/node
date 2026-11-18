@@ -58,3 +58,5 @@ func frequencyFixture(t *testing.T, policies map[string]map[string]string) strin
 	}
 	return root
 }
+
+const activityFixture = "cpu 1 2 3 4 5 6 7 8 9 10\nctxt 9007199254740993\nintr 18446744073709551615 1 2 3\nsoftirq 200 5 6 7\nprocesses 300\nprocs_running 0\nprocs_blocked 2\n"
