@@ -24,3 +24,5 @@ go test -race -tags=integration,distribution ./internal/bootstrap/distribution \
     -run="^TestDistribution" -count=1 -args -bundle="$PWD/dist/node-linux-amd64-$revision.tar.gz"
 go test -race -tags=integration,distribution ./internal/apps/system/host/identity/integration \
     -run="^TestPackagedHostIdentity$" -count=1 -args -image="papilio-node-build:$revision"
+go test -race -tags=integration,distribution ./internal/apps/system/host/uptime/integration \
+    -run="^TestPackagedHostUptime$" -count=1 -args -image="papilio-node-build:$revision"
