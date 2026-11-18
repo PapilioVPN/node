@@ -102,7 +102,7 @@ func nodeConfig(t *testing.T, pki testutil.PKI, allow bool, transport string) se
 		config.Communications.NATS = &settings.NATS{Servers: []string{brokerURL}, TLS: pki.Client, TLSHandshakeFirst: true,
 			ConnectTimeout: time.Second, ShutdownTimeout: time.Second, WriteTimeout: time.Second,
 			ReconnectWait: time.Second, MaxReconnects: 0, ReconnectBufferSize: -1, PingInterval: time.Second, MaxPingsOutstanding: 2}
-		identity.NATS = &settings.HostIdentityNATS{Subject: subject, PendingMessages: 8, PendingBytes: 8192, ShutdownTimeout: time.Second}
+		identity.NATS = &settings.NATSSubscription{Subject: subject, PendingMessages: 8, PendingBytes: 8192, ShutdownTimeout: time.Second}
 	}
 	if err := config.Validate(); err != nil {
 		t.Fatal(err)

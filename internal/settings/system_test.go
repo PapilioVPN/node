@@ -21,7 +21,7 @@ func TestHostIdentityRequiresBoundedExplicitConfiguration(t *testing.T) {
 	}{
 		{"zero timeout", func(c *settings.Config) { c.System.Host.Identity.RequestTimeout = 0 }},
 		{"missing broker", func(c *settings.Config) {
-			c.System.Host.Identity.NATS = &settings.HostIdentityNATS{Subject: "node.a", PendingMessages: 1, PendingBytes: 1024}
+			c.System.Host.Identity.NATS = &settings.NATSSubscription{Subject: "node.a", PendingMessages: 1, PendingBytes: 1024}
 		}},
 	} {
 		t.Run(test.name, func(t *testing.T) {

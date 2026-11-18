@@ -1,4 +1,4 @@
-package natsapi
+package natsclient
 
 import (
 	"context"
@@ -11,9 +11,19 @@ import (
 	"go.uber.org/fx"
 )
 
-// Register owns one serial reader, its native bounded subscription and joined
-// shutdown. The shared connection remains owned by platform/natsclient.
-func Register(lifecycle fx.Lifecycle, shutdown fx.Shutdowner, connection func() (*nats.Conn, error), config settings.HostIdentityNATS, handler Handler, logger *slog.Logger) {
+// Subscription owns a serial request/reply receiver and its bounded native queue.
+// Handle belongs to the capability; the shared connection has a separate owner.
+type Subscription struct {
+	Name   string
+	Config settings.NATSSubscription
+	Handle func(context.Context, []byte, nats.Header) []byte
+}
+
+// Register joins the subscription's lifecycle to the Node and preserves failures.
+func (endpoint Subscription) Register(lifecycle fx.Lifecycle, shutdown fx.Shutdowner, connection func() (*nats.Conn, error), logger *slog.Logger) {
+	config := endpoint.Config
+	logger = logger.With("subject", config.Subject)
+
 	var subscription *nats.Subscription
 	var conn *nats.Conn
 	var cancel context.CancelFunc
@@ -53,7 +63,7 @@ func Register(lifecycle fx.Lifecycle, shutdown fx.Shutdowner, connection func() 
 					if err != nil {
 						if !stopping.Load() {
 							receiveError = err
-							logger.Error("host identity subscription stopped", "error", err)
+							logger.Error(endpoint.Name+" subscription stopped", "error", err)
 							if err := shutdown.Shutdown(fx.ExitCode(1)); err != nil {
 								logger.Error("request Node shutdown", "error", err)
 							}
@@ -63,12 +73,12 @@ func Register(lifecycle fx.Lifecycle, shutdown fx.Shutdowner, connection func() 
 					if message.Reply == "" {
 						continue
 					}
-					if err := message.Respond(handler.Read(run, message.Data, message.Header)); err != nil {
-						logger.Error("host identity reply failed", "error", err)
+					if err := message.Respond(endpoint.Handle(run, message.Data, message.Header)); err != nil {
+						logger.Error(endpoint.Name+" reply failed", "error", err)
 					}
 				}
 			}()
-			logger.Info("host identity NATS subscribed")
+			logger.Info(endpoint.Name + " NATS subscribed")
 			return nil
 		},
 		OnStop: func(ctx context.Context) error {

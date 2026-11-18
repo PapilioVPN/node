@@ -18,14 +18,7 @@ type Host struct {
 type HostIdentity struct {
 	AllowRead      bool              `yaml:"allow_read"`
 	RequestTimeout time.Duration     `yaml:"request_timeout"`
-	NATS           *HostIdentityNATS `yaml:"nats"`
-}
-
-type HostIdentityNATS struct {
-	Subject         string        `yaml:"subject"`
-	PendingMessages int           `yaml:"pending_messages"`
-	PendingBytes    int           `yaml:"pending_bytes"`
-	ShutdownTimeout time.Duration `yaml:"shutdown_timeout"`
+	NATS           *NATSSubscription `yaml:"nats"`
 }
 
 func (config Config) validateSystem(remaining time.Duration) error {

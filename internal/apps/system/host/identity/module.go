@@ -47,8 +47,9 @@ func register(in adapters) error {
 		if in.NATS == nil {
 			return errors.New("host identity NATS endpoint requires a shared connection")
 		}
-		natsapi.Register(in.Lifecycle, in.Shutdown, in.NATS.Conn, *in.Config.NATS,
-			natsapi.Handler{Service: in.Service, AllowRead: in.Config.AllowRead, Timeout: in.Config.RequestTimeout}, in.Logger)
+		handler := natsapi.Handler{Service: in.Service, AllowRead: in.Config.AllowRead, Timeout: in.Config.RequestTimeout}
+		natsclient.Subscription{Name: "host identity", Config: *in.Config.NATS, Handle: handler.Read}.
+			Register(in.Lifecycle, in.Shutdown, in.NATS.Conn, in.Logger)
 	}
 	return nil
 }
