@@ -21,10 +21,28 @@ type InfoReader interface {
 	Read(context.Context) ([]domain.Processor, error)
 }
 
+type FrequencyReader interface {
+	Read(context.Context) (domain.Frequencies, error)
+}
+
 type Service struct {
-	InfoReader  InfoReader
-	Reader      Reader
-	TimesReader TimesReader
+	FrequencyReader FrequencyReader
+	InfoReader      InfoReader
+	Reader          Reader
+	TimesReader     TimesReader
+}
+
+func (service Service) ReadFrequency(ctx context.Context) (domain.FrequencyObservation, error) {
+	started := time.Now()
+	frequencies, err := service.FrequencyReader.Read(ctx)
+	if err != nil {
+		return domain.FrequencyObservation{}, err
+	}
+	if err := ctx.Err(); err != nil {
+		return domain.FrequencyObservation{}, err
+	}
+	completed := time.Now()
+	return domain.FrequencyObservation{Frequencies: frequencies, ObservedAt: completed.UTC(), Duration: completed.Sub(started)}, nil
 }
 
 func (service Service) Read(ctx context.Context) (domain.Observation, error) {

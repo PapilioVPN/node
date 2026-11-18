@@ -19,3 +19,9 @@ func (read timesReaderFunc) Read(ctx context.Context, perCPU bool) (domain.Times
 type infoReaderFunc func(context.Context) ([]domain.Processor, error)
 
 func (read infoReaderFunc) Read(ctx context.Context) ([]domain.Processor, error) { return read(ctx) }
+
+type frequencyReaderFunc func(context.Context) (domain.Frequencies, error)
+
+func (read frequencyReaderFunc) Read(ctx context.Context) (domain.Frequencies, error) {
+	return read(ctx)
+}

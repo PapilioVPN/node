@@ -11,6 +11,7 @@ require (
 	go.uber.org/fx v1.24.0
 	go.yaml.in/yaml/v3 v3.0.6
 	golang.org/x/net v0.62.0
+	golang.org/x/sync v0.25.0
 	golang.org/x/sys v0.50.0
 	google.golang.org/grpc v1.85.0
 	google.golang.org/protobuf v1.36.12

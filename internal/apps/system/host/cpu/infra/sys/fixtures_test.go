@@ -41,3 +41,20 @@ func (source *repeatingLine) Read(p []byte) (int, error) {
 	}
 	return n, nil
 }
+
+func frequencyFixture(t *testing.T, policies map[string]map[string]string) string {
+	t.Helper()
+	root := t.TempDir()
+	for name, attributes := range policies {
+		path := filepath.Join(root, name)
+		if err := os.Mkdir(path, 0700); err != nil {
+			t.Fatal(err)
+		}
+		for name, value := range attributes {
+			if err := os.WriteFile(filepath.Join(path, name), []byte(value), 0600); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	return root
+}
