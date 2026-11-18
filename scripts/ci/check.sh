@@ -41,3 +41,6 @@ go test -race -tags=integration,distribution ./internal/apps/system/network/inte
 
 go test -race -tags=integration,distribution ./internal/apps/system/host/processes/integration \
     -run="^TestPackagedHostProcesses$" -count=1 -args -image="papilio-node-build:$revision"
+
+go test -race -tags=integration,distribution ./internal/apps/system/storage/filesystems/integration \
+    -run="^TestPackagedFilesystems$" -count=1 -args -image="papilio-node-build:$revision"

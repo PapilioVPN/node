@@ -1,8 +1,9 @@
 package natsapi
 
 import (
-	"github.com/PapilioVPN/node/internal/apps/system/storage/filesystems/domain"
 	"time"
+
+	"github.com/PapilioVPN/node/internal/apps/system/storage/filesystems/domain"
 )
 
 type mountResponse struct {
