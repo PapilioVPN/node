@@ -1,0 +1,25 @@
+syntax = "proto3";
+package papilio.system.host.memory.v1;
+option go_package = "github.com/PapilioVPN/node/internal/apps/system/host/memory/grpcapi/proto/v1;memoryv1";
+import "google/protobuf/timestamp.proto";
+service HostMemoryService {
+  rpc GetHostMemory(GetHostMemoryRequest) returns (GetHostMemoryResponse);
+}
+message GetHostMemoryRequest {}
+// Physical host RAM; cgroup limits and swap have separate owners.
+message GetHostMemoryResponse {
+  uint64 total_bytes = 1;
+  uint64 available_bytes = 2;
+  uint64 used_bytes = 3;
+  uint64 free_bytes = 4;
+  uint64 active_bytes = 5;
+  uint64 inactive_bytes = 6;
+  uint64 buffers_bytes = 7;
+  uint64 cached_bytes = 8;
+  uint64 shared_bytes = 9;
+  uint64 slab_bytes = 10;
+  // Used is total minus available; cache includes reclaimable slab.
+  double used_percent = 11;
+  google.protobuf.Timestamp observed_at = 12;
+  int64 duration_ns = 13;
+}
