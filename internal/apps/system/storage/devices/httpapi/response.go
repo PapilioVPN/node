@@ -1,8 +1,9 @@
 package httpapi
 
 import (
-	"github.com/PapilioVPN/node/internal/apps/system/storage/devices/domain"
 	"time"
+
+	"github.com/PapilioVPN/node/internal/apps/system/storage/devices/domain"
 )
 
 type discardResponse struct {

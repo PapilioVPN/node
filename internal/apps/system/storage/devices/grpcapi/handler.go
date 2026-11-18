@@ -4,6 +4,8 @@ package grpcapi
 import (
 	"context"
 	"errors"
+	"time"
+
 	"github.com/PapilioVPN/node/internal/apps/system/storage/devices/app/services"
 	"github.com/PapilioVPN/node/internal/apps/system/storage/devices/domain"
 	devicesv1 "github.com/PapilioVPN/node/internal/apps/system/storage/devices/grpcapi/proto/v1"
@@ -11,7 +13,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
-	"time"
 )
 
 type Handler struct {

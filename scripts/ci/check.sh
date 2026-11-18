@@ -44,3 +44,6 @@ go test -race -tags=integration,distribution ./internal/apps/system/host/process
 
 go test -race -tags=integration,distribution ./internal/apps/system/storage/filesystems/integration \
     -run="^TestPackagedFilesystems$" -count=1 -args -image="papilio-node-build:$revision"
+
+go test -race -tags=integration,distribution ./internal/apps/system/storage/devices/integration \
+    -run="^TestPackagedDeviceIO$" -count=1 -args -image="papilio-node-build:$revision"
