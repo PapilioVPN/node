@@ -9,6 +9,7 @@ import (
 	"github.com/PapilioVPN/node/internal/platform/httpserver"
 	"github.com/PapilioVPN/node/internal/platform/natsclient"
 	"github.com/PapilioVPN/node/internal/settings"
+	"github.com/PapilioVPN/node/internal/shared/shutdown"
 	"go.uber.org/fx"
 	"go.uber.org/fx/fxevent"
 )
@@ -16,6 +17,7 @@ import (
 func New(config settings.Config, logger *slog.Logger) *fx.App {
 	options := []fx.Option{
 		fx.Supply(logger),
+		fx.Decorate(shutdown.Synchronize),
 		fx.StartTimeout(config.StartupTimeout),
 		fx.StopTimeout(config.ShutdownTimeout),
 		fx.WithLogger(func() fxevent.Logger { return &fxevent.SlogLogger{Logger: logger} }),
