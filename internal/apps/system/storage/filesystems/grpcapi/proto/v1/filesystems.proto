@@ -1,0 +1,60 @@
+syntax = "proto3";
+package papilio.system.storage.filesystems.v1;
+option go_package = "github.com/PapilioVPN/node/internal/apps/system/storage/filesystems/grpcapi/proto/v1;filesystemsv1";
+import "google/protobuf/timestamp.proto";
+
+// Observations use Node's current mount namespace and visible filesystem paths.
+service FilesystemsService {
+  rpc ListMounts(ListMountsRequest) returns (ListMountsResponse);
+  rpc GetFilesystemUsage(GetFilesystemUsageRequest) returns (GetFilesystemUsageResponse);
+}
+message ListMountsRequest {
+  // Exclusive mount ID cursor. Pages re-observe mounts; no stable snapshot.
+  uint32 after_id = 1;
+  // Zero defaults to 128; maximum 256.
+  uint32 limit = 2;
+}
+message ListMountsResponse {
+  repeated Mount mounts = 1;
+  optional uint32 next_after_id = 2;
+  google.protobuf.Timestamp observed_at = 3;
+  int64 duration_ns = 4;
+}
+message Mount {
+  uint32 id = 1;
+  uint32 parent_id = 2;
+  uint32 device_major = 3;
+  uint32 device_minor = 4;
+  string root = 5;
+  string path = 6;
+  string filesystem = 7;
+  string source = 8;
+  bool read_only = 9;
+}
+message GetFilesystemUsageRequest {
+  // Absolute path as seen by Node, at most 4095 bytes. Symlinks follow native
+  // statfs semantics. Mount a specific host path explicitly for Docker host scope.
+  string path = 1;
+}
+message GetFilesystemUsageResponse {
+  FilesystemUsage usage = 1;
+  google.protobuf.Timestamp observed_at = 2;
+  int64 duration_ns = 3;
+}
+// One targeted statfs. Native I/O can block, particularly on remote filesystems;
+// context cancellation rejects late results but cannot interrupt the syscall.
+message FilesystemUsage {
+  string path = 1;
+  uint64 filesystem_type = 2;
+  uint64 flags = 3;
+  uint64 block_size_bytes = 4;
+  uint64 total_bytes = 5;
+  // Free includes reserved blocks; available is the unprivileged allowance.
+  uint64 free_bytes = 6;
+  uint64 available_bytes = 7;
+  uint64 used_bytes = 8;
+  uint64 reserved_bytes = 9;
+  uint64 inodes_total = 10;
+  uint64 inodes_free = 11;
+  uint64 inodes_used = 12;
+}
