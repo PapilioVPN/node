@@ -1,4 +1,4 @@
-// Package domain defines system-wide host load observations.
+// Package domain defines system-wide host processor observations.
 package domain
 
 import "time"

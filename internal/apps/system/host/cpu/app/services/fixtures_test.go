@@ -9,3 +9,9 @@ import (
 type readerFunc func(context.Context) (domain.Averages, error)
 
 func (read readerFunc) Read(ctx context.Context) (domain.Averages, error) { return read(ctx) }
+
+type timesReaderFunc func(context.Context, bool) (domain.Times, error)
+
+func (read timesReaderFunc) Read(ctx context.Context, perCPU bool) (domain.Times, error) {
+	return read(ctx, perCPU)
+}

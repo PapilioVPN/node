@@ -7,6 +7,7 @@ require (
 	github.com/nats-io/nats-server/v2 v2.15.3
 	github.com/nats-io/nats.go v1.56.0
 	github.com/shirou/gopsutil/v4 v4.26.10
+	github.com/tklauser/go-sysconf v0.4.0
 	go.uber.org/fx v1.24.0
 	go.yaml.in/yaml/v3 v3.0.6
 	golang.org/x/net v0.62.0
@@ -35,7 +36,6 @@ require (
 	github.com/philhofer/fwd v1.2.1 // indirect
 	github.com/power-devops/perfstat v0.0.0-20260805114148-88456608a4f6 // indirect
 	github.com/tinylib/msgp v1.6.5 // indirect
-	github.com/tklauser/go-sysconf v0.4.0 // indirect
 	github.com/tklauser/numcpus v0.12.0 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasthttp v1.78.0 // indirect

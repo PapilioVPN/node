@@ -1,4 +1,4 @@
-// Package sys reads Linux system-wide load through the kernel interface.
+// Package sys reads Linux host processor facts through native kernel interfaces.
 package sys
 
 import (
