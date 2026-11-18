@@ -21,6 +21,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	HostCPUService_GetHostCPUTimes_FullMethodName = "/papilio.system.host.cpu.v1.HostCPUService/GetHostCPUTimes"
 	HostCPUService_GetHostCPUUsage_FullMethodName = "/papilio.system.host.cpu.v1.HostCPUService/GetHostCPUUsage"
+	HostCPUService_GetHostCPUInfo_FullMethodName  = "/papilio.system.host.cpu.v1.HostCPUService/GetHostCPUInfo"
 )
 
 // HostCPUServiceClient is the client API for HostCPUService service.
@@ -29,6 +30,7 @@ const (
 type HostCPUServiceClient interface {
 	GetHostCPUTimes(ctx context.Context, in *GetHostCPUTimesRequest, opts ...grpc.CallOption) (*GetHostCPUTimesResponse, error)
 	GetHostCPUUsage(ctx context.Context, in *GetHostCPUUsageRequest, opts ...grpc.CallOption) (*GetHostCPUUsageResponse, error)
+	GetHostCPUInfo(ctx context.Context, in *GetHostCPUInfoRequest, opts ...grpc.CallOption) (*GetHostCPUInfoResponse, error)
 }
 
 type hostCPUServiceClient struct {
@@ -59,12 +61,23 @@ func (c *hostCPUServiceClient) GetHostCPUUsage(ctx context.Context, in *GetHostC
 	return out, nil
 }
 
+func (c *hostCPUServiceClient) GetHostCPUInfo(ctx context.Context, in *GetHostCPUInfoRequest, opts ...grpc.CallOption) (*GetHostCPUInfoResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetHostCPUInfoResponse)
+	err := c.cc.Invoke(ctx, HostCPUService_GetHostCPUInfo_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // HostCPUServiceServer is the server API for HostCPUService service.
 // All implementations must embed UnimplementedHostCPUServiceServer
 // for forward compatibility.
 type HostCPUServiceServer interface {
 	GetHostCPUTimes(context.Context, *GetHostCPUTimesRequest) (*GetHostCPUTimesResponse, error)
 	GetHostCPUUsage(context.Context, *GetHostCPUUsageRequest) (*GetHostCPUUsageResponse, error)
+	GetHostCPUInfo(context.Context, *GetHostCPUInfoRequest) (*GetHostCPUInfoResponse, error)
 	mustEmbedUnimplementedHostCPUServiceServer()
 }
 
@@ -80,6 +93,9 @@ func (UnimplementedHostCPUServiceServer) GetHostCPUTimes(context.Context, *GetHo
 }
 func (UnimplementedHostCPUServiceServer) GetHostCPUUsage(context.Context, *GetHostCPUUsageRequest) (*GetHostCPUUsageResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetHostCPUUsage not implemented")
+}
+func (UnimplementedHostCPUServiceServer) GetHostCPUInfo(context.Context, *GetHostCPUInfoRequest) (*GetHostCPUInfoResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetHostCPUInfo not implemented")
 }
 func (UnimplementedHostCPUServiceServer) mustEmbedUnimplementedHostCPUServiceServer() {}
 func (UnimplementedHostCPUServiceServer) testEmbeddedByValue()                        {}
@@ -138,6 +154,24 @@ func _HostCPUService_GetHostCPUUsage_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _HostCPUService_GetHostCPUInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetHostCPUInfoRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(HostCPUServiceServer).GetHostCPUInfo(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: HostCPUService_GetHostCPUInfo_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(HostCPUServiceServer).GetHostCPUInfo(ctx, req.(*GetHostCPUInfoRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // HostCPUService_ServiceDesc is the grpc.ServiceDesc for HostCPUService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -152,6 +186,10 @@ var HostCPUService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetHostCPUUsage",
 			Handler:    _HostCPUService_GetHostCPUUsage_Handler,
+		},
+		{
+			MethodName: "GetHostCPUInfo",
+			Handler:    _HostCPUService_GetHostCPUInfo_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

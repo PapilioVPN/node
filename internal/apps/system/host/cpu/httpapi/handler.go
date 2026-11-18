@@ -21,6 +21,7 @@ func (handler Handler) Register(router fiber.Router) {
 	router.Get("/v1/system/host/load", handler.Read)
 	router.Get("/v1/system/host/cpu/times", handler.ReadTimes)
 	router.Get("/v1/system/host/cpu/usage", handler.SampleUsage)
+	router.Get("/v1/system/host/cpu/info", handler.ReadInfo)
 }
 
 func (handler Handler) Read(request fiber.Ctx) error {

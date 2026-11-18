@@ -8,6 +8,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"os"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -147,7 +148,7 @@ func containerAddresses(t *testing.T, name string) map[string]string {
 	defer ticker.Stop()
 	for {
 		addresses := make(map[string]string)
-		loadSubscribed, timesSubscribed, usageSubscribed := false, false, false
+		loadSubscribed, timesSubscribed, usageSubscribed, infoSubscribed := false, false, false, false
 		for line := range strings.SplitSeq(docker(t, "logs", "--tail", "128", name), "\n") {
 			var event struct {
 				Message string `json:"msg"`
@@ -155,6 +156,9 @@ func containerAddresses(t *testing.T, name string) map[string]string {
 			}
 			if json.Unmarshal([]byte(line), &event) == nil && event.Address != "" {
 				addresses[event.Message] = event.Address
+			}
+			if event.Message == "host CPU info NATS subscribed" {
+				infoSubscribed = true
 			}
 			if event.Message == "host CPU usage NATS subscribed" {
 				usageSubscribed = true
@@ -166,7 +170,7 @@ func containerAddresses(t *testing.T, name string) map[string]string {
 				loadSubscribed = true
 			}
 		}
-		if addresses["HTTP listening"] != "" && addresses["gRPC listening"] != "" && loadSubscribed && timesSubscribed && usageSubscribed {
+		if addresses["HTTP listening"] != "" && addresses["gRPC listening"] != "" && loadSubscribed && timesSubscribed && usageSubscribed && infoSubscribed {
 			return addresses
 		}
 		select {
@@ -190,4 +194,32 @@ func hostTickRate(t *testing.T) uint64 {
 		t.Fatalf("invalid host tick rate: %s %v", output, err)
 	}
 	return rate
+}
+
+func hostCPUInfo(t *testing.T) map[uint32]map[string]string {
+	t.Helper()
+	data, err := os.ReadFile("/proc/cpuinfo")
+	if err != nil {
+		t.Fatal(err)
+	}
+	result := map[uint32]map[string]string{}
+	for _, block := range strings.Split(string(data), "\n\n") {
+		fields := map[string]string{}
+		for line := range strings.SplitSeq(block, "\n") {
+			key, value, ok := strings.Cut(line, ":")
+			if ok {
+				fields[strings.TrimSpace(key)] = strings.TrimSpace(value)
+			}
+		}
+		value, found := fields["processor"]
+		if !found {
+			continue
+		}
+		id, err := strconv.ParseUint(value, 10, 32)
+		if err != nil {
+			t.Fatal(err)
+		}
+		result[uint32(id)] = fields
+	}
+	return result
 }

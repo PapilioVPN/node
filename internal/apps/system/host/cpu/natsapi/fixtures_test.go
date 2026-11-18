@@ -33,3 +33,15 @@ func usageReader() timesReaderFunc {
 		return domain.Times{PerCPU: perCPU, TicksPerSecond: 100, Counters: rows}, nil
 	})
 }
+
+type infoReaderFunc func(context.Context) ([]domain.Processor, error)
+
+func (read infoReaderFunc) Read(ctx context.Context) ([]domain.Processor, error) { return read(ctx) }
+func sampleProcessors() []domain.Processor {
+	vendor, family, model, name, step, code := "Vendor", "6", "23", "Model: processor", "0", "0x123"
+	pkg, core := int32(0), int32(3)
+	cores, siblings := uint32(4), uint32(8)
+	mhz := 0.0
+	cache := uint64(1<<64 - 1024)
+	return []domain.Processor{{ID: 4, VendorID: &vendor, Family: &family, Model: &model, ModelName: &name, Stepping: &step, Microcode: &code, PackageID: &pkg, CoreID: &core, ReportedCores: &cores, ReportedSiblings: &siblings, ReportedMHz: &mhz, CacheBytes: &cache, ReportedFeatures: []string{"f1", "f2"}, ReportedBugs: []string{"b1"}}, {ID: 9, ReportedFeatures: []string{}, ReportedBugs: []string{}}}
+}
