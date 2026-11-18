@@ -12,8 +12,8 @@ import (
 
 const vmstatLimit = 1 << 20
 
-// readIO streams only the two required counters; other vmstat fields are not
-// materialized. The native scanner bounds each line, and the source is capped
+// readIO scans vmstat once and keeps only the two required counters.
+// The native scanner bounds each line, and the source is capped
 // at 1 MiB. Missing, duplicate, malformed or overflowing counters are failures.
 func readIO(ctx context.Context, source io.Reader, pageBytes uint64) (uint64, uint64, error) {
 	if err := ctx.Err(); err != nil {

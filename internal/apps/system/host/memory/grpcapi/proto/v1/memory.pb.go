@@ -58,7 +58,7 @@ func (*GetHostMemoryRequest) Descriptor() ([]byte, []int) {
 	return file_internal_apps_system_host_memory_grpcapi_proto_v1_memory_proto_rawDescGZIP(), []int{0}
 }
 
-// Physical host RAM; cgroup limits and swap have separate owners.
+// Physical host RAM, independent of the container's cgroup limit.
 type GetHostMemoryResponse struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	TotalBytes     uint64                 `protobuf:"varint,1,opt,name=total_bytes,json=totalBytes,proto3" json:"total_bytes,omitempty"`
@@ -200,6 +200,145 @@ func (x *GetHostMemoryResponse) GetDurationNs() int64 {
 	return 0
 }
 
+type GetHostSwapRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetHostSwapRequest) Reset() {
+	*x = GetHostSwapRequest{}
+	mi := &file_internal_apps_system_host_memory_grpcapi_proto_v1_memory_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetHostSwapRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetHostSwapRequest) ProtoMessage() {}
+
+func (x *GetHostSwapRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_apps_system_host_memory_grpcapi_proto_v1_memory_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetHostSwapRequest.ProtoReflect.Descriptor instead.
+func (*GetHostSwapRequest) Descriptor() ([]byte, []int) {
+	return file_internal_apps_system_host_memory_grpcapi_proto_v1_memory_proto_rawDescGZIP(), []int{2}
+}
+
+// Host swap capacity and cumulative I/O since kernel boot, in exact bytes.
+// Zero capacity is valid; historical I/O can remain after swap is disabled.
+// These are separate native reads, not an atomic snapshot or cgroup usage.
+type GetHostSwapResponse struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	TotalBytes      uint64                 `protobuf:"varint,1,opt,name=total_bytes,json=totalBytes,proto3" json:"total_bytes,omitempty"`
+	UsedBytes       uint64                 `protobuf:"varint,2,opt,name=used_bytes,json=usedBytes,proto3" json:"used_bytes,omitempty"`
+	FreeBytes       uint64                 `protobuf:"varint,3,opt,name=free_bytes,json=freeBytes,proto3" json:"free_bytes,omitempty"`
+	SwappedInBytes  uint64                 `protobuf:"varint,4,opt,name=swapped_in_bytes,json=swappedInBytes,proto3" json:"swapped_in_bytes,omitempty"`
+	SwappedOutBytes uint64                 `protobuf:"varint,5,opt,name=swapped_out_bytes,json=swappedOutBytes,proto3" json:"swapped_out_bytes,omitempty"`
+	UsedPercent     float64                `protobuf:"fixed64,6,opt,name=used_percent,json=usedPercent,proto3" json:"used_percent,omitempty"`
+	ObservedAt      *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=observed_at,json=observedAt,proto3" json:"observed_at,omitempty"`
+	DurationNs      int64                  `protobuf:"varint,8,opt,name=duration_ns,json=durationNs,proto3" json:"duration_ns,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *GetHostSwapResponse) Reset() {
+	*x = GetHostSwapResponse{}
+	mi := &file_internal_apps_system_host_memory_grpcapi_proto_v1_memory_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetHostSwapResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetHostSwapResponse) ProtoMessage() {}
+
+func (x *GetHostSwapResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_apps_system_host_memory_grpcapi_proto_v1_memory_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetHostSwapResponse.ProtoReflect.Descriptor instead.
+func (*GetHostSwapResponse) Descriptor() ([]byte, []int) {
+	return file_internal_apps_system_host_memory_grpcapi_proto_v1_memory_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *GetHostSwapResponse) GetTotalBytes() uint64 {
+	if x != nil {
+		return x.TotalBytes
+	}
+	return 0
+}
+
+func (x *GetHostSwapResponse) GetUsedBytes() uint64 {
+	if x != nil {
+		return x.UsedBytes
+	}
+	return 0
+}
+
+func (x *GetHostSwapResponse) GetFreeBytes() uint64 {
+	if x != nil {
+		return x.FreeBytes
+	}
+	return 0
+}
+
+func (x *GetHostSwapResponse) GetSwappedInBytes() uint64 {
+	if x != nil {
+		return x.SwappedInBytes
+	}
+	return 0
+}
+
+func (x *GetHostSwapResponse) GetSwappedOutBytes() uint64 {
+	if x != nil {
+		return x.SwappedOutBytes
+	}
+	return 0
+}
+
+func (x *GetHostSwapResponse) GetUsedPercent() float64 {
+	if x != nil {
+		return x.UsedPercent
+	}
+	return 0
+}
+
+func (x *GetHostSwapResponse) GetObservedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ObservedAt
+	}
+	return nil
+}
+
+func (x *GetHostSwapResponse) GetDurationNs() int64 {
+	if x != nil {
+		return x.DurationNs
+	}
+	return 0
+}
+
 var File_internal_apps_system_host_memory_grpcapi_proto_v1_memory_proto protoreflect.FileDescriptor
 
 const file_internal_apps_system_host_memory_grpcapi_proto_v1_memory_proto_rawDesc = "" +
@@ -226,9 +365,25 @@ const file_internal_apps_system_host_memory_grpcapi_proto_v1_memory_proto_rawDes
 	"\vobserved_at\x18\f \x01(\v2\x1a.google.protobuf.TimestampR\n" +
 	"observedAt\x12\x1f\n" +
 	"\vduration_ns\x18\r \x01(\x03R\n" +
-	"durationNs2\x8f\x01\n" +
+	"durationNs\"\x14\n" +
+	"\x12GetHostSwapRequest\"\xcb\x02\n" +
+	"\x13GetHostSwapResponse\x12\x1f\n" +
+	"\vtotal_bytes\x18\x01 \x01(\x04R\n" +
+	"totalBytes\x12\x1d\n" +
+	"\n" +
+	"used_bytes\x18\x02 \x01(\x04R\tusedBytes\x12\x1d\n" +
+	"\n" +
+	"free_bytes\x18\x03 \x01(\x04R\tfreeBytes\x12(\n" +
+	"\x10swapped_in_bytes\x18\x04 \x01(\x04R\x0eswappedInBytes\x12*\n" +
+	"\x11swapped_out_bytes\x18\x05 \x01(\x04R\x0fswappedOutBytes\x12!\n" +
+	"\fused_percent\x18\x06 \x01(\x01R\vusedPercent\x12;\n" +
+	"\vobserved_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\n" +
+	"observedAt\x12\x1f\n" +
+	"\vduration_ns\x18\b \x01(\x03R\n" +
+	"durationNs2\x85\x02\n" +
 	"\x11HostMemoryService\x12z\n" +
-	"\rGetHostMemory\x123.papilio.system.host.memory.v1.GetHostMemoryRequest\x1a4.papilio.system.host.memory.v1.GetHostMemoryResponseBWZUgithub.com/PapilioVPN/node/internal/apps/system/host/memory/grpcapi/proto/v1;memoryv1b\x06proto3"
+	"\rGetHostMemory\x123.papilio.system.host.memory.v1.GetHostMemoryRequest\x1a4.papilio.system.host.memory.v1.GetHostMemoryResponse\x12t\n" +
+	"\vGetHostSwap\x121.papilio.system.host.memory.v1.GetHostSwapRequest\x1a2.papilio.system.host.memory.v1.GetHostSwapResponseBWZUgithub.com/PapilioVPN/node/internal/apps/system/host/memory/grpcapi/proto/v1;memoryv1b\x06proto3"
 
 var (
 	file_internal_apps_system_host_memory_grpcapi_proto_v1_memory_proto_rawDescOnce sync.Once
@@ -242,21 +397,26 @@ func file_internal_apps_system_host_memory_grpcapi_proto_v1_memory_proto_rawDesc
 	return file_internal_apps_system_host_memory_grpcapi_proto_v1_memory_proto_rawDescData
 }
 
-var file_internal_apps_system_host_memory_grpcapi_proto_v1_memory_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_internal_apps_system_host_memory_grpcapi_proto_v1_memory_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_internal_apps_system_host_memory_grpcapi_proto_v1_memory_proto_goTypes = []any{
 	(*GetHostMemoryRequest)(nil),  // 0: papilio.system.host.memory.v1.GetHostMemoryRequest
 	(*GetHostMemoryResponse)(nil), // 1: papilio.system.host.memory.v1.GetHostMemoryResponse
-	(*timestamppb.Timestamp)(nil), // 2: google.protobuf.Timestamp
+	(*GetHostSwapRequest)(nil),    // 2: papilio.system.host.memory.v1.GetHostSwapRequest
+	(*GetHostSwapResponse)(nil),   // 3: papilio.system.host.memory.v1.GetHostSwapResponse
+	(*timestamppb.Timestamp)(nil), // 4: google.protobuf.Timestamp
 }
 var file_internal_apps_system_host_memory_grpcapi_proto_v1_memory_proto_depIdxs = []int32{
-	2, // 0: papilio.system.host.memory.v1.GetHostMemoryResponse.observed_at:type_name -> google.protobuf.Timestamp
-	0, // 1: papilio.system.host.memory.v1.HostMemoryService.GetHostMemory:input_type -> papilio.system.host.memory.v1.GetHostMemoryRequest
-	1, // 2: papilio.system.host.memory.v1.HostMemoryService.GetHostMemory:output_type -> papilio.system.host.memory.v1.GetHostMemoryResponse
-	2, // [2:3] is the sub-list for method output_type
-	1, // [1:2] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	4, // 0: papilio.system.host.memory.v1.GetHostMemoryResponse.observed_at:type_name -> google.protobuf.Timestamp
+	4, // 1: papilio.system.host.memory.v1.GetHostSwapResponse.observed_at:type_name -> google.protobuf.Timestamp
+	0, // 2: papilio.system.host.memory.v1.HostMemoryService.GetHostMemory:input_type -> papilio.system.host.memory.v1.GetHostMemoryRequest
+	2, // 3: papilio.system.host.memory.v1.HostMemoryService.GetHostSwap:input_type -> papilio.system.host.memory.v1.GetHostSwapRequest
+	1, // 4: papilio.system.host.memory.v1.HostMemoryService.GetHostMemory:output_type -> papilio.system.host.memory.v1.GetHostMemoryResponse
+	3, // 5: papilio.system.host.memory.v1.HostMemoryService.GetHostSwap:output_type -> papilio.system.host.memory.v1.GetHostSwapResponse
+	4, // [4:6] is the sub-list for method output_type
+	2, // [2:4] is the sub-list for method input_type
+	2, // [2:2] is the sub-list for extension type_name
+	2, // [2:2] is the sub-list for extension extendee
+	0, // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_internal_apps_system_host_memory_grpcapi_proto_v1_memory_proto_init() }
@@ -270,7 +430,7 @@ func file_internal_apps_system_host_memory_grpcapi_proto_v1_memory_proto_init() 
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_internal_apps_system_host_memory_grpcapi_proto_v1_memory_proto_rawDesc), len(file_internal_apps_system_host_memory_grpcapi_proto_v1_memory_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   2,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

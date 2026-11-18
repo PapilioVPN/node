@@ -20,6 +20,7 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	HostMemoryService_GetHostMemory_FullMethodName = "/papilio.system.host.memory.v1.HostMemoryService/GetHostMemory"
+	HostMemoryService_GetHostSwap_FullMethodName   = "/papilio.system.host.memory.v1.HostMemoryService/GetHostSwap"
 )
 
 // HostMemoryServiceClient is the client API for HostMemoryService service.
@@ -27,6 +28,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type HostMemoryServiceClient interface {
 	GetHostMemory(ctx context.Context, in *GetHostMemoryRequest, opts ...grpc.CallOption) (*GetHostMemoryResponse, error)
+	GetHostSwap(ctx context.Context, in *GetHostSwapRequest, opts ...grpc.CallOption) (*GetHostSwapResponse, error)
 }
 
 type hostMemoryServiceClient struct {
@@ -47,11 +49,22 @@ func (c *hostMemoryServiceClient) GetHostMemory(ctx context.Context, in *GetHost
 	return out, nil
 }
 
+func (c *hostMemoryServiceClient) GetHostSwap(ctx context.Context, in *GetHostSwapRequest, opts ...grpc.CallOption) (*GetHostSwapResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetHostSwapResponse)
+	err := c.cc.Invoke(ctx, HostMemoryService_GetHostSwap_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // HostMemoryServiceServer is the server API for HostMemoryService service.
 // All implementations must embed UnimplementedHostMemoryServiceServer
 // for forward compatibility.
 type HostMemoryServiceServer interface {
 	GetHostMemory(context.Context, *GetHostMemoryRequest) (*GetHostMemoryResponse, error)
+	GetHostSwap(context.Context, *GetHostSwapRequest) (*GetHostSwapResponse, error)
 	mustEmbedUnimplementedHostMemoryServiceServer()
 }
 
@@ -64,6 +77,9 @@ type UnimplementedHostMemoryServiceServer struct{}
 
 func (UnimplementedHostMemoryServiceServer) GetHostMemory(context.Context, *GetHostMemoryRequest) (*GetHostMemoryResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetHostMemory not implemented")
+}
+func (UnimplementedHostMemoryServiceServer) GetHostSwap(context.Context, *GetHostSwapRequest) (*GetHostSwapResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetHostSwap not implemented")
 }
 func (UnimplementedHostMemoryServiceServer) mustEmbedUnimplementedHostMemoryServiceServer() {}
 func (UnimplementedHostMemoryServiceServer) testEmbeddedByValue()                           {}
@@ -104,6 +120,24 @@ func _HostMemoryService_GetHostMemory_Handler(srv interface{}, ctx context.Conte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _HostMemoryService_GetHostSwap_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetHostSwapRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(HostMemoryServiceServer).GetHostSwap(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: HostMemoryService_GetHostSwap_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(HostMemoryServiceServer).GetHostSwap(ctx, req.(*GetHostSwapRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // HostMemoryService_ServiceDesc is the grpc.ServiceDesc for HostMemoryService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -114,6 +148,10 @@ var HostMemoryService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetHostMemory",
 			Handler:    _HostMemoryService_GetHostMemory_Handler,
+		},
+		{
+			MethodName: "GetHostSwap",
+			Handler:    _HostMemoryService_GetHostSwap_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

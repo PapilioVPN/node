@@ -83,3 +83,58 @@ func TestReadPreservesUint64MemoryAndSanitizesFailure(t *testing.T) {
 		t.Fatal(got)
 	}
 }
+
+func TestSwapShapeDeadlinesAndSanitizedFailures(t *testing.T) {
+	handler := natsapi.Handler{Timeout: 20 * time.Millisecond}
+	for _, input := range []string{"", "null", "[]", `{"extra":1}`, "{}{}", strings.Repeat(" ", 1025)} {
+		var response struct {
+			Error string `json:"error"`
+		}
+		result := handler.ReadSwap(context.Background(), []byte(input), nil)
+		if err := json.Unmarshal(result, &response); err != nil || response.Error == "" {
+			t.Fatalf("invalid swap request accepted: %s", result)
+		}
+	}
+	for _, values := range [][]string{{"bad"}, {"bad", "duplicate"}} {
+		if got := handler.ReadSwap(context.Background(), []byte("{}"), nats.Header{"Papilio-Deadline": values}); string(got) != `{"error":"invalid_argument"}` {
+			t.Fatal(string(got))
+		}
+	}
+	handler.Service.SwapReader = swapReaderFunc(func(ctx context.Context) (domain.SwapSnapshot, error) {
+		<-ctx.Done()
+		return domain.SwapSnapshot{}, ctx.Err()
+	})
+	for _, deadline := range []time.Time{time.Now().Add(-time.Second), time.Now().Add(time.Hour)} {
+		result := handler.ReadSwap(context.Background(), []byte("{}"), nats.Header{"Papilio-Deadline": {deadline.UTC().Format(time.RFC3339Nano)}})
+		if string(result) != `{"error":"deadline_exceeded"}` {
+			t.Fatal(string(result))
+		}
+	}
+	for _, test := range []struct {
+		cause error
+		code  string
+	}{{context.Canceled, "canceled"}, {errors.New("private-swap-source"), "unavailable"}} {
+		handler.Service.SwapReader = swapReaderFunc(func(context.Context) (domain.SwapSnapshot, error) { return sampleSwap(), test.cause })
+		if got := handler.ReadSwap(context.Background(), []byte("{}"), nil); string(got) != `{"error":"`+test.code+`"}` {
+			t.Fatal(string(got))
+		}
+	}
+}
+
+func TestSwapJSONPreservesAllCountersAndTiming(t *testing.T) {
+	calls := 0
+	handler := natsapi.Handler{Timeout: time.Second, Service: services.Service{SwapReader: swapReaderFunc(func(context.Context) (domain.SwapSnapshot, error) { calls++; return sampleSwap(), nil })}}
+	result := handler.ReadSwap(context.Background(), []byte("{}"), nil)
+	var payload map[string]any
+	if err := json.Unmarshal(result, &payload); err != nil {
+		t.Fatal(err)
+	}
+	for key, want := range map[string]any{"total_bytes": "18446744073709551615", "used_bytes": "2", "free_bytes": "3", "swapped_in_bytes": "4", "swapped_out_bytes": "5", "used_percent": 6.25} {
+		if payload[key] != want {
+			t.Fatalf("swap %s: %v; want %v", key, payload[key], want)
+		}
+	}
+	if calls != 1 || payload["observed_at"] == nil || payload["duration_ns"] == nil {
+		t.Fatalf("invalid measured swap: %s; calls=%d", result, calls)
+	}
+}

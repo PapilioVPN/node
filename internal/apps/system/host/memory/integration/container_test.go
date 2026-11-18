@@ -25,7 +25,7 @@ func TestPackagedHostMemory(t *testing.T) {
 	}
 	pki := testutil.NewPKI(t)
 	config := nodeConfig(t, pki)
-	// A bounded container must report physical host RAM, not its cgroup limit.
+	// A bounded container must report physical host RAM and swap, not its cgroup limits.
 	// No host-root/proc mount or added Linux capability is needed.
 	directory := filepath.Dir(pki.Server.Certificate)
 	localFiles := func(files mtls.Files) mtls.Files {

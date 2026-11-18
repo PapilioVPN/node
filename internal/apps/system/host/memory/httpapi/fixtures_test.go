@@ -13,3 +13,7 @@ func (read readerFunc) Read(ctx context.Context) (domain.Snapshot, error) { retu
 func sampleMemory() domain.Snapshot {
 	return domain.Snapshot{TotalBytes: 1<<64 - 1, AvailableBytes: 3, UsedBytes: 1<<64 - 4, FreeBytes: 1, ActiveBytes: 2, InactiveBytes: 4, BuffersBytes: 8, CachedBytes: 16, SharedBytes: 32, SlabBytes: 64, UsedPercent: 99.5}
 }
+
+type swapReaderFunc func(context.Context) (domain.SwapSnapshot, error)
+
+func (read swapReaderFunc) Read(ctx context.Context) (domain.SwapSnapshot, error) { return read(ctx) }

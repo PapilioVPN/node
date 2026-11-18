@@ -87,3 +87,26 @@ func TestIOCancellationBeforeAndDuringReadReturnsNoCounters(t *testing.T) {
 		t.Fatalf("partial canceled counters: %d %d %v", in, out, err)
 	}
 }
+
+func FuzzSwapCounters(f *testing.F) {
+	f.Add("pswpin 2\npswpout 3\n", uint64(4096))
+	f.Add("pswpin 0\npswpin 1\npswpout 0\n", uint64(65536))
+	f.Add("pswpin 18446744073709551615\npswpout 0\n", uint64(1))
+	f.Add("pswpin invalid\n", uint64(0))
+	f.Fuzz(func(t *testing.T, input string, page uint64) {
+		source := strings.NewReader(input)
+		in, out, err := readIO(context.Background(), source, page)
+		if source.Size()-int64(source.Len()) > vmstatLimit+1 {
+			t.Fatal("unbounded source read")
+		}
+		if err != nil {
+			if in != 0 || out != 0 {
+				t.Fatal("partial counters on failure")
+			}
+			return
+		}
+		if page == 0 || in%page != 0 || out%page != 0 {
+			t.Fatal("invalid native page conversion")
+		}
+	})
+}

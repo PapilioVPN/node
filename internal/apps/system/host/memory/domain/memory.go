@@ -1,4 +1,4 @@
-// Package domain defines physical host memory observations in exact bytes.
+// Package domain defines physical RAM and swap observations in exact bytes.
 package domain
 
 import "time"

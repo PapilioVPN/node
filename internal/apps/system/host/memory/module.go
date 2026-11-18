@@ -1,4 +1,4 @@
-// Package memory composes the host memory reader, operation and adapters.
+// Package memory composes the host memory readers, operations and adapters.
 package memory
 
 import (
@@ -16,7 +16,7 @@ import (
 
 func Module(requests settings.Requests) fx.Option {
 	return fx.Module("memory", fx.Supply(requests, fx.Private),
-		fx.Provide(func() services.Service { return services.Service{Reader: sys.Reader{}} }, fx.Private),
+		fx.Provide(func() services.Service { return services.Service{Reader: sys.Reader{}, SwapReader: sys.SwapReader{}} }, fx.Private),
 		fx.Invoke(register), fx.Provide(subscribe),
 	)
 }
@@ -42,5 +42,7 @@ func subscribe(in adapters) natsclient.Subscriptions {
 	handler := natsapi.Handler{Service: in.Service, Timeout: in.Requests.Timeout}
 	return natsclient.Subscriptions{Endpoints: []natsclient.Subscription{{
 		Name: "host memory", SubjectSuffix: "system.host.memory.v1.get", Handle: handler.Read,
+	}, {
+		Name: "host swap", SubjectSuffix: "system.host.swap.v1.get", Handle: handler.ReadSwap,
 	}}}
 }

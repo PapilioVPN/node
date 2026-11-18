@@ -65,6 +65,7 @@ func TestHostMemoryOverEachIndependentlyEnabledTransport(t *testing.T) {
 
 func assertFreshReads(t *testing.T, client clients) {
 	t.Helper()
+	assertFreshSwapReads(t, client)
 	if client.HTTP != nil {
 		before := time.Now()
 		response, err := client.HTTP.Get(client.HTTPAddress)

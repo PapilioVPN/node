@@ -4,9 +4,10 @@ option go_package = "github.com/PapilioVPN/node/internal/apps/system/host/memory
 import "google/protobuf/timestamp.proto";
 service HostMemoryService {
   rpc GetHostMemory(GetHostMemoryRequest) returns (GetHostMemoryResponse);
+  rpc GetHostSwap(GetHostSwapRequest) returns (GetHostSwapResponse);
 }
 message GetHostMemoryRequest {}
-// Physical host RAM; cgroup limits and swap have separate owners.
+// Physical host RAM, independent of the container's cgroup limit.
 message GetHostMemoryResponse {
   uint64 total_bytes = 1;
   uint64 available_bytes = 2;
@@ -22,4 +23,19 @@ message GetHostMemoryResponse {
   double used_percent = 11;
   google.protobuf.Timestamp observed_at = 12;
   int64 duration_ns = 13;
+}
+
+message GetHostSwapRequest {}
+// Host swap capacity and cumulative I/O since kernel boot, in exact bytes.
+// Zero capacity is valid; historical I/O can remain after swap is disabled.
+// These are separate native reads, not an atomic snapshot or cgroup usage.
+message GetHostSwapResponse {
+  uint64 total_bytes = 1;
+  uint64 used_bytes = 2;
+  uint64 free_bytes = 3;
+  uint64 swapped_in_bytes = 4;
+  uint64 swapped_out_bytes = 5;
+  double used_percent = 6;
+  google.protobuf.Timestamp observed_at = 7;
+  int64 duration_ns = 8;
 }

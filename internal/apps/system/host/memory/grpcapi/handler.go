@@ -29,10 +29,7 @@ func (handler Handler) GetHostMemory(ctx context.Context, _ *memoryv1.GetHostMem
 	defer cancel()
 	result, err := handler.Service.Read(ctx)
 	if err != nil {
-		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
-			return nil, status.FromContextError(err).Err()
-		}
-		return nil, status.Error(codes.Unavailable, "host memory unavailable")
+		return nil, readError(err)
 	}
 	return &memoryv1.GetHostMemoryResponse{
 		TotalBytes:     result.Memory.TotalBytes,
@@ -48,4 +45,25 @@ func (handler Handler) GetHostMemory(ctx context.Context, _ *memoryv1.GetHostMem
 		UsedPercent:    result.Memory.UsedPercent,
 		ObservedAt:     timestamppb.New(result.ObservedAt), DurationNs: int64(result.Duration),
 	}, nil
+}
+
+func (handler Handler) GetHostSwap(ctx context.Context, _ *memoryv1.GetHostSwapRequest) (*memoryv1.GetHostSwapResponse, error) {
+	ctx, cancel := context.WithTimeout(ctx, handler.Timeout)
+	defer cancel()
+	result, err := handler.Service.ReadSwap(ctx)
+	if err != nil {
+		return nil, readError(err)
+	}
+	return &memoryv1.GetHostSwapResponse{
+		TotalBytes: result.Swap.TotalBytes, UsedBytes: result.Swap.UsedBytes, FreeBytes: result.Swap.FreeBytes,
+		SwappedInBytes: result.Swap.SwappedInBytes, SwappedOutBytes: result.Swap.SwappedOutBytes, UsedPercent: result.Swap.UsedPercent,
+		ObservedAt: timestamppb.New(result.ObservedAt), DurationNs: int64(result.Duration),
+	}, nil
+}
+
+func readError(err error) error {
+	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		return status.FromContextError(err).Err()
+	}
+	return status.Error(codes.Unavailable, "host memory unavailable")
 }
