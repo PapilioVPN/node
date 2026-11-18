@@ -5,6 +5,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/PapilioVPN/node/internal/apps/system/host/cpu/app/policies"
 	"github.com/PapilioVPN/node/internal/apps/system/host/cpu/domain"
 )
 
@@ -16,7 +17,12 @@ type TimesReader interface {
 	Read(context.Context, bool) (domain.Times, error)
 }
 
+type InfoReader interface {
+	Read(context.Context) ([]domain.Processor, error)
+}
+
 type Service struct {
+	InfoReader  InfoReader
 	Reader      Reader
 	TimesReader TimesReader
 }
@@ -39,4 +45,18 @@ func (service Service) ReadTimes(ctx context.Context, perCPU bool) (domain.Times
 	}
 	completed := time.Now()
 	return domain.TimesObservation{Times: times, ObservedAt: completed.UTC(), Duration: completed.Sub(started)}, nil
+}
+
+func (service Service) ReadInfo(ctx context.Context) (domain.InfoObservation, error) {
+	started := time.Now()
+	rows, err := service.InfoReader.Read(ctx)
+	if err != nil {
+		return domain.InfoObservation{}, err
+	}
+	info := policies.Info(rows)
+	if err := ctx.Err(); err != nil {
+		return domain.InfoObservation{}, err
+	}
+	completed := time.Now()
+	return domain.InfoObservation{Info: info, ObservedAt: completed.UTC(), Duration: completed.Sub(started)}, nil
 }
