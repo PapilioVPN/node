@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package papilio.system.host.uptime.v1;
+option go_package = "github.com/PapilioVPN/node/internal/apps/system/host/uptime/grpcapi/proto/v1;uptimev1";
+
+import "google/protobuf/timestamp.proto";
+
+service HostUptimeService {
+  rpc GetHostUptime(GetHostUptimeRequest) returns (GetHostUptimeResponse);
+}
+
+message GetHostUptimeRequest {}
+
+message GetHostUptimeResponse {
+  // Elapsed boot time including suspend, in the reader's Linux time namespace.
+  int64 uptime_ns = 1;
+  google.protobuf.Timestamp observed_at = 2;
+  int64 duration_ns = 3;
+}
