@@ -8,6 +8,7 @@ require (
 	github.com/nats-io/nats.go v1.56.0
 	github.com/shirou/gopsutil/v4 v4.26.10
 	github.com/tklauser/go-sysconf v0.4.0
+	github.com/vishvananda/netlink v1.3.1
 	go.uber.org/fx v1.24.0
 	go.yaml.in/yaml/v3 v3.0.6
 	golang.org/x/net v0.62.0
@@ -40,6 +41,7 @@ require (
 	github.com/tklauser/numcpus v0.12.0 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasthttp v1.78.0 // indirect
+	github.com/vishvananda/netns v0.0.5 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	go.uber.org/dig v1.19.0 // indirect
 	go.uber.org/multierr v1.10.0 // indirect
