@@ -34,5 +34,5 @@ func New(config settings.Config, logger *slog.Logger) *fx.App {
 			options = append(options, natsclient.RequestsModule(*config.Communications.Requests.NATS, config.RequestDrainBudget()))
 		}
 	}
-	return fx.New(append(options, system.Module(config.Communications.Requests))...)
+	return fx.New(append(options, system.Module(config.Communications.Requests, config.Sessions))...)
 }

@@ -1,11 +1,15 @@
 startup_timeout: 10s
-shutdown_timeout: 40s
+shutdown_timeout: 45s
 # Management API: only provision trusted controller certificates and broker ACLs.
 # For actual host identity in Docker, pass --uts=host to run.sh.
 # Interface observations use the current network namespace; choose --network=host for host scope.
 # Process observations use the current PID namespace; choose --pid=host for host scope.
 # Filesystem observations use visible paths; bind only the needed host paths read-only.
 # Host uptime requires a zero BOOTTIME namespace offset, verified in packaged tests.
+sessions:
+  # Bind these specific host sources read-only when running in Docker.
+  bus_socket_path: /run/dbus/system_bus_socket
+  utmp_path: /run/utmp
 communications:
   requests:
     timeout: 1s

@@ -17,6 +17,7 @@ type Config struct {
 	StartupTimeout  time.Duration  `yaml:"startup_timeout"`
 	ShutdownTimeout time.Duration  `yaml:"shutdown_timeout"`
 	Communications  Communications `yaml:"communications"`
+	Sessions        Sessions       `yaml:"sessions"`
 }
 
 type Communications struct {
@@ -59,6 +60,7 @@ func Load(path string) (Config, error) {
 	} else if !errors.Is(err, io.EOF) {
 		return Config{}, fmt.Errorf("decode configuration trailer: %w", err)
 	}
+	config.Sessions = config.Sessions.Defaults()
 	if err := config.Validate(); err != nil {
 		return Config{}, err
 	}
@@ -76,6 +78,9 @@ func Load(path string) (Config, error) {
 }
 
 func (config Config) Validate() error {
+	if err := config.Sessions.validate(); err != nil {
+		return err
+	}
 	if config.StartupTimeout <= 0 || config.ShutdownTimeout <= 0 {
 		return errors.New("startup_timeout and shutdown_timeout must be positive")
 	}
