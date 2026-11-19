@@ -14,7 +14,7 @@ import (
 	"go.uber.org/fx"
 )
 
-var Module = fx.Options(fx.Provide(New), fx.Invoke(func(*Client) {}))
+var Module = fx.Module("nats-client", fx.Provide(New), fx.Invoke(func(*Client) {}))
 
 // Client holds the connection established during Fx startup. Adapters obtain the
 // native connection in their own OnStart hooks, after depending on this resource.

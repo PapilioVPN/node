@@ -15,7 +15,7 @@ import (
 	"go.uber.org/fx"
 )
 
-var Module = fx.Options(fx.Provide(New, func() *State { return &State{} }), fx.Invoke(register))
+var Module = fx.Module("http-server", fx.Provide(New, func() *State { return &State{} }), fx.Invoke(register))
 
 // State reports whether this resource currently accepts requests. It is set by
 // the owning listener lifecycle, not by a health check's assumptions.
