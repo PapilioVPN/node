@@ -3,11 +3,13 @@ package sys
 
 import (
 	"context"
+	"errors"
 	"os"
 	"runtime"
 	"runtime/debug"
 	"strconv"
 	"time"
+	"unicode/utf8"
 
 	"github.com/PapilioVPN/node/internal/apps/system/node/runtime/domain"
 )
@@ -22,6 +24,9 @@ func (reader Reader) Info(ctx context.Context) (domain.Info, error) {
 	executable, err := os.Executable()
 	if err != nil {
 		return domain.Info{}, err
+	}
+	if !utf8.ValidString(executable) {
+		return domain.Info{}, errors.New("invalid executable path encoding")
 	}
 	result := domain.Info{GoVersion: runtime.Version(), Compiler: runtime.Compiler, OperatingSystem: runtime.GOOS, Architecture: runtime.GOARCH, Executable: executable, PID: int32(os.Getpid()), ParentPID: int32(os.Getppid()), InitializedAt: reader.initializedAt}
 	if build, ok := debug.ReadBuildInfo(); ok {

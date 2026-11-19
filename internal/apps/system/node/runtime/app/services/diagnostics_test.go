@@ -3,9 +3,10 @@ package services_test
 import (
 	"context"
 	"errors"
+	"testing"
+
 	"github.com/PapilioVPN/node/internal/apps/system/node/runtime/app/services"
 	"github.com/PapilioVPN/node/internal/apps/system/node/runtime/domain"
-	"testing"
 )
 
 type probes struct {

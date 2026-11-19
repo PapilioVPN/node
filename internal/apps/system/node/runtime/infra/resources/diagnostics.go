@@ -3,11 +3,12 @@ package resources
 
 import (
 	"context"
+	"time"
+
 	"github.com/PapilioVPN/node/internal/apps/system/node/runtime/domain"
 	"github.com/PapilioVPN/node/internal/platform/grpcserver"
 	"github.com/PapilioVPN/node/internal/platform/httpserver"
 	"github.com/PapilioVPN/node/internal/platform/natsclient"
-	"time"
 )
 
 type Reader struct {

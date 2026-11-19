@@ -2,8 +2,9 @@ package services
 
 import (
 	"context"
-	"github.com/PapilioVPN/node/internal/apps/system/node/runtime/domain"
 	"time"
+
+	"github.com/PapilioVPN/node/internal/apps/system/node/runtime/domain"
 )
 
 type DiagnosticsReader interface {

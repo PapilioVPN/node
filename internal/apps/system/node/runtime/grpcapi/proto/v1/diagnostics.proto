@@ -1,0 +1,29 @@
+syntax = "proto3";
+package papilio.system.node.runtime.v1;
+option go_package = "github.com/PapilioVPN/node/internal/apps/system/node/runtime/grpcapi/proto/v1;runtimev1";
+import "google/protobuf/timestamp.proto";
+// Listener readiness comes from its owning lifecycle, not an external TLS probe.
+message ListenerStatus{bool ready=1;}
+message BrokerStatus{
+ string state=1;
+ bool probe_succeeded=2;
+ // Native Flush/PING/PONG elapsed time, including scheduling/queued writes.
+ optional int64 round_trip_ns=3;
+ optional string error_code=4;
+ uint64 in_messages=5;
+ uint64 out_messages=6;
+ uint64 in_bytes=7;
+ uint64 out_bytes=8;
+ uint64 reconnects=9;
+}
+message GetNodeDiagnosticsRequest{}
+// Absent components are not installed. Connection counters may reset on restart.
+// This does not probe optional engines, queues or host services not owned here.
+message GetNodeDiagnosticsResponse{
+ bool healthy=1;
+ ListenerStatus http=2;
+ ListenerStatus grpc=3;
+ BrokerStatus nats=4;
+ google.protobuf.Timestamp observed_at=5;
+ int64 duration_ns=6;
+}

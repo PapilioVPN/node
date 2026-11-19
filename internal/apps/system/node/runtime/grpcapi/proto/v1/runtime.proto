@@ -1,0 +1,13 @@
+syntax = "proto3";
+package papilio.system.node.runtime.v1;
+option go_package = "github.com/PapilioVPN/node/internal/apps/system/node/runtime/grpcapi/proto/v1;runtimev1";
+import "internal/apps/system/node/runtime/grpcapi/proto/v1/info.proto";
+import "internal/apps/system/node/runtime/grpcapi/proto/v1/resources.proto";
+import "internal/apps/system/node/runtime/grpcapi/proto/v1/diagnostics.proto";
+// Node process observations. Runtime-mapped bytes are not OS resident bytes.
+// Process tick counters and Go metrics are separately sampled, not atomic.
+service NodeRuntimeService{
+ rpc GetNodeDiagnostics(GetNodeDiagnosticsRequest) returns(GetNodeDiagnosticsResponse);
+ rpc GetNodeInfo(GetNodeInfoRequest) returns(GetNodeInfoResponse);
+ rpc GetNodeResources(GetNodeResourcesRequest) returns(GetNodeResourcesResponse);
+}
