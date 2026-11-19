@@ -43,7 +43,11 @@ for schema in \
     internal/apps/system/host/memory/grpcapi/proto/v1/memory \
     internal/apps/system/host/processes/grpcapi/proto/v1/processes \
     internal/apps/system/storage/filesystems/grpcapi/proto/v1/filesystems \
-    internal/apps/system/storage/devices/grpcapi/proto/v1/devices; do
+    internal/apps/system/storage/devices/grpcapi/proto/v1/devices \
+    internal/apps/system/host/sessions/grpcapi/proto/v1/summary \
+    internal/apps/system/host/sessions/grpcapi/proto/v1/details \
+    internal/apps/system/host/sessions/grpcapi/proto/v1/records \
+    internal/apps/system/host/sessions/grpcapi/proto/v1/sessions; do
     protoc -I . -I "$tools/include" --go_out="$temporary" --go_opt=paths=source_relative \
         --go-grpc_out="$temporary" --go-grpc_opt=paths=source_relative "$schema.proto"
     for generated in "$schema.pb.go" "${schema}_grpc.pb.go"; do

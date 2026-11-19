@@ -1,0 +1,27 @@
+syntax = "proto3";
+package papilio.system.host.sessions.v1;
+option go_package = "github.com/PapilioVPN/node/internal/apps/system/host/sessions/grpcapi/proto/v1;sessionsv1";
+import "internal/apps/system/host/sessions/grpcapi/proto/v1/summary.proto";
+import "internal/apps/system/host/sessions/grpcapi/proto/v1/details.proto";
+import "internal/apps/system/host/sessions/grpcapi/proto/v1/records.proto";
+import "google/protobuf/timestamp.proto";
+service HostSessionsService {
+ rpc ListSessions(ListSessionsRequest) returns (ListSessionsResponse);
+ rpc GetSession(GetSessionRequest) returns (GetSessionResponse);
+ rpc ListLoginRecords(ListLoginRecordsRequest) returns (ListLoginRecordsResponse);
+}
+message ListSessionsRequest {
+ uint32 offset = 1;
+ // Zero defaults to 128; maximum 256. Offset must not exceed 16384.
+ uint32 limit = 2;
+}
+// Lists all classes known to logind, not only human user-class sessions. Native
+// bulk methods avoid per-session property reads. Sorted by session ID; pages
+// re-observe current state and are not an atomic cross-page snapshot.
+message ListSessionsResponse {
+ repeated SessionSummary sessions = 1;
+ bool extended = 2;
+ optional uint32 next_offset = 3;
+ google.protobuf.Timestamp observed_at = 4;
+ int64 duration_ns = 5;
+}
