@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/PapilioVPN/node/internal/platform/grpcserver"
 	"github.com/PapilioVPN/node/internal/shared/mtls"
 	"github.com/PapilioVPN/node/internal/testutil"
 	"go.uber.org/fx"
@@ -224,4 +225,26 @@ func TestConnectionLimitReleasesCapacityOnClose(t *testing.T) {
 		t.Fatalf("connection capacity did not recover: %v", err)
 	}
 	second.Close()
+}
+
+func TestReadinessFollowsListenerLifecycle(t *testing.T) {
+	pki := testutil.NewPKI(t)
+	var state *grpcserver.State
+	app, _, addresses := composeServer(t, serverConfig(pki.Server), fx.Populate(&state))
+	if state.Ready() {
+		t.Fatal("unstarted listener reported ready")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	if err := app.Start(ctx); err != nil {
+		t.Fatal(err)
+	}
+	<-addresses
+	if !state.Ready() {
+		t.Fatal("started listener not ready")
+	}
+	stopServer(t, app)
+	if state.Ready() {
+		t.Fatal("stopped listener reported ready")
+	}
 }

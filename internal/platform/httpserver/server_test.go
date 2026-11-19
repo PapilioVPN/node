@@ -14,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/PapilioVPN/node/internal/platform/httpserver"
 	"github.com/PapilioVPN/node/internal/shared/mtls"
 	"github.com/PapilioVPN/node/internal/testutil"
 	"github.com/gofiber/fiber/v3"
@@ -227,5 +228,27 @@ func TestShutdownDeadlineIsNotReportedAsSuccessfulDrain(t *testing.T) {
 	}
 	if err := app.Stop(ctx); !errors.Is(err, context.DeadlineExceeded) {
 		t.Fatalf("expected a drain deadline, got %v", err)
+	}
+}
+
+func TestReadinessFollowsListenerLifecycle(t *testing.T) {
+	pki := testutil.NewPKI(t)
+	var state *httpserver.State
+	app, _, addresses := composeServer(t, serverConfig(pki.Server), fx.Populate(&state))
+	if state.Ready() {
+		t.Fatal("unstarted listener reported ready")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	if err := app.Start(ctx); err != nil {
+		t.Fatal(err)
+	}
+	<-addresses
+	if !state.Ready() {
+		t.Fatal("started listener not ready")
+	}
+	stopServer(t, app)
+	if state.Ready() {
+		t.Fatal("stopped listener reported ready")
 	}
 }

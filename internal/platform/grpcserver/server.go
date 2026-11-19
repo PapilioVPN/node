@@ -16,7 +16,13 @@ import (
 	"google.golang.org/grpc/credentials"
 )
 
-var Module = fx.Options(fx.Provide(New), fx.Invoke(register))
+var Module = fx.Options(fx.Provide(New, func() *State { return &State{} }), fx.Invoke(register))
+
+// State reports whether this resource currently accepts requests. It is set by
+// the owning listener lifecycle, not by a health check's assumptions.
+type State struct{ ready atomic.Bool }
+
+func (state *State) Ready() bool { return state.ready.Load() }
 
 func New(config settings.GRPC) (*grpc.Server, error) {
 	identity, err := mtls.Server(config.TLS)
@@ -33,7 +39,7 @@ func New(config settings.GRPC) (*grpc.Server, error) {
 	), nil
 }
 
-func register(lifecycle fx.Lifecycle, shutdown fx.Shutdowner, server *grpc.Server, config settings.GRPC, logger *slog.Logger) {
+func register(lifecycle fx.Lifecycle, shutdown fx.Shutdowner, server *grpc.Server, state *State, config settings.GRPC, logger *slog.Logger) {
 	done := make(chan struct{})
 	var stopping atomic.Bool
 	var serveError error
@@ -47,9 +53,11 @@ func register(lifecycle fx.Lifecycle, shutdown fx.Shutdowner, server *grpc.Serve
 				listener.Close()
 				return err
 			}
+			state.ready.Store(true)
 			go func() {
 				defer close(done)
 				serveError = server.Serve(netutil.LimitListener(listener, config.MaxConnections))
+				state.ready.Store(false)
 				if !stopping.Load() {
 					serveError = errors.Join(errors.New("gRPC listener stopped unexpectedly"), serveError)
 					logger.Error("gRPC server stopped", "error", serveError)
@@ -64,6 +72,7 @@ func register(lifecycle fx.Lifecycle, shutdown fx.Shutdowner, server *grpc.Serve
 			return nil
 		},
 		OnStop: func(ctx context.Context) error {
+			state.ready.Store(false)
 			stopping.Store(true)
 			drainContext, cancel := context.WithTimeout(ctx, config.ShutdownTimeout)
 			defer cancel()

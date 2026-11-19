@@ -7,6 +7,7 @@ import (
 	"errors"
 	"log/slog"
 	"net"
+	"sync/atomic"
 
 	"github.com/PapilioVPN/node/internal/settings"
 	"github.com/PapilioVPN/node/internal/shared/mtls"
@@ -14,7 +15,13 @@ import (
 	"go.uber.org/fx"
 )
 
-var Module = fx.Options(fx.Provide(New), fx.Invoke(register))
+var Module = fx.Options(fx.Provide(New, func() *State { return &State{} }), fx.Invoke(register))
+
+// State reports whether this resource currently accepts requests. It is set by
+// the owning listener lifecycle, not by a health check's assumptions.
+type State struct{ ready atomic.Bool }
+
+func (state *State) Ready() bool { return state.ready.Load() }
 
 func New(config settings.HTTP) *fiber.App {
 	return fiber.New(fiber.Config{
@@ -26,7 +33,7 @@ func New(config settings.HTTP) *fiber.App {
 	})
 }
 
-func register(lifecycle fx.Lifecycle, shutdown fx.Shutdowner, app *fiber.App, config settings.HTTP, logger *slog.Logger) error {
+func register(lifecycle fx.Lifecycle, shutdown fx.Shutdowner, app *fiber.App, state *State, config settings.HTTP, logger *slog.Logger) error {
 	tlsConfig, err := mtls.Server(config.TLS)
 	if err != nil {
 		return err
@@ -37,6 +44,7 @@ func register(lifecycle fx.Lifecycle, shutdown fx.Shutdowner, app *fiber.App, co
 	var serveError error
 	var cancel context.CancelFunc
 	app.Hooks().OnListen(func(fiber.ListenData) error {
+		state.ready.Store(true)
 		close(ready)
 		return nil
 	})
@@ -63,6 +71,7 @@ func register(lifecycle fx.Lifecycle, shutdown fx.Shutdowner, app *fiber.App, co
 					ShutdownTimeout:       config.ShutdownTimeout,
 					DisableStartupMessage: true,
 				})
+				state.ready.Store(false)
 				if run.Err() == nil {
 					serveError = errors.Join(errors.New("HTTP listener stopped unexpectedly"), serveError)
 				}
@@ -92,6 +101,7 @@ func register(lifecycle fx.Lifecycle, shutdown fx.Shutdowner, app *fiber.App, co
 			}
 		},
 		OnStop: func(ctx context.Context) error {
+			state.ready.Store(false)
 			cancel()
 			select {
 			case <-done:
