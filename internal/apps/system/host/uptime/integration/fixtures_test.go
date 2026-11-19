@@ -82,7 +82,7 @@ func startConfiguredNode(t *testing.T, pki testutil.PKI, config settings.Config)
 
 func nodeConfig(t *testing.T, pki testutil.PKI, transport string) settings.Config {
 	t.Helper()
-	config := settings.Config{StartupTimeout: 5 * time.Second, ShutdownTimeout: 25 * time.Second}
+	config := settings.Config{StartupTimeout: 5 * time.Second, ShutdownTimeout: 35 * time.Second}
 	config.Communications.Requests.Timeout = 200 * time.Millisecond
 	var brokerURL string
 	if transport == "all" || transport == "http" {

@@ -18,6 +18,7 @@ go test -run="^$" -fuzz="^FuzzSwapCounters$" -fuzztime=10s -parallel=2 ./interna
 go test -run="^$" -fuzz="^FuzzCPUInfo$" -fuzztime=10s -parallel=2 ./internal/apps/system/host/cpu/infra/sys
 go test -run="^$" -fuzz="^FuzzActivity$" -fuzztime=10s -parallel=2 ./internal/apps/system/host/cpu/infra/sys
 go test -run="^$" -fuzz="^FuzzLoginRecords$" -fuzztime=10s -parallel=2 ./internal/apps/system/host/sessions/infra/utmp
+go test -run="^$" -fuzz="^FuzzPowerSupply$" -fuzztime=10s -parallel=2 ./internal/apps/system/host/sensors/infra/sys
 govulncheck ./...
 mkdir -p dist
 CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -o dist/node ./cmd/node
@@ -51,3 +52,6 @@ go test -race -tags=integration,distribution ./internal/apps/system/storage/devi
 
 go test -race -tags=integration,distribution ./internal/apps/system/host/sessions/integration \
     -run="^TestPackagedSessions$" -count=1 -args -image="papilio-node-build:$revision"
+
+go test -race -tags=integration,distribution ./internal/apps/system/host/sensors/integration \
+    -run="^TestPackagedSensors$" -count=1 -args -image="papilio-node-build:$revision"
