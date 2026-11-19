@@ -55,3 +55,6 @@ go test -race -tags=integration,distribution ./internal/apps/system/host/session
 
 go test -race -tags=integration,distribution ./internal/apps/system/host/sensors/integration \
     -run="^TestPackagedSensors$" -count=1 -args -image="papilio-node-build:$revision"
+
+go test -race -tags=integration,distribution ./internal/apps/system/node/runtime/integration \
+    -run="^TestPackagedNodeRuntime$" -count=1 -args -image="papilio-node-build:$revision"
