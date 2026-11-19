@@ -1,0 +1,14 @@
+syntax = "proto3";
+package papilio.system.host.sensors.v1;
+option go_package = "github.com/PapilioVPN/node/internal/apps/system/host/sensors/grpcapi/proto/v1;sensorsv1";
+import "internal/apps/system/host/sensors/grpcapi/proto/v1/temperatures.proto";
+import "internal/apps/system/host/sensors/grpcapi/proto/v1/fans.proto";
+import "internal/apps/system/host/sensors/grpcapi/proto/v1/power_supplies.proto";
+// Host-visible native sysfs readings. Missing hardware yields an empty list.
+// Driver failures fail the observation; thresholds retain absence versus zero.
+// Values are raw driver units, without libsensors board-specific calibration.
+service HostSensorsService {
+ rpc GetTemperatures(GetTemperaturesRequest) returns (GetTemperaturesResponse);
+ rpc GetFans(GetFansRequest) returns (GetFansResponse);
+ rpc GetPowerSupplies(GetPowerSuppliesRequest) returns (GetPowerSuppliesResponse);
+}

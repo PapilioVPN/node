@@ -3,8 +3,9 @@ package services
 
 import (
 	"context"
-	"github.com/PapilioVPN/node/internal/apps/system/host/sensors/domain"
 	"time"
+
+	"github.com/PapilioVPN/node/internal/apps/system/host/sensors/domain"
 )
 
 type Reader interface {

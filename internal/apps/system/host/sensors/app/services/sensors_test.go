@@ -3,9 +3,10 @@ package services_test
 import (
 	"context"
 	"errors"
+	"testing"
+
 	"github.com/PapilioVPN/node/internal/apps/system/host/sensors/app/services"
 	"github.com/PapilioVPN/node/internal/apps/system/host/sensors/domain"
-	"testing"
 )
 
 type reader struct {

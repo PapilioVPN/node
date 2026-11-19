@@ -4,11 +4,12 @@ import (
 	"cmp"
 	"context"
 	"errors"
-	"github.com/PapilioVPN/node/internal/apps/system/host/sensors/domain"
 	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
+
+	"github.com/PapilioVPN/node/internal/apps/system/host/sensors/domain"
 )
 
 func (Reader) PowerSupplies(ctx context.Context) ([]domain.PowerSupply, error) {

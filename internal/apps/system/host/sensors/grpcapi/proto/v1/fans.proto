@@ -1,0 +1,16 @@
+syntax = "proto3";
+package papilio.system.host.sensors.v1;
+option go_package = "github.com/PapilioVPN/node/internal/apps/system/host/sensors/grpcapi/proto/v1;sensorsv1";
+import "google/protobuf/timestamp.proto";
+message Fan {
+ string id = 1;
+ string device = 2;
+ optional string label = 3;
+ uint64 rpm = 4;
+}
+message GetFansRequest {}
+message GetFansResponse {
+ repeated Fan readings = 1;
+ google.protobuf.Timestamp observed_at = 2;
+ int64 duration_ns = 3;
+}

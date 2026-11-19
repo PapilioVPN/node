@@ -3,12 +3,13 @@ package sys
 import (
 	"cmp"
 	"context"
-	"github.com/PapilioVPN/node/internal/apps/system/host/sensors/domain"
-	"golang.org/x/sync/errgroup"
 	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
+
+	"github.com/PapilioVPN/node/internal/apps/system/host/sensors/domain"
+	"golang.org/x/sync/errgroup"
 )
 
 type Reader struct{}
