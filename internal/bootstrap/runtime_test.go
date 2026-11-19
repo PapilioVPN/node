@@ -28,7 +28,8 @@ import (
 func TestExecutableStartsAllTransportsAndStopsOnSIGTERM(t *testing.T) {
 	dir := t.TempDir()
 	binary := filepath.Join(dir, "node")
-	buildContext, cancelBuild := context.WithTimeout(context.Background(), time.Minute)
+	// Compilation has its own budget; runtime startup/stop deadlines stay strict.
+	buildContext, cancelBuild := context.WithTimeout(context.Background(), 3*time.Minute)
 	defer cancelBuild()
 	build := exec.CommandContext(buildContext, "go", "build", "-p=2", "-o", binary, "github.com/PapilioVPN/node/cmd/node")
 	if output, err := build.CombinedOutput(); err != nil {
