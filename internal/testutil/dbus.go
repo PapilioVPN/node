@@ -2,6 +2,7 @@ package testutil
 
 import (
 	"bufio"
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -26,7 +27,25 @@ func NewDBus(t testing.TB) DBus {
 	}
 	t.Cleanup(func() { os.RemoveAll(directory) })
 	path := filepath.Join(directory, "bus")
-	command := exec.Command("dbus-daemon", "--session", "--nofork", "--print-address=1", "--address=unix:path="+path)
+	// Keep the isolated test bus independent of desktop policies and activation.
+	// AppArmor mediation belongs to a real host bus, not this owned fake service.
+	config := filepath.Join(directory, "bus.conf")
+	contents := fmt.Sprintf(`<busconfig>
+ <type>session</type>
+ <listen>unix:path=%s</listen>
+ <auth>EXTERNAL</auth>
+ <apparmor mode="disabled"/>
+ <policy context="default">
+ <allow user="%d"/>
+ <allow own="*"/>
+ <allow send_destination="*"/>
+ <allow receive_sender="*"/>
+ </policy>
+ </busconfig>`, path, os.Getuid())
+	if err := os.WriteFile(config, []byte(contents), 0600); err != nil {
+		t.Fatal(err)
+	}
+	command := exec.Command("dbus-daemon", "--config-file="+config, "--nofork", "--print-address=1", "--address=unix:path="+path)
 	command.Stderr = io.Discard
 	stdout, err := command.StdoutPipe()
 	if err != nil {
