@@ -9,9 +9,13 @@ import (
 	"time"
 
 	"github.com/PapilioVPN/node/internal/apps/xray/proxies/inbounds/domain"
+	configs "github.com/PapilioVPN/node/internal/apps/xray/runtime/configs/domain"
+	sourcewire "github.com/PapilioVPN/node/internal/apps/xray/runtime/configs/infra/jsonwire"
 )
 
 type Request struct {
+	Sources          []configs.Source
+	HasSources       bool
 	InstanceID       *string
 	Tag              *string
 	Configuration    []byte
@@ -47,6 +51,12 @@ func Decode(data []byte) (request Request, err error) {
 			err = decoder.Decode(&request.Tag)
 			if request.Tag == nil {
 				return request, domain.ErrInvalidArgument
+			}
+		case "sources":
+			request.HasSources = true
+			request.Sources, err = sourcewire.DecodeSources(decoder)
+			if errors.Is(err, configs.ErrTooLarge) {
+				return request, domain.ErrCapacity
 			}
 		case "configuration":
 			request.HasConfiguration = true

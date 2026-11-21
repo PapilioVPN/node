@@ -16,6 +16,8 @@ func TestInvalidShapeAndDeadlineNeverReachService(t *testing.T) {
 		body    string
 		headers nats.Header
 	}{
+		{h.AddSources, `{"instance_id":"a","tag":"b","sources":[],"configuration":"AQ=="}`, nil},
+		{h.AddSources, `{"instance_id":"a","sources":[]}`, nil},
 		{h.Records, `{"instance_id":"a","tag":"b"}`, nil}, {h.Tags, `{"instance_id":"a","configuration":"AQ=="}`, nil},
 		{h.Add, `{"instance_id":"a"}`, nil}, {h.Remove, `{"instance_id":"a","configuration":"AQ=="}`, nil},
 		{h.Status, `{"instance_id":"a","instance_id":"b"}`, nil}, {h.Status, `{"instance_id":null}`, nil},

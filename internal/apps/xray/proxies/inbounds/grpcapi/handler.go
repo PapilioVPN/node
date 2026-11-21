@@ -18,6 +18,7 @@ import (
 type Handler struct {
 	inboundsv1.UnimplementedInboundsServiceServer
 	Service *services.Service
+	Sources *services.Sources
 	Timeout time.Duration
 }
 

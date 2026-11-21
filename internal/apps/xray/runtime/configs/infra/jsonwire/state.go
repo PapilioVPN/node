@@ -56,7 +56,7 @@ func DecodeState(data []byte) (result StateRequest, err error) {
 			result.ExpectedRevision = &value
 		case "sources":
 			result.HasSources = true
-			result.Sources, err = decodeSources(decoder)
+			result.Sources, err = DecodeSources(decoder)
 			if err != nil {
 				return result, err
 			}
@@ -72,7 +72,9 @@ func DecodeState(data []byte) (result StateRequest, err error) {
 	}
 	return result, nil
 }
-func decodeSources(decoder *json.Decoder) (sources []domain.Source, err error) {
+
+// DecodeSources reads one bounded native source collection from a JSON decoder.
+func DecodeSources(decoder *json.Decoder) (sources []domain.Source, err error) {
 	if token, err := decoder.Token(); err != nil || token != json.Delim('[') {
 		return nil, domain.ErrInvalidArgument
 	}

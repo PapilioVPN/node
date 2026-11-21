@@ -2,6 +2,7 @@ package grpcapi
 
 import (
 	"context"
+	configs "github.com/PapilioVPN/node/internal/apps/xray/runtime/configs/domain"
 
 	"github.com/PapilioVPN/node/internal/apps/xray/proxies/inbounds/domain"
 	inboundsv1 "github.com/PapilioVPN/node/internal/apps/xray/proxies/inbounds/grpcapi/proto/v1"
@@ -44,4 +45,24 @@ func mutationResult(result domain.Operation, err error) (*inboundsv1.InboundOper
 		return nil, failure(err)
 	}
 	return nil, detailed.Err()
+}
+
+func (h Handler) AddInboundFromSources(ctx context.Context, request *inboundsv1.AddInboundFromSourcesRequest) (*inboundsv1.InboundOperation, error) {
+	if request == nil {
+		return nil, failure(domain.ErrInvalidArgument)
+	}
+	if len(request.Sources) > configs.MaxSources {
+		return nil, failure(domain.ErrCapacity)
+	}
+	sources := make([]configs.Source, len(request.Sources))
+	for i, source := range request.Sources {
+		if source == nil {
+			return nil, failure(domain.ErrInvalidArgument)
+		}
+		sources[i] = configs.Source{Name: source.Name, Content: source.Content}
+	}
+	ctx, cancel := context.WithTimeout(ctx, h.Timeout)
+	defer cancel()
+	result, err := h.Sources.Add(ctx, request.InstanceId, request.Tag, sources)
+	return mutationResult(result, err)
 }

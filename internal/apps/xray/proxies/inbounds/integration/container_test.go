@@ -41,11 +41,16 @@ func TestPackagedInboundManagement(t *testing.T) {
 	}
 	pki := testutil.NewPKI(t)
 	f := newFixture(t, pki, brokerFixture(t, pki), "all")
+	workDirectory := t.TempDir()
+	f.config.Instances[0].Xray.WorkDirectory = workDirectory
+	f.config.Communications.Requests.Timeout = 2 * time.Second
+	f.config.Communications.HTTP.WriteTimeout = 3 * time.Second
 	config := f.config
 	config.Instances = append(config.Instances[:0:0], config.Instances...)
 	xray := *config.Instances[0].Xray
 	config.Instances[0].Xray = &xray
 	xray.Binary = "/opt/xray"
+	xray.WorkDirectory = "/work"
 	xray.Configuration = "/etc/engine/config.json"
 	relative := func(files mtls.Files) mtls.Files {
 		return mtls.Files{Certificate: filepath.Base(files.Certificate), PrivateKey: filepath.Base(files.PrivateKey), CA: filepath.Base(files.CA)}
@@ -72,6 +77,7 @@ func TestPackagedInboundManagement(t *testing.T) {
 	name := "node-inbounds-" + hex.EncodeToString(random[:])
 	docker(t, "run", "--detach", "--pull=never", "--name", name, "--network=host", "--cap-drop=ALL", "--read-only", "--user", strconv.Itoa(os.Getuid())+":"+strconv.Itoa(os.Getgid()),
 		"--mount", "type=bind,src="+directory+",dst=/etc/node,readonly",
+		"--mount", "type=bind,src="+workDirectory+",dst=/work",
 		"--mount", "type=bind,src="+f.config.Instances[0].Xray.Binary+",dst=/opt/xray,readonly",
 		"--mount", "type=bind,src="+f.config.Instances[0].Xray.Configuration+",dst=/etc/engine/config.json,readonly", *image)
 	t.Cleanup(func() { docker(t, "rm", "--force", name) })
@@ -79,6 +85,7 @@ func TestPackagedInboundManagement(t *testing.T) {
 	awaitNative(t, f.native)
 	for _, transport := range []string{"http", "grpc", "nats"} {
 		exercisePackagedInbound(t, client, transport)
+		exercisePackagedSources(t, client, transport)
 	}
 
 	docker(t, "stop", "--time", "8", name)
@@ -187,4 +194,10 @@ func exercisePackagedInbound(t *testing.T, c clients, transport string) {
 		response.Body.Close()
 		t.Fatal("removed packaged inbound still accepts traffic")
 	}
+}
+
+func exercisePackagedSources(t *testing.T, c clients, transport string) {
+	target := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { io.WriteString(w, "source-inbound") }))
+	defer target.Close()
+	exerciseSourceAddition(t, c, transport, "json", target.URL)
 }

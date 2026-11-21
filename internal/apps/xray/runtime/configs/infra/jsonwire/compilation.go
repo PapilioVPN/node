@@ -37,7 +37,7 @@ func DecodeCompilation(data []byte) (id string, sources []domain.Source, err err
 				return "", nil, domain.ErrInvalidArgument
 			}
 		case "sources":
-			sources, err = decodeSources(decoder)
+			sources, err = DecodeSources(decoder)
 			if err != nil {
 				return "", nil, err
 			}

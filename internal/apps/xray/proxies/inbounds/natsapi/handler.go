@@ -15,6 +15,7 @@ import (
 
 type Handler struct {
 	Service *services.Service
+	Sources *services.Sources
 	Timeout time.Duration
 }
 
@@ -48,7 +49,7 @@ func (h Handler) Records(ctx context.Context, data []byte, headers nats.Header) 
 		return failure(err)
 	}
 	defer cancel()
-	if input.Tag != nil || input.HasConfiguration {
+	if input.Tag != nil || input.HasConfiguration || input.HasSources {
 		return failure(domain.ErrInvalidArgument)
 	}
 	result, err := h.Service.Records(ctx, *input.InstanceID)
@@ -64,7 +65,7 @@ func (h Handler) Tags(ctx context.Context, data []byte, headers nats.Header) []b
 		return failure(err)
 	}
 	defer cancel()
-	if input.Tag != nil || input.HasConfiguration {
+	if input.Tag != nil || input.HasConfiguration || input.HasSources {
 		return failure(domain.ErrInvalidArgument)
 	}
 	result, err := h.Service.Tags(ctx, *input.InstanceID)
@@ -80,7 +81,7 @@ func (h Handler) Status(ctx context.Context, data []byte, headers nats.Header) [
 		return failure(err)
 	}
 	defer cancel()
-	if input.Tag != nil || input.HasConfiguration {
+	if input.Tag != nil || input.HasConfiguration || input.HasSources {
 		return failure(domain.ErrInvalidArgument)
 	}
 	result, err := h.Service.Status(ctx, *input.InstanceID)
@@ -96,7 +97,7 @@ func (h Handler) Add(ctx context.Context, data []byte, headers nats.Header) []by
 		return failure(err)
 	}
 	defer cancel()
-	if input.Tag != nil || !input.HasConfiguration {
+	if input.Tag != nil || !input.HasConfiguration || input.HasSources {
 		return failure(domain.ErrInvalidArgument)
 	}
 	result, err := h.Service.Add(ctx, *input.InstanceID, input.Configuration)
@@ -108,7 +109,7 @@ func (h Handler) Remove(ctx context.Context, data []byte, headers nats.Header) [
 		return failure(err)
 	}
 	defer cancel()
-	if input.Tag == nil || input.HasConfiguration {
+	if input.Tag == nil || input.HasConfiguration || input.HasSources {
 		return failure(domain.ErrInvalidArgument)
 	}
 	result, err := h.Service.Remove(ctx, *input.InstanceID, *input.Tag)
@@ -155,4 +156,17 @@ func failure(err error) []byte {
 		Error string `json:"error"`
 	}{errorCode(err)})
 	return data
+}
+
+func (h Handler) AddSources(ctx context.Context, data []byte, headers nats.Header) []byte {
+	ctx, cancel, input, err := h.request(ctx, data, headers)
+	if err != nil {
+		return failure(err)
+	}
+	defer cancel()
+	if input.Tag == nil || !input.HasSources || input.HasConfiguration {
+		return failure(domain.ErrInvalidArgument)
+	}
+	result, err := h.Sources.Add(ctx, *input.InstanceID, *input.Tag, input.Sources)
+	return mutation(result, err)
 }

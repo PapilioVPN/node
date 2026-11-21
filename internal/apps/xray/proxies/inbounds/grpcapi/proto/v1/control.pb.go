@@ -7,6 +7,7 @@
 package inboundsv1
 
 import (
+	v1 "github.com/PapilioVPN/node/internal/apps/xray/runtime/configs/grpcapi/proto/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
@@ -380,11 +381,73 @@ func (x *InboundControlStatus) GetObservedAt() *timestamppb.Timestamp {
 	return nil
 }
 
+// Compiles ordered native sources, then adds exactly one matching inbound.
+// All other configuration sections and runtime environment changes are excluded.
+type AddInboundFromSourcesRequest struct {
+	state         protoimpl.MessageState    `protogen:"open.v1"`
+	InstanceId    string                    `protobuf:"bytes,1,opt,name=instance_id,json=instanceId,proto3" json:"instance_id,omitempty"`
+	Tag           string                    `protobuf:"bytes,2,opt,name=tag,proto3" json:"tag,omitempty"`
+	Sources       []*v1.ConfigurationSource `protobuf:"bytes,3,rep,name=sources,proto3" json:"sources,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AddInboundFromSourcesRequest) Reset() {
+	*x = AddInboundFromSourcesRequest{}
+	mi := &file_internal_apps_xray_proxies_inbounds_grpcapi_proto_v1_control_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddInboundFromSourcesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddInboundFromSourcesRequest) ProtoMessage() {}
+
+func (x *AddInboundFromSourcesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_apps_xray_proxies_inbounds_grpcapi_proto_v1_control_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddInboundFromSourcesRequest.ProtoReflect.Descriptor instead.
+func (*AddInboundFromSourcesRequest) Descriptor() ([]byte, []int) {
+	return file_internal_apps_xray_proxies_inbounds_grpcapi_proto_v1_control_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *AddInboundFromSourcesRequest) GetInstanceId() string {
+	if x != nil {
+		return x.InstanceId
+	}
+	return ""
+}
+
+func (x *AddInboundFromSourcesRequest) GetTag() string {
+	if x != nil {
+		return x.Tag
+	}
+	return ""
+}
+
+func (x *AddInboundFromSourcesRequest) GetSources() []*v1.ConfigurationSource {
+	if x != nil {
+		return x.Sources
+	}
+	return nil
+}
+
 var File_internal_apps_xray_proxies_inbounds_grpcapi_proto_v1_control_proto protoreflect.FileDescriptor
 
 const file_internal_apps_xray_proxies_inbounds_grpcapi_proto_v1_control_proto_rawDesc = "" +
 	"\n" +
-	"Binternal/apps/xray/proxies/inbounds/grpcapi/proto/v1/control.proto\x12 papilio.xray.proxies.inbounds.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"Z\n" +
+	"Binternal/apps/xray/proxies/inbounds/grpcapi/proto/v1/control.proto\x12 papilio.xray.proxies.inbounds.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1aEinternal/apps/xray/runtime/configs/grpcapi/proto/v1/compilation.proto\"Z\n" +
 	"\x11AddInboundRequest\x12\x1f\n" +
 	"\vinstance_id\x18\x01 \x01(\tR\n" +
 	"instanceId\x12$\n" +
@@ -423,7 +486,12 @@ const file_internal_apps_xray_proxies_inbounds_grpcapi_proto_v1_control_proto_ra
 	"\x19requires_instance_restart\x18\x06 \x01(\bR\x17requiresInstanceRestart\x12Y\n" +
 	"\x0elast_operation\x18\a \x01(\v22.papilio.xray.proxies.inbounds.v1.InboundOperationR\rlastOperation\x12;\n" +
 	"\vobserved_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"observedAtB\\ZZgithub.com/PapilioVPN/node/internal/apps/xray/proxies/inbounds/grpcapi/proto/v1;inboundsv1b\x06proto3"
+	"observedAt\"\xa1\x01\n" +
+	"\x1cAddInboundFromSourcesRequest\x12\x1f\n" +
+	"\vinstance_id\x18\x01 \x01(\tR\n" +
+	"instanceId\x12\x10\n" +
+	"\x03tag\x18\x02 \x01(\tR\x03tag\x12N\n" +
+	"\asources\x18\x03 \x03(\v24.papilio.xray.runtime.configs.v1.ConfigurationSourceR\asourcesB\\ZZgithub.com/PapilioVPN/node/internal/apps/xray/proxies/inbounds/grpcapi/proto/v1;inboundsv1b\x06proto3"
 
 var (
 	file_internal_apps_xray_proxies_inbounds_grpcapi_proto_v1_control_proto_rawDescOnce sync.Once
@@ -437,24 +505,27 @@ func file_internal_apps_xray_proxies_inbounds_grpcapi_proto_v1_control_proto_raw
 	return file_internal_apps_xray_proxies_inbounds_grpcapi_proto_v1_control_proto_rawDescData
 }
 
-var file_internal_apps_xray_proxies_inbounds_grpcapi_proto_v1_control_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_internal_apps_xray_proxies_inbounds_grpcapi_proto_v1_control_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_internal_apps_xray_proxies_inbounds_grpcapi_proto_v1_control_proto_goTypes = []any{
 	(*AddInboundRequest)(nil),              // 0: papilio.xray.proxies.inbounds.v1.AddInboundRequest
 	(*RemoveInboundRequest)(nil),           // 1: papilio.xray.proxies.inbounds.v1.RemoveInboundRequest
 	(*GetInboundControlStatusRequest)(nil), // 2: papilio.xray.proxies.inbounds.v1.GetInboundControlStatusRequest
 	(*InboundOperation)(nil),               // 3: papilio.xray.proxies.inbounds.v1.InboundOperation
 	(*InboundControlStatus)(nil),           // 4: papilio.xray.proxies.inbounds.v1.InboundControlStatus
-	(*timestamppb.Timestamp)(nil),          // 5: google.protobuf.Timestamp
+	(*AddInboundFromSourcesRequest)(nil),   // 5: papilio.xray.proxies.inbounds.v1.AddInboundFromSourcesRequest
+	(*timestamppb.Timestamp)(nil),          // 6: google.protobuf.Timestamp
+	(*v1.ConfigurationSource)(nil),         // 7: papilio.xray.runtime.configs.v1.ConfigurationSource
 }
 var file_internal_apps_xray_proxies_inbounds_grpcapi_proto_v1_control_proto_depIdxs = []int32{
-	5, // 0: papilio.xray.proxies.inbounds.v1.InboundOperation.observed_at:type_name -> google.protobuf.Timestamp
+	6, // 0: papilio.xray.proxies.inbounds.v1.InboundOperation.observed_at:type_name -> google.protobuf.Timestamp
 	3, // 1: papilio.xray.proxies.inbounds.v1.InboundControlStatus.last_operation:type_name -> papilio.xray.proxies.inbounds.v1.InboundOperation
-	5, // 2: papilio.xray.proxies.inbounds.v1.InboundControlStatus.observed_at:type_name -> google.protobuf.Timestamp
-	3, // [3:3] is the sub-list for method output_type
-	3, // [3:3] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	6, // 2: papilio.xray.proxies.inbounds.v1.InboundControlStatus.observed_at:type_name -> google.protobuf.Timestamp
+	7, // 3: papilio.xray.proxies.inbounds.v1.AddInboundFromSourcesRequest.sources:type_name -> papilio.xray.runtime.configs.v1.ConfigurationSource
+	4, // [4:4] is the sub-list for method output_type
+	4, // [4:4] is the sub-list for method input_type
+	4, // [4:4] is the sub-list for extension type_name
+	4, // [4:4] is the sub-list for extension extendee
+	0, // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_internal_apps_xray_proxies_inbounds_grpcapi_proto_v1_control_proto_init() }
@@ -468,7 +539,7 @@ func file_internal_apps_xray_proxies_inbounds_grpcapi_proto_v1_control_proto_ini
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_internal_apps_xray_proxies_inbounds_grpcapi_proto_v1_control_proto_rawDesc), len(file_internal_apps_xray_proxies_inbounds_grpcapi_proto_v1_control_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   5,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

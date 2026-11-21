@@ -15,6 +15,7 @@ import (
 
 type Handler struct {
 	Service *services.Service
+	Sources *services.Sources
 	Timeout time.Duration
 }
 
@@ -73,11 +74,26 @@ func (h Handler) Status(request fiber.Ctx) error {
 }
 func (h Handler) Add(request fiber.Ctx) error {
 	request.Set(fiber.HeaderCacheControl, "no-store")
-	if len(request.Request().URI().QueryString()) != 0 || strings.TrimSpace(strings.Split(request.Get(fiber.HeaderContentType), ";")[0]) != "application/x-protobuf" {
+	if len(request.Request().URI().QueryString()) != 0 {
 		return failure(request, domain.ErrInvalidArgument)
 	}
 	ctx, cancel := context.WithTimeout(request.Context(), h.Timeout)
 	defer cancel()
+	contentType := strings.TrimSpace(strings.Split(request.Get(fiber.HeaderContentType), ";")[0])
+	if contentType == fiber.MIMEApplicationJSON {
+		input, err := jsonwire.Decode(request.Body())
+		if err != nil {
+			return failure(request, err)
+		}
+		if input.InstanceID != nil || input.Tag == nil || !input.HasSources || input.HasConfiguration {
+			return failure(request, domain.ErrInvalidArgument)
+		}
+		result, err := h.Sources.Add(ctx, request.Params("id"), *input.Tag, input.Sources)
+		return mutation(request, result, err)
+	}
+	if contentType != "application/x-protobuf" {
+		return failure(request, domain.ErrInvalidArgument)
+	}
 	result, err := h.Service.Add(ctx, request.Params("id"), request.Body())
 	return mutation(request, result, err)
 }

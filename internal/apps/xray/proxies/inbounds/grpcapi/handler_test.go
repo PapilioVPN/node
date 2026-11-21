@@ -20,6 +20,8 @@ func TestAbsentMessagesNeverReachApplication(t *testing.T) {
 	checkInvalid(t, err)
 	_, err = handler.AddInbound(ctx, nil)
 	checkInvalid(t, err)
+	_, err = handler.AddInboundFromSources(ctx, nil)
+	checkInvalid(t, err)
 	_, err = handler.RemoveInbound(ctx, nil)
 	checkInvalid(t, err)
 }

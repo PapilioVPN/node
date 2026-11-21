@@ -8,6 +8,7 @@ service InboundsService {
   rpc ListInbounds(ListInboundsRequest) returns (InboundConfigurations);
   // Uses the separate native tag-only projection without configuration bytes.
   rpc ListInboundTags(ListInboundTagsRequest) returns (InboundTags);
+  rpc AddInboundFromSources(AddInboundFromSourcesRequest) returns (InboundOperation);
   rpc AddInbound(AddInboundRequest) returns (InboundOperation);
   rpc RemoveInbound(RemoveInboundRequest) returns (InboundOperation);
   // Local control evidence, not a native transaction journal or effective config.

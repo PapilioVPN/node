@@ -2,6 +2,7 @@ syntax = "proto3";
 package papilio.xray.proxies.inbounds.v1;
 option go_package = "github.com/PapilioVPN/node/internal/apps/xray/proxies/inbounds/grpcapi/proto/v1;inboundsv1";
 import "google/protobuf/timestamp.proto";
+import "internal/apps/xray/runtime/configs/grpcapi/proto/v1/compilation.proto";
 message AddInboundRequest {
   string instance_id = 1;
   // Native core.InboundHandlerConfig, not a complete core.Config or debug JSON.
@@ -35,4 +36,12 @@ message InboundControlStatus {
   bool requires_instance_restart = 6;
   InboundOperation last_operation = 7;
   google.protobuf.Timestamp observed_at = 8;
+}
+
+// Compiles ordered native sources, then adds exactly one matching inbound.
+// All other configuration sections and runtime environment changes are excluded.
+message AddInboundFromSourcesRequest {
+  string instance_id = 1;
+  string tag = 2;
+  repeated papilio.xray.runtime.configs.v1.ConfigurationSource sources = 3;
 }

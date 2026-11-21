@@ -21,6 +21,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	InboundsService_ListInbounds_FullMethodName            = "/papilio.xray.proxies.inbounds.v1.InboundsService/ListInbounds"
 	InboundsService_ListInboundTags_FullMethodName         = "/papilio.xray.proxies.inbounds.v1.InboundsService/ListInboundTags"
+	InboundsService_AddInboundFromSources_FullMethodName   = "/papilio.xray.proxies.inbounds.v1.InboundsService/AddInboundFromSources"
 	InboundsService_AddInbound_FullMethodName              = "/papilio.xray.proxies.inbounds.v1.InboundsService/AddInbound"
 	InboundsService_RemoveInbound_FullMethodName           = "/papilio.xray.proxies.inbounds.v1.InboundsService/RemoveInbound"
 	InboundsService_GetInboundControlStatus_FullMethodName = "/papilio.xray.proxies.inbounds.v1.InboundsService/GetInboundControlStatus"
@@ -34,6 +35,7 @@ type InboundsServiceClient interface {
 	ListInbounds(ctx context.Context, in *ListInboundsRequest, opts ...grpc.CallOption) (*InboundConfigurations, error)
 	// Uses the separate native tag-only projection without configuration bytes.
 	ListInboundTags(ctx context.Context, in *ListInboundTagsRequest, opts ...grpc.CallOption) (*InboundTags, error)
+	AddInboundFromSources(ctx context.Context, in *AddInboundFromSourcesRequest, opts ...grpc.CallOption) (*InboundOperation, error)
 	AddInbound(ctx context.Context, in *AddInboundRequest, opts ...grpc.CallOption) (*InboundOperation, error)
 	RemoveInbound(ctx context.Context, in *RemoveInboundRequest, opts ...grpc.CallOption) (*InboundOperation, error)
 	// Local control evidence, not a native transaction journal or effective config.
@@ -62,6 +64,16 @@ func (c *inboundsServiceClient) ListInboundTags(ctx context.Context, in *ListInb
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(InboundTags)
 	err := c.cc.Invoke(ctx, InboundsService_ListInboundTags_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *inboundsServiceClient) AddInboundFromSources(ctx context.Context, in *AddInboundFromSourcesRequest, opts ...grpc.CallOption) (*InboundOperation, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(InboundOperation)
+	err := c.cc.Invoke(ctx, InboundsService_AddInboundFromSources_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -106,6 +118,7 @@ type InboundsServiceServer interface {
 	ListInbounds(context.Context, *ListInboundsRequest) (*InboundConfigurations, error)
 	// Uses the separate native tag-only projection without configuration bytes.
 	ListInboundTags(context.Context, *ListInboundTagsRequest) (*InboundTags, error)
+	AddInboundFromSources(context.Context, *AddInboundFromSourcesRequest) (*InboundOperation, error)
 	AddInbound(context.Context, *AddInboundRequest) (*InboundOperation, error)
 	RemoveInbound(context.Context, *RemoveInboundRequest) (*InboundOperation, error)
 	// Local control evidence, not a native transaction journal or effective config.
@@ -125,6 +138,9 @@ func (UnimplementedInboundsServiceServer) ListInbounds(context.Context, *ListInb
 }
 func (UnimplementedInboundsServiceServer) ListInboundTags(context.Context, *ListInboundTagsRequest) (*InboundTags, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListInboundTags not implemented")
+}
+func (UnimplementedInboundsServiceServer) AddInboundFromSources(context.Context, *AddInboundFromSourcesRequest) (*InboundOperation, error) {
+	return nil, status.Error(codes.Unimplemented, "method AddInboundFromSources not implemented")
 }
 func (UnimplementedInboundsServiceServer) AddInbound(context.Context, *AddInboundRequest) (*InboundOperation, error) {
 	return nil, status.Error(codes.Unimplemented, "method AddInbound not implemented")
@@ -188,6 +204,24 @@ func _InboundsService_ListInboundTags_Handler(srv interface{}, ctx context.Conte
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(InboundsServiceServer).ListInboundTags(ctx, req.(*ListInboundTagsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _InboundsService_AddInboundFromSources_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddInboundFromSourcesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(InboundsServiceServer).AddInboundFromSources(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: InboundsService_AddInboundFromSources_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(InboundsServiceServer).AddInboundFromSources(ctx, req.(*AddInboundFromSourcesRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -260,6 +294,10 @@ var InboundsService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListInboundTags",
 			Handler:    _InboundsService_ListInboundTags_Handler,
+		},
+		{
+			MethodName: "AddInboundFromSources",
+			Handler:    _InboundsService_AddInboundFromSources_Handler,
 		},
 		{
 			MethodName: "AddInbound",
