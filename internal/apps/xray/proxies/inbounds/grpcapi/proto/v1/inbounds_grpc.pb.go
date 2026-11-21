@@ -37,6 +37,8 @@ type InboundsServiceClient interface {
 	ListInboundTags(ctx context.Context, in *ListInboundTagsRequest, opts ...grpc.CallOption) (*InboundTags, error)
 	AddInboundFromSources(ctx context.Context, in *AddInboundFromSourcesRequest, opts ...grpc.CallOption) (*InboundOperation, error)
 	AddInbound(ctx context.Context, in *AddInboundRequest, opts ...grpc.CallOption) (*InboundOperation, error)
+	// Acknowledges native handler removal; established connections need not end.
+	// Native cleanup errors are not exposed by Xray as a transactional rollback.
 	RemoveInbound(ctx context.Context, in *RemoveInboundRequest, opts ...grpc.CallOption) (*InboundOperation, error)
 	// Local control evidence, not a native transaction journal or effective config.
 	GetInboundControlStatus(ctx context.Context, in *GetInboundControlStatusRequest, opts ...grpc.CallOption) (*InboundControlStatus, error)
@@ -120,6 +122,8 @@ type InboundsServiceServer interface {
 	ListInboundTags(context.Context, *ListInboundTagsRequest) (*InboundTags, error)
 	AddInboundFromSources(context.Context, *AddInboundFromSourcesRequest) (*InboundOperation, error)
 	AddInbound(context.Context, *AddInboundRequest) (*InboundOperation, error)
+	// Acknowledges native handler removal; established connections need not end.
+	// Native cleanup errors are not exposed by Xray as a transactional rollback.
 	RemoveInbound(context.Context, *RemoveInboundRequest) (*InboundOperation, error)
 	// Local control evidence, not a native transaction journal or effective config.
 	GetInboundControlStatus(context.Context, *GetInboundControlStatusRequest) (*InboundControlStatus, error)

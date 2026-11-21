@@ -10,6 +10,8 @@ service InboundsService {
   rpc ListInboundTags(ListInboundTagsRequest) returns (InboundTags);
   rpc AddInboundFromSources(AddInboundFromSourcesRequest) returns (InboundOperation);
   rpc AddInbound(AddInboundRequest) returns (InboundOperation);
+  // Acknowledges native handler removal; established connections need not end.
+  // Native cleanup errors are not exposed by Xray as a transactional rollback.
   rpc RemoveInbound(RemoveInboundRequest) returns (InboundOperation);
   // Local control evidence, not a native transaction journal or effective config.
   rpc GetInboundControlStatus(GetInboundControlStatusRequest) returns (InboundControlStatus);

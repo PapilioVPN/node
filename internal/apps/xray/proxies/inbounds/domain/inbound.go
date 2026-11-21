@@ -61,7 +61,9 @@ type NativeResult struct {
 }
 
 // Operation reports live effects. It neither rewrites desired configuration nor
-// promises durability, automatic replay or atomic replacement.
+// promises durability, automatic replay or atomic replacement. For removal,
+// acknowledgement does not prove termination of established connections or
+// complete resource cleanup; the pinned native manager discards Close errors.
 type Operation struct {
 	InstanceID              string
 	Generation              uint64
