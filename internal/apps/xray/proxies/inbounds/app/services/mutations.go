@@ -14,7 +14,7 @@ func (s *Service) Add(ctx context.Context, id string, content []byte) (domain.Op
 	if err := validators.Configuration(content); err != nil {
 		return domain.Operation{InstanceID: id, Kind: "add", Effect: domain.NotApplied}, err
 	}
-	return s.mutate(ctx, id, "add", "", func(client Client) (domain.NativeResult, error) {
+	return s.mutate(ctx, id, "add", "", func(client Client, _ uint64) (domain.NativeResult, error) {
 		return client.Add(ctx, content)
 	})
 }
@@ -22,13 +22,13 @@ func (s *Service) Remove(ctx context.Context, id, tag string) (domain.Operation,
 	if err := validators.Tag(tag); err != nil {
 		return domain.Operation{InstanceID: id, Kind: "remove", Tag: tag, Effect: domain.NotApplied}, err
 	}
-	return s.mutate(ctx, id, "remove", tag, func(client Client) (domain.NativeResult, error) { return client.Remove(ctx, tag) })
+	return s.mutate(ctx, id, "remove", tag, func(client Client, _ uint64) (domain.NativeResult, error) { return client.Remove(ctx, tag) })
 }
 
 // Both native mutations share actual manager admission and outcome semantics.
 // No mutex is held over native I/O. Reads do not queue behind native mutation
 // locks, whose file/socket operations may ignore RPC cancellation.
-func (s *Service) mutate(ctx context.Context, id, kind, tag string, invoke func(Client) (domain.NativeResult, error)) (operation domain.Operation, err error) {
+func (s *Service) mutate(ctx context.Context, id, kind, tag string, invoke func(Client, uint64) (domain.NativeResult, error)) (operation domain.Operation, err error) {
 	operation = domain.Operation{InstanceID: id, Kind: kind, Tag: tag, Effect: domain.NotApplied}
 	selected, err := s.selectEntry(ctx, id)
 	if err != nil {
@@ -79,7 +79,7 @@ func (s *Service) mutate(ctx context.Context, id, kind, tag string, invoke func(
 	if err := ctx.Err(); err != nil {
 		return operation, err
 	}
-	native, nativeErr := invoke(selected.client)
+	native, nativeErr := invoke(selected.client, operation.Generation)
 	if kind == "add" {
 		operation.Tag = native.Tag
 	}
