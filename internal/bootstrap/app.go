@@ -4,6 +4,7 @@ package bootstrap
 import (
 	"log/slog"
 
+	"github.com/PapilioVPN/node/internal/apps/core"
 	"github.com/PapilioVPN/node/internal/apps/system"
 	"github.com/PapilioVPN/node/internal/platform/grpcserver"
 	"github.com/PapilioVPN/node/internal/platform/httpserver"
@@ -14,13 +15,16 @@ import (
 	"go.uber.org/fx/fxevent"
 )
 
-func New(config settings.Config, logger *slog.Logger) *fx.App {
+func New(config settings.Config, logger *slog.Logger, extra ...fx.Option) *fx.App {
 	options := []fx.Option{
 		fx.Supply(logger),
 		fx.Decorate(shutdown.Synchronize),
 		fx.StartTimeout(config.StartupTimeout),
 		fx.StopTimeout(config.ShutdownTimeout),
 		fx.WithLogger(func() fxevent.Logger { return &fxevent.SlogLogger{Logger: logger} }),
+	}
+	if len(config.Instances) > 0 {
+		options = append(options, core.Module(config.Instances, config.Communications.Requests))
 	}
 	if http := config.Communications.HTTP; http != nil {
 		options = append(options, fx.Supply(*http), httpserver.Module)
@@ -34,5 +38,6 @@ func New(config settings.Config, logger *slog.Logger) *fx.App {
 			options = append(options, natsclient.RequestsModule(*config.Communications.Requests.NATS, config.RequestDrainBudget()))
 		}
 	}
-	return fx.New(append(options, system.Module(config.Communications.Requests, config.Sessions))...)
+	options = append(options, system.Module(config.Communications.Requests, config.Sessions))
+	return fx.New(append(options, extra...)...)
 }

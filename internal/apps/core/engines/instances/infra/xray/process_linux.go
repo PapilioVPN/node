@@ -169,6 +169,7 @@ func (p *Process) stop(ctx context.Context) error {
 		// Wait remains owned and observable; canceled callers do not claim a join.
 		select {
 		case <-run.done:
+			return signalErr
 		default:
 		}
 		return errors.Join(ctx.Err(), signalErr)

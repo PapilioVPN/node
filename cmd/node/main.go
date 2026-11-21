@@ -18,5 +18,5 @@ func main() {
 		logger.Error("load configuration", "error", err)
 		os.Exit(1)
 	}
-	bootstrap.New(config, logger).Run()
+	os.Exit(bootstrap.Run(config, logger))
 }

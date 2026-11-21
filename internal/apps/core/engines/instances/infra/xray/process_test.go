@@ -4,6 +4,7 @@ package xray
 
 import (
 	"context"
+	"errors"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -144,5 +145,38 @@ func waitFor(t *testing.T, condition func() bool) {
 			t.Fatal("process did not reach expected state")
 		case <-tick.C:
 		}
+	}
+}
+
+func TestCanceledStopRetainsOwnershipUntilExitAndCloseJoins(t *testing.T) {
+	p := fixtureProcess(t, "ignore")
+	start, cancelStart := context.WithCancel(context.Background())
+	if err := p.Start(start); err != nil {
+		t.Fatal(err)
+	}
+	cancelStart()
+	waitFor(t, func() bool { _, err := os.Stat(p.config.Configuration + ".ready"); return err == nil })
+	if p.Observe().State != "running" {
+		t.Fatal("successful start inherited caller cancellation")
+	}
+	stop, cancelStop := context.WithTimeout(context.Background(), time.Millisecond)
+	defer cancelStop()
+	err := p.Stop(stop)
+	if err != nil && !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	if err := p.Close(ctx); err != nil {
+		t.Fatal(err)
+	}
+	result := p.Observe()
+	if result.State != "stopped" || result.ExitedAt == nil || !result.Forced {
+		t.Fatalf("unjoined stop: %+v", result)
+	}
+	// Public observations cannot mutate the resource owner's retained evidence.
+	*result.ExitCode = 999
+	if *p.Observe().ExitCode == 999 {
+		t.Fatal("snapshot borrowed mutable state")
 	}
 }

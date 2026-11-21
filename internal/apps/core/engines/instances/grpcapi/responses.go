@@ -26,15 +26,5 @@ func controlResult(result domain.Control) *instancesv1.ControlResult {
 	return response
 }
 func readinessResult(result domain.Readiness) *instancesv1.InstanceReadiness {
-	state := "not_configured"
-	if result.APIConfigured {
-		state = "not_checked"
-		if result.Status.Execution.State == domain.Running {
-			state = "unavailable"
-			if result.APIReady {
-				state = "ready"
-			}
-		}
-	}
-	return &instancesv1.InstanceReadiness{Status: statusResult(result.Status), ApiState: state, TrafficState: "not_checked", CheckedAt: timestamppb.New(result.CheckedAt)}
+	return &instancesv1.InstanceReadiness{Status: statusResult(result.Status), ApiState: string(result.APIState), TrafficState: string(result.TrafficState), CheckedAt: timestamppb.New(result.CheckedAt)}
 }

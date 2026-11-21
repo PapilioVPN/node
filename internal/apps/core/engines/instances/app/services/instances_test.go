@@ -136,3 +136,19 @@ func TestUnknownAndInvalidSelectionDoNotExecute(t *testing.T) {
 		}
 	}
 }
+
+type changingProbe struct{ runtimeFixture }
+
+func (r *changingProbe) Check(context.Context) (bool, error) {
+	r.mu.Lock()
+	r.execution.Generation++
+	r.mu.Unlock()
+	return true, nil
+}
+func TestReadinessCannotDescribeADifferentExecution(t *testing.T) {
+	r := &changingProbe{runtimeFixture: runtimeFixture{execution: domain.Execution{State: domain.Running, Generation: 4}}}
+	s, _ := New([]Binding{{ID: "a", Engine: "xray", Runtime: r}})
+	if _, err := s.Check(context.Background(), "a"); !errors.Is(err, domain.ErrExecutionChanged) {
+		t.Fatalf("stale readiness accepted: %v", err)
+	}
+}

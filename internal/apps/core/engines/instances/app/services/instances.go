@@ -147,13 +147,24 @@ func (s *Service) Check(ctx context.Context, id string) (domain.Readiness, error
 	if err != nil {
 		return domain.Readiness{}, err
 	}
-	result := domain.Readiness{Status: observe(entry), APIConfigured: entry.binding.Runtime.APIConfigured()}
-	if !result.APIConfigured || result.Status.Execution.State != domain.Running {
+	result := domain.Readiness{Status: observe(entry), APIState: domain.ProbeNotConfigured, TrafficState: domain.ProbeNotChecked}
+	if entry.binding.Runtime.APIConfigured() {
+		result.APIState = domain.ProbeNotChecked
+	}
+	if result.APIState == domain.ProbeNotConfigured || result.Status.Execution.State != domain.Running {
 		result.CheckedAt = time.Now().UTC()
 		return result, nil
 	}
 	ready, err := entry.binding.Runtime.Check(ctx)
-	result.APIReady = ready
+	current := observe(entry)
+	if current.Execution.Generation != result.Status.Execution.Generation || current.Execution.State != domain.Running {
+		return domain.Readiness{}, domain.ErrExecutionChanged
+	}
+	result.Status = current
+	result.APIState = domain.ProbeUnavailable
+	if ready && err == nil {
+		result.APIState = domain.ProbeReady
+	}
 	result.CheckedAt = time.Now().UTC()
 	// A failed native probe is an operation failure, never a successful healthy zero.
 	return result, err

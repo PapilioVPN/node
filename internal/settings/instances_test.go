@@ -1,12 +1,13 @@
 package settings_test
 
 import (
-	"github.com/PapilioVPN/node/internal/settings"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/PapilioVPN/node/internal/settings"
 )
 
 func TestInstancePathsAndNoEngineProvisioning(t *testing.T) {

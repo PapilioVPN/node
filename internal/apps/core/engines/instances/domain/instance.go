@@ -60,9 +60,18 @@ type Control struct {
 	Effect Effect
 }
 
+type ProbeState string
+
+const (
+	ProbeNotConfigured ProbeState = "not_configured"
+	ProbeNotChecked    ProbeState = "not_checked"
+	ProbeReady         ProbeState = "ready"
+	ProbeUnavailable   ProbeState = "unavailable"
+)
+
 type Readiness struct {
-	Status        Status
-	APIConfigured bool
-	APIReady      bool
-	CheckedAt     time.Time
+	Status       Status
+	APIState     ProbeState
+	TrafficState ProbeState
+	CheckedAt    time.Time
 }

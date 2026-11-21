@@ -4,6 +4,7 @@ package xray
 
 import (
 	"context"
+	"errors"
 	"net"
 	"net/netip"
 	"path/filepath"
@@ -13,7 +14,9 @@ import (
 	"github.com/PapilioVPN/node/internal/apps/core/engines/instances/domain"
 	stats "github.com/xtls/xray-core/app/stats/command"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/status"
 )
 
 type APIConfig struct {
@@ -81,7 +84,13 @@ func (a *api) check(ctx context.Context) (bool, error) {
 	client := stats.NewStatsServiceClient(a.connection)
 	a.mu.Unlock()
 	_, err := client.GetSysStats(ctx, &stats.SysStatsRequest{})
-	return err == nil, err
+	if status.Code(err) == codes.Unimplemented {
+		return false, errors.Join(domain.ErrUnsupported, err)
+	}
+	if err != nil {
+		return false, errors.Join(err, ctx.Err())
+	}
+	return true, nil
 }
 
 func (a *api) close() error {

@@ -47,15 +47,5 @@ func controlResult(result domain.Control) controlResponse {
 	return response
 }
 func readinessResult(result domain.Readiness) readinessResponse {
-	state := "not_configured"
-	if result.APIConfigured {
-		state = "not_checked"
-		if result.Status.Execution.State == domain.Running {
-			state = "unavailable"
-			if result.APIReady {
-				state = "ready"
-			}
-		}
-	}
-	return readinessResponse{statusResult(result.Status), state, "not_checked", result.CheckedAt}
+	return readinessResponse{statusResult(result.Status), string(result.APIState), string(result.TrafficState), result.CheckedAt}
 }
