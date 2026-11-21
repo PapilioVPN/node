@@ -15,13 +15,14 @@ import (
 	"time"
 
 	"github.com/PapilioVPN/node/internal/apps/xray/runtime/instances/domain"
+	"github.com/PapilioVPN/node/internal/apps/xray/runtime/instances/infra/rpc"
 )
 
 type Config struct {
 	Binary        string
 	Configuration string
 	StopTimeout   time.Duration
-	API           *APIConfig
+	API           *rpc.Client
 	Source        Source
 }
 
@@ -51,10 +52,7 @@ func New(config Config) (*Process, error) {
 	if !filepath.IsAbs(config.Binary) || !filepath.IsAbs(config.Configuration) || config.StopTimeout <= 0 {
 		return nil, domain.ErrInvalidArgument
 	}
-	resource, err := newAPI(config.API)
-	if err != nil {
-		return nil, err
-	}
+	resource := newAPI(config.API)
 	return &Process{config: config, snapshot: domain.Execution{State: domain.Stopped}, api: resource}, nil
 }
 

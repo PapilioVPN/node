@@ -13,6 +13,7 @@ import (
 	"github.com/PapilioVPN/node/internal/apps/xray/runtime/instances/grpcapi"
 	"github.com/PapilioVPN/node/internal/apps/xray/runtime/instances/httpapi"
 	"github.com/PapilioVPN/node/internal/apps/xray/runtime/instances/infra/process"
+	"github.com/PapilioVPN/node/internal/apps/xray/runtime/instances/infra/rpc"
 	"github.com/PapilioVPN/node/internal/apps/xray/runtime/instances/natsapi"
 	"github.com/PapilioVPN/node/internal/platform/natsclient"
 	"github.com/PapilioVPN/node/internal/settings"
@@ -25,6 +26,7 @@ func Module(config []settings.Instance, requests settings.Requests) fx.Option {
 	return fx.Module("instances",
 		fx.Supply(config, requests, fx.Private),
 		fx.Provide(compose, fx.Private),
+		fx.Provide(fx.Annotate(func(bindings apiBindings) []rpc.Binding { return []rpc.Binding(bindings) }, fx.ResultTags(`group:"xray-native-api,flatten"`))),
 		fx.Provide(func(service *services.Service) configservices.Restarter { return service }),
 		fx.Provide(fx.Annotate(finalize, fx.ResultTags(`group:"final-resources"`))),
 		fx.Invoke(register), fx.Provide(subscribe),
@@ -38,16 +40,23 @@ type composition struct {
 	Sources   process.SourceFactory `optional:"true"`
 }
 
-func compose(in composition) (*services.Service, error) {
+type apiBindings []rpc.Binding
+
+func compose(in composition) (*services.Service, apiBindings, error) {
+	var apis apiBindings
 	config := in.Config
 	bindings := make([]services.Binding, 0, len(config))
 	for _, instance := range config {
 		if instance.Engine != "xray" || instance.Xray == nil {
-			return nil, errors.New("unsupported instance engine")
+			return nil, nil, errors.New("unsupported instance engine")
 		}
-		var api *process.APIConfig
+		var api *rpc.Client
 		if instance.Xray.API != nil {
-			api = &process.APIConfig{Network: instance.Xray.API.Network, Address: instance.Xray.API.Address}
+			var err error
+			api, err = rpc.New(rpc.Config{Network: instance.Xray.API.Network, Address: instance.Xray.API.Address})
+			if err != nil {
+				return nil, nil, err
+			}
 		}
 		var source process.Source
 		if in.Sources != nil {
@@ -55,15 +64,16 @@ func compose(in composition) (*services.Service, error) {
 		}
 		runtime, err := process.New(process.Config{Source: source, Binary: instance.Xray.Binary, Configuration: instance.Xray.Configuration, StopTimeout: instance.StopTimeout, API: api})
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
+		apis = append(apis, rpc.Binding{ID: instance.ID, Client: api})
 		bindings = append(bindings, services.Binding{ID: instance.ID, Engine: instance.Engine, Runtime: runtime})
 	}
 	service, err := services.New(bindings)
 	if err == nil {
 		registerLifecycle(in.Lifecycle, service, config)
 	}
-	return service, err
+	return service, apis, err
 }
 func registerLifecycle(lifecycle fx.Lifecycle, service *services.Service, config []settings.Instance) {
 	// This hook is installed before communication hooks. Shutdown drains incoming

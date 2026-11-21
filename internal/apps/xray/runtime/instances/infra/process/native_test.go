@@ -15,6 +15,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/PapilioVPN/node/internal/apps/xray/runtime/instances/infra/rpc"
 )
 
 func TestNativeXrayTrafficStopRestartAndIndependentInstance(t *testing.T) {
@@ -50,7 +52,11 @@ func TestNativeXrayTrafficStopRestartAndIndependentInstance(t *testing.T) {
 		if err := os.WriteFile(path, contents, 0600); err != nil {
 			t.Fatal(err)
 		}
-		p, err := New(Config{Binary: binary, Configuration: path, StopTimeout: time.Second, API: &APIConfig{Network: "tcp", Address: apiAddress}})
+		client, err := rpc.New(rpc.Config{Network: "tcp", Address: apiAddress})
+		if err != nil {
+			t.Fatal(err)
+		}
+		p, err := New(Config{Binary: binary, Configuration: path, StopTimeout: time.Second, API: client})
 		if err != nil {
 			t.Fatal(err)
 		}
