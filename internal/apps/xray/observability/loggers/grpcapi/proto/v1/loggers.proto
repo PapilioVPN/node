@@ -1,0 +1,34 @@
+syntax = "proto3";
+package papilio.xray.observability.loggers.v1;
+option go_package = "github.com/PapilioVPN/node/internal/apps/xray/observability/loggers/grpcapi/proto/v1;loggersv1";
+import "google/protobuf/timestamp.proto";
+service LoggersService {
+ // One native Close/Start operation, without rename, replay or flush guarantees.
+ rpc ReopenLogger(ReopenLoggerRequest) returns (LoggerOperation);
+ // Local request evidence, never native logger-health readback or a durable journal.
+ rpc GetLoggerControlStatus(GetLoggerControlStatusRequest) returns (LoggerControlStatus);
+}
+message ReopenLoggerRequest {string instance_id = 1;}
+message GetLoggerControlStatusRequest {string instance_id = 1;}
+message LoggerOperation {
+ string instance_id = 1;
+ uint64 generation = 2;
+ // completed, not_applied or unknown; native errors do not establish rollback.
+ string effect = 3;
+ bool acknowledged = 4;
+ // An unresolved dispatched call fences this generation. Replace its execution.
+ bool requires_instance_restart = 5;
+ // Node RPC completion time; remote file I/O may remain active after timeout.
+ google.protobuf.Timestamp observed_at = 6;
+ int64 duration_ns = 7;
+}
+message LoggerControlStatus {
+ string instance_id = 1;
+ uint64 generation = 2;
+ string execution_state = 3;
+ bool api_configured = 4;
+ bool request_in_flight = 5;
+ bool requires_instance_restart = 6;
+ LoggerOperation last_operation = 7;
+ google.protobuf.Timestamp observed_at = 8;
+}

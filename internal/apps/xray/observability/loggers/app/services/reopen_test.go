@@ -31,7 +31,7 @@ func TestUnresolvedRemoteCallBlocksReplayUntilExecutionChanges(t *testing.T) {
 		t.Fatalf("lost recovery status: %+v %v", state, err)
 	}
 	state.LastOperation.Effect = domain.Completed
-	if result, err := service.Reopen(context.Background(), "a"); !errors.Is(err, domain.ErrUncertain) || result.Effect != domain.NotApplied || calls != 1 {
+	if result, err := service.Reopen(context.Background(), "a"); !errors.Is(err, domain.ErrUncertain) || result.Effect != domain.NotApplied || !result.RequiresInstanceRestart || calls != 1 {
 		t.Fatal("uncertain execution admitted another remote mutation", err)
 	}
 	state, _ = service.Status(context.Background(), "a")

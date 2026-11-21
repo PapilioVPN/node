@@ -38,6 +38,7 @@ func (s *Service) Reopen(ctx context.Context, id string) (operation domain.Opera
 		return operation, domain.ErrCapacity
 	}
 	if selected.uncertainGeneration != 0 && selected.uncertainGeneration == operation.Generation {
+		operation.RequiresInstanceRestart = true
 		selected.mu.Unlock()
 		return operation, domain.ErrUncertain
 	}

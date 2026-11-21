@@ -71,3 +71,6 @@ go test -race -tags=integration,distribution ./internal/apps/xray/runtime/config
 
 go test -race -tags=integration,distribution ./internal/apps/xray/runtime/statistics/integration \
     -run="^TestPackagedRuntimeStatistics$" -count=1 -args -image="papilio-node-build:$revision"
+
+go test -race -tags=integration,distribution ./internal/apps/xray/observability/loggers/integration \
+    -run="^TestPackagedLoggerReopening$" -count=1 -args -image="papilio-node-build:$revision"
