@@ -26,7 +26,8 @@ type ValidateConfigurationRequest struct {
 	state      protoimpl.MessageState `protogen:"open.v1"`
 	InstanceId string                 `protobuf:"bytes,1,opt,name=instance_id,json=instanceId,proto3" json:"instance_id,omitempty"`
 	// json (including native comments), yaml, toml or protobuf.
-	Format        string `protobuf:"bytes,2,opt,name=format,proto3" json:"format,omitempty"`
+	Format string `protobuf:"bytes,2,opt,name=format,proto3" json:"format,omitempty"`
+	// Empty content is valid for the native default protobuf message.
 	Content       []byte `protobuf:"bytes,3,opt,name=content,proto3" json:"content,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -155,7 +156,7 @@ var File_internal_apps_xray_runtime_configs_grpcapi_proto_v1_configs_proto proto
 
 const file_internal_apps_xray_runtime_configs_grpcapi_proto_v1_configs_proto_rawDesc = "" +
 	"\n" +
-	"Ainternal/apps/xray/runtime/configs/grpcapi/proto/v1/configs.proto\x12\x1fpapilio.xray.runtime.configs.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"q\n" +
+	"Ainternal/apps/xray/runtime/configs/grpcapi/proto/v1/configs.proto\x12\x1fpapilio.xray.runtime.configs.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1aEinternal/apps/xray/runtime/configs/grpcapi/proto/v1/compilation.proto\"q\n" +
 	"\x1cValidateConfigurationRequest\x12\x1f\n" +
 	"\vinstance_id\x18\x01 \x01(\tR\n" +
 	"instanceId\x12\x16\n" +
@@ -168,9 +169,10 @@ const file_internal_apps_xray_runtime_configs_grpcapi_proto_v1_configs_proto_raw
 	"\n" +
 	"checked_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\tcheckedAt\x12\x1f\n" +
 	"\vduration_ns\x18\x04 \x01(\x03R\n" +
-	"durationNs2\xaa\x01\n" +
+	"durationNs2\xb9\x02\n" +
 	"\x15ConfigurationsService\x12\x90\x01\n" +
-	"\x15ValidateConfiguration\x12=.papilio.xray.runtime.configs.v1.ValidateConfigurationRequest\x1a8.papilio.xray.runtime.configs.v1.ConfigurationValidationBZZXgithub.com/PapilioVPN/node/internal/apps/xray/runtime/configs/grpcapi/proto/v1;configsv1b\x06proto3"
+	"\x15ValidateConfiguration\x12=.papilio.xray.runtime.configs.v1.ValidateConfigurationRequest\x1a8.papilio.xray.runtime.configs.v1.ConfigurationValidation\x12\x8c\x01\n" +
+	"\x14CompileConfiguration\x12<.papilio.xray.runtime.configs.v1.CompileConfigurationRequest\x1a6.papilio.xray.runtime.configs.v1.CompiledConfigurationBZZXgithub.com/PapilioVPN/node/internal/apps/xray/runtime/configs/grpcapi/proto/v1;configsv1b\x06proto3"
 
 var (
 	file_internal_apps_xray_runtime_configs_grpcapi_proto_v1_configs_proto_rawDescOnce sync.Once
@@ -189,13 +191,17 @@ var file_internal_apps_xray_runtime_configs_grpcapi_proto_v1_configs_proto_goTyp
 	(*ValidateConfigurationRequest)(nil), // 0: papilio.xray.runtime.configs.v1.ValidateConfigurationRequest
 	(*ConfigurationValidation)(nil),      // 1: papilio.xray.runtime.configs.v1.ConfigurationValidation
 	(*timestamppb.Timestamp)(nil),        // 2: google.protobuf.Timestamp
+	(*CompileConfigurationRequest)(nil),  // 3: papilio.xray.runtime.configs.v1.CompileConfigurationRequest
+	(*CompiledConfiguration)(nil),        // 4: papilio.xray.runtime.configs.v1.CompiledConfiguration
 }
 var file_internal_apps_xray_runtime_configs_grpcapi_proto_v1_configs_proto_depIdxs = []int32{
 	2, // 0: papilio.xray.runtime.configs.v1.ConfigurationValidation.checked_at:type_name -> google.protobuf.Timestamp
 	0, // 1: papilio.xray.runtime.configs.v1.ConfigurationsService.ValidateConfiguration:input_type -> papilio.xray.runtime.configs.v1.ValidateConfigurationRequest
-	1, // 2: papilio.xray.runtime.configs.v1.ConfigurationsService.ValidateConfiguration:output_type -> papilio.xray.runtime.configs.v1.ConfigurationValidation
-	2, // [2:3] is the sub-list for method output_type
-	1, // [1:2] is the sub-list for method input_type
+	3, // 2: papilio.xray.runtime.configs.v1.ConfigurationsService.CompileConfiguration:input_type -> papilio.xray.runtime.configs.v1.CompileConfigurationRequest
+	1, // 3: papilio.xray.runtime.configs.v1.ConfigurationsService.ValidateConfiguration:output_type -> papilio.xray.runtime.configs.v1.ConfigurationValidation
+	4, // 4: papilio.xray.runtime.configs.v1.ConfigurationsService.CompileConfiguration:output_type -> papilio.xray.runtime.configs.v1.CompiledConfiguration
+	3, // [3:5] is the sub-list for method output_type
+	1, // [1:3] is the sub-list for method input_type
 	1, // [1:1] is the sub-list for extension type_name
 	1, // [1:1] is the sub-list for extension extendee
 	0, // [0:1] is the sub-list for field type_name
@@ -206,6 +212,7 @@ func file_internal_apps_xray_runtime_configs_grpcapi_proto_v1_configs_proto_init
 	if File_internal_apps_xray_runtime_configs_grpcapi_proto_v1_configs_proto != nil {
 		return
 	}
+	file_internal_apps_xray_runtime_configs_grpcapi_proto_v1_compilation_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

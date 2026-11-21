@@ -46,6 +46,7 @@ func compose(config []settings.Instance) (*services.Service, *process.Admission,
 				return nil, nil, err
 			}
 			binding.Builder = builder
+			binding.Compiler = builder
 		}
 		bindings = append(bindings, binding)
 	}
@@ -72,7 +73,10 @@ func register(in adapters) {
 
 func subscribe(in adapters) natsclient.Subscriptions {
 	handler := natsapi.Handler{Service: in.Service, Timeout: in.Requests.Timeout}
-	return natsclient.Subscriptions{Endpoints: []natsclient.Subscription{{Name: "Xray configuration validation", SubjectSuffix: "xray.runtime.configs.v1.validate", Handle: handler.Validate}}}
+	return natsclient.Subscriptions{Endpoints: []natsclient.Subscription{
+		{Name: "Xray configuration validation", SubjectSuffix: "xray.runtime.configs.v1.validate", Handle: handler.Validate},
+		{Name: "Xray configuration compilation", SubjectSuffix: "xray.runtime.configs.v1.compile", Handle: handler.Compile},
+	}}
 }
 
 func registerLifecycle(lifecycle fx.Lifecycle, resource *process.Admission) {

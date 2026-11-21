@@ -21,20 +21,11 @@ type Handler struct {
 }
 
 func (h Handler) Validate(ctx context.Context, data []byte, headers nats.Header) []byte {
-	ctx, cancel := context.WithTimeout(ctx, h.Timeout)
-	defer cancel()
-	if values, ok := headers["Papilio-Deadline"]; ok {
-		if len(values) != 1 {
-			return failure(domain.ErrInvalidArgument)
-		}
-		deadline, err := time.Parse(time.RFC3339Nano, values[0])
-		if err != nil {
-			return failure(domain.ErrInvalidArgument)
-		}
-		shorter, release := context.WithDeadline(ctx, deadline)
-		defer release()
-		ctx = shorter
+	ctx, cancel, err := h.requestContext(ctx, headers)
+	if err != nil {
+		return failure(err)
 	}
+	defer cancel()
 	id, candidate, err := decode(data)
 	if err != nil {
 		return failure(err)
@@ -107,6 +98,8 @@ func failure(err error) []byte {
 		code = "canceled"
 	case errors.Is(err, domain.ErrInvalidArgument):
 		code = "invalid_argument"
+	case errors.Is(err, domain.ErrRejected):
+		code = "native_rejected"
 	case errors.Is(err, domain.ErrNotFound):
 		code = "not_found"
 	case errors.Is(err, domain.ErrUnsupported), errors.Is(err, domain.ErrClosed):
@@ -125,4 +118,22 @@ func encode(value any) []byte {
 		return []byte(`{"error":"unavailable"}`)
 	}
 	return data
+}
+
+func (h Handler) requestContext(ctx context.Context, headers nats.Header) (context.Context, context.CancelFunc, error) {
+	deadline := time.Now().Add(h.Timeout)
+	if values, ok := headers["Papilio-Deadline"]; ok {
+		if len(values) != 1 {
+			return nil, nil, domain.ErrInvalidArgument
+		}
+		requested, err := time.Parse(time.RFC3339Nano, values[0])
+		if err != nil {
+			return nil, nil, domain.ErrInvalidArgument
+		}
+		if requested.Before(deadline) {
+			deadline = requested
+		}
+	}
+	ctx, cancel := context.WithDeadline(ctx, deadline)
+	return ctx, cancel, nil
 }

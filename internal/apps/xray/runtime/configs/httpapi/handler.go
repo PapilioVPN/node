@@ -19,6 +19,7 @@ type Handler struct {
 
 func (h Handler) Register(router fiber.Router) {
 	router.Post("/v1/xray/runtime/instances/:id/config-validations", h.Validate)
+	router.Post("/v1/xray/runtime/config-compilations", h.Compile)
 }
 
 func (h Handler) Validate(request fiber.Ctx) error {
@@ -49,6 +50,8 @@ func failure(request fiber.Ctx, err error) error {
 		code = "canceled"
 	case errors.Is(err, domain.ErrInvalidArgument):
 		code, status = "invalid_argument", fiber.StatusBadRequest
+	case errors.Is(err, domain.ErrRejected):
+		code, status = "native_rejected", fiber.StatusUnprocessableEntity
 	case errors.Is(err, domain.ErrNotFound):
 		code, status = "not_found", fiber.StatusNotFound
 	case errors.Is(err, domain.ErrUnsupported), errors.Is(err, domain.ErrClosed):

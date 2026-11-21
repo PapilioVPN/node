@@ -47,6 +47,8 @@ func failure(err error) error {
 		code, message = codes.Canceled, "canceled"
 	case errors.Is(err, domain.ErrInvalidArgument):
 		code, message = codes.InvalidArgument, "invalid_argument"
+	case errors.Is(err, domain.ErrRejected):
+		code, message = codes.InvalidArgument, "native_rejected"
 	case errors.Is(err, domain.ErrNotFound):
 		code, message = codes.NotFound, "not_found"
 	case errors.Is(err, domain.ErrUnsupported), errors.Is(err, domain.ErrClosed):

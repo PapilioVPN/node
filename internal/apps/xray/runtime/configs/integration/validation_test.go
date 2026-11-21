@@ -35,14 +35,15 @@ func exerciseValidation(t *testing.T, client clients, transport string, f fixtur
 	log := filepath.Join(f.config.Instances[0].Xray.WorkDirectory, "must-not-exist.log")
 	candidate, _ := json.Marshal(map[string]any{"log": map[string]any{"access": log, "error": log}, "outbounds": []any{map[string]any{"protocol": "freedom"}}})
 	for _, test := range []struct {
+		format  string
 		content []byte
 		valid   bool
-	}{{candidate, true}, {[]byte(`{"inbounds":[{"protocol":"not-a-protocol"}]}`), false}} {
+	}{{"json", candidate, true}, {"json", []byte(`{"inbounds":[{"protocol":"not-a-protocol"}]}`), false}, {"protobuf", nil, true}} {
 		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 		var valid bool
 		switch transport {
 		case "http":
-			request, _ := http.NewRequestWithContext(ctx, "POST", client.address+"/v1/xray/runtime/instances/edge-a/config-validations?format=json", bytes.NewReader(test.content))
+			request, _ := http.NewRequestWithContext(ctx, "POST", client.address+"/v1/xray/runtime/instances/edge-a/config-validations?format="+test.format, bytes.NewReader(test.content))
 			response, err := client.http.Do(request)
 			if err != nil {
 				cancel()
@@ -62,7 +63,7 @@ func exerciseValidation(t *testing.T, client clients, transport string, f fixtur
 			}
 			valid = got.Valid
 		case "grpc":
-			result, err := configsv1.NewConfigurationsServiceClient(client.grpc).ValidateConfiguration(ctx, &configsv1.ValidateConfigurationRequest{InstanceId: "edge-a", Format: "json", Content: test.content})
+			result, err := configsv1.NewConfigurationsServiceClient(client.grpc).ValidateConfiguration(ctx, &configsv1.ValidateConfigurationRequest{InstanceId: "edge-a", Format: test.format, Content: test.content})
 			if err != nil {
 				cancel()
 				t.Fatal(err)
@@ -73,7 +74,7 @@ func exerciseValidation(t *testing.T, client clients, transport string, f fixtur
 			}
 			valid = result.Valid
 		case "nats":
-			request, _ := json.Marshal(map[string]any{"instance_id": "edge-a", "format": "json", "content": test.content})
+			request, _ := json.Marshal(map[string]any{"instance_id": "edge-a", "format": test.format, "content": test.content})
 			message, err := client.nats.RequestWithContext(ctx, subject, request)
 			if err != nil {
 				cancel()

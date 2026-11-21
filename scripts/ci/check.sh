@@ -21,6 +21,7 @@ go test -run="^$" -fuzz="^FuzzCPUInfo$" -fuzztime=10s -parallel=2 ./internal/app
 go test -run="^$" -fuzz="^FuzzActivity$" -fuzztime=10s -parallel=2 ./internal/apps/system/host/cpu/infra/sys
 go test -run="^$" -fuzz="^FuzzLoginRecords$" -fuzztime=10s -parallel=2 ./internal/apps/system/host/sessions/infra/utmp
 go test -run="^$" -fuzz="^FuzzPowerSupply$" -fuzztime=10s -parallel=2 ./internal/apps/system/host/sensors/infra/sys
+go test -run="^$" -fuzz="^FuzzCompilationEnvelope$" -fuzztime=10s -parallel=2 ./internal/apps/xray/runtime/configs/infra/jsonwire
 govulncheck ./...
 mkdir -p dist
 CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -o dist/node ./cmd/node

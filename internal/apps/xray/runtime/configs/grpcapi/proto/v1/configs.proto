@@ -2,16 +2,20 @@ syntax = "proto3";
 package papilio.xray.runtime.configs.v1;
 option go_package = "github.com/PapilioVPN/node/internal/apps/xray/runtime/configs/grpcapi/proto/v1;configsv1";
 import "google/protobuf/timestamp.proto";
+import "internal/apps/xray/runtime/configs/grpcapi/proto/v1/compilation.proto";
 
 service ConfigurationsService {
   // Native config building only. It neither applies the candidate nor proves readiness.
   rpc ValidateConfiguration(ValidateConfigurationRequest) returns (ConfigurationValidation);
+  // Builds ordered sources in one native conversion. Does not apply the result.
+  rpc CompileConfiguration(CompileConfigurationRequest) returns (CompiledConfiguration);
 }
 
 message ValidateConfigurationRequest {
   string instance_id = 1;
   // json (including native comments), yaml, toml or protobuf.
   string format = 2;
+  // Empty content is valid for the native default protobuf message.
   bytes content = 3;
 }
 

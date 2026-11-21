@@ -20,6 +20,7 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	ConfigurationsService_ValidateConfiguration_FullMethodName = "/papilio.xray.runtime.configs.v1.ConfigurationsService/ValidateConfiguration"
+	ConfigurationsService_CompileConfiguration_FullMethodName  = "/papilio.xray.runtime.configs.v1.ConfigurationsService/CompileConfiguration"
 )
 
 // ConfigurationsServiceClient is the client API for ConfigurationsService service.
@@ -28,6 +29,8 @@ const (
 type ConfigurationsServiceClient interface {
 	// Native config building only. It neither applies the candidate nor proves readiness.
 	ValidateConfiguration(ctx context.Context, in *ValidateConfigurationRequest, opts ...grpc.CallOption) (*ConfigurationValidation, error)
+	// Builds ordered sources in one native conversion. Does not apply the result.
+	CompileConfiguration(ctx context.Context, in *CompileConfigurationRequest, opts ...grpc.CallOption) (*CompiledConfiguration, error)
 }
 
 type configurationsServiceClient struct {
@@ -48,12 +51,24 @@ func (c *configurationsServiceClient) ValidateConfiguration(ctx context.Context,
 	return out, nil
 }
 
+func (c *configurationsServiceClient) CompileConfiguration(ctx context.Context, in *CompileConfigurationRequest, opts ...grpc.CallOption) (*CompiledConfiguration, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CompiledConfiguration)
+	err := c.cc.Invoke(ctx, ConfigurationsService_CompileConfiguration_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ConfigurationsServiceServer is the server API for ConfigurationsService service.
 // All implementations must embed UnimplementedConfigurationsServiceServer
 // for forward compatibility.
 type ConfigurationsServiceServer interface {
 	// Native config building only. It neither applies the candidate nor proves readiness.
 	ValidateConfiguration(context.Context, *ValidateConfigurationRequest) (*ConfigurationValidation, error)
+	// Builds ordered sources in one native conversion. Does not apply the result.
+	CompileConfiguration(context.Context, *CompileConfigurationRequest) (*CompiledConfiguration, error)
 	mustEmbedUnimplementedConfigurationsServiceServer()
 }
 
@@ -66,6 +81,9 @@ type UnimplementedConfigurationsServiceServer struct{}
 
 func (UnimplementedConfigurationsServiceServer) ValidateConfiguration(context.Context, *ValidateConfigurationRequest) (*ConfigurationValidation, error) {
 	return nil, status.Error(codes.Unimplemented, "method ValidateConfiguration not implemented")
+}
+func (UnimplementedConfigurationsServiceServer) CompileConfiguration(context.Context, *CompileConfigurationRequest) (*CompiledConfiguration, error) {
+	return nil, status.Error(codes.Unimplemented, "method CompileConfiguration not implemented")
 }
 func (UnimplementedConfigurationsServiceServer) mustEmbedUnimplementedConfigurationsServiceServer() {}
 func (UnimplementedConfigurationsServiceServer) testEmbeddedByValue()                               {}
@@ -106,6 +124,24 @@ func _ConfigurationsService_ValidateConfiguration_Handler(srv interface{}, ctx c
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ConfigurationsService_CompileConfiguration_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CompileConfigurationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ConfigurationsServiceServer).CompileConfiguration(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ConfigurationsService_CompileConfiguration_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ConfigurationsServiceServer).CompileConfiguration(ctx, req.(*CompileConfigurationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ConfigurationsService_ServiceDesc is the grpc.ServiceDesc for ConfigurationsService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -116,6 +152,10 @@ var ConfigurationsService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ValidateConfiguration",
 			Handler:    _ConfigurationsService_ValidateConfiguration_Handler,
+		},
+		{
+			MethodName: "CompileConfiguration",
+			Handler:    _ConfigurationsService_CompileConfiguration_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

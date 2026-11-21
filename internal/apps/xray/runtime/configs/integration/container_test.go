@@ -73,6 +73,7 @@ func TestPackagedConfigurationValidation(t *testing.T) {
 	awaitTraffic(t, f)
 	for _, transport := range []string{"http", "grpc", "nats"} {
 		exerciseValidation(t, client, transport, f)
+		exerciseCompilation(t, client, transport, f)
 	}
 	docker(t, "stop", "--time", "12", name)
 	if strings.TrimSpace(docker(t, "inspect", "--format", "{{.State.ExitCode}}", name)) != "0" {
@@ -105,7 +106,7 @@ func containerAddresses(t *testing.T, name string) map[string]string {
 	defer tick.Stop()
 	for {
 		addresses := map[string]string{}
-		subscribed := false
+		validated, compiled := false, false
 		for line := range strings.SplitSeq(docker(t, "logs", "--tail", "200", name), "\n") {
 			var event struct {
 				Message string `json:"msg"`
@@ -118,10 +119,13 @@ func containerAddresses(t *testing.T, name string) map[string]string {
 				addresses[event.Message] = event.Address
 			}
 			if event.Message == "Xray configuration validation NATS subscribed" {
-				subscribed = true
+				validated = true
+			}
+			if event.Message == "Xray configuration compilation NATS subscribed" {
+				compiled = true
 			}
 		}
-		if addresses["HTTP listening"] != "" && addresses["gRPC listening"] != "" && subscribed {
+		if addresses["HTTP listening"] != "" && addresses["gRPC listening"] != "" && validated && compiled {
 			return addresses
 		}
 		select {
