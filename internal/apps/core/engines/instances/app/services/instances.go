@@ -158,7 +158,7 @@ func (s *Service) Check(ctx context.Context, id string) (domain.Readiness, error
 	ready, err := entry.binding.Runtime.Check(ctx)
 	current := observe(entry)
 	if current.Execution.Generation != result.Status.Execution.Generation || current.Execution.State != domain.Running {
-		return domain.Readiness{}, domain.ErrExecutionChanged
+		return domain.Readiness{}, errors.Join(domain.ErrExecutionChanged, err)
 	}
 	result.Status = current
 	result.APIState = domain.ProbeUnavailable

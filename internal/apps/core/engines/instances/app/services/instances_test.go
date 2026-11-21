@@ -137,18 +137,34 @@ func TestUnknownAndInvalidSelectionDoNotExecute(t *testing.T) {
 	}
 }
 
-type changingProbe struct{ runtimeFixture }
+type changingProbe struct {
+	runtimeFixture
+	cancel context.CancelFunc
+}
 
-func (r *changingProbe) Check(context.Context) (bool, error) {
+func (r *changingProbe) Check(ctx context.Context) (bool, error) {
 	r.mu.Lock()
 	r.execution.Generation++
 	r.mu.Unlock()
-	return true, nil
+	if r.cancel != nil {
+		r.cancel()
+	}
+	return ctx.Err() == nil, ctx.Err()
 }
 func TestReadinessCannotDescribeADifferentExecution(t *testing.T) {
 	r := &changingProbe{runtimeFixture: runtimeFixture{execution: domain.Execution{State: domain.Running, Generation: 4}}}
 	s, _ := New([]Binding{{ID: "a", Engine: "xray", Runtime: r}})
 	if _, err := s.Check(context.Background(), "a"); !errors.Is(err, domain.ErrExecutionChanged) {
 		t.Fatalf("stale readiness accepted: %v", err)
+	}
+}
+
+func TestReadinessGenerationChangePreservesCancellationCause(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	r := &changingProbe{runtimeFixture: runtimeFixture{execution: domain.Execution{State: domain.Running, Generation: 4}}, cancel: cancel}
+	s, _ := New([]Binding{{ID: "a", Engine: "xray", Runtime: r}})
+	if _, err := s.Check(ctx, "a"); !errors.Is(err, context.Canceled) || !errors.Is(err, domain.ErrExecutionChanged) {
+		t.Fatalf("lost cancellation: %v", err)
 	}
 }

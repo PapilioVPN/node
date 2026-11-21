@@ -5,10 +5,6 @@ package integration_test
 import (
 	"bytes"
 	"context"
-	instancesv1 "github.com/PapilioVPN/node/internal/apps/core/engines/instances/grpcapi/proto/v1"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -18,7 +14,11 @@ import (
 	"testing"
 	"time"
 
+	instancesv1 "github.com/PapilioVPN/node/internal/apps/core/engines/instances/grpcapi/proto/v1"
 	"github.com/PapilioVPN/node/internal/testutil"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func TestNativeLifecycleOverEveryIndependentTransport(t *testing.T) {

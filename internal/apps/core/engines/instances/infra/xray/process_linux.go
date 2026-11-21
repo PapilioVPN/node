@@ -216,7 +216,7 @@ func (p *Process) Check(ctx context.Context) (bool, error) {
 	ready, err := p.api.check(ctx)
 	after := p.Observe()
 	if before.Generation != after.Generation || after.State != domain.Running {
-		return false, domain.ErrExecutionChanged
+		return false, errors.Join(domain.ErrExecutionChanged, err)
 	}
 	return ready, err
 }

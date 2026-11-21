@@ -21,7 +21,12 @@ import (
 )
 
 func Module(config []settings.Instance, requests settings.Requests) fx.Option {
-	return fx.Module("instances", fx.Supply(config, requests, fx.Private), fx.Provide(compose, fx.Private), fx.Provide(fx.Annotate(finalize, fx.ResultTags(`group:"final-resources"`))), fx.Invoke(registerLifecycle, register), fx.Provide(subscribe))
+	return fx.Module("instances",
+		fx.Supply(config, requests, fx.Private),
+		fx.Provide(compose, fx.Private),
+		fx.Provide(fx.Annotate(finalize, fx.ResultTags(`group:"final-resources"`))),
+		fx.Invoke(registerLifecycle, register), fx.Provide(subscribe),
+	)
 }
 func compose(config []settings.Instance) (*services.Service, error) {
 	bindings := make([]services.Binding, 0, len(config))

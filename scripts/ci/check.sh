@@ -12,6 +12,8 @@ go mod tidy
 git diff --exit-code -- go.mod go.sum
 go mod verify
 go vet ./...
+XRAY_TEST_BINARY=$(sh scripts/ci/prepare-xray.sh)
+export XRAY_TEST_BINARY
 go test -race -tags=integration ./...
 go test -run="^$" -fuzz="^FuzzLoad$" -fuzztime=10s -parallel=2 ./internal/settings
 go test -run="^$" -fuzz="^FuzzSwapCounters$" -fuzztime=10s -parallel=2 ./internal/apps/system/host/memory/infra/sys
@@ -58,3 +60,6 @@ go test -race -tags=integration,distribution ./internal/apps/system/host/sensors
 
 go test -race -tags=integration,distribution ./internal/apps/system/node/runtime/integration \
     -run="^TestPackagedNodeRuntime$" -count=1 -args -image="papilio-node-build:$revision"
+
+go test -race -tags=integration,distribution ./internal/apps/core/engines/instances/integration \
+    -run="^TestPackagedInstances$" -count=1 -args -image="papilio-node-build:$revision"
