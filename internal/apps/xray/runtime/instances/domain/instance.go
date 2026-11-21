@@ -14,6 +14,7 @@ var (
 	ErrUnsupported      = errors.New("instance facility not configured")
 	ErrNotApplied       = errors.New("operation was not applied")
 	ErrExecutionChanged = errors.New("execution changed during observation")
+	ErrCleanupFailed    = errors.New("configuration resource cleanup failed")
 )
 
 type State string
@@ -28,13 +29,15 @@ const (
 // Execution retains the last run after exit. Failure is private native evidence.
 // StartedAt acknowledges process creation, not engine readiness or signal admission.
 type Execution struct {
-	State      State
-	Generation uint64
-	StartedAt  *time.Time
-	ExitedAt   *time.Time
-	ExitCode   *int32
-	Forced     bool
-	Failure    error
+	State                 State
+	Generation            uint64
+	StartedAt             *time.Time
+	ExitedAt              *time.Time
+	ExitCode              *int32
+	Forced                bool
+	Failure               error
+	ConfigurationRevision *uint64
+	CleanupFailure        error
 }
 
 type Status struct {

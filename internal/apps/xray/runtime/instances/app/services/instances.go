@@ -136,6 +136,8 @@ func (s *Service) control(ctx context.Context, id string, stop, restart bool) (d
 		result.Effect = domain.Partial
 	case errors.Is(err, domain.ErrNotApplied):
 		result.Effect = domain.NotApplied
+	case errors.Is(err, domain.ErrCleanupFailed):
+		result.Effect = domain.Partial
 	default:
 		result.Effect = domain.Unknown
 	}

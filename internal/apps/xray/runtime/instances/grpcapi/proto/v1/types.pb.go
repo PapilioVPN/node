@@ -34,8 +34,11 @@ type InstanceStatus struct {
 	Forced          bool                   `protobuf:"varint,8,opt,name=forced,proto3" json:"forced,omitempty"`
 	ExecutionFailed bool                   `protobuf:"varint,9,opt,name=execution_failed,json=executionFailed,proto3" json:"execution_failed,omitempty"`
 	ObservedAt      *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=observed_at,json=observedAt,proto3" json:"observed_at,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// The original-source revision used by this execution, absent for operator baseline.
+	ConfigurationRevision      *uint64 `protobuf:"varint,11,opt,name=configuration_revision,json=configurationRevision,proto3,oneof" json:"configuration_revision,omitempty"`
+	ConfigurationCleanupFailed bool    `protobuf:"varint,12,opt,name=configuration_cleanup_failed,json=configurationCleanupFailed,proto3" json:"configuration_cleanup_failed,omitempty"`
+	unknownFields              protoimpl.UnknownFields
+	sizeCache                  protoimpl.SizeCache
 }
 
 func (x *InstanceStatus) Reset() {
@@ -136,6 +139,20 @@ func (x *InstanceStatus) GetObservedAt() *timestamppb.Timestamp {
 		return x.ObservedAt
 	}
 	return nil
+}
+
+func (x *InstanceStatus) GetConfigurationRevision() uint64 {
+	if x != nil && x.ConfigurationRevision != nil {
+		return *x.ConfigurationRevision
+	}
+	return 0
+}
+
+func (x *InstanceStatus) GetConfigurationCleanupFailed() bool {
+	if x != nil {
+		return x.ConfigurationCleanupFailed
+	}
+	return false
 }
 
 type ControlResult struct {
@@ -265,7 +282,7 @@ var File_internal_apps_xray_runtime_instances_grpcapi_proto_v1_types_proto proto
 
 const file_internal_apps_xray_runtime_instances_grpcapi_proto_v1_types_proto_rawDesc = "" +
 	"\n" +
-	"Ainternal/apps/xray/runtime/instances/grpcapi/proto/v1/types.proto\x12!papilio.core.engines.instances.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xa3\x03\n" +
+	"Ainternal/apps/xray/runtime/instances/grpcapi/proto/v1/types.proto\x12!papilio.core.engines.instances.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xbc\x04\n" +
 	"\x0eInstanceStatus\x12\x1f\n" +
 	"\vinstance_id\x18\x01 \x01(\tR\n" +
 	"instanceId\x12\x16\n" +
@@ -282,9 +299,12 @@ const file_internal_apps_xray_runtime_instances_grpcapi_proto_v1_types_proto_raw
 	"\x10execution_failed\x18\t \x01(\bR\x0fexecutionFailed\x12;\n" +
 	"\vobserved_at\x18\n" +
 	" \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"observedAtB\f\n" +
+	"observedAt\x12:\n" +
+	"\x16configuration_revision\x18\v \x01(\x04H\x01R\x15configurationRevision\x88\x01\x01\x12@\n" +
+	"\x1cconfiguration_cleanup_failed\x18\f \x01(\bR\x1aconfigurationCleanupFailedB\f\n" +
 	"\n" +
-	"_exit_code\"r\n" +
+	"_exit_codeB\x19\n" +
+	"\x17_configuration_revision\"r\n" +
 	"\rControlResult\x12I\n" +
 	"\x06status\x18\x01 \x01(\v21.papilio.core.engines.instances.v1.InstanceStatusR\x06status\x12\x16\n" +
 	"\x06effect\x18\x02 \x01(\tR\x06effect\"\xdb\x01\n" +

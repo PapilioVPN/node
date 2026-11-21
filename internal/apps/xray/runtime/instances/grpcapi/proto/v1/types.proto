@@ -14,6 +14,9 @@ message InstanceStatus {
  bool forced = 8;
  bool execution_failed = 9;
  google.protobuf.Timestamp observed_at = 10;
+ // The original-source revision used by this execution, absent for operator baseline.
+ optional uint64 configuration_revision = 11;
+ bool configuration_cleanup_failed = 12;
 }
 message ControlResult {
  InstanceStatus status = 1;

@@ -22,11 +22,15 @@ type Config struct {
 	Configuration string
 	StopTimeout   time.Duration
 	API           *APIConfig
+	Source        Source
 }
 
 type execution struct {
-	command *exec.Cmd
-	done    chan struct{}
+	command    *exec.Cmd
+	done       chan struct{}
+	input      *Input
+	exited     bool
+	cleanupErr error
 }
 
 // Process owns one execution at a time. A successful Start transfers ownership
@@ -40,6 +44,7 @@ type Process struct {
 	closed   bool
 	stopping bool
 	api      *api
+	pending  *Input
 }
 
 func New(config Config) (*Process, error) {
@@ -69,6 +74,10 @@ func (p *Process) Observe() domain.Execution {
 		value := *result.ExitCode
 		result.ExitCode = &value
 	}
+	if result.ConfigurationRevision != nil {
+		value := *result.ConfigurationRevision
+		result.ConfigurationRevision = &value
+	}
 	return result
 }
 
@@ -80,46 +89,86 @@ func (p *Process) Start(ctx context.Context) error {
 		return errors.Join(domain.ErrNotApplied, domain.ErrBusy)
 	}
 	defer p.mutation.Unlock()
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	if p.closed {
-		return errors.Join(domain.ErrNotApplied, domain.ErrClosed)
-	}
-	if err := ctx.Err(); err != nil {
+	if err := p.cleanupPending(ctx); err != nil {
 		return errors.Join(domain.ErrNotApplied, err)
 	}
-	if p.snapshot.State == domain.Running {
-		return nil
-	}
-	if p.current != nil {
-		return errors.Join(domain.ErrNotApplied, domain.ErrBusy)
-	}
-	if p.snapshot.Generation == math.MaxUint64 {
-		return errors.Join(domain.ErrNotApplied, errors.New("execution generation exhausted"))
+	if needed, err := p.needsStart(); err != nil || !needed {
+		return err
 	}
 	command := exec.Command(p.config.Binary, "run", "-c", p.config.Configuration)
 	command.Dir = filepath.Dir(p.config.Configuration)
 	command.Env = []string{}
 	// Nil output descriptors use the OS null device: no pipe readers or retained logs.
-	p.mu.Unlock()
+	var input *Input
+	if p.config.Source != nil {
+		var err error
+		input, err = p.config.Source.Open(ctx)
+		if err == nil {
+			err = validateInput(input)
+		}
+		if err != nil {
+			cleanupErr := p.discardInput(input)
+			return errors.Join(domain.ErrNotApplied, err, cleanupErr)
+		}
+		if input != nil {
+			command.Args = []string{p.config.Binary, "run"}
+			for _, name := range input.Names {
+				command.Args = append(command.Args, "-c", "/proc/self/fd/3/"+name)
+			}
+			command.ExtraFiles = []*os.File{input.Directory}
+		}
+	}
+	if err := ctx.Err(); err != nil {
+		cleanupErr := p.discardInput(input)
+		return errors.Join(domain.ErrNotApplied, err, cleanupErr)
+	}
 	err := command.Start()
-	p.mu.Lock()
+	if input != nil && input.Directory != nil {
+		_ = input.Directory.Close()
+	}
+	if err != nil {
+		err = errors.Join(err, p.discardInput(input))
+	}
 	if err != nil {
 		return errors.Join(domain.ErrNotApplied, err)
 	}
+	p.mu.Lock()
+	defer p.mu.Unlock()
 	started := time.Now().UTC()
-	run := &execution{command: command, done: make(chan struct{})}
+	run := &execution{command: command, done: make(chan struct{}), input: input}
 	p.current = run
 	p.snapshot = domain.Execution{State: domain.Running, Generation: p.snapshot.Generation + 1, StartedAt: &started}
+	if input != nil {
+		revision := input.Revision
+		p.snapshot.ConfigurationRevision = &revision
+	}
 	go p.wait(run)
 	return nil
+}
+
+// The mutation lock reserves startup while this short state check holds mu.
+// Source staging and process creation never hold the observation lock.
+func (p *Process) needsStart() (bool, error) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	switch {
+	case p.closed:
+		return false, errors.Join(domain.ErrNotApplied, domain.ErrClosed)
+	case p.snapshot.State == domain.Running:
+		return false, nil
+	case p.current != nil:
+		return false, errors.Join(domain.ErrNotApplied, domain.ErrBusy)
+	case p.snapshot.Generation == math.MaxUint64:
+		return false, errors.Join(domain.ErrNotApplied, errors.New("execution generation exhausted"))
+	default:
+		return true, nil
+	}
 }
 
 func (p *Process) wait(run *execution) {
 	err := run.command.Wait()
 	completed := time.Now().UTC()
 	p.mu.Lock()
-	defer p.mu.Unlock()
 	p.snapshot.State = domain.Exited
 	// Stop marks its intention before signaling. Preserve actual exit evidence.
 	if p.current == run && p.stopping {
@@ -129,6 +178,16 @@ func (p *Process) wait(run *execution) {
 	code := int32(run.command.ProcessState.ExitCode())
 	p.snapshot.ExitCode = &code
 	p.snapshot.Failure = err
+	run.exited = true
+	p.mu.Unlock()
+	cleanupErr := p.cleanupInput(run.input)
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if cleanupErr != nil {
+		p.pending = run.input
+		p.snapshot.CleanupFailure = cleanupErr
+		run.cleanupErr = errors.Join(domain.ErrCleanupFailed, cleanupErr)
+	}
 	p.current = nil
 	p.stopping = false
 	close(run.done)
@@ -150,7 +209,16 @@ func (p *Process) stop(ctx context.Context) error {
 	run := p.current
 	if run == nil {
 		p.mu.Unlock()
-		return nil
+		return p.cleanupPending(ctx)
+	}
+	if run.exited {
+		p.mu.Unlock()
+		select {
+		case <-run.done:
+			return run.cleanupErr
+		case <-ctx.Done():
+			return ctx.Err()
+		}
 	}
 	p.stopping = true
 	p.snapshot.State = domain.Stopping
@@ -163,13 +231,13 @@ func (p *Process) stop(ctx context.Context) error {
 	defer timer.Stop()
 	select {
 	case <-run.done:
-		return signalErr
+		return errors.Join(signalErr, run.cleanupErr)
 	case <-ctx.Done():
 		p.kill(run)
 		// Wait remains owned and observable; canceled callers do not claim a join.
 		select {
 		case <-run.done:
-			return signalErr
+			return errors.Join(signalErr, run.cleanupErr)
 		default:
 		}
 		return errors.Join(ctx.Err(), signalErr)
@@ -177,7 +245,7 @@ func (p *Process) stop(ctx context.Context) error {
 		p.kill(run)
 		select {
 		case <-run.done:
-			return signalErr
+			return errors.Join(signalErr, run.cleanupErr)
 		case <-ctx.Done():
 			return errors.Join(ctx.Err(), signalErr)
 		}
@@ -187,7 +255,7 @@ func (p *Process) stop(ctx context.Context) error {
 func (p *Process) kill(run *execution) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	if p.current == run {
+	if p.current == run && !run.exited {
 		p.snapshot.Forced = true
 		_ = run.command.Process.Kill()
 	}

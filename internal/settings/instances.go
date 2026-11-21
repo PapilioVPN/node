@@ -21,10 +21,11 @@ type Instance struct {
 	Xray        *Xray         `yaml:"xray"`
 }
 type Xray struct {
-	Binary        string   `yaml:"binary"`
-	Configuration string   `yaml:"configuration"`
-	WorkDirectory string   `yaml:"work_directory"`
-	API           *XrayAPI `yaml:"api"`
+	Binary         string   `yaml:"binary"`
+	Configuration  string   `yaml:"configuration"`
+	WorkDirectory  string   `yaml:"work_directory"`
+	StateDirectory string   `yaml:"state_directory"`
+	API            *XrayAPI `yaml:"api"`
 }
 type XrayAPI struct {
 	Network string `yaml:"network"`
@@ -49,6 +50,11 @@ func validateInstances(instances []Instance) error {
 		}
 		if work := instance.Xray.WorkDirectory; strings.ContainsRune(work, 0) || !utf8.ValidString(work) {
 			return fmt.Errorf("instances[%d]: work_directory must be a UTF-8 path", i)
+		}
+		if state := instance.Xray.StateDirectory; state != "" {
+			if instance.Xray.WorkDirectory == "" || strings.ContainsRune(state, 0) || !utf8.ValidString(state) {
+				return fmt.Errorf("instances[%d]: state_directory requires a private path and work_directory", i)
+			}
 		}
 		for _, path := range []string{instance.Xray.Binary, instance.Xray.Configuration} {
 			if path == "" || strings.ContainsRune(path, 0) || !utf8.ValidString(path) {
@@ -76,6 +82,9 @@ func validateInstances(instances []Instance) error {
 func resolveInstances(base string, instances []Instance) {
 	for i := range instances {
 		instance := &instances[i]
+		if instance.Xray.StateDirectory != "" {
+			instance.Xray.StateDirectory = absolutePath(base, instance.Xray.StateDirectory)
+		}
 		if instance.Xray.WorkDirectory != "" {
 			instance.Xray.WorkDirectory = absolutePath(base, instance.Xray.WorkDirectory)
 		}

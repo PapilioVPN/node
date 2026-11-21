@@ -78,6 +78,8 @@ communications:
 #       configuration: /etc/xray/config.json
 #       # Existing private writable scratch directory; required for candidate checks.
 #       work_directory: /var/lib/node/xray/edge-a/work
+#       # Optional existing private durable directory for source updates and recovery.
+#       state_directory: /var/lib/node/xray/edge-a/state
 #       api:
 #         network: tcp
 #         address: 127.0.0.1:10085

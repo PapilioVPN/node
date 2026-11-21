@@ -144,3 +144,34 @@ func TestCorruptOrForeignStateDoesNotBecomeSuccessfulAbsence(t *testing.T) {
 		t.Fatal("state root was provisioned implicitly")
 	}
 }
+
+func TestMetadataRemainsAvailableAndCloseWaitsForPublication(t *testing.T) {
+	store := openStore(t, t.TempDir())
+	syncing, release := make(chan struct{}), make(chan struct{})
+	store.syncRoot = func(root *os.Root) error { close(syncing); <-release; return syncDirectory(root) }
+	done := make(chan error, 1)
+	go func() {
+		_, err := store.Write(context.Background(), 0, []domain.Source{{Name: "empty.pb"}})
+		done <- err
+	}()
+	<-syncing
+	metadata, err := store.Metadata(context.Background())
+	if err != nil || metadata.Revision != 1 || metadata.Durable {
+		t.Fatalf("in-progress metadata %+v %v", metadata, err)
+	}
+	if _, err := store.Read(context.Background()); !errors.Is(err, domain.ErrCapacity) {
+		t.Fatal("source read overlapped native publication")
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	if err := store.Close(ctx); !errors.Is(err, context.Canceled) {
+		t.Fatal("close falsely joined a blocked publication", err)
+	}
+	close(release)
+	if err := <-done; err != nil {
+		t.Fatal(err)
+	}
+	if err := store.Close(context.Background()); err != nil {
+		t.Fatal("final close failed", err)
+	}
+}
