@@ -68,3 +68,6 @@ go test -race -tags=integration,distribution ./internal/apps/xray/runtime/instan
 
 go test -race -tags=integration,distribution ./internal/apps/xray/runtime/configs/integration \
     -run="^TestPackagedConfigurationValidation$" -count=1 -args -image="papilio-node-build:$revision"
+
+go test -race -tags=integration,distribution ./internal/apps/xray/runtime/statistics/integration \
+    -run="^TestPackagedRuntimeStatistics$" -count=1 -args -image="papilio-node-build:$revision"

@@ -15,6 +15,7 @@ import (
 	"github.com/PapilioVPN/node/internal/apps/xray/runtime/instances/infra/process"
 	"github.com/PapilioVPN/node/internal/apps/xray/runtime/instances/infra/rpc"
 	"github.com/PapilioVPN/node/internal/apps/xray/runtime/instances/natsapi"
+	statservices "github.com/PapilioVPN/node/internal/apps/xray/runtime/statistics/app/services"
 	"github.com/PapilioVPN/node/internal/platform/natsclient"
 	"github.com/PapilioVPN/node/internal/settings"
 	"github.com/gofiber/fiber/v3"
@@ -28,6 +29,7 @@ func Module(config []settings.Instance, requests settings.Requests) fx.Option {
 		fx.Provide(compose, fx.Private),
 		fx.Provide(fx.Annotate(func(bindings apiBindings) []rpc.Binding { return []rpc.Binding(bindings) }, fx.ResultTags(`group:"xray-native-api,flatten"`))),
 		fx.Provide(func(service *services.Service) configservices.Restarter { return service }),
+		fx.Provide(func(service *services.Service) statservices.StatusReader { return service }),
 		fx.Provide(fx.Annotate(finalize, fx.ResultTags(`group:"final-resources"`))),
 		fx.Invoke(register), fx.Provide(subscribe),
 	)

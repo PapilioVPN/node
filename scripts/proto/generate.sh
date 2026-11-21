@@ -30,6 +30,7 @@ temporary=$(mktemp -d)
 trap 'rm -rf -- "$temporary"' EXIT HUP INT TERM
 cd "$root"
 for schema in \
+    internal/apps/xray/runtime/statistics/grpcapi/proto/v1/statistics \
     internal/apps/xray/runtime/configs/grpcapi/proto/v1/compilation \
     internal/apps/xray/runtime/configs/grpcapi/proto/v1/state \
     internal/apps/xray/runtime/configs/grpcapi/proto/v1/configs \
