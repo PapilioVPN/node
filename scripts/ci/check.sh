@@ -78,3 +78,6 @@ go test -race -tags=integration,distribution ./internal/apps/xray/observability/
 
 go test -race -tags=integration,distribution ./internal/apps/xray/proxies/inbounds/integration \
     -run="^TestPackagedInboundManagement$" -count=1 -args -image="papilio-node-build:$revision"
+
+go test -race -tags=integration,distribution ./internal/apps/xray/proxies/outbounds/integration \
+    -run="^TestPackagedOutboundReadback$" -count=1 -args -image="papilio-node-build:$revision"

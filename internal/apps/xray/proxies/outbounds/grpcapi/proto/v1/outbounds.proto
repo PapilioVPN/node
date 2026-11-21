@@ -1,0 +1,25 @@
+syntax = "proto3";
+package papilio.xray.proxies.outbounds.v1;
+option go_package = "github.com/PapilioVPN/node/internal/apps/xray/proxies/outbounds/grpcapi/proto/v1;outboundsv1";
+import "google/protobuf/timestamp.proto";
+service OutboundsService {
+  // One bounded native ListOutbounds RPC; internal API outbound is omitted by Xray.
+  rpc ListOutbounds(ListOutboundsRequest) returns (OutboundConfigurations);
+}
+message ListOutboundsRequest {
+  string instance_id = 1;
+}
+message OutboundConfiguration {
+  string tag = 1;
+  // Native core.OutboundHandlerConfig projection: tag, sender and proxy settings,
+  // potentially including credentials. Native readback does not retain source
+  // expire/comment fields. Does not identify the default outbound or source order.
+  bytes configuration = 2;
+}
+message OutboundConfigurations {
+  string instance_id = 1;
+  uint64 generation = 2;
+  repeated OutboundConfiguration outbounds = 3;
+  google.protobuf.Timestamp observed_at = 4;
+  int64 duration_ns = 5;
+}
