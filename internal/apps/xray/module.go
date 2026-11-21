@@ -1,0 +1,12 @@
+// Package xray composes Xray engine capabilities.
+package xray
+
+import (
+	"github.com/PapilioVPN/node/internal/apps/xray/runtime"
+	"github.com/PapilioVPN/node/internal/settings"
+	"go.uber.org/fx"
+)
+
+func Module(config []settings.Instance, requests settings.Requests) fx.Option {
+	return fx.Module("xray", runtime.Module(config, requests))
+}

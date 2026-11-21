@@ -4,8 +4,8 @@ package bootstrap
 import (
 	"log/slog"
 
-	"github.com/PapilioVPN/node/internal/apps/core"
 	"github.com/PapilioVPN/node/internal/apps/system"
+	"github.com/PapilioVPN/node/internal/apps/xray"
 	"github.com/PapilioVPN/node/internal/platform/grpcserver"
 	"github.com/PapilioVPN/node/internal/platform/httpserver"
 	"github.com/PapilioVPN/node/internal/platform/natsclient"
@@ -24,7 +24,7 @@ func New(config settings.Config, logger *slog.Logger, extra ...fx.Option) *fx.Ap
 		fx.WithLogger(func() fxevent.Logger { return &fxevent.SlogLogger{Logger: logger} }),
 	}
 	if len(config.Instances) > 0 {
-		options = append(options, core.Module(config.Instances, config.Communications.Requests))
+		options = append(options, xray.Module(config.Instances, config.Communications.Requests))
 	}
 	if http := config.Communications.HTTP; http != nil {
 		options = append(options, fx.Supply(*http), httpserver.Module)

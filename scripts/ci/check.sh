@@ -61,5 +61,5 @@ go test -race -tags=integration,distribution ./internal/apps/system/host/sensors
 go test -race -tags=integration,distribution ./internal/apps/system/node/runtime/integration \
     -run="^TestPackagedNodeRuntime$" -count=1 -args -image="papilio-node-build:$revision"
 
-go test -race -tags=integration,distribution ./internal/apps/core/engines/instances/integration \
+go test -race -tags=integration,distribution ./internal/apps/xray/runtime/instances/integration \
     -run="^TestPackagedInstances$" -count=1 -args -image="papilio-node-build:$revision"

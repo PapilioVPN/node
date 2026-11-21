@@ -9,7 +9,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/PapilioVPN/node/internal/apps/core/engines/instances/app/validators"
+	"github.com/PapilioVPN/node/internal/apps/xray/runtime/instances/app/validators"
 )
 
 // Instance is an ordered declaration of a Node-owned execution. An empty list

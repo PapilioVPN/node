@@ -30,8 +30,8 @@ temporary=$(mktemp -d)
 trap 'rm -rf -- "$temporary"' EXIT HUP INT TERM
 cd "$root"
 for schema in \
-    internal/apps/core/engines/instances/grpcapi/proto/v1/types \
-    internal/apps/core/engines/instances/grpcapi/proto/v1/instances \
+    internal/apps/xray/runtime/instances/grpcapi/proto/v1/types \
+    internal/apps/xray/runtime/instances/grpcapi/proto/v1/instances \
     internal/apps/system/host/identity/grpcapi/proto/v1/identity \
     internal/apps/system/host/uptime/grpcapi/proto/v1/uptime \
     internal/apps/system/host/cpu/grpcapi/proto/v1/load \
