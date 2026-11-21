@@ -12,12 +12,12 @@ import (
 
 // Run uses native Fx startup/signal/shutdown and joins process-owned resources
 // afterwards, including when an expired Fx rollback skips their OnStop hook.
-func Run(config settings.Config, logger *slog.Logger) int {
+func Run(config settings.Config, logger *slog.Logger, extra ...fx.Option) int {
 	var final struct {
 		fx.In
 		Resources []io.Closer `group:"final-resources"`
 	}
-	app := New(config, logger, fx.Populate(&final))
+	app := New(config, logger, append(extra, fx.Populate(&final))...)
 	stopped := app.Wait()
 	start, cancel := context.WithTimeout(context.Background(), config.StartupTimeout)
 	err := app.Start(start)
