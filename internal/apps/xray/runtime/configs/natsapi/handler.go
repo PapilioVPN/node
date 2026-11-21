@@ -1,4 +1,4 @@
-// Package natsapi exposes candidate checks to broker-authorized controllers.
+// Package natsapi exposes Xray configuration management to broker-authorized controllers.
 package natsapi
 
 import (
@@ -17,6 +17,7 @@ import (
 
 type Handler struct {
 	Service *services.Service
+	State   *services.StateService
 	Timeout time.Duration
 }
 
@@ -89,7 +90,7 @@ func decode(data []byte) (string, domain.Candidate, error) {
 	return id, candidate, nil
 }
 
-func failure(err error) []byte {
+func errorCode(err error) string {
 	code := "unavailable"
 	switch {
 	case errors.Is(err, context.DeadlineExceeded):
@@ -102,14 +103,21 @@ func failure(err error) []byte {
 		code = "native_rejected"
 	case errors.Is(err, domain.ErrNotFound):
 		code = "not_found"
-	case errors.Is(err, domain.ErrUnsupported), errors.Is(err, domain.ErrClosed):
+	case errors.Is(err, domain.ErrConflict):
+		code = "revision_conflict"
+	case errors.Is(err, domain.ErrDurabilityUnknown):
+		code = "durability_unknown"
+	case errors.Is(err, domain.ErrNoDesired), errors.Is(err, domain.ErrUnsupported), errors.Is(err, domain.ErrClosed):
 		code = "failed_precondition"
 	case errors.Is(err, domain.ErrTooLarge), errors.Is(err, domain.ErrCapacity):
 		code = "resource_exhausted"
 	}
+	return code
+}
+func failure(err error) []byte {
 	return encode(struct {
 		Error string `json:"error"`
-	}{code})
+	}{errorCode(err)})
 }
 
 func encode(value any) []byte {

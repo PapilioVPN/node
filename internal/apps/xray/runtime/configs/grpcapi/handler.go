@@ -1,4 +1,4 @@
-// Package grpcapi adapts candidate checks to versioned native gRPC.
+// Package grpcapi adapts Xray configuration management to versioned gRPC.
 package grpcapi
 
 import (
@@ -18,6 +18,7 @@ import (
 type Handler struct {
 	configsv1.UnimplementedConfigurationsServiceServer
 	Service *services.Service
+	State   *services.StateService
 	Timeout time.Duration
 }
 
@@ -51,7 +52,11 @@ func failure(err error) error {
 		code, message = codes.InvalidArgument, "native_rejected"
 	case errors.Is(err, domain.ErrNotFound):
 		code, message = codes.NotFound, "not_found"
-	case errors.Is(err, domain.ErrUnsupported), errors.Is(err, domain.ErrClosed):
+	case errors.Is(err, domain.ErrConflict):
+		code, message = codes.Aborted, "revision_conflict"
+	case errors.Is(err, domain.ErrDurabilityUnknown):
+		message = "durability_unknown"
+	case errors.Is(err, domain.ErrNoDesired), errors.Is(err, domain.ErrUnsupported), errors.Is(err, domain.ErrClosed):
 		code, message = codes.FailedPrecondition, "failed_precondition"
 	case errors.Is(err, domain.ErrTooLarge), errors.Is(err, domain.ErrCapacity):
 		code, message = codes.ResourceExhausted, "resource_exhausted"

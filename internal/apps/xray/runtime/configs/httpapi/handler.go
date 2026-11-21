@@ -1,4 +1,4 @@
-// Package httpapi exposes native candidate validation through Fiber.
+// Package httpapi exposes Xray configuration management through Fiber.
 package httpapi
 
 import (
@@ -14,12 +14,17 @@ import (
 
 type Handler struct {
 	Service *services.Service
+	State   *services.StateService
 	Timeout time.Duration
 }
 
 func (h Handler) Register(router fiber.Router) {
 	router.Post("/v1/xray/runtime/instances/:id/config-validations", h.Validate)
 	router.Post("/v1/xray/runtime/config-compilations", h.Compile)
+	router.Get("/v1/xray/runtime/instances/:id/configuration", h.Get)
+	router.Get("/v1/xray/runtime/instances/:id/configuration/status", h.Metadata)
+	router.Put("/v1/xray/runtime/instances/:id/configuration", h.Replace)
+	router.Post("/v1/xray/runtime/instances/:id/configuration/applications", h.Apply)
 }
 
 func (h Handler) Validate(request fiber.Ctx) error {
@@ -41,7 +46,7 @@ func (h Handler) Validate(request fiber.Ctx) error {
 	}{result.InstanceID, result.Valid, result.CheckedAt, strconv.FormatInt(int64(result.Duration), 10)})
 }
 
-func failure(request fiber.Ctx, err error) error {
+func errorStatus(err error) (string, int) {
 	code, status := "unavailable", fiber.StatusServiceUnavailable
 	switch {
 	case errors.Is(err, context.DeadlineExceeded):
@@ -54,13 +59,21 @@ func failure(request fiber.Ctx, err error) error {
 		code, status = "native_rejected", fiber.StatusUnprocessableEntity
 	case errors.Is(err, domain.ErrNotFound):
 		code, status = "not_found", fiber.StatusNotFound
-	case errors.Is(err, domain.ErrUnsupported), errors.Is(err, domain.ErrClosed):
+	case errors.Is(err, domain.ErrConflict):
+		code, status = "revision_conflict", fiber.StatusConflict
+	case errors.Is(err, domain.ErrDurabilityUnknown):
+		code = "durability_unknown"
+	case errors.Is(err, domain.ErrNoDesired), errors.Is(err, domain.ErrUnsupported), errors.Is(err, domain.ErrClosed):
 		code, status = "failed_precondition", fiber.StatusConflict
 	case errors.Is(err, domain.ErrTooLarge):
 		code, status = "resource_exhausted", fiber.StatusRequestEntityTooLarge
 	case errors.Is(err, domain.ErrCapacity):
 		code, status = "resource_exhausted", fiber.StatusTooManyRequests
 	}
+	return code, status
+}
+func failure(request fiber.Ctx, err error) error {
+	code, status := errorStatus(err)
 	return request.Status(status).JSON(struct {
 		Error string `json:"error"`
 	}{code})

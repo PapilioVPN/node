@@ -1,4 +1,4 @@
-// Package services coordinates candidate checks for configured Xray instances.
+// Package services coordinates Xray source preparation and desired-state changes.
 package services
 
 import (

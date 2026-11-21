@@ -1,0 +1,51 @@
+syntax = "proto3";
+package papilio.xray.runtime.configs.v1;
+option go_package = "github.com/PapilioVPN/node/internal/apps/xray/runtime/configs/grpcapi/proto/v1;configsv1";
+import "google/protobuf/timestamp.proto";
+import "internal/apps/xray/runtime/configs/grpcapi/proto/v1/compilation.proto";
+import "internal/apps/xray/runtime/instances/grpcapi/proto/v1/types.proto";
+
+message GetConfigurationRequest { string instance_id = 1; }
+message ConfigurationMetadata {
+  // Zero means no Node-owned source record; the operator baseline is selected.
+  uint64 revision = 1;
+  // Hashes original ordered source names and bytes, not compiled protobuf.
+  string sha256 = 2;
+  google.protobuf.Timestamp updated_at = 3;
+  uint32 source_count = 4;
+  bool durable = 5;
+}
+message ConfigurationStatus {
+  string instance_id = 1;
+  ConfigurationMetadata metadata = 2;
+}
+message DesiredConfiguration {
+  string instance_id = 1;
+  ConfigurationMetadata metadata = 2;
+  // Includes original credentials. Only trusted management controllers may read.
+  repeated ConfigurationSource sources = 3;
+}
+message ReplaceConfigurationRequest {
+  string instance_id = 1;
+  // Required presence; explicit zero creates the first desired revision.
+  optional uint64 expected_revision = 2;
+  repeated ConfigurationSource sources = 3;
+}
+message ApplyConfigurationRequest {
+  string instance_id = 1;
+  // Reapply this current revision without republishing. Each call may restart.
+  optional uint64 expected_revision = 2;
+}
+message ConfigurationPersistence {
+  ConfigurationMetadata metadata = 1;
+  bool published = 2;
+  bool publication_unknown = 3;
+  bool durable = 4;
+}
+message ConfigurationChange {
+  string instance_id = 1;
+  // Persistence and execution are independent effects, not one atomic commit.
+  ConfigurationPersistence persistence = 2;
+  // Absent when execution was never attempted. Spawn does not prove readiness.
+  papilio.core.engines.instances.v1.ControlResult execution = 3;
+}

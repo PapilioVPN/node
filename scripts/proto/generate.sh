@@ -31,6 +31,7 @@ trap 'rm -rf -- "$temporary"' EXIT HUP INT TERM
 cd "$root"
 for schema in \
     internal/apps/xray/runtime/configs/grpcapi/proto/v1/compilation \
+    internal/apps/xray/runtime/configs/grpcapi/proto/v1/state \
     internal/apps/xray/runtime/configs/grpcapi/proto/v1/configs \
     internal/apps/xray/runtime/instances/grpcapi/proto/v1/types \
     internal/apps/xray/runtime/instances/grpcapi/proto/v1/instances \

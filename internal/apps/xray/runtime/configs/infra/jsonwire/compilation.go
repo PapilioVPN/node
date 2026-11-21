@@ -1,4 +1,4 @@
-// Package jsonwire owns the JSON compilation envelope shared by HTTP and NATS.
+// Package jsonwire owns configuration envelopes shared by HTTP and NATS.
 package jsonwire
 
 import (
@@ -37,21 +37,9 @@ func DecodeCompilation(data []byte) (id string, sources []domain.Source, err err
 				return "", nil, domain.ErrInvalidArgument
 			}
 		case "sources":
-			if token, err := decoder.Token(); err != nil || token != json.Delim('[') {
-				return "", nil, domain.ErrInvalidArgument
-			}
-			for decoder.More() {
-				if len(sources) >= domain.MaxSources {
-					return "", nil, domain.ErrTooLarge
-				}
-				source, err := decodeSource(decoder)
-				if err != nil {
-					return "", nil, err
-				}
-				sources = append(sources, source)
-			}
-			if token, err := decoder.Token(); err != nil || token != json.Delim(']') {
-				return "", nil, domain.ErrInvalidArgument
+			sources, err = decodeSources(decoder)
+			if err != nil {
+				return "", nil, err
 			}
 		default:
 			return "", nil, domain.ErrInvalidArgument

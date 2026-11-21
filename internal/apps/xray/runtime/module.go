@@ -9,5 +9,5 @@ import (
 )
 
 func Module(config []settings.Instance, requests settings.Requests) fx.Option {
-	return fx.Module("xray-runtime", instances.Module(config, requests), configs.Module(config, requests))
+	return fx.Module("xray-runtime", configs.Module(config, requests), instances.Module(config, requests))
 }

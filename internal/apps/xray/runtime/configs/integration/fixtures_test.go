@@ -54,6 +54,7 @@ type fixture struct {
 	original         []byte
 }
 type clients struct {
+	stop    func()
 	http    *http.Client
 	address string
 	grpc    *grpc.ClientConn
@@ -118,16 +119,22 @@ func startNode(t *testing.T, f fixture) clients {
 	if err := app.Start(ctx); err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() {
-		ctx, cancel := context.WithTimeout(context.Background(), f.config.ShutdownTimeout)
-		defer cancel()
-		if err := app.Stop(ctx); err != nil {
-			t.Error(err)
-		}
-	})
+	var stopOnce sync.Once
+	stop := func() {
+		stopOnce.Do(func() {
+			ctx, cancel := context.WithTimeout(context.Background(), f.config.ShutdownTimeout)
+			defer cancel()
+			if err := app.Stop(ctx); err != nil {
+				t.Error(err)
+			}
+		})
+	}
+	t.Cleanup(stop)
 	log.mu.Lock()
 	defer log.mu.Unlock()
-	return connect(t, f.pki.Client, f.config, log.addresses)
+	client := connect(t, f.pki.Client, f.config, log.addresses)
+	client.stop = stop
+	return client
 }
 
 func connect(t *testing.T, files mtls.Files, config settings.Config, addresses map[string]string) clients {

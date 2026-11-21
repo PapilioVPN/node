@@ -4,11 +4,18 @@ option go_package = "github.com/PapilioVPN/node/internal/apps/xray/runtime/confi
 import "google/protobuf/timestamp.proto";
 import "internal/apps/xray/runtime/configs/grpcapi/proto/v1/compilation.proto";
 
+import "internal/apps/xray/runtime/configs/grpcapi/proto/v1/state.proto";
+
 service ConfigurationsService {
   // Native config building only. It neither applies the candidate nor proves readiness.
   rpc ValidateConfiguration(ValidateConfigurationRequest) returns (ConfigurationValidation);
   // Builds ordered sources in one native conversion. Does not apply the result.
   rpc CompileConfiguration(CompileConfigurationRequest) returns (CompiledConfiguration);
+  rpc GetConfigurationStatus(GetConfigurationRequest) returns (ConfigurationStatus);
+  rpc GetConfiguration(GetConfigurationRequest) returns (DesiredConfiguration);
+  // Validates, persists and restarts; failures may carry ConfigurationChange details.
+  rpc ReplaceConfiguration(ReplaceConfigurationRequest) returns (ConfigurationChange);
+  rpc ApplyConfiguration(ApplyConfigurationRequest) returns (ConfigurationChange);
 }
 
 message ValidateConfigurationRequest {
