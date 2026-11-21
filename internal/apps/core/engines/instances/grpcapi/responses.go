@@ -1,0 +1,40 @@
+package grpcapi
+
+import (
+	"time"
+
+	"github.com/PapilioVPN/node/internal/apps/core/engines/instances/domain"
+	instancesv1 "github.com/PapilioVPN/node/internal/apps/core/engines/instances/grpcapi/proto/v1"
+	"google.golang.org/protobuf/types/known/timestamppb"
+)
+
+func timestamp(value *time.Time) *timestamppb.Timestamp {
+	if value == nil {
+		return nil
+	}
+	return timestamppb.New(*value)
+}
+func statusResult(s domain.Status) *instancesv1.InstanceStatus {
+	e := s.Execution
+	return &instancesv1.InstanceStatus{InstanceId: s.ID, Engine: s.Engine, State: string(e.State), Generation: e.Generation, StartedAt: timestamp(e.StartedAt), ExitedAt: timestamp(e.ExitedAt), ExitCode: e.ExitCode, Forced: e.Forced, ExecutionFailed: e.Failure != nil, ObservedAt: timestamppb.New(s.ObservedAt)}
+}
+func controlResult(result domain.Control) *instancesv1.ControlResult {
+	response := &instancesv1.ControlResult{Effect: string(result.Effect)}
+	if result.Status != nil {
+		response.Status = statusResult(*result.Status)
+	}
+	return response
+}
+func readinessResult(result domain.Readiness) *instancesv1.InstanceReadiness {
+	state := "not_configured"
+	if result.APIConfigured {
+		state = "not_checked"
+		if result.Status.Execution.State == domain.Running {
+			state = "unavailable"
+			if result.APIReady {
+				state = "ready"
+			}
+		}
+	}
+	return &instancesv1.InstanceReadiness{Status: statusResult(result.Status), ApiState: state, TrafficState: "not_checked", CheckedAt: timestamppb.New(result.CheckedAt)}
+}

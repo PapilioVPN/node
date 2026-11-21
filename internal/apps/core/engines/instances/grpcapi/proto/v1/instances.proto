@@ -1,0 +1,18 @@
+syntax = "proto3";
+package papilio.core.engines.instances.v1;
+option go_package = "github.com/PapilioVPN/node/internal/apps/core/engines/instances/grpcapi/proto/v1;instancesv1";
+import "internal/apps/core/engines/instances/grpcapi/proto/v1/types.proto";
+
+service InstancesService {
+ rpc GetInstanceStatus(GetInstanceStatusRequest) returns (InstanceStatus);
+ rpc StartInstance(StartInstanceRequest) returns (ControlResult);
+ rpc StopInstance(StopInstanceRequest) returns (ControlResult);
+ // Stop then start, with partial effects reported if the second stage fails.
+ rpc RestartInstance(RestartInstanceRequest) returns (ControlResult);
+ rpc CheckInstanceReadiness(CheckInstanceReadinessRequest) returns (InstanceReadiness);
+}
+message GetInstanceStatusRequest {string instance_id = 1;}
+message StartInstanceRequest {string instance_id = 1;}
+message StopInstanceRequest {string instance_id = 1;}
+message RestartInstanceRequest {string instance_id = 1;}
+message CheckInstanceReadinessRequest {string instance_id = 1;}
