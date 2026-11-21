@@ -5,6 +5,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/PapilioVPN/node/internal/apps/xray/runtime/configs/app/validators"
 	"github.com/PapilioVPN/node/internal/apps/xray/runtime/configs/domain"
 )
 
@@ -13,9 +14,10 @@ type Builder interface {
 }
 
 type Binding struct {
-	ID       string
-	Builder  Builder
-	Compiler Compiler
+	ID            string
+	Builder       Builder
+	Compiler      Compiler
+	SourceBuilder SourceBuilder
 }
 
 // Service owns an immutable instance index. Native builders own their effects.
@@ -42,16 +44,8 @@ func (s *Service) Validate(ctx context.Context, id string, candidate domain.Cand
 	if id == "" {
 		return domain.Validation{}, domain.ErrInvalidArgument
 	}
-	switch candidate.Format {
-	case domain.JSON, domain.YAML, domain.TOML, domain.Protobuf:
-	default:
-		return domain.Validation{}, domain.ErrInvalidArgument
-	}
-	if len(candidate.Content) == 0 && candidate.Format != domain.Protobuf {
-		return domain.Validation{}, domain.ErrInvalidArgument
-	}
-	if len(candidate.Content) > domain.MaxCandidateBytes {
-		return domain.Validation{}, domain.ErrTooLarge
+	if err := validators.Candidate(candidate); err != nil {
+		return domain.Validation{}, err
 	}
 	binding, exists := s.bindings[id]
 	if !exists {

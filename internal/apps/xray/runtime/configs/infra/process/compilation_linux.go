@@ -10,8 +10,6 @@ import (
 	"io"
 	"os"
 	"os/exec"
-	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/PapilioVPN/node/internal/apps/xray/runtime/configs/domain"
@@ -28,42 +26,13 @@ func (b *Builder) Compile(ctx context.Context, sources []domain.Source) (result 
 	if err = ctx.Err(); err != nil {
 		return result, err
 	}
-	if len(sources) == 0 || len(sources) > domain.MaxSources {
-		return result, domain.ErrInvalidArgument
-	}
-	// Reject path/format encodings before staging, even for a direct adapter caller.
-	seen := make(map[string]bool, len(sources))
-	for _, source := range sources {
-		if source.Name == "" || filepath.Base(source.Name) != source.Name || strings.ContainsAny(source.Name, "\\\x00") || seen[source.Name] || core.GetFormat(source.Name) == "" {
-			return result, domain.ErrInvalidArgument
-		}
-		seen[source.Name] = true
-	}
-	ctx, release, err := b.admission.acquire(ctx)
+	files, err := b.stageSources(ctx, sources)
 	if err != nil {
 		return result, err
 	}
-	defer release()
-	directory, err := os.MkdirTemp(b.config.WorkDirectory, "compilation-")
-	if err != nil {
-		return result, err
-	}
-	defer func() { err = errors.Join(err, os.RemoveAll(directory)) }()
-	arguments := []string{"convert", "pb", "-o", "/proc/self/fd/4"}
-	for _, source := range sources {
-		if err = ctx.Err(); err != nil {
-			return result, err
-		}
-		if err = os.WriteFile(filepath.Join(directory, source.Name), source.Content, 0600); err != nil {
-			return result, err
-		}
-		arguments = append(arguments, "/proc/self/fd/3/"+source.Name)
-	}
-	input, err := os.Open(directory)
-	if err != nil {
-		return result, err
-	}
-	defer input.Close()
+	defer func() { err = errors.Join(err, files.close()) }()
+	ctx = files.ctx
+	arguments := append([]string{"convert", "pb", "-o", "/proc/self/fd/4"}, files.arguments...)
 	reader, writer, err := os.Pipe()
 	if err != nil {
 		return result, err
@@ -74,7 +43,7 @@ func (b *Builder) Compile(ctx context.Context, sources []domain.Source) (result 
 	command.Dir = b.config.Directory
 	command.Env = []string{}
 	command.WaitDelay = time.Second
-	command.ExtraFiles = []*os.File{input, writer}
+	command.ExtraFiles = []*os.File{files.input, writer}
 	// ExtraFiles pipes are not joined by Cmd.WaitDelay. Closing the owned reader
 	// interrupts a blocked read on cancellation; join that callback before return.
 	closed := make(chan struct{})

@@ -1,4 +1,4 @@
-// Package domain describes native Xray configuration building.
+// Package domain describes native Xray sources, preparation and desired state.
 package domain
 
 import (
@@ -7,13 +7,16 @@ import (
 )
 
 var (
-	ErrInvalidArgument = errors.New("invalid configuration input")
-	ErrNotFound        = errors.New("Xray instance not found")
-	ErrUnsupported     = errors.New("configuration workspace not configured")
-	ErrClosed          = errors.New("configuration builder closed")
-	ErrCapacity        = errors.New("configuration building capacity exceeded")
-	ErrTooLarge        = errors.New("candidate exceeds supported byte limit")
-	ErrRejected        = errors.New("native configuration builder rejected input")
+	ErrInvalidArgument   = errors.New("invalid configuration input")
+	ErrNotFound          = errors.New("Xray instance not found")
+	ErrUnsupported       = errors.New("configuration resource not configured")
+	ErrClosed            = errors.New("configuration resources closed")
+	ErrCapacity          = errors.New("configuration capacity exceeded")
+	ErrTooLarge          = errors.New("candidate exceeds supported byte limit")
+	ErrRejected          = errors.New("native configuration builder rejected input")
+	ErrConflict          = errors.New("desired configuration revision changed")
+	ErrDurabilityUnknown = errors.New("configuration publication durability is unknown")
+	ErrNoDesired         = errors.New("no desired configuration exists")
 )
 
 // MaxCandidateBytes bounds one supported candidate, independently of possibly

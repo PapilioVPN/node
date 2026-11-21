@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -18,6 +19,26 @@ import (
 )
 
 func TestMain(m *testing.M) {
+	// This controlled child records a whole source invocation; native acceptance
+	// remains separately tested against the checksum-verified Xray executable.
+	if len(os.Args) >= 6 && os.Args[1] == "convert" && os.Args[2] == "pb" {
+		if content, err := os.ReadFile(os.Args[5]); err == nil && strings.HasPrefix(string(content), "fixture-invocation:") {
+			marker := strings.TrimPrefix(string(content), "fixture-invocation:")
+			file, err := os.OpenFile(marker, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0600)
+			if err != nil {
+				os.Exit(25)
+			}
+			_, err = file.WriteString(strconv.Itoa(len(os.Args)-5) + "\n")
+			if err != nil {
+				os.Exit(25)
+			}
+			if file.Close() != nil {
+				os.Exit(25)
+			}
+			os.Exit(0)
+		}
+	}
+
 	// A controlled converter child proves cancellation/admission and private
 	// resources. Real Xray acceptance below is separate native evidence.
 	if len(os.Args) == 6 && os.Args[1] == "convert" && os.Args[2] == "pb" {
@@ -44,7 +65,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestOwnerCloseCancelsAndJoinsActualNativeAssetRead(t *testing.T) {
-	for _, operation := range []string{"validation", "compilation"} {
+	for _, operation := range []string{"validation", "compilation", "sources"} {
 		t.Run(operation, func(t *testing.T) { ownerCloseNativeAssetRead(t, operation) })
 	}
 }
@@ -70,7 +91,9 @@ func ownerCloseNativeAssetRead(t *testing.T, operation string) {
 	done := make(chan error, 1)
 	go func() {
 		var err error
-		if operation == "compilation" {
+		if operation == "sources" {
+			_, err = b.ValidateSources(parent, []domain.Source{{Name: "blocked.json", Content: data}})
+		} else if operation == "compilation" {
 			_, err = b.Compile(parent, []domain.Source{{Name: "blocked.json", Content: data}})
 		} else {
 			_, err = b.Validate(parent, domain.Candidate{Format: domain.JSON, Content: data})
