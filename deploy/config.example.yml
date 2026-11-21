@@ -66,3 +66,17 @@ communications:
     reconnect_buffer_size: 1048576
     ping_interval: 15s
     max_pings_outstanding: 2
+
+# Optional ordered declarations; each configured instance starts with Node.
+# Mount the selected executable and config explicitly. Native API must be local.
+# instances:
+#   - id: edge-a
+#     engine: xray
+#     stop_timeout: 2s
+#     xray:
+#       binary: /opt/xray/xray
+#       configuration: /etc/xray/config.json
+#       api:
+#         network: tcp
+#         address: 127.0.0.1:10085
+# Keep the sum of engine/transport/subscription drain budgets below shutdown_timeout.

@@ -18,6 +18,7 @@ type Config struct {
 	ShutdownTimeout time.Duration  `yaml:"shutdown_timeout"`
 	Communications  Communications `yaml:"communications"`
 	Sessions        Sessions       `yaml:"sessions"`
+	Instances       []Instance     `yaml:"instances"`
 }
 
 type Communications struct {
@@ -74,6 +75,10 @@ func Load(path string) (Config, error) {
 	if nats := config.Communications.NATS; nats != nil {
 		nats.TLS = resolveTLS(base, nats.TLS)
 	}
+	resolveInstances(base, config.Instances)
+	if err := validateInstances(config.Instances); err != nil {
+		return Config{}, err
+	}
 	return config, nil
 }
 
@@ -84,7 +89,16 @@ func (config Config) Validate() error {
 	if config.StartupTimeout <= 0 || config.ShutdownTimeout <= 0 {
 		return errors.New("startup_timeout and shutdown_timeout must be positive")
 	}
+	if err := validateInstances(config.Instances); err != nil {
+		return err
+	}
 	remaining := config.ShutdownTimeout
+	for _, instance := range config.Instances {
+		if instance.StopTimeout >= remaining {
+			return errors.New("instance stop budgets must fit inside Node shutdown_timeout")
+		}
+		remaining -= instance.StopTimeout
+	}
 	if http := config.Communications.HTTP; http != nil {
 		if err := http.validate(); err != nil {
 			return fmt.Errorf("communications.http: %w", err)
@@ -129,6 +143,9 @@ func (config Config) Validate() error {
 // Subscription composition validates its actual native receivers against it.
 func (config Config) RequestDrainBudget() time.Duration {
 	remaining := config.ShutdownTimeout
+	for _, instance := range config.Instances {
+		remaining -= instance.StopTimeout
+	}
 	if http := config.Communications.HTTP; http != nil {
 		remaining -= http.ShutdownTimeout
 	}
