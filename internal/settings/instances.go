@@ -23,6 +23,7 @@ type Instance struct {
 type Xray struct {
 	Binary        string   `yaml:"binary"`
 	Configuration string   `yaml:"configuration"`
+	WorkDirectory string   `yaml:"work_directory"`
 	API           *XrayAPI `yaml:"api"`
 }
 type XrayAPI struct {
@@ -45,6 +46,9 @@ func validateInstances(instances []Instance) error {
 		}
 		if instance.Engine != "xray" || instance.Xray == nil {
 			return fmt.Errorf("instances[%d]: expected xray engine settings", i)
+		}
+		if work := instance.Xray.WorkDirectory; strings.ContainsRune(work, 0) || !utf8.ValidString(work) {
+			return fmt.Errorf("instances[%d]: work_directory must be a UTF-8 path", i)
 		}
 		for _, path := range []string{instance.Xray.Binary, instance.Xray.Configuration} {
 			if path == "" || strings.ContainsRune(path, 0) || !utf8.ValidString(path) {
@@ -72,6 +76,9 @@ func validateInstances(instances []Instance) error {
 func resolveInstances(base string, instances []Instance) {
 	for i := range instances {
 		instance := &instances[i]
+		if instance.Xray.WorkDirectory != "" {
+			instance.Xray.WorkDirectory = absolutePath(base, instance.Xray.WorkDirectory)
+		}
 		instance.Xray.Binary = absolutePath(base, instance.Xray.Binary)
 		instance.Xray.Configuration = absolutePath(base, instance.Xray.Configuration)
 		if api := instance.Xray.API; api != nil && api.Network == "unix" {

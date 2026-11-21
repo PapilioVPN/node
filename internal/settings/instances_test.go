@@ -13,7 +13,7 @@ import (
 func TestInstancePathsAndNoEngineProvisioning(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "node.yml")
-	input := "startup_timeout: 2s\nshutdown_timeout: 5s\ninstances:\n  - id: edge-a\n    engine: xray\n    stop_timeout: 1s\n    xray:\n      binary: bin/xray\n      configuration: configs/xray.json\n      api:\n        network: unix\n        address: run/api.sock\n"
+	input := "startup_timeout: 2s\nshutdown_timeout: 5s\ninstances:\n  - id: edge-a\n    engine: xray\n    stop_timeout: 1s\n    xray:\n      binary: bin/xray\n      configuration: configs/xray.json\n      work_directory: private/work\n      api:\n        network: unix\n        address: run/api.sock\n"
 	if err := os.WriteFile(path, []byte(input), 0600); err != nil {
 		t.Fatal(err)
 	}
@@ -22,11 +22,14 @@ func TestInstancePathsAndNoEngineProvisioning(t *testing.T) {
 		t.Fatal(err)
 	}
 	x := config.Instances[0].Xray
-	if x.Binary != filepath.Join(dir, "bin/xray") || x.Configuration != filepath.Join(dir, "configs/xray.json") || x.API.Address != filepath.Join(dir, "run/api.sock") {
+	if x.Binary != filepath.Join(dir, "bin/xray") || x.Configuration != filepath.Join(dir, "configs/xray.json") || x.API.Address != filepath.Join(dir, "run/api.sock") || x.WorkDirectory != filepath.Join(dir, "private/work") {
 		t.Fatalf("paths: %+v", x)
 	}
 	if _, err := os.Stat(x.Configuration); !os.IsNotExist(err) {
 		t.Fatal("loader provisioned engine config")
+	}
+	if _, err := os.Stat(x.WorkDirectory); !os.IsNotExist(err) {
+		t.Fatal("loader provisioned native workspace")
 	}
 	if config.RequestDrainBudget() != 4*time.Second {
 		t.Fatal("instance drain not reserved")

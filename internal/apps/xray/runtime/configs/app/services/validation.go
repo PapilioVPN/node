@@ -5,7 +5,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/PapilioVPN/node/internal/apps/xray/runtime/configs/app/validators"
 	"github.com/PapilioVPN/node/internal/apps/xray/runtime/configs/domain"
 )
 
@@ -42,8 +41,16 @@ func (s *Service) Validate(ctx context.Context, id string, candidate domain.Cand
 	if id == "" {
 		return domain.Validation{}, domain.ErrInvalidArgument
 	}
-	if err := validators.Candidate(candidate); err != nil {
-		return domain.Validation{}, err
+	switch candidate.Format {
+	case domain.JSON, domain.YAML, domain.TOML, domain.Protobuf:
+	default:
+		return domain.Validation{}, domain.ErrInvalidArgument
+	}
+	if len(candidate.Content) == 0 {
+		return domain.Validation{}, domain.ErrInvalidArgument
+	}
+	if len(candidate.Content) > domain.MaxCandidateBytes {
+		return domain.Validation{}, domain.ErrTooLarge
 	}
 	builder, exists := s.builders[id]
 	if !exists {
