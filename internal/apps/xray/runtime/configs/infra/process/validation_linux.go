@@ -14,14 +14,23 @@ import (
 	"github.com/PapilioVPN/node/internal/apps/xray/runtime/configs/domain"
 )
 
-type Config struct{ Binary, Directory, WorkDirectory string }
+type Config struct {
+	Binary, Directory, WorkDirectory string
+	MaxOutputBytes                   int
+}
 type Builder struct {
 	config    Config
 	admission *Admission
 }
 
 func New(config Config, admission *Admission) (*Builder, error) {
+	if config.MaxOutputBytes == 0 {
+		config.MaxOutputBytes = domain.MaxCompiledBytes
+	}
 	if !filepath.IsAbs(config.Binary) || !filepath.IsAbs(config.Directory) || !filepath.IsAbs(config.WorkDirectory) || admission == nil {
+		return nil, domain.ErrInvalidArgument
+	}
+	if config.MaxOutputBytes < 0 || config.MaxOutputBytes > domain.MaxCompiledBytes {
 		return nil, domain.ErrInvalidArgument
 	}
 	return &Builder{config: config, admission: admission}, nil

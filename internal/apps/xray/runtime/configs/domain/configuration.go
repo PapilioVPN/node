@@ -13,11 +13,17 @@ var (
 	ErrClosed          = errors.New("configuration builder closed")
 	ErrCapacity        = errors.New("configuration building capacity exceeded")
 	ErrTooLarge        = errors.New("candidate exceeds supported byte limit")
+	ErrRejected        = errors.New("native configuration builder rejected input")
 )
 
 // MaxCandidateBytes bounds one supported candidate, independently of possibly
 // smaller incoming transport limits. It is not a bound on the native builder heap.
 const MaxCandidateBytes = 1 << 20
+
+const (
+	MaxSources       = 32
+	MaxCompiledBytes = 32 << 20
+)
 
 type Format string
 
@@ -31,6 +37,25 @@ const (
 type Candidate struct {
 	Format  Format
 	Content []byte
+}
+
+// Source names are native basenames, including their format extension. Ordering
+// and names (notably Xray's tail convention) participate in native merging.
+type Source struct {
+	Name    string
+	Content []byte
+}
+
+// Compilation owns executable protobuf bytes, which may contain credentials.
+// Source-level environment settings are not represented in native protobuf.
+// SHA256 identifies Content, not the original sources or a desired-state revision.
+// A successful build is not proof of runtime acceptance or applied state.
+type Compilation struct {
+	InstanceID string
+	Content    []byte
+	SHA256     string
+	PreparedAt time.Time
+	Duration   time.Duration
 }
 
 // Validation reports native building, never runtime construction or readiness.

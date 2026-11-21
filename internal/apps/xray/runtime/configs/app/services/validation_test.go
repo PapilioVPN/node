@@ -23,7 +23,7 @@ func (b *builderFixture) Validate(ctx context.Context, c domain.Candidate) (doma
 
 func TestSelectionValidationAndSingleNativeCall(t *testing.T) {
 	b := &builderFixture{result: domain.Validation{Valid: true}}
-	s, err := New([]Binding{{"a", b}, {"disabled", nil}})
+	s, err := New([]Binding{{ID: "a", Builder: b}, {ID: "disabled"}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -59,7 +59,7 @@ func TestSelectionValidationAndSingleNativeCall(t *testing.T) {
 func TestRejectionAndNativeFailureRemainDistinct(t *testing.T) {
 	cause := errors.New("private native failure")
 	b := &builderFixture{result: domain.Validation{Failure: cause}}
-	s, _ := New([]Binding{{"a", b}})
+	s, _ := New([]Binding{{ID: "a", Builder: b}})
 	input := domain.Candidate{Format: domain.JSON, Content: []byte(`bad`)}
 	result, err := s.Validate(context.Background(), "a", input)
 	if err != nil || result.Valid || !errors.Is(result.Failure, cause) || result.CheckedAt.IsZero() {
@@ -70,7 +70,7 @@ func TestRejectionAndNativeFailureRemainDistinct(t *testing.T) {
 	if !errors.Is(err, cause) || result.InstanceID != "" {
 		t.Fatal("native operation error became a validation result")
 	}
-	if _, err := New([]Binding{{"a", nil}, {"a", nil}}); !errors.Is(err, domain.ErrInvalidArgument) {
+	if _, err := New([]Binding{{ID: "a"}, {ID: "a"}}); !errors.Is(err, domain.ErrInvalidArgument) {
 		t.Fatal("duplicate disabled binding accepted")
 	}
 }

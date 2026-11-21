@@ -44,6 +44,11 @@ func TestMain(m *testing.M) {
 }
 
 func TestOwnerCloseCancelsAndJoinsActualNativeAssetRead(t *testing.T) {
+	for _, operation := range []string{"validation", "compilation"} {
+		t.Run(operation, func(t *testing.T) { ownerCloseNativeAssetRead(t, operation) })
+	}
+}
+func ownerCloseNativeAssetRead(t *testing.T, operation string) {
 	binary := os.Getenv("XRAY_TEST_BINARY")
 	if binary == "" {
 		t.Fatal("XRAY_TEST_BINARY must select the verified executable")
@@ -64,7 +69,12 @@ func TestOwnerCloseCancelsAndJoinsActualNativeAssetRead(t *testing.T) {
 	defer cancel()
 	done := make(chan error, 1)
 	go func() {
-		_, err := b.Validate(parent, domain.Candidate{Format: domain.JSON, Content: data})
+		var err error
+		if operation == "compilation" {
+			_, err = b.Compile(parent, []domain.Source{{Name: "blocked.json", Content: data}})
+		} else {
+			_, err = b.Validate(parent, domain.Candidate{Format: domain.JSON, Content: data})
+		}
 		done <- err
 	}()
 	defer func() {
@@ -144,6 +154,7 @@ func TestActualNativeFormatsRejectionAndNoRuntimeEffects(t *testing.T) {
 		{domain.JSON, `{"inbounds":[{"protocol":"missing-native-protocol"}]}`, false},
 		{domain.JSON, `{"inbounds":`, false},
 		{domain.Protobuf, "invalid-protobuf", false},
+		{domain.Protobuf, "", true},
 	} {
 		result, err := b.Validate(ctx, domain.Candidate{Format: test.format, Content: []byte(test.content)})
 		if err != nil || result.Valid != test.valid || (!test.valid && result.Failure == nil) {
@@ -220,6 +231,9 @@ func TestBoundedAdmissionCancellationJoinAndPrivateCleanup(t *testing.T) {
 	}
 	if _, err := b.Validate(context.Background(), domain.Candidate{Format: domain.JSON, Content: []byte(`{}`)}); !errors.Is(err, domain.ErrCapacity) {
 		t.Fatalf("overload was not rejected: %v", err)
+	}
+	if _, err := b.Compile(context.Background(), []domain.Source{{Name: "base.json", Content: []byte(`{}`)}}); !errors.Is(err, domain.ErrCapacity) {
+		t.Fatalf("compilation did not share validation capacity: %v", err)
 	}
 	cancel()
 	err = <-done

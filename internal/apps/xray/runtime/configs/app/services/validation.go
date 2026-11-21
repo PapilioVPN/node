@@ -13,23 +13,24 @@ type Builder interface {
 }
 
 type Binding struct {
-	ID      string
-	Builder Builder
+	ID       string
+	Builder  Builder
+	Compiler Compiler
 }
 
 // Service owns an immutable instance index. Native builders own their effects.
-type Service struct{ builders map[string]Builder }
+type Service struct{ bindings map[string]Binding }
 
 func New(bindings []Binding) (*Service, error) {
-	s := &Service{builders: make(map[string]Builder, len(bindings))}
+	s := &Service{bindings: make(map[string]Binding, len(bindings))}
 	for _, binding := range bindings {
 		if binding.ID == "" {
 			return nil, domain.ErrInvalidArgument
 		}
-		if _, exists := s.builders[binding.ID]; exists {
+		if _, exists := s.bindings[binding.ID]; exists {
 			return nil, domain.ErrInvalidArgument
 		}
-		s.builders[binding.ID] = binding.Builder
+		s.bindings[binding.ID] = binding
 	}
 	return s, nil
 }
@@ -46,21 +47,21 @@ func (s *Service) Validate(ctx context.Context, id string, candidate domain.Cand
 	default:
 		return domain.Validation{}, domain.ErrInvalidArgument
 	}
-	if len(candidate.Content) == 0 {
+	if len(candidate.Content) == 0 && candidate.Format != domain.Protobuf {
 		return domain.Validation{}, domain.ErrInvalidArgument
 	}
 	if len(candidate.Content) > domain.MaxCandidateBytes {
 		return domain.Validation{}, domain.ErrTooLarge
 	}
-	builder, exists := s.builders[id]
+	binding, exists := s.bindings[id]
 	if !exists {
 		return domain.Validation{}, domain.ErrNotFound
 	}
-	if builder == nil {
+	if binding.Builder == nil {
 		return domain.Validation{}, domain.ErrUnsupported
 	}
 	start := time.Now()
-	result, err := builder.Validate(ctx, candidate)
+	result, err := binding.Builder.Validate(ctx, candidate)
 	if err != nil {
 		return domain.Validation{}, err
 	}
