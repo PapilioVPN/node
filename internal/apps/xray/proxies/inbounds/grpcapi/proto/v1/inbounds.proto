@@ -1,0 +1,15 @@
+syntax = "proto3";
+package papilio.xray.proxies.inbounds.v1;
+option go_package = "github.com/PapilioVPN/node/internal/apps/xray/proxies/inbounds/grpcapi/proto/v1;inboundsv1";
+import "internal/apps/xray/proxies/inbounds/grpcapi/proto/v1/records.proto";
+import "internal/apps/xray/proxies/inbounds/grpcapi/proto/v1/control.proto";
+service InboundsService {
+  // One native collection read; no per-inbound fetches or invented paging.
+  rpc ListInbounds(ListInboundsRequest) returns (InboundConfigurations);
+  // Uses the separate native tag-only projection without configuration bytes.
+  rpc ListInboundTags(ListInboundTagsRequest) returns (InboundTags);
+  rpc AddInbound(AddInboundRequest) returns (InboundOperation);
+  rpc RemoveInbound(RemoveInboundRequest) returns (InboundOperation);
+  // Local control evidence, not a native transaction journal or effective config.
+  rpc GetInboundControlStatus(GetInboundControlStatusRequest) returns (InboundControlStatus);
+}

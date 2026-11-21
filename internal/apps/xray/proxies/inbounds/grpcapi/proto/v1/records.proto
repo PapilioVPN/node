@@ -1,0 +1,31 @@
+syntax = "proto3";
+package papilio.xray.proxies.inbounds.v1;
+option go_package = "github.com/PapilioVPN/node/internal/apps/xray/proxies/inbounds/grpcapi/proto/v1;inboundsv1";
+import "google/protobuf/timestamp.proto";
+message ListInboundsRequest {
+  string instance_id = 1;
+}
+message ListInboundTagsRequest {
+  string instance_id = 1;
+}
+message InboundConfiguration {
+  string tag = 1;
+  // Native core.InboundHandlerConfig protobuf. Includes credentials and nested
+  // TypedMessage settings. Preserves native fields without mirroring protocols.
+  bytes configuration = 2;
+}
+message InboundConfigurations {
+  string instance_id = 1;
+  uint64 generation = 2;
+  repeated InboundConfiguration inbounds = 3;
+  google.protobuf.Timestamp observed_at = 4;
+  int64 duration_ns = 5;
+}
+message InboundTags {
+  string instance_id = 1;
+  uint64 generation = 2;
+  // Native order is unspecified. Empty/duplicate untagged values are retained.
+  repeated string tags = 3;
+  google.protobuf.Timestamp observed_at = 4;
+  int64 duration_ns = 5;
+}

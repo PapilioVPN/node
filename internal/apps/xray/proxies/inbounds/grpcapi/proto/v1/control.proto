@@ -1,0 +1,38 @@
+syntax = "proto3";
+package papilio.xray.proxies.inbounds.v1;
+option go_package = "github.com/PapilioVPN/node/internal/apps/xray/proxies/inbounds/grpcapi/proto/v1;inboundsv1";
+import "google/protobuf/timestamp.proto";
+message AddInboundRequest {
+  string instance_id = 1;
+  // Native core.InboundHandlerConfig, not a complete core.Config or debug JSON.
+  bytes configuration = 2;
+}
+message RemoveInboundRequest {
+  string instance_id = 1;
+  string tag = 2;
+}
+message GetInboundControlStatusRequest {
+  string instance_id = 1;
+}
+message InboundOperation {
+  string instance_id = 1;
+  uint64 generation = 2;
+  string kind = 3;
+  string tag = 4;
+  // completed, not_applied or unknown; live changes are not durable desired state.
+  string effect = 5;
+  bool acknowledged = 6;
+  bool requires_instance_restart = 7;
+  google.protobuf.Timestamp observed_at = 8;
+  int64 duration_ns = 9;
+}
+message InboundControlStatus {
+  string instance_id = 1;
+  uint64 generation = 2;
+  string execution_state = 3;
+  bool api_configured = 4;
+  bool request_in_flight = 5;
+  bool requires_instance_restart = 6;
+  InboundOperation last_operation = 7;
+  google.protobuf.Timestamp observed_at = 8;
+}
