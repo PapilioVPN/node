@@ -32,11 +32,16 @@ func TestPackagedAccountReads(t *testing.T) {
 	target := accountTarget(t)
 	f := newFixture(t, pki, brokerFixture(t, pki), "all")
 	address := allowAccountTraffic(t, f, target.Listener.Addr().String())
+	work := t.TempDir()
+	f.config.Instances[0].Xray.WorkDirectory = work
+	f.config.Communications.Requests.Timeout = 2 * time.Second
+	f.config.Communications.HTTP.WriteTimeout = 3 * time.Second
 	config := f.config
 	config.Instances = append(config.Instances[:0:0], config.Instances...)
 	xray := *config.Instances[0].Xray
 	config.Instances[0].Xray = &xray
 	xray.Binary = "/opt/xray"
+	xray.WorkDirectory = "/work"
 	xray.Configuration = "/etc/engine/config.json"
 	relative := func(files mtls.Files) mtls.Files {
 		return mtls.Files{Certificate: filepath.Base(files.Certificate), PrivateKey: filepath.Base(files.PrivateKey), CA: filepath.Base(files.CA)}
@@ -63,6 +68,7 @@ func TestPackagedAccountReads(t *testing.T) {
 	name := "node-accounts-" + hex.EncodeToString(random[:])
 	docker(t, "run", "--detach", "--pull=never", "--name", name, "--network=host", "--cap-drop=ALL", "--read-only", "--user", strconv.Itoa(os.Getuid())+":"+strconv.Itoa(os.Getgid()),
 		"--mount", "type=bind,src="+directory+",dst=/etc/node,readonly",
+		"--mount", "type=bind,src="+work+",dst=/work",
 		"--mount", "type=bind,src="+f.config.Instances[0].Xray.Binary+",dst=/opt/xray,readonly",
 		"--mount", "type=bind,src="+f.config.Instances[0].Xray.Configuration+",dst=/etc/engine/config.json,readonly", *image)
 	t.Cleanup(func() { docker(t, "rm", "--force", name) })
@@ -71,6 +77,7 @@ func TestPackagedAccountReads(t *testing.T) {
 	for _, transport := range []string{"http", "grpc", "nats"} {
 		assertNativeAccounts(t, client, transport)
 		exerciseAccountControl(t, client, transport, address, target.Listener.Addr().String())
+		exerciseSourceAccount(t, client, transport, "json", address, target.Listener.Addr().String())
 	}
 
 	docker(t, "stop", "--time", "8", name)

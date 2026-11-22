@@ -51,3 +51,22 @@ func TestMalformedControlRequestsNeverReachService(t *testing.T) {
 		}
 	}
 }
+
+func TestSourceEnvelopesDoNotChangeRawControlSemantics(t *testing.T) {
+	h := natsapi.Handler{}
+	for _, body := range []string{
+		`{"instance_id":"a","inbound_tag":"b","configuration":"AQ==","sources":[]}`,
+		`{"instance_id":"a","inbound_tag":"b","email":"a","sources":null}`,
+		`{"instance_id":"a","inbound_tag":"b","sources":[]}`,
+	} {
+		if result := h.AddSources(context.Background(), []byte(body), nil); !strings.Contains(string(result), `"error":"invalid_argument"`) {
+			t.Fatal(string(result))
+		}
+	}
+	if result := h.Add(context.Background(), []byte(`{"instance_id":"a","inbound_tag":"b","configuration":"AQ==","sources":[]}`), nil); !strings.Contains(string(result), `"error":"invalid_argument"`) {
+		t.Fatal(string(result))
+	}
+	if result := h.Remove(context.Background(), []byte(`{"instance_id":"a","inbound_tag":"b","email":"a","sources":[]}`), nil); !strings.Contains(string(result), `"error":"invalid_argument"`) {
+		t.Fatal(string(result))
+	}
+}

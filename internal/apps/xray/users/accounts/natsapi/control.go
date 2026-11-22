@@ -25,7 +25,7 @@ func (h Handler) Add(ctx context.Context, data []byte, headers nats.Header) []by
 		return failure(err)
 	}
 	defer cancel()
-	if input.InboundTag == nil || input.Email != nil || !input.HasConfiguration {
+	if input.InboundTag == nil || input.Email != nil || !input.HasConfiguration || input.HasSources {
 		return failure(domain.ErrInvalidArgument)
 	}
 	result, err := h.Service.Add(ctx, *input.InstanceID, *input.InboundTag, input.Configuration)
@@ -37,7 +37,7 @@ func (h Handler) Remove(ctx context.Context, data []byte, headers nats.Header) [
 		return failure(err)
 	}
 	defer cancel()
-	if input.InboundTag == nil || input.Email == nil || input.HasConfiguration {
+	if input.InboundTag == nil || input.Email == nil || input.HasConfiguration || input.HasSources {
 		return failure(domain.ErrInvalidArgument)
 	}
 	result, err := h.Service.Remove(ctx, *input.InstanceID, *input.InboundTag, *input.Email)
@@ -49,7 +49,7 @@ func (h Handler) Status(ctx context.Context, data []byte, headers nats.Header) [
 		return failure(err)
 	}
 	defer cancel()
-	if input.InboundTag != nil || input.Email != nil || input.HasConfiguration {
+	if input.InboundTag != nil || input.Email != nil || input.HasConfiguration || input.HasSources {
 		return failure(domain.ErrInvalidArgument)
 	}
 	result, err := h.Service.Status(ctx, *input.InstanceID)
@@ -72,4 +72,17 @@ func response(data []byte, err error) []byte {
 		return failure(err)
 	}
 	return data
+}
+
+func (h Handler) AddSources(ctx context.Context, data []byte, headers nats.Header) []byte {
+	ctx, cancel, input, err := h.controlRequest(ctx, data, headers)
+	if err != nil {
+		return failure(err)
+	}
+	defer cancel()
+	if input.InboundTag == nil || input.Email == nil || !input.HasSources || input.HasConfiguration {
+		return failure(domain.ErrInvalidArgument)
+	}
+	result, err := h.Sources.Add(ctx, *input.InstanceID, *input.InboundTag, *input.Email, input.Sources)
+	return mutation(result, err)
 }

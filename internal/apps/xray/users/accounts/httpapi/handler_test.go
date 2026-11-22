@@ -42,6 +42,8 @@ func TestMalformedControlRequestsNeverReachService(t *testing.T) {
 		{"POST", "/accounts", "application/x-protobuf", "x"},
 		{"POST", "/accounts?inbound_tag=a&inbound_tag=b", "application/x-protobuf", "x"},
 		{"POST", "/accounts?inbound_tag=a", "application/json", "{}"},
+		{"POST", "/accounts?inbound_tag=a", "application/json", `{"email":"a","sources":null}`},
+		{"POST", "/accounts?inbound_tag=a", "application/json", `{"email":"a","configuration":"AQ==","sources":[]}`},
 		{"DELETE", "/account?inbound_tag=a", "", ""},
 		{"DELETE", "/account?inbound_tag=a&email=b&email=c", "", ""},
 		{"DELETE", "/account?inbound_tag=a&email=b", "", "body"},

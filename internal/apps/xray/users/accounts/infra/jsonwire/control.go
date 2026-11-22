@@ -7,10 +7,14 @@ import (
 	"io"
 	"time"
 
+	configs "github.com/PapilioVPN/node/internal/apps/xray/runtime/configs/domain"
+	sourcewire "github.com/PapilioVPN/node/internal/apps/xray/runtime/configs/infra/jsonwire"
 	"github.com/PapilioVPN/node/internal/apps/xray/users/accounts/domain"
 )
 
 type ControlRequest struct {
+	Sources          []configs.Source
+	HasSources       bool
 	InstanceID       *string
 	InboundTag       *string
 	Email            *string
@@ -49,6 +53,12 @@ func DecodeControl(data []byte) (request ControlRequest, err error) {
 			err = decoder.Decode(&request.Email)
 			if request.Email == nil {
 				return request, domain.ErrInvalidArgument
+			}
+		case "sources":
+			request.HasSources = true
+			request.Sources, err = sourcewire.DecodeSources(decoder)
+			if errors.Is(err, configs.ErrTooLarge) {
+				return request, domain.ErrCapacity
 			}
 		case "configuration":
 			request.HasConfiguration = true

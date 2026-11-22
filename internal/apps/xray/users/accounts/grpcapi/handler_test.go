@@ -35,3 +35,13 @@ func TestMissingControlInputsNeverReachService(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestMissingSourceInputsNeverReachService(t *testing.T) {
+	h := grpcapi.Handler{}
+	if _, err := h.AddAccountFromSources(context.Background(), nil); status.Code(err) != codes.InvalidArgument {
+		t.Fatal(err)
+	}
+	if _, err := h.AddAccountFromSources(context.Background(), &v1.AddAccountFromSourcesRequest{InstanceId: "a"}); status.Code(err) != codes.InvalidArgument {
+		t.Fatal(err)
+	}
+}

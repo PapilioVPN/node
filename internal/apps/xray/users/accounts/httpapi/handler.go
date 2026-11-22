@@ -14,6 +14,7 @@ import (
 
 type Handler struct {
 	Service *services.Service
+	Sources *services.Sources
 	Timeout time.Duration
 }
 

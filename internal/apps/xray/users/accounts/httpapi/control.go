@@ -13,11 +13,25 @@ func (h Handler) Add(request fiber.Ctx) error {
 	request.Set(fiber.HeaderCacheControl, "no-store")
 	args := request.Request().URI().QueryArgs()
 	contentType := strings.TrimSpace(strings.Split(request.Get(fiber.HeaderContentType), ";")[0])
-	if args.Len() != 1 || !args.Has("inbound_tag") || contentType != "application/x-protobuf" {
+	if args.Len() != 1 || !args.Has("inbound_tag") {
 		return failure(request, domain.ErrInvalidArgument)
 	}
 	ctx, cancel := context.WithTimeout(request.Context(), h.Timeout)
 	defer cancel()
+	if contentType == fiber.MIMEApplicationJSON {
+		input, err := jsonwire.DecodeControl(request.Body())
+		if err != nil {
+			return failure(request, err)
+		}
+		if input.InstanceID != nil || input.InboundTag != nil || input.Email == nil || !input.HasSources || input.HasConfiguration {
+			return failure(request, domain.ErrInvalidArgument)
+		}
+		result, err := h.Sources.Add(ctx, request.Params("id"), request.Query("inbound_tag"), *input.Email, input.Sources)
+		return mutation(request, result, err)
+	}
+	if contentType != "application/x-protobuf" {
+		return failure(request, domain.ErrInvalidArgument)
+	}
 	result, err := h.Service.Add(ctx, request.Params("id"), request.Query("inbound_tag"), request.Body())
 	return mutation(request, result, err)
 }

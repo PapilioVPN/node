@@ -18,6 +18,7 @@ import (
 type Handler struct {
 	v1.UnimplementedAccountsServiceServer
 	Service *services.Service
+	Sources *services.Sources
 	Timeout time.Duration
 }
 

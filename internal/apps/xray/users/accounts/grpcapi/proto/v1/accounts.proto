@@ -3,7 +3,9 @@ package papilio.xray.users.accounts.v1;
 option go_package = "github.com/PapilioVPN/node/internal/apps/xray/users/accounts/grpcapi/proto/v1;accountsv1";
 import "google/protobuf/timestamp.proto";
 import "internal/apps/xray/users/accounts/grpcapi/proto/v1/control.proto";
+import "internal/apps/xray/users/accounts/grpcapi/proto/v1/sources.proto";
 service AccountsService {
+  rpc AddAccountFromSources(AddAccountFromSourcesRequest) returns (AccountOperation);
   // Live native membership only, not durable desired-state replacement.
   rpc AddAccount(AddAccountRequest) returns (AccountOperation);
   // Protocol-specific removal; does not guarantee closing established sessions.
