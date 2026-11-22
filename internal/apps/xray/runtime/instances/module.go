@@ -8,7 +8,9 @@ import (
 	"math"
 	"time"
 
+	routingservices "github.com/PapilioVPN/node/internal/apps/xray/network/routing/app/services"
 	logservices "github.com/PapilioVPN/node/internal/apps/xray/observability/loggers/app/services"
+	healthservices "github.com/PapilioVPN/node/internal/apps/xray/observability/outboundhealth/app/services"
 	trafficservices "github.com/PapilioVPN/node/internal/apps/xray/observability/traffic/app/services"
 	inboundservices "github.com/PapilioVPN/node/internal/apps/xray/proxies/inbounds/app/services"
 	outboundservices "github.com/PapilioVPN/node/internal/apps/xray/proxies/outbounds/app/services"
@@ -42,6 +44,8 @@ func Module(config []settings.Instance, requests settings.Requests) fx.Option {
 		fx.Provide(func(service *services.Service) accountservices.StatusReader { return service }),
 		fx.Provide(func(service *services.Service) onlineservices.StatusReader { return service }),
 		fx.Provide(func(service *services.Service) trafficservices.StatusReader { return service }),
+		fx.Provide(func(service *services.Service) routingservices.StatusReader { return service }),
+		fx.Provide(func(service *services.Service) healthservices.StatusReader { return service }),
 		fx.Provide(fx.Annotate(finalize, fx.ResultTags(`group:"final-resources"`))),
 		fx.Invoke(register), fx.Provide(subscribe),
 	)

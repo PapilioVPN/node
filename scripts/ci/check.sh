@@ -90,3 +90,9 @@ go test -race -tags=integration,distribution ./internal/apps/xray/proxies/outbou
 
 go test -race -tags=integration,distribution ./internal/apps/xray/users/accounts/integration \
     -run="^TestPackagedAccountReads$" -count=1 -args -image="papilio-node-build:$revision"
+
+go test -race -tags=integration,distribution ./internal/apps/xray/users/online/integration \
+    -run="^TestPackagedOnlineCollections$" -count=1 -args -image="papilio-node-build:$revision"
+TRAFFIC_TEST_IMAGE="papilio-node-build:$revision" \
+    go test -race -tags=integration ./internal/apps/xray/observability/traffic/integration \
+    -run="^TestRealXray(CollectionPairsAndResetsAcrossTransports|ThousandCountersUseOneScanForTraversal)$" -count=1

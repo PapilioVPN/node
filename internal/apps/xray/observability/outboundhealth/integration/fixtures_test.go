@@ -19,13 +19,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PapilioVPN/node/internal/apps/xray/observability/outboundhealth"
-	"github.com/PapilioVPN/node/internal/apps/xray/observability/outboundhealth/app/services"
 	healthv1 "github.com/PapilioVPN/node/internal/apps/xray/observability/outboundhealth/grpcapi/proto/v1"
 	"github.com/PapilioVPN/node/internal/apps/xray/observability/outboundhealth/infra/jsonwire"
 	instances "github.com/PapilioVPN/node/internal/apps/xray/runtime/instances/domain"
 	instancesv1 "github.com/PapilioVPN/node/internal/apps/xray/runtime/instances/grpcapi/proto/v1"
-	statsservices "github.com/PapilioVPN/node/internal/apps/xray/runtime/statistics/app/services"
 	"github.com/PapilioVPN/node/internal/bootstrap"
 	"github.com/PapilioVPN/node/internal/settings"
 	"github.com/PapilioVPN/node/internal/shared/mtls"
@@ -33,7 +30,6 @@ import (
 	"github.com/nats-io/nats.go"
 	command "github.com/xtls/xray-core/app/observatory/command"
 	stats "github.com/xtls/xray-core/app/stats/command"
-	"go.uber.org/fx"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
@@ -158,16 +154,13 @@ func newFixture(t *testing.T, pki testutil.PKI, broker, transport, mode string, 
 		f.config.Communications.GRPC = &settings.GRPC{Address: managementReservation.Addr().String(), TLS: pki.Server, ConnectionTimeout: 100 * time.Millisecond, ShutdownTimeout: time.Second, MaxRecvMessageSize: 64 << 10, MaxSendMessageSize: 2 << 20, MaxConnections: 8, MaxConcurrentStreams: 8, MaxHeaderListSize: 8192}
 	case "nats":
 		f.config.Communications.NATS = &settings.NATS{Servers: []string{broker}, TLS: pki.Client, TLSHandshakeFirst: true, ConnectTimeout: time.Second, ShutdownTimeout: time.Second, WriteTimeout: time.Second, ReconnectWait: time.Second, MaxReconnects: 0, ReconnectBufferSize: -1, PingInterval: time.Second, MaxPingsOutstanding: 2}
-		f.config.Communications.Requests.NATS = &settings.NATSRequests{SubjectPrefix: "fixture.health", PendingMessages: 8, PendingBytes: 2 << 20, ShutdownTimeout: 10 * time.Millisecond}
+		f.config.Communications.Requests.NATS = &settings.NATSRequests{SubjectPrefix: "fixture.health", PendingMessages: 8, PendingBytes: 2 << 20, ShutdownTimeout: 50 * time.Millisecond}
 	}
 	if err := f.config.Validate(); err != nil {
 		t.Fatal(err)
 	}
 	logs := &listenerLog{Handler: slog.NewTextHandler(io.Discard, nil), addresses: map[string]string{}}
-	// Shared-file edits are reserved for integration. This is the exact pending
-	// group module and focused status binding, supplied through bootstrap's native
-	// extension point; the production capability Module is exercised unchanged.
-	app := bootstrap.New(f.config, slog.New(logs), outboundhealth.Module(f.config.Communications.Requests), fx.Provide(func(s statsservices.StatusReader) services.StatusReader { return s }))
+	app := bootstrap.New(f.config, slog.New(logs))
 	reservation.Close()
 	managementReservation.Close()
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

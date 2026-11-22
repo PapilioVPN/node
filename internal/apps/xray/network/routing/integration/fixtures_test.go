@@ -20,13 +20,8 @@ import (
 	"testing"
 	"time"
 
-	routing "github.com/PapilioVPN/node/internal/apps/xray/network/routing"
-	"github.com/PapilioVPN/node/internal/apps/xray/network/routing/app/services"
 	v1 "github.com/PapilioVPN/node/internal/apps/xray/network/routing/grpcapi/proto/v1"
-	"github.com/PapilioVPN/node/internal/apps/xray/network/routing/infra/configuration"
-	inboundconfiguration "github.com/PapilioVPN/node/internal/apps/xray/proxies/inbounds/infra/configuration"
 	configservices "github.com/PapilioVPN/node/internal/apps/xray/runtime/configs/app/services"
-	onlineservices "github.com/PapilioVPN/node/internal/apps/xray/users/online/app/services"
 	"github.com/PapilioVPN/node/internal/bootstrap"
 	"github.com/PapilioVPN/node/internal/settings"
 	"github.com/PapilioVPN/node/internal/shared/mtls"
@@ -175,9 +170,7 @@ func newFixture(t *testing.T, pki testutil.PKI, broker, transport, network strin
 	}
 	f.config = config
 	log := &listenerLog{Handler: slog.NewTextHandler(io.Discard, nil), addresses: map[string]string{}}
-	// The shared files remain untouched. These aliases use the same existing
-	// instance/config service objects exported to already installed consumers.
-	app := bootstrap.New(config, slog.New(log), routing.Module(config.Communications.Requests), fx.Provide(func(s onlineservices.StatusReader) services.StatusReader { return s }), fx.Provide(func(c inboundconfiguration.Compiler) configuration.Compiler { return c }), fx.Invoke(func(r configservices.Restarter) { f.restarter = r }))
+	app := bootstrap.New(config, slog.New(log), fx.Invoke(func(r configservices.Restarter) { f.restarter = r }))
 	for _, l := range reservations {
 		l.Close()
 	}

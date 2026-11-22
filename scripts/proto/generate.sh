@@ -43,6 +43,8 @@ for schema in \
     internal/apps/xray/proxies/inbounds/grpcapi/proto/v1/inbounds \
     internal/apps/xray/observability/loggers/grpcapi/proto/v1/loggers \
     internal/apps/xray/observability/traffic/grpcapi/proto/v1/traffic \
+    internal/apps/xray/observability/outboundhealth/grpcapi/proto/v1/health \
+    internal/apps/xray/network/routing/grpcapi/proto/v1/routing \
     internal/apps/xray/runtime/statistics/grpcapi/proto/v1/statistics \
     internal/apps/xray/runtime/configs/grpcapi/proto/v1/compilation \
     internal/apps/xray/runtime/configs/grpcapi/proto/v1/state \

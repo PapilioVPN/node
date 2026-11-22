@@ -2,6 +2,7 @@
 package xray
 
 import (
+	"github.com/PapilioVPN/node/internal/apps/xray/network"
 	"github.com/PapilioVPN/node/internal/apps/xray/observability"
 	"github.com/PapilioVPN/node/internal/apps/xray/proxies"
 	"github.com/PapilioVPN/node/internal/apps/xray/runtime"
@@ -11,5 +12,5 @@ import (
 )
 
 func Module(config []settings.Instance, requests settings.Requests) fx.Option {
-	return fx.Module("xray", runtime.Module(config, requests), observability.Module(requests), proxies.Module(requests), users.Module(requests))
+	return fx.Module("xray", runtime.Module(config, requests), observability.Module(requests), proxies.Module(requests), users.Module(requests), network.Module(requests))
 }
