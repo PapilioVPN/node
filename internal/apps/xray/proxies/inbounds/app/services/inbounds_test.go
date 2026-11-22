@@ -5,6 +5,7 @@ import (
 	"errors"
 	"sync"
 	"testing"
+	"unsafe"
 
 	"github.com/PapilioVPN/node/internal/apps/xray/proxies/inbounds/app/services"
 	"github.com/PapilioVPN/node/internal/apps/xray/proxies/inbounds/domain"
@@ -150,5 +151,25 @@ func TestInvalidAndUnsupportedRequestsHaveNoEffect(t *testing.T) {
 	}
 	if _, err := s.Tags(context.Background(), "unknown"); !errors.Is(err, domain.ErrNotFound) {
 		t.Fatal(err)
+	}
+}
+
+func TestRetainedMutationEvidenceOwnsRequestSelectors(t *testing.T) {
+	id, tag := []byte("edge-a"), []byte("selected")
+	borrow := func(value []byte) string { return unsafe.String(unsafe.SliceData(value), len(value)) }
+	s := service(t, native{add: func(context.Context) (domain.NativeResult, error) {
+		return domain.NativeResult{Effect: domain.Completed, Acknowledged: true}, nil
+	}}, &execution{generation: 1})
+	if _, err := s.Remove(context.Background(), borrow(id), borrow(tag)); err != nil {
+		t.Fatal(err)
+	}
+	for _, value := range [][]byte{id, tag} {
+		for i := range value {
+			value[i] = 'x'
+		}
+	}
+	state, err := s.Status(context.Background(), "edge-a")
+	if err != nil || state.LastOperation == nil || state.LastOperation.InstanceID != "edge-a" || state.LastOperation.Tag != "selected" {
+		t.Fatal("retained evidence borrowed request memory", state.LastOperation, err)
 	}
 }

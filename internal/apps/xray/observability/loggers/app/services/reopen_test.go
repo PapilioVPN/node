@@ -6,6 +6,7 @@ import (
 	"sync"
 	"testing"
 	"time"
+	"unsafe"
 
 	"github.com/PapilioVPN/node/internal/apps/xray/observability/loggers/domain"
 	instances "github.com/PapilioVPN/node/internal/apps/xray/runtime/instances/domain"
@@ -160,5 +161,21 @@ func TestGlobalLoggerCapacityRejectsWithoutQueueingNativeWork(t *testing.T) {
 	joined.Wait()
 	if len(service.slots) != 0 {
 		t.Fatal("logger admission leaked after cancellation")
+	}
+}
+
+func TestRetainedLoggerEvidenceOwnsInstanceID(t *testing.T) {
+	id := []byte("a")
+	borrowed := unsafe.String(unsafe.SliceData(id), len(id))
+	s := serviceFixture(t, func(context.Context) (domain.NativeResult, error) {
+		return domain.NativeResult{Effect: domain.Completed, Acknowledged: true}, nil
+	}, statusFunc(running))
+	if _, err := s.Reopen(context.Background(), borrowed); err != nil {
+		t.Fatal(err)
+	}
+	id[0] = 'x'
+	state, err := s.Status(context.Background(), "a")
+	if err != nil || state.LastOperation == nil || state.LastOperation.InstanceID != "a" {
+		t.Fatal("retained evidence borrowed request memory", state.LastOperation, err)
 	}
 }

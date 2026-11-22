@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/PapilioVPN/node/internal/apps/xray/proxies/inbounds/app/validators"
@@ -73,7 +74,11 @@ func (s *Service) mutate(ctx context.Context, id, kind, tag string, invoke func(
 		if operation.RequiresInstanceRestart {
 			selected.uncertainGeneration = operation.Generation
 		}
+		// Retained evidence must outlive transport-owned request buffers.
 		copy := operation
+		copy.InstanceID = strings.Clone(operation.InstanceID)
+		copy.Tag = strings.Clone(operation.Tag)
+
 		selected.last = &copy
 	}()
 	if err := ctx.Err(); err != nil {

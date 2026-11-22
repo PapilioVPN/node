@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/PapilioVPN/node/internal/apps/xray/observability/loggers/domain"
@@ -54,7 +55,10 @@ func (s *Service) Reopen(ctx context.Context, id string) (operation domain.Opera
 		if operation.RequiresInstanceRestart {
 			selected.uncertainGeneration = operation.Generation
 		}
+		// Retained evidence must outlive transport-owned request buffers.
 		copy := operation
+		copy.InstanceID = strings.Clone(operation.InstanceID)
+
 		selected.last = &copy
 	}()
 	if err := ctx.Err(); err != nil {
