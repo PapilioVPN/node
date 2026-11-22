@@ -16,15 +16,15 @@ func (s *Service) Add(ctx context.Context, id, tag string, content []byte) (doma
 	if err := validators.Configuration(content); err != nil {
 		return domain.Operation{InstanceID: id, InboundTag: tag, Kind: "add", Effect: domain.NotApplied}, err
 	}
-	return s.mutate(ctx, id, tag, "add", "", func(c Client) (domain.NativeResult, error) { return c.Add(ctx, tag, content) })
+	return s.mutate(ctx, id, tag, "add", "", func(c Client, _ uint64) (domain.NativeResult, error) { return c.Add(ctx, tag, content) })
 }
 func (s *Service) Remove(ctx context.Context, id, tag, email string) (domain.Operation, error) {
 	if err := validators.Email(email); err != nil {
 		return domain.Operation{InstanceID: id, InboundTag: tag, Kind: "remove", Email: email, Effect: domain.NotApplied}, err
 	}
-	return s.mutate(ctx, id, tag, "remove", email, func(c Client) (domain.NativeResult, error) { return c.Remove(ctx, tag, email) })
+	return s.mutate(ctx, id, tag, "remove", email, func(c Client, _ uint64) (domain.NativeResult, error) { return c.Remove(ctx, tag, email) })
 }
-func (s *Service) mutate(ctx context.Context, id, tag, kind, email string, invoke func(Client) (domain.NativeResult, error)) (operation domain.Operation, err error) {
+func (s *Service) mutate(ctx context.Context, id, tag, kind, email string, invoke func(Client, uint64) (domain.NativeResult, error)) (operation domain.Operation, err error) {
 	operation = domain.Operation{InstanceID: id, InboundTag: tag, Kind: kind, Email: email, Effect: domain.NotApplied}
 	if err := ctx.Err(); err != nil {
 		return operation, err
@@ -86,7 +86,7 @@ func (s *Service) mutate(ctx context.Context, id, tag, kind, email string, invok
 	if err := ctx.Err(); err != nil {
 		return operation, err
 	}
-	result, nativeErr := invoke(selected.client)
+	result, nativeErr := invoke(selected.client, operation.Generation)
 	if kind == "add" {
 		operation.Email = result.Email
 	}
