@@ -3,10 +3,11 @@ package services
 import (
 	"context"
 	"errors"
-	"github.com/PapilioVPN/node/internal/apps/xray/network/routing/domain"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/PapilioVPN/node/internal/apps/xray/network/routing/domain"
 )
 
 func TestExpiredObservationCannotContinue(t *testing.T) {
