@@ -3,6 +3,7 @@
 package process
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"os"
@@ -116,5 +117,46 @@ func TestRecoveryRejectsChangedIdentityAndExclusiveOwner(t *testing.T) {
 	defer cancel()
 	if err := q.Close(ctx); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestConsoleCapacityAndRetentionDoNotFollowReplacement(t *testing.T) {
+	p := fixtureProcess(t, "output")
+	p.config.ID = "console"
+	p.config.RecoveryDirectory = t.TempDir()
+	os.Chmod(p.config.RecoveryDirectory, 0700)
+	if err := p.Start(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	waitFor(t, func() bool { _, err := os.Stat(p.config.Configuration + ".ready"); return err == nil })
+	first := p.Observe()
+	for offset := uint64(0); offset < domain.MaxOutputBytes; {
+		page, err := p.ReadOutput(context.Background(), domain.OutputRequest{ExecutionID: first.ExecutionID, Offset: offset})
+		if err != nil || !page.CapacityReached || page.NextOffset <= offset || len(page.Data) > domain.MaxOutputRead || len(bytes.Trim(page.Data, "x")) != 0 {
+			t.Fatal("console capacity", page.NextOffset, err)
+		}
+		offset = page.NextOffset
+	}
+	if p.Observe().State != domain.Running {
+		t.Fatal("console overflow terminated child")
+	}
+	if err := p.SetRetention(context.Background(), first.ExecutionID, true); err != nil {
+		t.Fatal(err)
+	}
+	if err := p.Stop(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if err := p.Start(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if p.Observe().PreserveOnClose {
+		t.Fatal("retention followed replacement")
+	}
+	pid := p.current.pid
+	if err := p.Close(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if err := unix.Kill(pid, 0); !errors.Is(err, unix.ESRCH) {
+		t.Fatal("replacement retained", err)
 	}
 }

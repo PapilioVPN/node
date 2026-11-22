@@ -227,7 +227,8 @@ func (s *Service) expireLease(ctx context.Context, e *instance) error {
 }
 
 // StartLeases restores due actions before listeners start. No lease is created
-// implicitly by reads, readiness or start. One joined worker handles all instances.
+// implicitly by reads, readiness or start. Each configured instance has one
+// joined worker, so a slow stop cannot delay another instance's expiry.
 func (s *Service) StartLeases(ctx context.Context) error {
 	for _, e := range s.ordered {
 		if err := s.expireLease(ctx, e); err != nil {
@@ -235,24 +236,27 @@ func (s *Service) StartLeases(ctx context.Context) error {
 		}
 	}
 	s.leaseOnce.Do(func() {
-		s.leaseWorkers.Add(1)
-		go func() {
-			defer s.leaseWorkers.Done()
-			ticker := time.NewTicker(50 * time.Millisecond)
-			defer ticker.Stop()
-			for {
-				select {
-				case <-s.lifetime.Done():
-					return
-				case <-ticker.C:
-					for _, e := range s.ordered {
+		for _, e := range s.ordered {
+			if e.binding.Leases == nil || e.leaseDisabled {
+				continue
+			}
+			s.leaseWorkers.Add(1)
+			go func() {
+				defer s.leaseWorkers.Done()
+				ticker := time.NewTicker(50 * time.Millisecond)
+				defer ticker.Stop()
+				for {
+					select {
+					case <-s.lifetime.Done():
+						return
+					case <-ticker.C:
 						action, cancel := context.WithTimeout(s.lifetime, 2*time.Second)
 						_ = s.expireLease(action, e)
 						cancel()
 					}
 				}
-			}
-		}()
+			}()
+		}
 	})
 	return nil
 }

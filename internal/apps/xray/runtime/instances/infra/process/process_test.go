@@ -3,6 +3,7 @@
 package process
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"os"
@@ -24,6 +25,12 @@ func TestMain(m *testing.M) {
 		}
 		if os.Getenv("NODE_PARENT_SECRET") != "" {
 			os.Exit(25)
+		}
+		if string(data) == "output" {
+			block := bytes.Repeat([]byte("x"), 4096)
+			for i := 0; i < 512; i++ {
+				_, _ = os.Stdout.Write(block)
+			}
 		}
 		signals := make(chan os.Signal, 1)
 		signal.Notify(signals, syscall.SIGTERM)

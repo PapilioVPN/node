@@ -1,8 +1,9 @@
 package validators
 
 import (
-	"github.com/PapilioVPN/node/internal/apps/xray/runtime/instances/domain"
 	"unicode/utf8"
+
+	"github.com/PapilioVPN/node/internal/apps/xray/runtime/instances/domain"
 )
 
 func Inventory(after string, limit uint32) error {

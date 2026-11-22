@@ -72,3 +72,43 @@ func TestLeaseRevisionTokenExpiryAndReplacementFence(t *testing.T) {
 		})
 	}
 }
+
+type slowLeaseStop struct {
+	*runtimeFixture
+	entered chan struct{}
+}
+
+func (r *slowLeaseStop) Stop(ctx context.Context) error {
+	close(r.entered)
+	<-ctx.Done()
+	return ctx.Err()
+}
+func TestLeaseExpiryDoesNotDelayIndependentInstance(t *testing.T) {
+	ctx := context.Background()
+	expiry := time.Now().Add(100 * time.Millisecond)
+	makeStore := func(id string) *memoryLease {
+		return &memoryLease{value: domain.LeaseRecord{Token: strings.Repeat("c", 64), Status: domain.LeaseStatus{Revision: 1, State: "active", Owner: "fixture", ExecutionID: id, ExpiresAt: &expiry, Policy: "stop", StopEffect: domain.NotApplied}}}
+	}
+	slow := &slowLeaseStop{runtimeFixture: &runtimeFixture{execution: domain.Execution{State: domain.Running, ExecutionID: strings.Repeat("a", 32)}}, entered: make(chan struct{})}
+	fast := &runtimeFixture{execution: domain.Execution{State: domain.Running, ExecutionID: strings.Repeat("b", 32)}}
+	s, _ := New([]Binding{{ID: "slow", Engine: "xray", Runtime: slow, Leases: makeStore(slow.Observe().ExecutionID)}, {ID: "fast", Engine: "xray", Runtime: fast, Leases: makeStore(fast.Observe().ExecutionID)}})
+	defer s.Close(ctx)
+	if err := s.StartLeases(ctx); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case <-slow.entered:
+	case <-time.After(time.Second):
+		t.Fatal("expiry did not start")
+	}
+	deadline := time.After(300 * time.Millisecond)
+	tick := time.NewTicker(10 * time.Millisecond)
+	defer tick.Stop()
+	for fast.Observe().State == domain.Running {
+		select {
+		case <-deadline:
+			t.Fatal("slow stop delayed independent lease")
+		case <-tick.C:
+		}
+	}
+}

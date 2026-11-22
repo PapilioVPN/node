@@ -14,12 +14,11 @@ import (
 	"sync"
 	"sync/atomic"
 	"syscall"
-
-	"golang.org/x/sys/unix"
 	"time"
 
 	"github.com/PapilioVPN/node/internal/apps/xray/runtime/instances/domain"
 	"github.com/PapilioVPN/node/internal/apps/xray/runtime/instances/infra/rpc"
+	"golang.org/x/sys/unix"
 )
 
 type Config struct {
@@ -373,14 +372,20 @@ func (p *Process) stop(ctx context.Context) error {
 	p.mu.Lock()
 	run := p.current
 	if run == nil {
+		last := p.lastOutput
 		p.mu.Unlock()
+		if last != nil {
+			if err := joinWatcher(ctx, last); err != nil {
+				return err
+			}
+		}
 		return p.cleanupPending(ctx)
 	}
 	if run.exited {
 		p.mu.Unlock()
 		select {
 		case <-run.done:
-			return run.cleanupErr
+			return errors.Join(run.cleanupErr, joinWatcher(ctx, run))
 		case <-ctx.Done():
 			return ctx.Err()
 		}
@@ -396,13 +401,13 @@ func (p *Process) stop(ctx context.Context) error {
 	defer timer.Stop()
 	select {
 	case <-run.done:
-		return errors.Join(signalErr, run.cleanupErr)
+		return errors.Join(signalErr, run.cleanupErr, joinWatcher(ctx, run))
 	case <-ctx.Done():
 		p.kill(run)
 		// Wait remains owned and observable; canceled callers do not claim a join.
 		select {
 		case <-run.done:
-			return errors.Join(signalErr, run.cleanupErr)
+			return errors.Join(signalErr, run.cleanupErr, joinWatcher(ctx, run))
 		default:
 		}
 		return errors.Join(ctx.Err(), signalErr)
@@ -410,7 +415,7 @@ func (p *Process) stop(ctx context.Context) error {
 		p.kill(run)
 		select {
 		case <-run.done:
-			return errors.Join(signalErr, run.cleanupErr)
+			return errors.Join(signalErr, run.cleanupErr, joinWatcher(ctx, run))
 		case <-ctx.Done():
 			return errors.Join(ctx.Err(), signalErr)
 		}
@@ -471,3 +476,17 @@ func (p *Process) Check(ctx context.Context) (bool, error) {
 }
 
 func (p *Process) APIConfigured() bool { return p.config.API != nil }
+
+func joinWatcher(ctx context.Context, run *execution) error {
+	select {
+	case <-run.watchDone:
+		return nil
+	default:
+	}
+	select {
+	case <-run.watchDone:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
