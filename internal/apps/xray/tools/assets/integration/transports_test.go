@@ -3,11 +3,13 @@
 package integration_test
 
 import (
+	"context"
 	"encoding/json"
 	"strconv"
 	"testing"
 
 	"github.com/PapilioVPN/node/internal/apps/xray/tools/assets/domain"
+	"github.com/PapilioVPN/node/internal/apps/xray/tools/assets/infra/store"
 	"github.com/PapilioVPN/node/internal/testutil"
 )
 
@@ -62,6 +64,43 @@ func TestNativeAssetModuleTransportParity(t *testing.T) {
 			}
 			if json.Unmarshal(data, &rejected) != nil || rejected.ErrorCode != "conflict" {
 				t.Fatal("recovery precondition", string(data))
+			}
+			f.traffic(t)
+			// Stop only this management fixture, leave a durable unfinished
+			// transition, then deliver explicit recovery through the new server.
+			c.close()
+			var err error
+			f.repo, err = store.Open(f.root, "one")
+			if err != nil {
+				t.Fatal(err)
+			}
+			pending, err := f.repo.Begin(context.Background(), inv.State.Revision, next.ID)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err = f.runtime.Stop(context.Background()); err != nil {
+				t.Fatal(err)
+			}
+			if err = f.repo.Select(context.Background(), next.ID); err != nil {
+				t.Fatal(err)
+			}
+			if err = f.runtime.Start(context.Background()); err != nil {
+				t.Fatal(err)
+			}
+			await(t, f.runtime)
+			c = management(t, f, pki, broker, transport)
+			observed := c.inspect(t)
+			if observed.State.Pending != next.ID || observed.Selected != next.ID {
+				t.Fatal("pending candidate selection lost", observed.State)
+			}
+			q = map[string]any{"revision": pending.Revision, "expected_revision": strconv.FormatUint(pending.Revision, 10), "execution_id": f.runtime.Observe().ExecutionID}
+			data = c.call(t, "recover", q)
+			var recovered struct {
+				domain.Receipt
+				ErrorCode string `json:"error_code"`
+			}
+			if err := json.Unmarshal(data, &recovered); err != nil || recovered.ErrorCode != "" || recovered.Outcome != "restored" || !recovered.Ready || recovered.State.Active != old.State.Active || recovered.State.Pending != "" {
+				t.Fatal("native recovery receipt", string(data), err)
 			}
 			f.traffic(t)
 		})

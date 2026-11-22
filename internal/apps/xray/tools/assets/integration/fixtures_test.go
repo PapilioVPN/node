@@ -287,6 +287,7 @@ type finalResources struct {
 	Items []io.Closer `group:"final-resources"`
 }
 type controller struct {
+	close     func()
 	transport string
 	http      *http.Client
 	url       string
@@ -335,21 +336,25 @@ func management(t *testing.T, f *fixture, pki testutil.PKI, broker, transport st
 	if err := app.Start(ctx); err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
-		defer cancel()
-		if err := app.Stop(ctx); err != nil {
-			t.Error(err)
-		}
-		for i := len(resources) - 1; i >= 0; i-- {
-			if err := resources[i].Close(); err != nil {
+	var stopOnce sync.Once
+	c.close = func() {
+		stopOnce.Do(func() {
+			ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
+			defer cancel()
+			if err := app.Stop(ctx); err != nil {
 				t.Error(err)
 			}
-		}
-		if strings.Contains(c.logs.text(), "private-password") {
-			t.Error("private state leaked into logs")
-		}
-	})
+			for i := len(resources) - 1; i >= 0; i-- {
+				if err := resources[i].Close(); err != nil {
+					t.Error(err)
+				}
+			}
+			if strings.Contains(c.logs.text(), "private-password") {
+				t.Error("private state leaked into logs")
+			}
+		})
+	}
+	t.Cleanup(c.close)
 	tls, err := mtls.Client(pki.Client)
 	if err != nil {
 		t.Fatal(err)
