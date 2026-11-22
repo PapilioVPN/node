@@ -31,7 +31,7 @@ func Add(r domain.AddRequest) error {
 		return domain.ErrInvalidArgument
 	}
 	var object map[string]json.RawMessage
-	if !json.Valid(r.RuleJSON) || json.Unmarshal(r.RuleJSON, &object) != nil || object == nil {
+	if json.Unmarshal(r.RuleJSON, &object) != nil || object == nil {
 		return domain.ErrInvalidArgument
 	}
 	return nil

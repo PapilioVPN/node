@@ -6,7 +6,6 @@ import (
 	"errors"
 	"net/netip"
 
-	"github.com/PapilioVPN/node/internal/apps/xray/network/routing/app/validators"
 	"github.com/PapilioVPN/node/internal/apps/xray/network/routing/domain"
 	"github.com/PapilioVPN/node/internal/apps/xray/runtime/instances/infra/rpc"
 	"github.com/xtls/xray-core/app/router"
@@ -76,9 +75,6 @@ func (r *Router) ListRules(ctx context.Context) ([]domain.Rule, error) {
 	return rows, nil
 }
 func (r *Router) Balancer(ctx context.Context, tag string) (domain.Balancer, error) {
-	if validators.Tag(tag) != nil {
-		return domain.Balancer{}, domain.ErrInvalidArgument
-	}
 	response, err := r.client.GetBalancerInfo(ctx, &native.GetBalancerInfoRequest{Tag: tag}, grpc.MaxCallRecvMsgSize(domain.MaxNativeBytes))
 	if err != nil {
 		return domain.Balancer{}, readError(err)
@@ -112,7 +108,7 @@ func (r *Router) Add(ctx context.Context, data []byte, mode domain.Mode) (domain
 	if err := ctx.Err(); err != nil {
 		return no, err
 	}
-	if len(data) == 0 || len(data) > domain.MaxNativeBytes || (mode != domain.Append && mode != domain.Replace) {
+	if len(data) == 0 || len(data) > domain.MaxNativeBytes {
 		return no, domain.ErrInvalidArgument
 	}
 	var config router.Config
@@ -130,9 +126,6 @@ func (r *Router) Remove(ctx context.Context, tag string) (domain.NativeResult, e
 	if err := ctx.Err(); err != nil {
 		return domain.NativeResult{Effect: domain.NotApplied}, err
 	}
-	if validators.Tag(tag) != nil {
-		return domain.NativeResult{Effect: domain.NotApplied}, domain.ErrInvalidArgument
-	}
 	var remote peer.Peer
 	_, err := r.client.RemoveRule(ctx, &native.RemoveRuleRequest{RuleTag: tag}, grpc.Peer(&remote))
 	return mutationResult(err, remote, ctx)
@@ -141,9 +134,6 @@ func (r *Router) Override(ctx context.Context, tag, target string) (domain.Nativ
 	if err := ctx.Err(); err != nil {
 		return domain.NativeResult{Effect: domain.NotApplied}, err
 	}
-	if validators.Tag(tag) != nil || !validators.Text(target) {
-		return domain.NativeResult{Effect: domain.NotApplied}, domain.ErrInvalidArgument
-	}
 	var remote peer.Peer
 	_, err := r.client.OverrideBalancerTarget(ctx, &native.OverrideBalancerTargetRequest{BalancerTag: tag, Target: target}, grpc.Peer(&remote))
 	return mutationResult(err, remote, ctx)
@@ -151,9 +141,6 @@ func (r *Router) Override(ctx context.Context, tag, target string) (domain.Nativ
 func (r *Router) Probe(ctx context.Context, request domain.ProbeRequest) (domain.Context, domain.NativeResult, error) {
 	no := domain.NativeResult{Effect: domain.NotApplied}
 	if err := ctx.Err(); err != nil {
-		return domain.Context{}, no, err
-	}
-	if err := validators.Probe(request); err != nil {
 		return domain.Context{}, no, err
 	}
 	var remote peer.Peer

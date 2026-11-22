@@ -13,6 +13,8 @@ import (
 	instances "github.com/PapilioVPN/node/internal/apps/xray/runtime/instances/domain"
 )
 
+// Backend receives input validated by the owning service operation. Adapters
+// validate native replies and compiled engine artifacts at their own boundary.
 type Backend interface {
 	ListRules(context.Context) ([]domain.Rule, error)
 	Balancer(context.Context, string) (domain.Balancer, error)
@@ -62,9 +64,6 @@ func (s *Service) selected(ctx context.Context, id string) (*entry, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
-	if validators.ID(id) != nil {
-		return nil, domain.ErrInvalidArgument
-	}
 	e := s.entries[id]
 	if e == nil {
 		return nil, domain.ErrNotFound
@@ -72,6 +71,12 @@ func (s *Service) selected(ctx context.Context, id string) (*entry, error) {
 	return e, nil
 }
 func (s *Service) Status(ctx context.Context, id string) (domain.ControlStatus, error) {
+	if err := ctx.Err(); err != nil {
+		return domain.ControlStatus{}, err
+	}
+	if validators.ID(id) != nil {
+		return domain.ControlStatus{}, domain.ErrInvalidArgument
+	}
 	e, err := s.selected(ctx, id)
 	if err != nil {
 		return domain.ControlStatus{}, err
@@ -249,7 +254,7 @@ func (s *Service) Probe(ctx context.Context, r domain.ProbeRequest) (result doma
 	return result, err
 }
 func (s *Service) Balancer(ctx context.Context, id, tag string) (domain.BalancerResult, error) {
-	if validators.Tag(tag) != nil {
+	if validators.ID(id) != nil || validators.Tag(tag) != nil {
 		return domain.BalancerResult{}, domain.ErrInvalidArgument
 	}
 	e, g, done, err := s.begin(ctx, id, false)

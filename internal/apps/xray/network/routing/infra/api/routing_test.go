@@ -66,15 +66,11 @@ func TestMutationErrorsNeverImplyRollbackOrReplay(t *testing.T) {
 		}
 	}
 }
-func TestMalformedProjectionIsUnknownAndInvalidInputIsUnsent(t *testing.T) {
+func TestMalformedProjectionIsUnknown(t *testing.T) {
 	c := &connection{call: func(_ string, _ any, out any) error { out.(*native.RoutingContext).TargetPort = 65536; return nil }}
 	r := New(c)
 	_, n, err := r.Probe(context.Background(), domain.ProbeRequest{InstanceID: "one"})
 	if !errors.Is(err, domain.ErrInvalidResponse) || n.Effect != domain.Unknown {
-		t.Fatal(n, err)
-	}
-	_, n, err = r.Probe(context.Background(), domain.ProbeRequest{InstanceID: "one", Context: domain.Context{Network: 1}})
-	if !errors.Is(err, domain.ErrInvalidArgument) || n.Effect != domain.NotApplied || c.calls != 1 {
 		t.Fatal(n, err)
 	}
 }
