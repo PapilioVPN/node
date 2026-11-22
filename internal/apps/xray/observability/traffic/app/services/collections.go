@@ -193,7 +193,7 @@ func (s *Service) ReadPair(ctx context.Context, id string, scope domain.Scope, n
 	}
 	result := domain.Pair{InstanceID: id, Scope: scope, Name: name, Generation: before}
 	for _, direction := range []domain.Direction{domain.Uplink, domain.Downlink} {
-		got, err := s.Read(ctx, id, domain.Selection{Scope: scope, Name: name, Direction: direction})
+		got, err := s.read(ctx, id, domain.Selection{Scope: scope, Name: name, Direction: direction}, selected)
 		if errors.Is(err, domain.ErrCounterNotFound) {
 			continue
 		}

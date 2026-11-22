@@ -52,9 +52,6 @@ func (s *Service) List(ctx context.Context, id string, request domain.PageReques
 	// The adapter owns native bounds; account for retained Go data separately.
 	bytes := 0
 	for _, r := range records {
-		if validators.Tag(r.Tag) != nil {
-			return domain.Page{}, domain.ErrUnavailable
-		}
 		bytes += len(r.Tag) + 256
 	}
 	if bytes > maxSnapshotBytes {

@@ -13,6 +13,7 @@ import (
 	instances "github.com/PapilioVPN/node/internal/apps/xray/runtime/instances/domain"
 )
 
+// Reader validates fresh native records, including tag shape and response bounds.
 type Reader interface {
 	Read(context.Context) ([]domain.Record, error)
 }
@@ -64,10 +65,6 @@ func (s *Service) generation(ctx context.Context, id string) (uint64, error) {
 }
 func (s *Service) read(ctx context.Context, id string) (records []domain.Record, generation uint64, at time.Time, duration time.Duration, err error) {
 	if err = ctx.Err(); err != nil {
-		return
-	}
-	if instancevalidators.ID(id) != nil {
-		err = domain.ErrInvalidArgument
 		return
 	}
 	e, ok := s.entries[id]
@@ -125,7 +122,7 @@ func (s *Service) read(ctx context.Context, id string) (records []domain.Record,
 }
 func (s *Service) Get(ctx context.Context, id string, selection domain.Selection) (domain.Observation, error) {
 	age, err := validators.MaxAge(selection.MaxSampleAgeSeconds)
-	if err != nil || validators.Tag(selection.Tag) != nil {
+	if err != nil || instancevalidators.ID(id) != nil || validators.Tag(selection.Tag) != nil {
 		return domain.Observation{}, domain.ErrInvalidArgument
 	}
 	records, generation, at, duration, err := s.read(ctx, id)

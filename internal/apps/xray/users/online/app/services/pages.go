@@ -51,14 +51,14 @@ func (s *Service) page(ctx context.Context, r domain.PageRequest, kind pageKind)
 	if err := ctx.Err(); err != nil {
 		return domain.Page{}, err
 	}
-	if instancevalidators.ID(r.InstanceID) != nil || r.PageSize < 0 || r.PageSize > domain.MaxPageSize || len(r.PageToken) > 64 {
+	if r.PageSize < 0 || r.PageSize > domain.MaxPageSize || len(r.PageToken) > 64 {
 		return domain.Page{}, domain.ErrInvalidArgument
 	}
 	if kind == ipsPage {
 		if err := validateSelection(r.Selection); err != nil {
 			return domain.Page{}, err
 		}
-	} else if r.Email != "" {
+	} else if instancevalidators.ID(r.InstanceID) != nil || r.Email != "" {
 		return domain.Page{}, domain.ErrInvalidArgument
 	}
 	if r.PageSize == 0 {

@@ -82,6 +82,12 @@ func (s *Service) Read(ctx context.Context, id string, selection domain.Selectio
 	if selected.reader == nil {
 		return domain.Observation{}, domain.ErrUnsupported
 	}
+	return s.read(ctx, id, selection, selected)
+}
+
+// read consumes an already validated selection and immutable instance binding.
+// Native admission, cancellation and before/after execution checks stay here.
+func (s *Service) read(ctx context.Context, id string, selection domain.Selection, selected entry) (domain.Observation, error) {
 	select {
 	case s.slots <- struct{}{}:
 	default:
