@@ -24,6 +24,7 @@ import (
 	"github.com/PapilioVPN/node/internal/shared/mtls"
 	"github.com/PapilioVPN/node/internal/testutil"
 	"github.com/nats-io/nats.go"
+	"go.uber.org/fx"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )
@@ -46,7 +47,17 @@ func (l *listenerLog) Handle(_ context.Context, record slog.Record) error {
 	return nil
 }
 
+type fixtureResources struct{ listeners []net.Listener }
+
+func (r *fixtureResources) release() {
+	for _, listener := range r.listeners {
+		listener.Close()
+	}
+	r.listeners = nil
+}
+
 type fixture struct {
+	resources        *fixtureResources
 	config           settings.Config
 	pki              testutil.PKI
 	directory, proxy string
@@ -75,6 +86,8 @@ func nodeFixture(t *testing.T, pki testutil.PKI, brokerURL, transport string) fi
 	if err != nil {
 		t.Fatal(err)
 	}
+	resources := &fixtureResources{listeners: []net.Listener{listener}}
+	t.Cleanup(resources.release)
 	proxy := listener.Addr().String()
 	_, port, _ := net.SplitHostPort(proxy)
 	numericPort, _ := strconv.Atoi(port)
@@ -91,7 +104,6 @@ func nodeFixture(t *testing.T, pki testutil.PKI, brokerURL, transport string) fi
 	if err := os.WriteFile(path, original, 0600); err != nil {
 		t.Fatal(err)
 	}
-	listener.Close()
 	config := settings.Config{StartupTimeout: 5 * time.Second, ShutdownTimeout: 10 * time.Second, Instances: []settings.Instance{{ID: "edge-a", Engine: "xray", StopTimeout: time.Second, Xray: &settings.Xray{Binary: binary, Configuration: path, WorkDirectory: work}}}}
 	config.Communications.Requests.Timeout = time.Second
 	if transport == "http" || transport == "all" {
@@ -104,18 +116,34 @@ func nodeFixture(t *testing.T, pki testutil.PKI, brokerURL, transport string) fi
 		config.Communications.NATS = &settings.NATS{Servers: []string{brokerURL}, TLS: pki.Client, TLSHandshakeFirst: true, ConnectTimeout: time.Second, ShutdownTimeout: time.Second, WriteTimeout: time.Second, ReconnectWait: time.Second, MaxReconnects: 0, ReconnectBufferSize: -1, PingInterval: time.Second, MaxPingsOutstanding: 2}
 		config.Communications.Requests.NATS = &settings.NATSRequests{SubjectPrefix: "fixture.configs", PendingMessages: 8, PendingBytes: 2 << 20, ShutdownTimeout: 50 * time.Millisecond}
 	}
+	for _, transport := range []string{"http", "grpc"} {
+		if transport == "http" && config.Communications.HTTP == nil || transport == "grpc" && config.Communications.GRPC == nil {
+			continue
+		}
+		management, err := net.Listen("tcp", "127.0.0.1:0")
+		if err != nil {
+			t.Fatal(err)
+		}
+		resources.listeners = append(resources.listeners, management)
+		if transport == "http" {
+			config.Communications.HTTP.Address = management.Addr().String()
+		} else {
+			config.Communications.GRPC.Address = management.Addr().String()
+		}
+	}
 	if err := config.Validate(); err != nil {
 		t.Fatal(err)
 	}
-	return fixture{config, pki, directory, proxy, target, original}
+	return fixture{resources: resources, config: config, pki: pki, directory: directory, proxy: proxy, target: target, original: original}
 }
 
-func startNode(t *testing.T, f fixture) clients {
+func startNode(t *testing.T, f fixture, options ...fx.Option) clients {
 	t.Helper()
 	log := &listenerLog{Handler: slog.NewTextHandler(io.Discard, nil), addresses: map[string]string{}}
-	app := bootstrap.New(f.config, slog.New(log))
+	app := bootstrap.New(f.config, slog.New(log), options...)
 	ctx, cancel := context.WithTimeout(context.Background(), f.config.StartupTimeout)
 	defer cancel()
+	f.resources.release()
 	if err := app.Start(ctx); err != nil {
 		t.Fatal(err)
 	}
