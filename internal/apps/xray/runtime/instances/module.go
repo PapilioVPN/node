@@ -9,6 +9,7 @@ import (
 	"time"
 
 	logservices "github.com/PapilioVPN/node/internal/apps/xray/observability/loggers/app/services"
+	trafficservices "github.com/PapilioVPN/node/internal/apps/xray/observability/traffic/app/services"
 	inboundservices "github.com/PapilioVPN/node/internal/apps/xray/proxies/inbounds/app/services"
 	outboundservices "github.com/PapilioVPN/node/internal/apps/xray/proxies/outbounds/app/services"
 	configservices "github.com/PapilioVPN/node/internal/apps/xray/runtime/configs/app/services"
@@ -20,6 +21,7 @@ import (
 	"github.com/PapilioVPN/node/internal/apps/xray/runtime/instances/natsapi"
 	statservices "github.com/PapilioVPN/node/internal/apps/xray/runtime/statistics/app/services"
 	accountservices "github.com/PapilioVPN/node/internal/apps/xray/users/accounts/app/services"
+	onlineservices "github.com/PapilioVPN/node/internal/apps/xray/users/online/app/services"
 	"github.com/PapilioVPN/node/internal/platform/natsclient"
 	"github.com/PapilioVPN/node/internal/settings"
 	"github.com/gofiber/fiber/v3"
@@ -38,6 +40,8 @@ func Module(config []settings.Instance, requests settings.Requests) fx.Option {
 		fx.Provide(func(service *services.Service) inboundservices.StatusReader { return service }),
 		fx.Provide(func(service *services.Service) outboundservices.StatusReader { return service }),
 		fx.Provide(func(service *services.Service) accountservices.StatusReader { return service }),
+		fx.Provide(func(service *services.Service) onlineservices.StatusReader { return service }),
+		fx.Provide(func(service *services.Service) trafficservices.StatusReader { return service }),
 		fx.Provide(fx.Annotate(finalize, fx.ResultTags(`group:"final-resources"`))),
 		fx.Invoke(register), fx.Provide(subscribe),
 	)

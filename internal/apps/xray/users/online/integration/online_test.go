@@ -3,7 +3,6 @@
 package integration_test
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"reflect"
@@ -74,11 +73,7 @@ func TestNativePresenceIPsAndTransportParity(t *testing.T) {
 			if r := f.read(t, "not-configured", email, false); r.Error != "facility_not_configured" {
 				t.Fatal(r)
 			}
-			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-			defer cancel()
-			if _, err := f.lifecycle.Stop(ctx, "a"); err != nil {
-				t.Fatal(err)
-			}
+			f.stop(t, "a")
 			if r := f.read(t, "a", email, false); r.Error != "engine_unavailable" {
 				t.Fatal("stopped engine became offline", r)
 			}

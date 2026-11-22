@@ -21,22 +21,15 @@ import (
 	"testing"
 	"time"
 
-	instanceServices "github.com/PapilioVPN/node/internal/apps/xray/runtime/instances/app/services"
-	"github.com/PapilioVPN/node/internal/apps/xray/runtime/instances/infra/process"
+	instancesv1 "github.com/PapilioVPN/node/internal/apps/xray/runtime/instances/grpcapi/proto/v1"
 	"github.com/PapilioVPN/node/internal/apps/xray/runtime/instances/infra/rpc"
-	"github.com/PapilioVPN/node/internal/apps/xray/users/online"
-	"github.com/PapilioVPN/node/internal/apps/xray/users/online/app/services"
 	onlinev1 "github.com/PapilioVPN/node/internal/apps/xray/users/online/grpcapi/proto/v1"
-	"github.com/PapilioVPN/node/internal/platform/grpcserver"
-	"github.com/PapilioVPN/node/internal/platform/httpserver"
-	"github.com/PapilioVPN/node/internal/platform/natsclient"
+	"github.com/PapilioVPN/node/internal/bootstrap"
 	"github.com/PapilioVPN/node/internal/settings"
 	"github.com/PapilioVPN/node/internal/shared/mtls"
-	"github.com/PapilioVPN/node/internal/shared/shutdown"
 	"github.com/PapilioVPN/node/internal/testutil"
 	"github.com/nats-io/nats.go"
 	stats "github.com/xtls/xray-core/app/stats/command"
-	"go.uber.org/fx"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
@@ -67,7 +60,6 @@ func (l *listenerLog) Handle(_ context.Context, r slog.Record) error {
 type fixture struct {
 	transport         string
 	proxies, disabled map[string]string
-	lifecycle         *instanceServices.Service
 	http              *http.Client
 	address           string
 	grpc              *grpc.ClientConn
@@ -92,8 +84,6 @@ type response struct {
 	Error string `json:"error"`
 }
 
-// This fixture explicitly supplies the pending shared registration/StatusReader
-// integration. No normal-entrypoint installation is claimed by these tests.
 func newFixture(t *testing.T, pki testutil.PKI, broker, transport string) *fixture {
 	t.Helper()
 	binary := os.Getenv("XRAY_TEST_BINARY")
@@ -110,8 +100,8 @@ func newFixture(t *testing.T, pki testutil.PKI, broker, transport string) *fixtu
 	}
 	t.Cleanup(func() { os.RemoveAll(dir) })
 	f := &fixture{transport: transport, proxies: map[string]string{}, disabled: map[string]string{}, sources: map[string][]byte{}, paths: map[string]string{}}
-	bindings := []instanceServices.Binding{}
-	nativeBindings := []rpc.Binding{}
+	config := settings.Config{StartupTimeout: 5 * time.Second, ShutdownTimeout: 8 * time.Second}
+	config.Communications.Requests.Timeout = 2 * time.Second
 	for _, id := range []string{"a", "b"} {
 		apiListener := listen(t)
 		proxyListener := listen(t)
@@ -144,64 +134,59 @@ func newFixture(t *testing.T, pki testutil.PKI, broker, transport string) *fixtu
 		}
 		f.paths[id] = path
 		f.sources[id] = data
-		client, err := rpc.New(rpc.Config{Network: network, Address: address})
-		if err != nil {
-			t.Fatal(err)
-		}
-		t.Cleanup(func() { client.Close() })
-		runtime, err := process.New(process.Config{Binary: binary, Configuration: path, StopTimeout: time.Second, API: client})
-		if err != nil {
-			t.Fatal(err)
-		}
-		bindings = append(bindings, instanceServices.Binding{ID: id, Engine: "xray", Runtime: runtime})
-		nativeBindings = append(nativeBindings, rpc.Binding{ID: id, Client: client})
+
+		config.Instances = append(config.Instances, settings.Instance{
+			ID: id, Engine: "xray", StopTimeout: time.Second,
+			Xray: &settings.Xray{Binary: binary, Configuration: path, API: &settings.XrayAPI{Network: network, Address: address}},
+		})
 		apiListener.Close()
 		proxyListener.Close()
 		disabledListener.Close()
 	}
-	f.lifecycle, err = instanceServices.New(bindings)
-	if err != nil {
+
+	withoutAPI := filepath.Join(dir, "not-configured.json")
+	if err := os.WriteFile(withoutAPI, []byte(`{"outbounds":[{"protocol":"blackhole"}]}`), 0600); err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		if err := f.lifecycle.Close(ctx); err != nil {
-			t.Error(err)
-		}
+	config.Instances = append(config.Instances, settings.Instance{
+		ID: "not-configured", Engine: "xray", StopTimeout: time.Second,
+		Xray: &settings.Xray{Binary: binary, Configuration: withoutAPI},
 	})
-	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
-	defer cancel()
-	if err := f.lifecycle.StartAll(ctx); err != nil {
-		t.Fatal(err)
-	}
-	for _, b := range nativeBindings {
-		awaitNative(t, b.Client)
-	}
-	nativeBindings = append(nativeBindings, rpc.Binding{ID: "not-configured"})
-	log := &listenerLog{Handler: slog.NewTextHandler(io.Discard, nil), addresses: map[string]string{}}
-	requests := settings.Requests{Timeout: time.Second}
-	options := []fx.Option{fx.NopLogger, fx.Supply(slog.New(log)), fx.Decorate(shutdown.Synchronize), fx.Provide(func() services.StatusReader { return f.lifecycle }), fx.Provide(fx.Annotate(func() []rpc.Binding { return nativeBindings }, fx.ResultTags(`group:"xray-native-api,flatten"`)))}
 	switch transport {
 	case "http":
-		options = append(options, fx.Supply(settings.HTTP{Address: "127.0.0.1:0", TLS: pki.Server, ReadTimeout: time.Second, WriteTimeout: 2 * time.Second, IdleTimeout: time.Second, ShutdownTimeout: time.Second, BodyLimit: 32768, Concurrency: 16}), httpserver.Module)
+		config.Communications.HTTP = &settings.HTTP{Address: "127.0.0.1:0", TLS: pki.Server, ReadTimeout: time.Second, WriteTimeout: 3 * time.Second, IdleTimeout: time.Second, ShutdownTimeout: time.Second, BodyLimit: 32768, Concurrency: 16}
 	case "grpc":
-		options = append(options, fx.Supply(settings.GRPC{Address: "127.0.0.1:0", TLS: pki.Server, ConnectionTimeout: 100 * time.Millisecond, ShutdownTimeout: time.Second, MaxRecvMessageSize: 32768, MaxSendMessageSize: 65536, MaxConnections: 8, MaxConcurrentStreams: 8, MaxHeaderListSize: 8192}), grpcserver.Module)
+		config.Communications.GRPC = &settings.GRPC{Address: "127.0.0.1:0", TLS: pki.Server, ConnectionTimeout: 100 * time.Millisecond, ShutdownTimeout: time.Second, MaxRecvMessageSize: 32768, MaxSendMessageSize: 65536, MaxConnections: 8, MaxConcurrentStreams: 8, MaxHeaderListSize: 8192}
 	case "nats":
-		options = append(options, fx.Supply(settings.NATS{Servers: []string{broker}, TLS: pki.Client, TLSHandshakeFirst: true, ConnectTimeout: time.Second, ShutdownTimeout: time.Second, WriteTimeout: time.Second, ReconnectWait: time.Second, MaxReconnects: 0, ReconnectBufferSize: -1, PingInterval: time.Second, MaxPingsOutstanding: 2}), natsclient.Module, natsclient.RequestsModule(settings.NATSRequests{SubjectPrefix: "fixture.online", PendingMessages: 8, PendingBytes: 32768, ShutdownTimeout: 10 * time.Millisecond}, time.Second))
+		config.Communications.NATS = &settings.NATS{Servers: []string{broker}, TLS: pki.Client, TLSHandshakeFirst: true, ConnectTimeout: time.Second, ShutdownTimeout: time.Second, WriteTimeout: time.Second, ReconnectWait: time.Second, MaxReconnects: 0, ReconnectBufferSize: -1, PingInterval: time.Second, MaxPingsOutstanding: 2}
+		config.Communications.Requests.NATS = &settings.NATSRequests{SubjectPrefix: "fixture.online", PendingMessages: 8, PendingBytes: 32768, ShutdownTimeout: 10 * time.Millisecond}
 	}
-	options = append(options, online.Module(requests))
-	app := fx.New(options...)
+	if err := config.Validate(); err != nil {
+		t.Fatal(err)
+	}
+	log := &listenerLog{Handler: slog.NewTextHandler(io.Discard, nil), addresses: map[string]string{}}
+	app := bootstrap.New(config, slog.New(log))
+	ctx, cancel := context.WithTimeout(context.Background(), config.StartupTimeout)
+	defer cancel()
 	if err := app.Start(ctx); err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), config.ShutdownTimeout)
 		defer cancel()
 		if err := app.Stop(ctx); err != nil {
 			t.Error(err)
 		}
 	})
+	for _, instance := range config.Instances[:2] {
+		api := instance.Xray.API
+		client, err := rpc.New(rpc.Config{Network: api.Network, Address: api.Address})
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { client.Close() })
+		awaitNative(t, client)
+	}
 	tlsConfig, err := mtls.Client(pki.Client)
 	if err != nil {
 		t.Fatal(err)
@@ -276,6 +261,47 @@ func awaitNative(t *testing.T, connection *rpc.Client) {
 		case <-ticker.C:
 		case <-ctx.Done():
 			t.Fatal("native not ready", err)
+		}
+	}
+}
+
+func (f *fixture) stop(t *testing.T, id string) {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	switch f.transport {
+	case "http":
+		request, err := http.NewRequestWithContext(ctx, http.MethodDelete, f.address+"/v1/core/engines/instances/"+id+"/execution", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		reply, err := f.http.Do(request)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer reply.Body.Close()
+		if reply.StatusCode != http.StatusOK {
+			t.Fatal("instance stop:", reply.Status)
+		}
+	case "grpc":
+		client := instancesv1.NewInstancesServiceClient(f.grpc)
+		if _, err := client.StopInstance(ctx, &instancesv1.StopInstanceRequest{InstanceId: id}); err != nil {
+			t.Fatal(err)
+		}
+	case "nats":
+		data, err := json.Marshal(map[string]string{"instance_id": id})
+		if err != nil {
+			t.Fatal(err)
+		}
+		reply, err := f.nats.RequestWithContext(ctx, "fixture.online.core.engines.instances.v1.stop", data)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var result struct {
+			Error string `json:"error"`
+		}
+		if err := json.Unmarshal(reply.Data, &result); err != nil || result.Error != "" {
+			t.Fatal("instance stop:", result.Error, err)
 		}
 	}
 }

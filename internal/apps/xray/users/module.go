@@ -3,10 +3,11 @@ package users
 
 import (
 	"github.com/PapilioVPN/node/internal/apps/xray/users/accounts"
+	"github.com/PapilioVPN/node/internal/apps/xray/users/online"
 	"github.com/PapilioVPN/node/internal/settings"
 	"go.uber.org/fx"
 )
 
 func Module(requests settings.Requests) fx.Option {
-	return fx.Module("xray-users", accounts.Module(requests))
+	return fx.Module("xray-users", accounts.Module(requests), online.Module(requests))
 }

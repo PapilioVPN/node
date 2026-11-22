@@ -19,18 +19,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PapilioVPN/node/internal/apps/xray/observability/traffic"
-	"github.com/PapilioVPN/node/internal/apps/xray/observability/traffic/app/services"
 	"github.com/PapilioVPN/node/internal/apps/xray/observability/traffic/domain"
 	trafficv1 "github.com/PapilioVPN/node/internal/apps/xray/observability/traffic/grpcapi/proto/v1"
-	statservices "github.com/PapilioVPN/node/internal/apps/xray/runtime/statistics/app/services"
 	"github.com/PapilioVPN/node/internal/bootstrap"
 	"github.com/PapilioVPN/node/internal/settings"
 	"github.com/PapilioVPN/node/internal/shared/mtls"
 	"github.com/PapilioVPN/node/internal/testutil"
 	"github.com/nats-io/nats.go"
 	stats "github.com/xtls/xray-core/app/stats/command"
-	"go.uber.org/fx"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
@@ -128,10 +124,8 @@ func newFixture(t *testing.T, pki testutil.PKI, broker, transport string) *fixtu
 	if err := f.config.Validate(); err != nil {
 		t.Fatal(err)
 	}
-	// Shared registration is intentionally test-local until the integration step.
-	// The existing statistics status binding is the actual instance service.
 	log := &listenerLog{Handler: slog.NewTextHandler(io.Discard, nil), addresses: map[string]string{}}
-	app := bootstrap.New(f.config, slog.New(log), traffic.Module(f.config.Communications.Requests), fx.Provide(func(reader statservices.StatusReader) services.StatusReader { return reader }))
+	app := bootstrap.New(f.config, slog.New(log))
 	nativeReservation.Close()
 	proxyReservation.Close()
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
