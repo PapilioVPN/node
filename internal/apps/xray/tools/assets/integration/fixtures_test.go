@@ -113,11 +113,26 @@ type fixture struct {
 	gate       sync.Mutex // Fixture is the sole lifecycle caller; production must use Instances' slot.
 }
 
-func setup(t *testing.T) *fixture {
+func prepare(t *testing.T) (*fixture, string) {
 	t.Helper()
 	f := &fixture{root: privateDir(t)}
 	f.target = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { _, _ = io.WriteString(w, "assets-native-traffic") }))
 	t.Cleanup(f.target.Close)
+	api := address(t)
+	f.proxy = address(t)
+	_, port, _ := net.SplitHostPort(f.proxy)
+	_, apiport, _ := net.SplitHostPort(api)
+	f.original = []byte(fmt.Sprintf(`{"log":{"loglevel":"warning"},"api":{"tag":"api","services":["StatsService"]},"stats":{},"inbounds":[{"tag":"proxy","listen":"127.0.0.1","port":%s,"protocol":"http","settings":{"accounts":[{"user":"asset-proof","pass":"private-password"}]}},{"tag":"api-in","listen":"127.0.0.1","port":%s,"protocol":"tunnel","settings":{"address":"127.0.0.1"}}],"outbounds":[{"tag":"direct","protocol":"freedom"}],"routing":{"rules":[{"type":"field","inboundTag":["api-in"],"outboundTag":"api"},{"type":"field","domain":["geosite:PROOF"],"outboundTag":"direct"},{"type":"field","ip":["geoip:PROOF"],"outboundTag":"direct"}]}}`, port, apiport))
+	f.config = filepath.Join(privateDir(t), "private.json")
+	if err := os.WriteFile(f.config, f.original, 0600); err != nil {
+		t.Fatal(err)
+	}
+	return f, api
+}
+
+func setup(t *testing.T) *fixture {
+	t.Helper()
+	f, api := prepare(t)
 	repo, err := store.Open(f.root, "one")
 	if err != nil {
 		t.Fatal(err)
@@ -131,15 +146,6 @@ func setup(t *testing.T) *fixture {
 		t.Fatal("stage baseline", err)
 	}
 	if err = repo.Initialize(ctx, base.ID); err != nil {
-		t.Fatal(err)
-	}
-	api := address(t)
-	f.proxy = address(t)
-	_, port, _ := net.SplitHostPort(f.proxy)
-	_, apiport, _ := net.SplitHostPort(api)
-	f.original = []byte(fmt.Sprintf(`{"log":{"loglevel":"warning"},"api":{"tag":"api","services":["StatsService"]},"stats":{},"inbounds":[{"tag":"proxy","listen":"127.0.0.1","port":%s,"protocol":"http","settings":{"accounts":[{"user":"asset-proof","pass":"private-password"}]}},{"tag":"api-in","listen":"127.0.0.1","port":%s,"protocol":"tunnel","settings":{"address":"127.0.0.1"}}],"outbounds":[{"tag":"direct","protocol":"freedom"}],"routing":{"rules":[{"type":"field","inboundTag":["api-in"],"outboundTag":"api"},{"type":"field","domain":["geosite:PROOF"],"outboundTag":"direct"},{"type":"field","ip":["geoip:PROOF"],"outboundTag":"direct"}]}}`, port, apiport))
-	f.config = filepath.Join(privateDir(t), "private.json")
-	if err = os.WriteFile(f.config, f.original, 0600); err != nil {
 		t.Fatal(err)
 	}
 	conn, err := rpc.New(rpc.Config{Network: "tcp", Address: api})

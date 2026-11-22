@@ -4,6 +4,7 @@ package instances
 import (
 	"context"
 	"errors"
+
 	instance "github.com/PapilioVPN/node/internal/apps/xray/runtime/instances/app/services"
 	instancedomain "github.com/PapilioVPN/node/internal/apps/xray/runtime/instances/domain"
 	"github.com/PapilioVPN/node/internal/apps/xray/tools/assets/app/services"
@@ -14,8 +15,7 @@ import (
 // execution IDs/closed ownership and hold admission through rollback/readiness.
 // The returned runtime is borrowed; Assets never creates or closes it. No
 // fallback to separate public Stop/Start calls is safe across this reservation.
-// Integration must bind this runtime to the managed current/xray path and reject
-// source-level asset overrides/downloads that bypass the selected release.
+// Composition binds the instance to its managed current/xray path.
 type Acquire func(context.Context, string, string) (instance.Runtime, func(), error)
 type Lifecycle struct{ Acquire Acquire }
 

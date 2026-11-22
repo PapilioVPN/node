@@ -101,6 +101,7 @@ mountهای صریح توضیح‌داده‌شده در نمونه را به‌
 | [Loggerهای Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/observability/loggers) | بازکردن مجدد loggerهای Xray و مشاهدهٔ نتیجهٔ عملیات. |
 | [لاگ کنسول Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/observability/logs) | خواندن لاگ‌های اخیر کنسول با حذف دادهٔ حساس و ادامهٔ دریافت از موقعیت ثبت‌شده. پاسخ، شکاف‌ها، تغییر اجرای موتور و سقف ثبت لاگ را گزارش می‌کند. |
 | [عیب‌یابی Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/tools/diagnostics) | وضعیت اجرا، نسخه‌های کانفیگ، نسخهٔ فایل اجرایی و قابلیت‌های API بومی را در یک گزارش ببین. |
+| [فایل‌های اجرایی و دادهٔ جغرافیایی Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/tools/assets) | مشاهده، آماده‌سازی، فعال‌سازی و بازگشت به نسخهٔ قبلی فایل اجرایی و داده‌های جغرافیایی مدیریت‌شده. |
 | [ابزارهای کلید و گواهی Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/tools/credentials) | تولید UUID، کلیدهای X25519 و WireGuard، مواد کلید ML-DSA-65 و ML-KEM-768، جفت رمزنگاری VLESS، گواهی TLS و مجموعه‌کلید ECH. محاسبهٔ هش گواهی TLS. مواد خصوصی فقط در همان پاسخ برمی‌گردند. |
 
 عملیات زنده روی نمونهٔ در حال اجرا اثر می‌گذارد. عملیات کانفیگ تعیین
@@ -108,6 +109,8 @@ mountهای صریح توضیح‌داده‌شده در نمونه را به‌
 در کنترلر می‌ماند و Node عملیات بومی موتور و مدیریت کانفیگ را ارائه می‌دهد.
 
 <a name="management"></a>
+
+برای مدیریت این فایل‌ها، `assets_directory` را تنظیم کن و مسیر فایل اجرایی را روی `assets_directory/current/xray` بگذار. پوشهٔ خصوصی را در حالت آفلاین با `node -config config.yml -init-xray-assets <id> -xray-distribution <directory>` راه‌اندازی کن. این توزیع باید شامل `xray`، `geoip.dat` و `geosite.dat` معتبر باشد. نصب و اجرای Node را با یک شناسهٔ کاربری انجام بده. کنترلرهای مجاز این قابلیت می‌توانند فایل اجرایی ارسال کنند. سقف درخواست transport مورد استفاده برای ارسال نسخه‌ها را متناسب تنظیم کن.
 
 ## رابط‌های مدیریتی
 

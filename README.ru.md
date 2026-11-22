@@ -96,6 +96,7 @@ docker logs papilio-node
 | [Журналы Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/observability/loggers) | Повторное открытие журналов Xray с просмотром результата операции. |
 | [Консольные журналы Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/observability/logs) | Чтение последних консольных записей с удалением секретов и продолжение по курсору. Ответ сообщает о пропусках, смене процесса и пределах захвата. |
 | [Диагностика Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/tools/diagnostics) | Состояние процесса, ревизии конфигурации, версия исполняемого файла и возможности нативного API в одном отчёте. |
+| [Ресурсы Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/tools/assets) | Просмотр, подготовка, активация и откат управляемого исполняемого файла и геоданных Xray. |
 | [Ключи и сертификаты Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/tools/credentials) | Генерация UUID, ключевого материала X25519/WireGuard и ML-DSA-65/ML-KEM-768, пар шифрования VLESS, сертификатов TLS и наборов ключей ECH. Вычисление хешей сертификатов TLS. Закрытые данные доступны только в текущем ответе. |
 
 Операции в реальном времени действуют на запущенный экземпляр. Операции
@@ -104,6 +105,8 @@ docker logs papilio-node
 операции движка и управление конфигурацией.
 
 <a name="management"></a>
+
+Для управления ресурсами задайте `assets_directory` и выберите `assets_directory/current/xray` как исполняемый файл. Инициализируйте закрытый каталог командой `node -config config.yml -init-xray-assets <id> -xray-distribution <directory>` при остановленном Node. Дистрибутив должен содержать доверенные `xray`, `geoip.dat` и `geosite.dat`. Установка и запуск Node выполняются от одного пользователя. Контроллеры с доступом к этой функции могут загружать исполняемые файлы. Настройте лимиты запросов выбранного транспорта для загрузки релизов.
 
 ## API управления
 

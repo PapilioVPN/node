@@ -4,6 +4,7 @@ package assets
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"sync"
 	"time"
@@ -46,13 +47,16 @@ func compose(in inputs) (*services.Service, *resources, error) {
 	bindings := make([]services.Binding, 0, len(in.Config))
 	for _, c := range in.Config {
 		r, err := store.Open(c.Directory, c.ID)
-		if err != nil {
-			for _, r := range owner.stores {
-				_ = r.Close()
-			}
-			return nil, nil, err
+		if err == nil {
+			owner.stores = append(owner.stores, r)
+			err = r.CheckInstalled()
 		}
-		owner.stores = append(owner.stores, r)
+		if err != nil {
+			for _, opened := range owner.stores {
+				_ = opened.Close()
+			}
+			return nil, nil, fmt.Errorf("open installed Xray assets for %s: %w", c.ID, err)
+		}
 		bindings = append(bindings, services.Binding{ID: c.ID, Repository: r})
 	}
 	service, err := services.New(bindings, in.Lifecycle)

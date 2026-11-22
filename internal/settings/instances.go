@@ -21,11 +21,12 @@ type Instance struct {
 	Xray        *Xray         `yaml:"xray"`
 }
 type Xray struct {
-	Binary         string   `yaml:"binary"`
-	Configuration  string   `yaml:"configuration"`
-	WorkDirectory  string   `yaml:"work_directory"`
-	StateDirectory string   `yaml:"state_directory"`
-	API            *XrayAPI `yaml:"api"`
+	Binary          string   `yaml:"binary"`
+	Configuration   string   `yaml:"configuration"`
+	WorkDirectory   string   `yaml:"work_directory"`
+	StateDirectory  string   `yaml:"state_directory"`
+	AssetsDirectory string   `yaml:"assets_directory"`
+	API             *XrayAPI `yaml:"api"`
 }
 type XrayAPI struct {
 	Network string `yaml:"network"`
@@ -61,6 +62,18 @@ func validateInstances(instances []Instance) error {
 				return fmt.Errorf("instances[%d]: binary and configuration must be UTF-8 paths", i)
 			}
 		}
+		if directory := instance.Xray.AssetsDirectory; directory != "" {
+			if strings.ContainsRune(directory, 0) || !utf8.ValidString(directory) || instance.Xray.API == nil ||
+				(filepath.IsAbs(directory) == filepath.IsAbs(instance.Xray.Binary) &&
+					filepath.Clean(instance.Xray.Binary) != filepath.Join(directory, "current", "xray")) {
+				return fmt.Errorf("instances[%d]: assets_directory requires a native API and binary set to assets_directory/current/xray", i)
+			}
+			for _, candidate := range []string{instance.Xray.Configuration, instance.Xray.WorkDirectory, instance.Xray.StateDirectory} {
+				if candidate != "" && pathsOverlap(directory, candidate) {
+					return fmt.Errorf("instances[%d]: assets_directory must be separate from config, work and state paths", i)
+				}
+			}
+		}
 		if api := instance.Xray.API; api != nil {
 			switch api.Network {
 			case "tcp":
@@ -85,6 +98,9 @@ func resolveInstances(base string, instances []Instance) {
 		if instance.Xray.StateDirectory != "" {
 			instance.Xray.StateDirectory = absolutePath(base, instance.Xray.StateDirectory)
 		}
+		if instance.Xray.AssetsDirectory != "" {
+			instance.Xray.AssetsDirectory = absolutePath(base, instance.Xray.AssetsDirectory)
+		}
 		if instance.Xray.WorkDirectory != "" {
 			instance.Xray.WorkDirectory = absolutePath(base, instance.Xray.WorkDirectory)
 		}
@@ -95,6 +111,12 @@ func resolveInstances(base string, instances []Instance) {
 		}
 	}
 }
+func pathsOverlap(a, b string) bool {
+	a, b = filepath.Clean(a), filepath.Clean(b)
+	return a == b || strings.HasPrefix(a, strings.TrimRight(b, "/")+"/") ||
+		strings.HasPrefix(b, strings.TrimRight(a, "/")+"/")
+}
+
 func absolutePath(base, value string) string {
 	if filepath.IsAbs(value) {
 		return value

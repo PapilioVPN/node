@@ -80,6 +80,11 @@ communications:
 #       work_directory: /var/lib/node/xray/edge-a/work
 #       # Optional existing durable directory for recovery, owned by the Node user with mode 0700.
 #       state_directory: /var/lib/node/xray/edge-a/state
+#       # Optional: let trusted controllers stage executable and geodata releases.
+#       # Use a separate existing 0700 directory and set binary to assets_directory/current/xray.
+#       # Initialize offline with node -config config.yml -init-xray-assets edge-a -xray-distribution /trusted/xray.
+#       # For staging over the API, size the selected transport request limits for the upload.
+#       # assets_directory: /var/lib/node/xray/edge-a/assets
 #       api:
 #         network: tcp
 #         address: 127.0.0.1:10085

@@ -312,17 +312,9 @@ func (s *Store) Inspect(ctx context.Context) (domain.Inventory, error) {
 	}
 	result := domain.Inventory{State: state, ObservedAt: time.Now().UTC()}
 	if state.Active != "" {
-		link, err := s.root.Readlink("current")
+		selected, err := s.selected(state)
 		if err != nil {
 			return result, err
-		}
-		selected := ""
-		if link == "releases/"+state.Active {
-			selected = state.Active
-		} else if state.Pending != "" && link == "releases/"+state.Pending {
-			selected = state.Pending
-		} else {
-			return result, domain.ErrRecovery
 		}
 		result.Selected = selected
 		r, err := s.readRelease(ctx, selected)
@@ -332,6 +324,53 @@ func (s *Store) Inspect(ctx context.Context) (domain.Inventory, error) {
 		result.Installed = &r
 	}
 	return result, nil
+}
+
+// CheckInstalled verifies that execution will use a managed selection before
+// Node starts it. Pending selections stay visible for explicit recovery.
+func (s *Store) CheckInstalled() error {
+	state, err := s.state()
+	if err != nil {
+		return err
+	}
+	if state.Revision == 0 {
+		return domain.ErrUnsupported
+	}
+	id, err := s.selected(state)
+	if err != nil {
+		return err
+	}
+	info, err := s.root.Lstat("releases/" + id)
+	if err != nil {
+		return err
+	}
+	if !info.IsDir() {
+		return domain.ErrRejected
+	}
+	for _, name := range []string{"xray", "geoip.dat", "geosite.dat", "manifest.json"} {
+		info, err := s.root.Lstat("releases/" + id + "/" + name)
+		if err != nil {
+			return err
+		}
+		if !info.Mode().IsRegular() {
+			return domain.ErrRejected
+		}
+	}
+	return nil
+}
+
+func (s *Store) selected(state domain.State) (string, error) {
+	link, err := s.root.Readlink("current")
+	if err != nil {
+		return "", err
+	}
+	if link == "releases/"+state.Active {
+		return state.Active, nil
+	}
+	if state.Pending != "" && link == "releases/"+state.Pending {
+		return state.Pending, nil
+	}
+	return "", domain.ErrRecovery
 }
 
 // Initialize is an offline installer operation for an empty dedicated root. The

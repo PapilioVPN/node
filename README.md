@@ -95,6 +95,7 @@ described in the example settings.
 | [Xray loggers](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/observability/loggers) | Reopen Xray loggers and inspect the outcome. |
 | [Xray console logs](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/observability/logs) | Read sanitized recent console records and follow them with a resumable cursor. Responses describe gaps, execution changes and capture limits. |
 | [Xray diagnostics](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/tools/diagnostics) | Inspect execution, configuration revisions, the selected executable and native API capabilities in one report. |
+| [Xray assets](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/tools/assets) | Inspect, stage, activate and roll back an explicitly managed Xray executable and geodata release. |
 | [Xray credential tools](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/tools/credentials) | Generate UUIDs, X25519/WireGuard and ML-DSA-65/ML-KEM-768 key material, VLESS encryption pairs, TLS certificates and ECH key sets. Hash TLS certificates. Private artifacts are returned only in the current response. |
 
 Live operations act on the running instance. Configuration operations manage
@@ -102,6 +103,8 @@ what Xray starts with. Keep application user records and policies in the
 controller and use Node for native engine operations and configuration.
 
 <a name="management"></a>
+
+Enable managed assets by setting `assets_directory` and selecting `assets_directory/current/xray` as the binary. Initialize the private directory offline using `node -config config.yml -init-xray-assets <id> -xray-distribution <directory>`. The distribution must contain a trusted `xray`, `geoip.dat` and `geosite.dat`. Use the same filesystem identity for installation and Node. Controllers with access to this feature can supply executables. Configure the request limits of the transport used to stage releases.
 
 ## Management APIs
 

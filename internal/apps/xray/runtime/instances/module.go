@@ -23,6 +23,8 @@ import (
 	"github.com/PapilioVPN/node/internal/apps/xray/runtime/instances/infra/rpc"
 	"github.com/PapilioVPN/node/internal/apps/xray/runtime/instances/natsapi"
 	statservices "github.com/PapilioVPN/node/internal/apps/xray/runtime/statistics/app/services"
+	assetservices "github.com/PapilioVPN/node/internal/apps/xray/tools/assets/app/services"
+	assetinstances "github.com/PapilioVPN/node/internal/apps/xray/tools/assets/infra/instances"
 	diagnosticservices "github.com/PapilioVPN/node/internal/apps/xray/tools/diagnostics/app/services"
 	accountservices "github.com/PapilioVPN/node/internal/apps/xray/users/accounts/app/services"
 	onlineservices "github.com/PapilioVPN/node/internal/apps/xray/users/online/app/services"
@@ -49,6 +51,9 @@ func Module(config []settings.Instance, requests settings.Requests) fx.Option {
 		fx.Provide(func(service *services.Service) trafficservices.StatusReader { return service }),
 		fx.Provide(func(service *services.Service) routingservices.StatusReader { return service }),
 		fx.Provide(func(service *services.Service) healthservices.StatusReader { return service }),
+		fx.Provide(func(service *services.Service) assetservices.Lifecycle {
+			return assetinstances.Lifecycle{Acquire: service.ReserveExecution}
+		}),
 		fx.Provide(func(service *services.Service) diagnosticservices.StatusReader { return service }),
 		fx.Provide(fx.Annotate(finalize, fx.ResultTags(`group:"final-resources"`))),
 		fx.Invoke(register), fx.Provide(subscribe),

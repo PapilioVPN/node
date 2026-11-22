@@ -90,12 +90,15 @@ docker logs papilio-node
 | [Xray 日志记录器](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/observability/loggers) | 重新打开 Xray 日志记录器并查看操作结果。 |
 | [Xray 控制台日志](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/observability/logs) | 读取脱敏后的近期控制台记录，并通过游标继续获取。响应会报告缺口、执行实例变更和采集上限。 |
 | [Xray 诊断](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/tools/diagnostics) | 通过一份报告查看运行状态、配置修订、可执行文件版本及原生 API 能力。 |
+| [Xray 资源](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/tools/assets) | 查看、暂存、启用及回滚托管的 Xray 可执行文件和地理数据。 |
 | [Xray 凭据工具](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/tools/credentials) | 生成 UUID、X25519/WireGuard 和 ML-DSA-65/ML-KEM-768 密钥材料、VLESS 加密对、TLS 证书和 ECH 密钥集，并计算 TLS 证书哈希。私密材料仅在当前响应中返回。 |
 
 在线操作作用于运行中的实例，配置操作决定 Xray 启动时使用的设置。
 控制器负责维护应用用户数据和策略，Node 提供引擎的原生操作和配置管理。
 
 <a name="management"></a>
+
+启用资源管理时，请设置 `assets_directory` 并指定 `assets_directory/current/xray` 为二进制路径。在 Node 停止时运行 `node -config config.yml -init-xray-assets <id> -xray-distribution <directory>` 初始化私有目录。发行包必须包含可信的 `xray`、`geoip.dat` 和 `geosite.dat`。安装与运行 Node 须使用同一用户。具备此功能访问权限的控制器可以上传可执行文件。请配置上传所用传输协议的请求大小上限。
 
 ## 管理 API
 
