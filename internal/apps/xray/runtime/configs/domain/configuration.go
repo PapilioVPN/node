@@ -17,6 +17,10 @@ var (
 	ErrConflict          = errors.New("desired configuration revision changed")
 	ErrDurabilityUnknown = errors.New("configuration publication durability is unknown")
 	ErrNoDesired         = errors.New("no desired configuration exists")
+	ErrNoApplication     = errors.New("configuration application not retained")
+	ErrPlanExpired       = errors.New("configuration plan expired or superseded")
+	ErrStalePlan         = errors.New("configuration plan is stale")
+	ErrReadiness         = errors.New("configuration execution readiness not established")
 )
 
 // MaxCandidateBytes bounds one supported candidate, independently of possibly

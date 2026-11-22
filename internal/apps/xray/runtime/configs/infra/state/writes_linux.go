@@ -43,6 +43,11 @@ func (s *Store) Write(ctx context.Context, expected uint64, sources []domain.Sou
 	if err != nil {
 		return result, err
 	}
+	return s.publishDocument(ctx, root, desired.Metadata, data)
+}
+
+func (s *Store) publishDocument(ctx context.Context, root *os.Root, metadata domain.DesiredMetadata, data []byte) (result domain.Persistence, err error) {
+	result.Metadata = metadata
 	var random [8]byte
 	if _, err := rand.Read(random[:]); err != nil {
 		return result, err
@@ -79,7 +84,7 @@ func (s *Store) Write(ctx context.Context, expected uint64, sources []domain.Sou
 	}
 	result.Published = true
 	s.mu.Lock()
-	s.metadata = desired.Metadata
+	s.metadata = metadata
 	s.mu.Unlock()
 	if err := s.syncRoot(root); err != nil {
 		return result, errors.Join(domain.ErrDurabilityUnknown, err)

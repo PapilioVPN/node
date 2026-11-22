@@ -4,15 +4,13 @@ package state
 
 import (
 	"bytes"
-	"crypto/sha256"
-	"encoding/binary"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"io"
 	"os"
 	"time"
 
+	"github.com/PapilioVPN/node/internal/apps/xray/runtime/configs/app/policies"
 	"github.com/PapilioVPN/node/internal/apps/xray/runtime/configs/app/validators"
 	"github.com/PapilioVPN/node/internal/apps/xray/runtime/configs/domain"
 	"golang.org/x/sys/unix"
@@ -23,65 +21,83 @@ type sourceRecord struct {
 	Content []byte `json:"content"`
 }
 type record struct {
-	Schema     int            `json:"schema"`
-	InstanceID string         `json:"instance_id"`
-	Revision   uint64         `json:"revision,string"`
-	SHA256     string         `json:"sha256"`
-	UpdatedAt  time.Time      `json:"updated_at"`
-	Sources    []sourceRecord `json:"sources"`
+	Schema      int                 `json:"schema"`
+	InstanceID  string              `json:"instance_id"`
+	Revision    uint64              `json:"revision,string"`
+	SHA256      string              `json:"sha256"`
+	UpdatedAt   time.Time           `json:"updated_at"`
+	Sources     []sourceRecord      `json:"sources"`
+	Application *domain.Application `json:"application,omitempty"`
+	Previous    *record             `json:"previous,omitempty"`
 }
 
-func sourceDigest(sources []domain.Source) string {
-	hash := sha256.New()
-	hash.Write([]byte("papilio-xray-sources-v1\x00"))
-	var size [8]byte
-	for _, source := range sources {
-		binary.BigEndian.PutUint64(size[:], uint64(len(source.Name)))
-		hash.Write(size[:])
-		hash.Write([]byte(source.Name))
-		binary.BigEndian.PutUint64(size[:], uint64(len(source.Content)))
-		hash.Write(size[:])
-		hash.Write(source.Content)
-	}
-	return hex.EncodeToString(hash.Sum(nil))
-}
+var sourceDigest = policies.SourceDigest
 
 func readRecord(root *os.Root, id string) (domain.Desired, error) {
+	_, desired, err := readDocument(root, id)
+	return desired, err
+}
+
+func readDocument(root *os.Root, id string) (record, domain.Desired, error) {
 	file, err := root.OpenFile(recordName, os.O_RDONLY|unix.O_NOFOLLOW|unix.O_NONBLOCK, 0)
 	if errors.Is(err, os.ErrNotExist) {
-		return domain.Desired{}, nil
+		return record{}, domain.Desired{}, nil
 	}
 	if err != nil {
-		return domain.Desired{}, err
+		return record{}, domain.Desired{}, err
 	}
 	defer file.Close()
 	info, err := file.Stat()
 	if err != nil {
-		return domain.Desired{}, err
+		return record{}, domain.Desired{}, err
 	}
 	if !info.Mode().IsRegular() {
-		return domain.Desired{}, domain.ErrInvalidArgument
+		return record{}, domain.Desired{}, domain.ErrInvalidArgument
 	}
-	const maxRecordBytes = 2 << 20
+	// Two original 1 MiB collections, base64 framing and one bounded receipt.
+	const maxRecordBytes = 4 << 20
 	data, err := io.ReadAll(io.LimitReader(file, maxRecordBytes+1))
 	if err != nil {
-		return domain.Desired{}, err
+		return record{}, domain.Desired{}, err
 	}
 	if len(data) > maxRecordBytes {
-		return domain.Desired{}, domain.ErrTooLarge
+		return record{}, domain.Desired{}, domain.ErrTooLarge
 	}
 	decoder := json.NewDecoder(bytes.NewReader(data))
 	decoder.DisallowUnknownFields()
 	var row record
 	if err := decoder.Decode(&row); err != nil {
-		return domain.Desired{}, err
+		return record{}, domain.Desired{}, err
 	}
 	if err := decoder.Decode(new(any)); !errors.Is(err, io.EOF) {
-		return domain.Desired{}, domain.ErrInvalidArgument
+		return record{}, domain.Desired{}, domain.ErrInvalidArgument
 	}
-	if row.Schema != 1 || row.InstanceID != id || row.Revision == 0 || row.UpdatedAt.IsZero() {
-		return domain.Desired{}, domain.ErrInvalidArgument
+	if (row.Schema != 1 && row.Schema != 2) || row.InstanceID != id || row.Revision == 0 || row.UpdatedAt.IsZero() {
+		return record{}, domain.Desired{}, domain.ErrInvalidArgument
 	}
+	if (row.Schema == 1 && (row.Application != nil || row.Previous != nil)) || (row.Schema == 2 && (row.Application == nil || row.Previous == nil)) {
+		return record{}, domain.Desired{}, domain.ErrInvalidArgument
+	}
+	if row.Application != nil && (!validIdentity(row.Application.ID) || row.Application.InstanceID != id) {
+		return record{}, domain.Desired{}, domain.ErrInvalidArgument
+	}
+	desired, err := decodeSources(row)
+	if err != nil {
+		return record{}, domain.Desired{}, err
+	}
+	if row.Previous != nil {
+		previous := row.Previous
+		if row.Application == nil || previous.Schema != 1 || previous.InstanceID != id || previous.Revision >= row.Revision || previous.Application != nil || previous.Previous != nil {
+			return record{}, domain.Desired{}, domain.ErrInvalidArgument
+		}
+		if _, err := decodeSources(*previous); err != nil {
+			return record{}, domain.Desired{}, err
+		}
+	}
+	return row, desired, nil
+}
+
+func decodeSources(row record) (domain.Desired, error) {
 	sources := make([]domain.Source, len(row.Sources))
 	for i, source := range row.Sources {
 		sources[i] = domain.Source{Name: source.Name, Content: source.Content}
