@@ -4,6 +4,13 @@ option go_package = "github.com/PapilioVPN/node/internal/apps/xray/runtime/insta
 import "internal/apps/xray/runtime/instances/grpcapi/proto/v1/types.proto";
 
 service InstancesService {
+ rpc ListInstances(ListInstancesRequest) returns (InstancePage);
+ rpc RepairInstance(RepairInstanceRequest) returns (RepairResult);
+ rpc SetInstanceRetention(SetInstanceRetentionRequest) returns (ControlResult);
+ rpc GetInstanceLease(GetInstanceLeaseRequest) returns (LeaseStatus);
+ rpc AcquireInstanceLease(AcquireInstanceLeaseRequest) returns (LeaseReceipt);
+ rpc RenewInstanceLease(RenewInstanceLeaseRequest) returns (LeaseStatus);
+ rpc ReleaseInstanceLease(ReleaseInstanceLeaseRequest) returns (LeaseStatus);
  rpc GetInstanceStatus(GetInstanceStatusRequest) returns (InstanceStatus);
  rpc StartInstance(StartInstanceRequest) returns (ControlResult);
  rpc StopInstance(StopInstanceRequest) returns (ControlResult);
@@ -16,3 +23,14 @@ message StartInstanceRequest {string instance_id = 1;}
 message StopInstanceRequest {string instance_id = 1;}
 message RestartInstanceRequest {string instance_id = 1;}
 message CheckInstanceReadinessRequest {string instance_id = 1;}
+
+message ListInstancesRequest { string after = 1; uint32 limit = 2; }
+// At most three attempts. An unhealthy API is not proof the process crashed.
+message RepairInstanceRequest { string instance_id = 1; string execution_id = 2; uint32 max_attempts = 3; bool replace_unready = 4; }
+// Explicitly preserve a verified execution on the next clean Node stop.
+message SetInstanceRetentionRequest { string instance_id = 1; string execution_id = 2; bool preserve = 3; }
+message GetInstanceLeaseRequest { string instance_id = 1; }
+// TTL is 1..86400 seconds; policy is keep_running or stop. No implicit lease exists.
+message AcquireInstanceLeaseRequest { string instance_id = 1; uint64 expected_revision = 2; string execution_id = 3; string owner = 4; uint32 ttl_seconds = 5; string policy = 6; }
+message RenewInstanceLeaseRequest { string instance_id = 1; uint64 expected_revision = 2; string token = 3; uint32 ttl_seconds = 4; }
+message ReleaseInstanceLeaseRequest { string instance_id = 1; uint64 expected_revision = 2; string token = 3; }

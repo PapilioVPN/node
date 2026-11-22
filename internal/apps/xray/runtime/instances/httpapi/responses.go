@@ -8,6 +8,10 @@ import (
 )
 
 type statusResponse struct {
+	ExecutionID                string       `json:"execution_id"`
+	IdentityVerified           bool         `json:"identity_verified"`
+	Reattached                 bool         `json:"reattached"`
+	PreserveOnClose            bool         `json:"preserve_on_close"`
 	ID                         string       `json:"instance_id"`
 	Engine                     string       `json:"engine"`
 	State                      domain.State `json:"state"`
@@ -26,6 +30,7 @@ type controlResponse struct {
 	Effect domain.Effect   `json:"effect"`
 }
 type errorResponse struct {
+	Repair  *repairResponse  `json:"repair,omitempty"`
 	Error   string           `json:"error"`
 	Control *controlResponse `json:"control,omitempty"`
 }
@@ -43,7 +48,7 @@ func statusResult(s domain.Status) statusResponse {
 		value := strconv.FormatUint(*e.ConfigurationRevision, 10)
 		revision = &value
 	}
-	return statusResponse{s.ID, s.Engine, e.State, strconv.FormatUint(e.Generation, 10), e.StartedAt, e.ExitedAt, e.ExitCode, e.Forced, e.Failure != nil, s.ObservedAt, revision, e.CleanupFailure != nil}
+	return statusResponse{e.ExecutionID, e.IdentityVerified, e.Reattached, e.PreserveOnClose, s.ID, s.Engine, e.State, strconv.FormatUint(e.Generation, 10), e.StartedAt, e.ExitedAt, e.ExitCode, e.Forced, e.Failure != nil, s.ObservedAt, revision, e.CleanupFailure != nil}
 }
 func controlResult(result domain.Control) controlResponse {
 	response := controlResponse{Effect: result.Effect}

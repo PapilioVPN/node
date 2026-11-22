@@ -17,7 +17,14 @@ type Handler struct {
 }
 
 func (h Handler) Register(router fiber.Router) {
+	router.Get("/v1/core/engines/instances", h.List)
 	const root = "/v1/core/engines/instances/:id"
+	router.Put(root+"/retention", h.Retention)
+	router.Post(root+"/repairs", h.Repair)
+	router.Get(root+"/lease", h.Lease)
+	router.Post(root+"/leases", h.AcquireLease)
+	router.Put(root+"/lease", h.RenewLease)
+	router.Delete(root+"/lease", h.ReleaseLease)
 	router.Get(root, h.Status)
 	router.Put(root+"/execution", h.Start)
 	router.Delete(root+"/execution", h.Stop)
@@ -70,6 +77,9 @@ func empty(request fiber.Ctx) bool {
 	return len(request.Body()) == 0 && len(request.Request().URI().QueryString()) == 0
 }
 func fail(request fiber.Ctx, err error, result *domain.Control) error {
+	return failRepair(request, err, result, nil)
+}
+func failRepair(request fiber.Ctx, err error, result *domain.Control, repair *domain.RepairResult) error {
 	code, status := "unavailable", fiber.StatusServiceUnavailable
 	switch {
 	case errors.Is(err, context.DeadlineExceeded):
@@ -80,12 +90,18 @@ func fail(request fiber.Ctx, err error, result *domain.Control) error {
 		code, status = "invalid_argument", fiber.StatusBadRequest
 	case errors.Is(err, domain.ErrNotFound):
 		code, status = "not_found", fiber.StatusNotFound
+	case errors.Is(err, domain.ErrConflict):
+		code, status = "conflict", fiber.StatusConflict
 	case errors.Is(err, domain.ErrBusy):
 		code, status = "resource_exhausted", fiber.StatusTooManyRequests
-	case errors.Is(err, domain.ErrClosed), errors.Is(err, domain.ErrUnsupported):
+	case errors.Is(err, domain.ErrClosed), errors.Is(err, domain.ErrUnsupported), errors.Is(err, domain.ErrOwnership), errors.Is(err, domain.ErrRecoveryRequired):
 		code, status = "failed_precondition", fiber.StatusConflict
 	}
 	response := errorResponse{Error: code}
+	if repair != nil {
+		v := repairResult(*repair)
+		response.Repair = &v
+	}
 	if result != nil {
 		value := controlResult(*result)
 		response.Control = &value

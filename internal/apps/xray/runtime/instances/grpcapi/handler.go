@@ -75,9 +75,11 @@ func operationError(err error) error {
 		code = codes.InvalidArgument
 	case errors.Is(err, domain.ErrNotFound):
 		code = codes.NotFound
+	case errors.Is(err, domain.ErrConflict):
+		code = codes.Aborted
 	case errors.Is(err, domain.ErrBusy):
 		code = codes.ResourceExhausted
-	case errors.Is(err, domain.ErrClosed), errors.Is(err, domain.ErrUnsupported):
+	case errors.Is(err, domain.ErrClosed), errors.Is(err, domain.ErrUnsupported), errors.Is(err, domain.ErrOwnership), errors.Is(err, domain.ErrRecoveryRequired):
 		code = codes.FailedPrecondition
 	}
 	return status.Error(code, "instance operation failed")

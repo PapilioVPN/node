@@ -19,6 +19,13 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
+	InstancesService_ListInstances_FullMethodName          = "/papilio.core.engines.instances.v1.InstancesService/ListInstances"
+	InstancesService_RepairInstance_FullMethodName         = "/papilio.core.engines.instances.v1.InstancesService/RepairInstance"
+	InstancesService_SetInstanceRetention_FullMethodName   = "/papilio.core.engines.instances.v1.InstancesService/SetInstanceRetention"
+	InstancesService_GetInstanceLease_FullMethodName       = "/papilio.core.engines.instances.v1.InstancesService/GetInstanceLease"
+	InstancesService_AcquireInstanceLease_FullMethodName   = "/papilio.core.engines.instances.v1.InstancesService/AcquireInstanceLease"
+	InstancesService_RenewInstanceLease_FullMethodName     = "/papilio.core.engines.instances.v1.InstancesService/RenewInstanceLease"
+	InstancesService_ReleaseInstanceLease_FullMethodName   = "/papilio.core.engines.instances.v1.InstancesService/ReleaseInstanceLease"
 	InstancesService_GetInstanceStatus_FullMethodName      = "/papilio.core.engines.instances.v1.InstancesService/GetInstanceStatus"
 	InstancesService_StartInstance_FullMethodName          = "/papilio.core.engines.instances.v1.InstancesService/StartInstance"
 	InstancesService_StopInstance_FullMethodName           = "/papilio.core.engines.instances.v1.InstancesService/StopInstance"
@@ -30,6 +37,13 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type InstancesServiceClient interface {
+	ListInstances(ctx context.Context, in *ListInstancesRequest, opts ...grpc.CallOption) (*InstancePage, error)
+	RepairInstance(ctx context.Context, in *RepairInstanceRequest, opts ...grpc.CallOption) (*RepairResult, error)
+	SetInstanceRetention(ctx context.Context, in *SetInstanceRetentionRequest, opts ...grpc.CallOption) (*ControlResult, error)
+	GetInstanceLease(ctx context.Context, in *GetInstanceLeaseRequest, opts ...grpc.CallOption) (*LeaseStatus, error)
+	AcquireInstanceLease(ctx context.Context, in *AcquireInstanceLeaseRequest, opts ...grpc.CallOption) (*LeaseReceipt, error)
+	RenewInstanceLease(ctx context.Context, in *RenewInstanceLeaseRequest, opts ...grpc.CallOption) (*LeaseStatus, error)
+	ReleaseInstanceLease(ctx context.Context, in *ReleaseInstanceLeaseRequest, opts ...grpc.CallOption) (*LeaseStatus, error)
 	GetInstanceStatus(ctx context.Context, in *GetInstanceStatusRequest, opts ...grpc.CallOption) (*InstanceStatus, error)
 	StartInstance(ctx context.Context, in *StartInstanceRequest, opts ...grpc.CallOption) (*ControlResult, error)
 	StopInstance(ctx context.Context, in *StopInstanceRequest, opts ...grpc.CallOption) (*ControlResult, error)
@@ -44,6 +58,76 @@ type instancesServiceClient struct {
 
 func NewInstancesServiceClient(cc grpc.ClientConnInterface) InstancesServiceClient {
 	return &instancesServiceClient{cc}
+}
+
+func (c *instancesServiceClient) ListInstances(ctx context.Context, in *ListInstancesRequest, opts ...grpc.CallOption) (*InstancePage, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(InstancePage)
+	err := c.cc.Invoke(ctx, InstancesService_ListInstances_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *instancesServiceClient) RepairInstance(ctx context.Context, in *RepairInstanceRequest, opts ...grpc.CallOption) (*RepairResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RepairResult)
+	err := c.cc.Invoke(ctx, InstancesService_RepairInstance_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *instancesServiceClient) SetInstanceRetention(ctx context.Context, in *SetInstanceRetentionRequest, opts ...grpc.CallOption) (*ControlResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ControlResult)
+	err := c.cc.Invoke(ctx, InstancesService_SetInstanceRetention_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *instancesServiceClient) GetInstanceLease(ctx context.Context, in *GetInstanceLeaseRequest, opts ...grpc.CallOption) (*LeaseStatus, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(LeaseStatus)
+	err := c.cc.Invoke(ctx, InstancesService_GetInstanceLease_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *instancesServiceClient) AcquireInstanceLease(ctx context.Context, in *AcquireInstanceLeaseRequest, opts ...grpc.CallOption) (*LeaseReceipt, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(LeaseReceipt)
+	err := c.cc.Invoke(ctx, InstancesService_AcquireInstanceLease_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *instancesServiceClient) RenewInstanceLease(ctx context.Context, in *RenewInstanceLeaseRequest, opts ...grpc.CallOption) (*LeaseStatus, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(LeaseStatus)
+	err := c.cc.Invoke(ctx, InstancesService_RenewInstanceLease_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *instancesServiceClient) ReleaseInstanceLease(ctx context.Context, in *ReleaseInstanceLeaseRequest, opts ...grpc.CallOption) (*LeaseStatus, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(LeaseStatus)
+	err := c.cc.Invoke(ctx, InstancesService_ReleaseInstanceLease_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *instancesServiceClient) GetInstanceStatus(ctx context.Context, in *GetInstanceStatusRequest, opts ...grpc.CallOption) (*InstanceStatus, error) {
@@ -100,6 +184,13 @@ func (c *instancesServiceClient) CheckInstanceReadiness(ctx context.Context, in 
 // All implementations must embed UnimplementedInstancesServiceServer
 // for forward compatibility.
 type InstancesServiceServer interface {
+	ListInstances(context.Context, *ListInstancesRequest) (*InstancePage, error)
+	RepairInstance(context.Context, *RepairInstanceRequest) (*RepairResult, error)
+	SetInstanceRetention(context.Context, *SetInstanceRetentionRequest) (*ControlResult, error)
+	GetInstanceLease(context.Context, *GetInstanceLeaseRequest) (*LeaseStatus, error)
+	AcquireInstanceLease(context.Context, *AcquireInstanceLeaseRequest) (*LeaseReceipt, error)
+	RenewInstanceLease(context.Context, *RenewInstanceLeaseRequest) (*LeaseStatus, error)
+	ReleaseInstanceLease(context.Context, *ReleaseInstanceLeaseRequest) (*LeaseStatus, error)
 	GetInstanceStatus(context.Context, *GetInstanceStatusRequest) (*InstanceStatus, error)
 	StartInstance(context.Context, *StartInstanceRequest) (*ControlResult, error)
 	StopInstance(context.Context, *StopInstanceRequest) (*ControlResult, error)
@@ -116,6 +207,27 @@ type InstancesServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedInstancesServiceServer struct{}
 
+func (UnimplementedInstancesServiceServer) ListInstances(context.Context, *ListInstancesRequest) (*InstancePage, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListInstances not implemented")
+}
+func (UnimplementedInstancesServiceServer) RepairInstance(context.Context, *RepairInstanceRequest) (*RepairResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method RepairInstance not implemented")
+}
+func (UnimplementedInstancesServiceServer) SetInstanceRetention(context.Context, *SetInstanceRetentionRequest) (*ControlResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method SetInstanceRetention not implemented")
+}
+func (UnimplementedInstancesServiceServer) GetInstanceLease(context.Context, *GetInstanceLeaseRequest) (*LeaseStatus, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetInstanceLease not implemented")
+}
+func (UnimplementedInstancesServiceServer) AcquireInstanceLease(context.Context, *AcquireInstanceLeaseRequest) (*LeaseReceipt, error) {
+	return nil, status.Error(codes.Unimplemented, "method AcquireInstanceLease not implemented")
+}
+func (UnimplementedInstancesServiceServer) RenewInstanceLease(context.Context, *RenewInstanceLeaseRequest) (*LeaseStatus, error) {
+	return nil, status.Error(codes.Unimplemented, "method RenewInstanceLease not implemented")
+}
+func (UnimplementedInstancesServiceServer) ReleaseInstanceLease(context.Context, *ReleaseInstanceLeaseRequest) (*LeaseStatus, error) {
+	return nil, status.Error(codes.Unimplemented, "method ReleaseInstanceLease not implemented")
+}
 func (UnimplementedInstancesServiceServer) GetInstanceStatus(context.Context, *GetInstanceStatusRequest) (*InstanceStatus, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetInstanceStatus not implemented")
 }
@@ -150,6 +262,132 @@ func RegisterInstancesServiceServer(s grpc.ServiceRegistrar, srv InstancesServic
 		t.testEmbeddedByValue()
 	}
 	s.RegisterService(&InstancesService_ServiceDesc, srv)
+}
+
+func _InstancesService_ListInstances_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListInstancesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(InstancesServiceServer).ListInstances(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: InstancesService_ListInstances_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(InstancesServiceServer).ListInstances(ctx, req.(*ListInstancesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _InstancesService_RepairInstance_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RepairInstanceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(InstancesServiceServer).RepairInstance(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: InstancesService_RepairInstance_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(InstancesServiceServer).RepairInstance(ctx, req.(*RepairInstanceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _InstancesService_SetInstanceRetention_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetInstanceRetentionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(InstancesServiceServer).SetInstanceRetention(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: InstancesService_SetInstanceRetention_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(InstancesServiceServer).SetInstanceRetention(ctx, req.(*SetInstanceRetentionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _InstancesService_GetInstanceLease_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetInstanceLeaseRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(InstancesServiceServer).GetInstanceLease(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: InstancesService_GetInstanceLease_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(InstancesServiceServer).GetInstanceLease(ctx, req.(*GetInstanceLeaseRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _InstancesService_AcquireInstanceLease_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AcquireInstanceLeaseRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(InstancesServiceServer).AcquireInstanceLease(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: InstancesService_AcquireInstanceLease_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(InstancesServiceServer).AcquireInstanceLease(ctx, req.(*AcquireInstanceLeaseRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _InstancesService_RenewInstanceLease_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RenewInstanceLeaseRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(InstancesServiceServer).RenewInstanceLease(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: InstancesService_RenewInstanceLease_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(InstancesServiceServer).RenewInstanceLease(ctx, req.(*RenewInstanceLeaseRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _InstancesService_ReleaseInstanceLease_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ReleaseInstanceLeaseRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(InstancesServiceServer).ReleaseInstanceLease(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: InstancesService_ReleaseInstanceLease_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(InstancesServiceServer).ReleaseInstanceLease(ctx, req.(*ReleaseInstanceLeaseRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _InstancesService_GetInstanceStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -249,6 +487,34 @@ var InstancesService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "papilio.core.engines.instances.v1.InstancesService",
 	HandlerType: (*InstancesServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "ListInstances",
+			Handler:    _InstancesService_ListInstances_Handler,
+		},
+		{
+			MethodName: "RepairInstance",
+			Handler:    _InstancesService_RepairInstance_Handler,
+		},
+		{
+			MethodName: "SetInstanceRetention",
+			Handler:    _InstancesService_SetInstanceRetention_Handler,
+		},
+		{
+			MethodName: "GetInstanceLease",
+			Handler:    _InstancesService_GetInstanceLease_Handler,
+		},
+		{
+			MethodName: "AcquireInstanceLease",
+			Handler:    _InstancesService_AcquireInstanceLease_Handler,
+		},
+		{
+			MethodName: "RenewInstanceLease",
+			Handler:    _InstancesService_RenewInstanceLease_Handler,
+		},
+		{
+			MethodName: "ReleaseInstanceLease",
+			Handler:    _InstancesService_ReleaseInstanceLease_Handler,
+		},
 		{
 			MethodName: "GetInstanceStatus",
 			Handler:    _InstancesService_GetInstanceStatus_Handler,

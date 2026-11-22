@@ -37,6 +37,10 @@ type InstanceStatus struct {
 	// The original-source revision used by this execution, absent for operator baseline.
 	ConfigurationRevision      *uint64 `protobuf:"varint,11,opt,name=configuration_revision,json=configurationRevision,proto3,oneof" json:"configuration_revision,omitempty"`
 	ConfigurationCleanupFailed bool    `protobuf:"varint,12,opt,name=configuration_cleanup_failed,json=configurationCleanupFailed,proto3" json:"configuration_cleanup_failed,omitempty"`
+	ExecutionId                string  `protobuf:"bytes,13,opt,name=execution_id,json=executionId,proto3" json:"execution_id,omitempty"`
+	IdentityVerified           bool    `protobuf:"varint,14,opt,name=identity_verified,json=identityVerified,proto3" json:"identity_verified,omitempty"`
+	Reattached                 bool    `protobuf:"varint,15,opt,name=reattached,proto3" json:"reattached,omitempty"`
+	PreserveOnClose            bool    `protobuf:"varint,16,opt,name=preserve_on_close,json=preserveOnClose,proto3" json:"preserve_on_close,omitempty"`
 	unknownFields              protoimpl.UnknownFields
 	sizeCache                  protoimpl.SizeCache
 }
@@ -151,6 +155,34 @@ func (x *InstanceStatus) GetConfigurationRevision() uint64 {
 func (x *InstanceStatus) GetConfigurationCleanupFailed() bool {
 	if x != nil {
 		return x.ConfigurationCleanupFailed
+	}
+	return false
+}
+
+func (x *InstanceStatus) GetExecutionId() string {
+	if x != nil {
+		return x.ExecutionId
+	}
+	return ""
+}
+
+func (x *InstanceStatus) GetIdentityVerified() bool {
+	if x != nil {
+		return x.IdentityVerified
+	}
+	return false
+}
+
+func (x *InstanceStatus) GetReattached() bool {
+	if x != nil {
+		return x.Reattached
+	}
+	return false
+}
+
+func (x *InstanceStatus) GetPreserveOnClose() bool {
+	if x != nil {
+		return x.PreserveOnClose
 	}
 	return false
 }
@@ -278,11 +310,293 @@ func (x *InstanceReadiness) GetCheckedAt() *timestamppb.Timestamp {
 	return nil
 }
 
+// Inventory observes configured instances without native RPCs; each item has its own observation time.
+type InstancePage struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Items         []*InstanceStatus      `protobuf:"bytes,1,rep,name=items,proto3" json:"items,omitempty"`
+	NextAfter     string                 `protobuf:"bytes,2,opt,name=next_after,json=nextAfter,proto3" json:"next_after,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *InstancePage) Reset() {
+	*x = InstancePage{}
+	mi := &file_internal_apps_xray_runtime_instances_grpcapi_proto_v1_types_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InstancePage) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InstancePage) ProtoMessage() {}
+
+func (x *InstancePage) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_apps_xray_runtime_instances_grpcapi_proto_v1_types_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InstancePage.ProtoReflect.Descriptor instead.
+func (*InstancePage) Descriptor() ([]byte, []int) {
+	return file_internal_apps_xray_runtime_instances_grpcapi_proto_v1_types_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *InstancePage) GetItems() []*InstanceStatus {
+	if x != nil {
+		return x.Items
+	}
+	return nil
+}
+
+func (x *InstancePage) GetNextAfter() string {
+	if x != nil {
+		return x.NextAfter
+	}
+	return ""
+}
+
+type RepairResult struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Control       *ControlResult         `protobuf:"bytes,1,opt,name=control,proto3" json:"control,omitempty"`
+	Attempts      uint32                 `protobuf:"varint,2,opt,name=attempts,proto3" json:"attempts,omitempty"`
+	Ready         bool                   `protobuf:"varint,3,opt,name=ready,proto3" json:"ready,omitempty"`
+	Action        string                 `protobuf:"bytes,4,opt,name=action,proto3" json:"action,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RepairResult) Reset() {
+	*x = RepairResult{}
+	mi := &file_internal_apps_xray_runtime_instances_grpcapi_proto_v1_types_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RepairResult) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RepairResult) ProtoMessage() {}
+
+func (x *RepairResult) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_apps_xray_runtime_instances_grpcapi_proto_v1_types_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RepairResult.ProtoReflect.Descriptor instead.
+func (*RepairResult) Descriptor() ([]byte, []int) {
+	return file_internal_apps_xray_runtime_instances_grpcapi_proto_v1_types_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *RepairResult) GetControl() *ControlResult {
+	if x != nil {
+		return x.Control
+	}
+	return nil
+}
+
+func (x *RepairResult) GetAttempts() uint32 {
+	if x != nil {
+		return x.Attempts
+	}
+	return 0
+}
+
+func (x *RepairResult) GetReady() bool {
+	if x != nil {
+		return x.Ready
+	}
+	return false
+}
+
+func (x *RepairResult) GetAction() string {
+	if x != nil {
+		return x.Action
+	}
+	return ""
+}
+
+type LeaseStatus struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Revision      uint64                 `protobuf:"varint,1,opt,name=revision,proto3" json:"revision,omitempty"`
+	State         string                 `protobuf:"bytes,2,opt,name=state,proto3" json:"state,omitempty"`
+	Owner         string                 `protobuf:"bytes,3,opt,name=owner,proto3" json:"owner,omitempty"`
+	ExecutionId   string                 `protobuf:"bytes,4,opt,name=execution_id,json=executionId,proto3" json:"execution_id,omitempty"`
+	Policy        string                 `protobuf:"bytes,5,opt,name=policy,proto3" json:"policy,omitempty"`
+	ExpiresAt     *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
+	StopEffect    string                 `protobuf:"bytes,7,opt,name=stop_effect,json=stopEffect,proto3" json:"stop_effect,omitempty"`
+	ExpiryError   string                 `protobuf:"bytes,8,opt,name=expiry_error,json=expiryError,proto3" json:"expiry_error,omitempty"`
+	ObservedAt    *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=observed_at,json=observedAt,proto3" json:"observed_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LeaseStatus) Reset() {
+	*x = LeaseStatus{}
+	mi := &file_internal_apps_xray_runtime_instances_grpcapi_proto_v1_types_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LeaseStatus) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LeaseStatus) ProtoMessage() {}
+
+func (x *LeaseStatus) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_apps_xray_runtime_instances_grpcapi_proto_v1_types_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LeaseStatus.ProtoReflect.Descriptor instead.
+func (*LeaseStatus) Descriptor() ([]byte, []int) {
+	return file_internal_apps_xray_runtime_instances_grpcapi_proto_v1_types_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *LeaseStatus) GetRevision() uint64 {
+	if x != nil {
+		return x.Revision
+	}
+	return 0
+}
+
+func (x *LeaseStatus) GetState() string {
+	if x != nil {
+		return x.State
+	}
+	return ""
+}
+
+func (x *LeaseStatus) GetOwner() string {
+	if x != nil {
+		return x.Owner
+	}
+	return ""
+}
+
+func (x *LeaseStatus) GetExecutionId() string {
+	if x != nil {
+		return x.ExecutionId
+	}
+	return ""
+}
+
+func (x *LeaseStatus) GetPolicy() string {
+	if x != nil {
+		return x.Policy
+	}
+	return ""
+}
+
+func (x *LeaseStatus) GetExpiresAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ExpiresAt
+	}
+	return nil
+}
+
+func (x *LeaseStatus) GetStopEffect() string {
+	if x != nil {
+		return x.StopEffect
+	}
+	return ""
+}
+
+func (x *LeaseStatus) GetExpiryError() string {
+	if x != nil {
+		return x.ExpiryError
+	}
+	return ""
+}
+
+func (x *LeaseStatus) GetObservedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ObservedAt
+	}
+	return nil
+}
+
+// The renewal token appears only on acquisition. Status and errors never return it.
+type LeaseReceipt struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Status        *LeaseStatus           `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
+	Token         string                 `protobuf:"bytes,2,opt,name=token,proto3" json:"token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LeaseReceipt) Reset() {
+	*x = LeaseReceipt{}
+	mi := &file_internal_apps_xray_runtime_instances_grpcapi_proto_v1_types_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LeaseReceipt) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LeaseReceipt) ProtoMessage() {}
+
+func (x *LeaseReceipt) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_apps_xray_runtime_instances_grpcapi_proto_v1_types_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LeaseReceipt.ProtoReflect.Descriptor instead.
+func (*LeaseReceipt) Descriptor() ([]byte, []int) {
+	return file_internal_apps_xray_runtime_instances_grpcapi_proto_v1_types_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *LeaseReceipt) GetStatus() *LeaseStatus {
+	if x != nil {
+		return x.Status
+	}
+	return nil
+}
+
+func (x *LeaseReceipt) GetToken() string {
+	if x != nil {
+		return x.Token
+	}
+	return ""
+}
+
 var File_internal_apps_xray_runtime_instances_grpcapi_proto_v1_types_proto protoreflect.FileDescriptor
 
 const file_internal_apps_xray_runtime_instances_grpcapi_proto_v1_types_proto_rawDesc = "" +
 	"\n" +
-	"Ainternal/apps/xray/runtime/instances/grpcapi/proto/v1/types.proto\x12!papilio.core.engines.instances.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xbc\x04\n" +
+	"Ainternal/apps/xray/runtime/instances/grpcapi/proto/v1/types.proto\x12!papilio.core.engines.instances.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xd8\x05\n" +
 	"\x0eInstanceStatus\x12\x1f\n" +
 	"\vinstance_id\x18\x01 \x01(\tR\n" +
 	"instanceId\x12\x16\n" +
@@ -301,7 +615,13 @@ const file_internal_apps_xray_runtime_instances_grpcapi_proto_v1_types_proto_raw
 	" \x01(\v2\x1a.google.protobuf.TimestampR\n" +
 	"observedAt\x12:\n" +
 	"\x16configuration_revision\x18\v \x01(\x04H\x01R\x15configurationRevision\x88\x01\x01\x12@\n" +
-	"\x1cconfiguration_cleanup_failed\x18\f \x01(\bR\x1aconfigurationCleanupFailedB\f\n" +
+	"\x1cconfiguration_cleanup_failed\x18\f \x01(\bR\x1aconfigurationCleanupFailed\x12!\n" +
+	"\fexecution_id\x18\r \x01(\tR\vexecutionId\x12+\n" +
+	"\x11identity_verified\x18\x0e \x01(\bR\x10identityVerified\x12\x1e\n" +
+	"\n" +
+	"reattached\x18\x0f \x01(\bR\n" +
+	"reattached\x12*\n" +
+	"\x11preserve_on_close\x18\x10 \x01(\bR\x0fpreserveOnCloseB\f\n" +
 	"\n" +
 	"_exit_codeB\x19\n" +
 	"\x17_configuration_revision\"r\n" +
@@ -313,7 +633,32 @@ const file_internal_apps_xray_runtime_instances_grpcapi_proto_v1_types_proto_raw
 	"\tapi_state\x18\x02 \x01(\tR\bapiState\x12#\n" +
 	"\rtraffic_state\x18\x03 \x01(\tR\ftrafficState\x129\n" +
 	"\n" +
-	"checked_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\tcheckedAtB^Z\\github.com/PapilioVPN/node/internal/apps/xray/runtime/instances/grpcapi/proto/v1;instancesv1b\x06proto3"
+	"checked_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\tcheckedAt\"v\n" +
+	"\fInstancePage\x12G\n" +
+	"\x05items\x18\x01 \x03(\v21.papilio.core.engines.instances.v1.InstanceStatusR\x05items\x12\x1d\n" +
+	"\n" +
+	"next_after\x18\x02 \x01(\tR\tnextAfter\"\xa4\x01\n" +
+	"\fRepairResult\x12J\n" +
+	"\acontrol\x18\x01 \x01(\v20.papilio.core.engines.instances.v1.ControlResultR\acontrol\x12\x1a\n" +
+	"\battempts\x18\x02 \x01(\rR\battempts\x12\x14\n" +
+	"\x05ready\x18\x03 \x01(\bR\x05ready\x12\x16\n" +
+	"\x06action\x18\x04 \x01(\tR\x06action\"\xcc\x02\n" +
+	"\vLeaseStatus\x12\x1a\n" +
+	"\brevision\x18\x01 \x01(\x04R\brevision\x12\x14\n" +
+	"\x05state\x18\x02 \x01(\tR\x05state\x12\x14\n" +
+	"\x05owner\x18\x03 \x01(\tR\x05owner\x12!\n" +
+	"\fexecution_id\x18\x04 \x01(\tR\vexecutionId\x12\x16\n" +
+	"\x06policy\x18\x05 \x01(\tR\x06policy\x129\n" +
+	"\n" +
+	"expires_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\x12\x1f\n" +
+	"\vstop_effect\x18\a \x01(\tR\n" +
+	"stopEffect\x12!\n" +
+	"\fexpiry_error\x18\b \x01(\tR\vexpiryError\x12;\n" +
+	"\vobserved_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\n" +
+	"observedAt\"l\n" +
+	"\fLeaseReceipt\x12F\n" +
+	"\x06status\x18\x01 \x01(\v2..papilio.core.engines.instances.v1.LeaseStatusR\x06status\x12\x14\n" +
+	"\x05token\x18\x02 \x01(\tR\x05tokenB^Z\\github.com/PapilioVPN/node/internal/apps/xray/runtime/instances/grpcapi/proto/v1;instancesv1b\x06proto3"
 
 var (
 	file_internal_apps_xray_runtime_instances_grpcapi_proto_v1_types_proto_rawDescOnce sync.Once
@@ -327,25 +672,34 @@ func file_internal_apps_xray_runtime_instances_grpcapi_proto_v1_types_proto_rawD
 	return file_internal_apps_xray_runtime_instances_grpcapi_proto_v1_types_proto_rawDescData
 }
 
-var file_internal_apps_xray_runtime_instances_grpcapi_proto_v1_types_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_internal_apps_xray_runtime_instances_grpcapi_proto_v1_types_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_internal_apps_xray_runtime_instances_grpcapi_proto_v1_types_proto_goTypes = []any{
 	(*InstanceStatus)(nil),        // 0: papilio.core.engines.instances.v1.InstanceStatus
 	(*ControlResult)(nil),         // 1: papilio.core.engines.instances.v1.ControlResult
 	(*InstanceReadiness)(nil),     // 2: papilio.core.engines.instances.v1.InstanceReadiness
-	(*timestamppb.Timestamp)(nil), // 3: google.protobuf.Timestamp
+	(*InstancePage)(nil),          // 3: papilio.core.engines.instances.v1.InstancePage
+	(*RepairResult)(nil),          // 4: papilio.core.engines.instances.v1.RepairResult
+	(*LeaseStatus)(nil),           // 5: papilio.core.engines.instances.v1.LeaseStatus
+	(*LeaseReceipt)(nil),          // 6: papilio.core.engines.instances.v1.LeaseReceipt
+	(*timestamppb.Timestamp)(nil), // 7: google.protobuf.Timestamp
 }
 var file_internal_apps_xray_runtime_instances_grpcapi_proto_v1_types_proto_depIdxs = []int32{
-	3, // 0: papilio.core.engines.instances.v1.InstanceStatus.started_at:type_name -> google.protobuf.Timestamp
-	3, // 1: papilio.core.engines.instances.v1.InstanceStatus.exited_at:type_name -> google.protobuf.Timestamp
-	3, // 2: papilio.core.engines.instances.v1.InstanceStatus.observed_at:type_name -> google.protobuf.Timestamp
-	0, // 3: papilio.core.engines.instances.v1.ControlResult.status:type_name -> papilio.core.engines.instances.v1.InstanceStatus
-	0, // 4: papilio.core.engines.instances.v1.InstanceReadiness.status:type_name -> papilio.core.engines.instances.v1.InstanceStatus
-	3, // 5: papilio.core.engines.instances.v1.InstanceReadiness.checked_at:type_name -> google.protobuf.Timestamp
-	6, // [6:6] is the sub-list for method output_type
-	6, // [6:6] is the sub-list for method input_type
-	6, // [6:6] is the sub-list for extension type_name
-	6, // [6:6] is the sub-list for extension extendee
-	0, // [0:6] is the sub-list for field type_name
+	7,  // 0: papilio.core.engines.instances.v1.InstanceStatus.started_at:type_name -> google.protobuf.Timestamp
+	7,  // 1: papilio.core.engines.instances.v1.InstanceStatus.exited_at:type_name -> google.protobuf.Timestamp
+	7,  // 2: papilio.core.engines.instances.v1.InstanceStatus.observed_at:type_name -> google.protobuf.Timestamp
+	0,  // 3: papilio.core.engines.instances.v1.ControlResult.status:type_name -> papilio.core.engines.instances.v1.InstanceStatus
+	0,  // 4: papilio.core.engines.instances.v1.InstanceReadiness.status:type_name -> papilio.core.engines.instances.v1.InstanceStatus
+	7,  // 5: papilio.core.engines.instances.v1.InstanceReadiness.checked_at:type_name -> google.protobuf.Timestamp
+	0,  // 6: papilio.core.engines.instances.v1.InstancePage.items:type_name -> papilio.core.engines.instances.v1.InstanceStatus
+	1,  // 7: papilio.core.engines.instances.v1.RepairResult.control:type_name -> papilio.core.engines.instances.v1.ControlResult
+	7,  // 8: papilio.core.engines.instances.v1.LeaseStatus.expires_at:type_name -> google.protobuf.Timestamp
+	7,  // 9: papilio.core.engines.instances.v1.LeaseStatus.observed_at:type_name -> google.protobuf.Timestamp
+	5,  // 10: papilio.core.engines.instances.v1.LeaseReceipt.status:type_name -> papilio.core.engines.instances.v1.LeaseStatus
+	11, // [11:11] is the sub-list for method output_type
+	11, // [11:11] is the sub-list for method input_type
+	11, // [11:11] is the sub-list for extension type_name
+	11, // [11:11] is the sub-list for extension extendee
+	0,  // [0:11] is the sub-list for field type_name
 }
 
 func init() { file_internal_apps_xray_runtime_instances_grpcapi_proto_v1_types_proto_init() }
@@ -360,7 +714,7 @@ func file_internal_apps_xray_runtime_instances_grpcapi_proto_v1_types_proto_init
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_internal_apps_xray_runtime_instances_grpcapi_proto_v1_types_proto_rawDesc), len(file_internal_apps_xray_runtime_instances_grpcapi_proto_v1_types_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   3,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

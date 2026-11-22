@@ -17,6 +17,10 @@ message InstanceStatus {
  // The original-source revision used by this execution, absent for operator baseline.
  optional uint64 configuration_revision = 11;
  bool configuration_cleanup_failed = 12;
+ string execution_id = 13;
+ bool identity_verified = 14;
+ bool reattached = 15;
+ bool preserve_on_close = 16;
 }
 message ControlResult {
  InstanceStatus status = 1;
@@ -31,3 +35,20 @@ message InstanceReadiness {
  string traffic_state = 3;
  google.protobuf.Timestamp checked_at = 4;
 }
+
+// Inventory observes configured instances without native RPCs; each item has its own observation time.
+message InstancePage { repeated InstanceStatus items = 1; string next_after = 2; }
+message RepairResult { ControlResult control = 1; uint32 attempts = 2; bool ready = 3; string action = 4; }
+message LeaseStatus {
+ uint64 revision = 1;
+ string state = 2;
+ string owner = 3;
+ string execution_id = 4;
+ string policy = 5;
+ google.protobuf.Timestamp expires_at = 6;
+ string stop_effect = 7;
+ string expiry_error = 8;
+ google.protobuf.Timestamp observed_at = 9;
+}
+// The renewal token appears only on acquisition. Status and errors never return it.
+message LeaseReceipt { LeaseStatus status = 1; string token = 2; }

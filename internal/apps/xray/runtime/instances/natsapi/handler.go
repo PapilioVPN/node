@@ -116,6 +116,9 @@ func encode(value any) []byte {
 	return data
 }
 func failure(err error, result *domain.Control) []byte {
+	return failureRepair(err, result, nil)
+}
+func failureRepair(err error, result *domain.Control, repair *domain.RepairResult) []byte {
 	code := "unavailable"
 	switch {
 	case errors.Is(err, context.DeadlineExceeded):
@@ -126,12 +129,18 @@ func failure(err error, result *domain.Control) []byte {
 		code = "invalid_argument"
 	case errors.Is(err, domain.ErrNotFound):
 		code = "not_found"
+	case errors.Is(err, domain.ErrConflict):
+		code = "conflict"
 	case errors.Is(err, domain.ErrBusy):
 		code = "resource_exhausted"
-	case errors.Is(err, domain.ErrClosed), errors.Is(err, domain.ErrUnsupported):
+	case errors.Is(err, domain.ErrClosed), errors.Is(err, domain.ErrUnsupported), errors.Is(err, domain.ErrOwnership), errors.Is(err, domain.ErrRecoveryRequired):
 		code = "failed_precondition"
 	}
 	response := errorResponse{Error: code}
+	if repair != nil {
+		v := repairResult(*repair)
+		response.Repair = &v
+	}
 	if result != nil {
 		value := controlResult(*result)
 		response.Control = &value

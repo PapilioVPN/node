@@ -16,7 +16,7 @@ func timestamp(value *time.Time) *timestamppb.Timestamp {
 }
 func statusResult(s domain.Status) *instancesv1.InstanceStatus {
 	e := s.Execution
-	return &instancesv1.InstanceStatus{InstanceId: s.ID, Engine: s.Engine, State: string(e.State), Generation: e.Generation, StartedAt: timestamp(e.StartedAt), ExitedAt: timestamp(e.ExitedAt), ExitCode: e.ExitCode, Forced: e.Forced, ExecutionFailed: e.Failure != nil, ObservedAt: timestamppb.New(s.ObservedAt), ConfigurationRevision: e.ConfigurationRevision, ConfigurationCleanupFailed: e.CleanupFailure != nil}
+	return &instancesv1.InstanceStatus{InstanceId: s.ID, ExecutionId: e.ExecutionID, IdentityVerified: e.IdentityVerified, Reattached: e.Reattached, PreserveOnClose: e.PreserveOnClose, Engine: s.Engine, State: string(e.State), Generation: e.Generation, StartedAt: timestamp(e.StartedAt), ExitedAt: timestamp(e.ExitedAt), ExitCode: e.ExitCode, Forced: e.Forced, ExecutionFailed: e.Failure != nil, ObservedAt: timestamppb.New(s.ObservedAt), ConfigurationRevision: e.ConfigurationRevision, ConfigurationCleanupFailed: e.CleanupFailure != nil}
 }
 func controlResult(result domain.Control) *instancesv1.ControlResult {
 	response := &instancesv1.ControlResult{Effect: string(result.Effect)}
@@ -27,4 +27,8 @@ func controlResult(result domain.Control) *instancesv1.ControlResult {
 }
 func readinessResult(result domain.Readiness) *instancesv1.InstanceReadiness {
 	return &instancesv1.InstanceReadiness{Status: statusResult(result.Status), ApiState: string(result.APIState), TrafficState: string(result.TrafficState), CheckedAt: timestamppb.New(result.CheckedAt)}
+}
+
+func leaseResult(r domain.LeaseStatus) *instancesv1.LeaseStatus {
+	return &instancesv1.LeaseStatus{Revision: r.Revision, State: r.State, Owner: r.Owner, ExecutionId: r.ExecutionID, Policy: r.Policy, ExpiresAt: timestamp(r.ExpiresAt), StopEffect: string(r.StopEffect), ExpiryError: r.Error, ObservedAt: timestamppb.New(r.ObservedAt)}
 }

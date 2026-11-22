@@ -16,6 +16,7 @@ import (
 	outboundservices "github.com/PapilioVPN/node/internal/apps/xray/proxies/outbounds/app/services"
 	configservices "github.com/PapilioVPN/node/internal/apps/xray/runtime/configs/app/services"
 	"github.com/PapilioVPN/node/internal/apps/xray/runtime/instances/app/services"
+	"github.com/PapilioVPN/node/internal/apps/xray/runtime/instances/domain"
 	"github.com/PapilioVPN/node/internal/apps/xray/runtime/instances/grpcapi"
 	"github.com/PapilioVPN/node/internal/apps/xray/runtime/instances/httpapi"
 	"github.com/PapilioVPN/node/internal/apps/xray/runtime/instances/infra/process"
@@ -36,6 +37,7 @@ func Module(config []settings.Instance, requests settings.Requests) fx.Option {
 		fx.Supply(config, requests, fx.Private),
 		fx.Provide(compose, fx.Private),
 		fx.Provide(fx.Annotate(func(bindings apiBindings) []rpc.Binding { return []rpc.Binding(bindings) }, fx.ResultTags(`group:"xray-native-api,flatten"`))),
+		fx.Provide(fx.Annotate(func(bindings outputBindings) []domain.OutputBinding { return []domain.OutputBinding(bindings) }, fx.ResultTags(`group:"xray-instance-output,flatten"`))),
 		fx.Provide(func(service *services.Service) configservices.Restarter { return service }),
 		fx.Provide(func(service *services.Service) statservices.StatusReader { return service }),
 		fx.Provide(func(service *services.Service) logservices.StatusReader { return service }),
@@ -59,39 +61,42 @@ type composition struct {
 }
 
 type apiBindings []rpc.Binding
+type outputBindings []domain.OutputBinding
 
-func compose(in composition) (*services.Service, apiBindings, error) {
+func compose(in composition) (*services.Service, apiBindings, outputBindings, error) {
 	var apis apiBindings
+	var outputs outputBindings
 	config := in.Config
 	bindings := make([]services.Binding, 0, len(config))
 	for _, instance := range config {
 		if instance.Engine != "xray" || instance.Xray == nil {
-			return nil, nil, errors.New("unsupported instance engine")
+			return nil, nil, nil, errors.New("unsupported instance engine")
 		}
 		var api *rpc.Client
 		if instance.Xray.API != nil {
 			var err error
 			api, err = rpc.New(rpc.Config{Network: instance.Xray.API.Network, Address: instance.Xray.API.Address})
 			if err != nil {
-				return nil, nil, err
+				return nil, nil, nil, err
 			}
 		}
 		var source process.Source
 		if in.Sources != nil {
 			source = in.Sources.ForInstance(instance.ID)
 		}
-		runtime, err := process.New(process.Config{Source: source, Binary: instance.Xray.Binary, Configuration: instance.Xray.Configuration, StopTimeout: instance.StopTimeout, API: api})
+		runtime, err := process.New(process.Config{ID: instance.ID, RecoveryDirectory: instance.Xray.StateDirectory, WorkDirectory: instance.Xray.WorkDirectory, Source: source, Binary: instance.Xray.Binary, Configuration: instance.Xray.Configuration, StopTimeout: instance.StopTimeout, API: api})
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 		apis = append(apis, rpc.Binding{ID: instance.ID, Client: api})
-		bindings = append(bindings, services.Binding{ID: instance.ID, Engine: instance.Engine, Runtime: runtime})
+		outputs = append(outputs, domain.OutputBinding{ID: instance.ID, Source: runtime})
+		bindings = append(bindings, services.Binding{ID: instance.ID, Engine: instance.Engine, Runtime: runtime, Retainer: runtime, Leases: runtime})
 	}
 	service, err := services.New(bindings)
 	if err == nil {
 		registerLifecycle(in.Lifecycle, service, config)
 	}
-	return service, apis, err
+	return service, apis, outputs, err
 }
 func registerLifecycle(lifecycle fx.Lifecycle, service *services.Service, config []settings.Instance) {
 	// This hook is installed before communication hooks. Shutdown drains incoming
@@ -100,6 +105,11 @@ func registerLifecycle(lifecycle fx.Lifecycle, service *services.Service, config
 	budget := cleanupBudget(config)
 	lifecycle.Append(fx.Hook{OnStart: func(ctx context.Context) error {
 		if err := service.StartAll(ctx); err != nil {
+			rollback, cancel := context.WithTimeout(context.Background(), budget)
+			defer cancel()
+			return errors.Join(err, service.Close(rollback))
+		}
+		if err := service.StartLeases(ctx); err != nil {
 			rollback, cancel := context.WithTimeout(context.Background(), budget)
 			defer cancel()
 			return errors.Join(err, service.Close(rollback))
@@ -127,6 +137,13 @@ func register(in adapters) {
 func subscribe(in adapters) natsclient.Subscriptions {
 	h := natsapi.Handler{Service: in.Service, Timeout: in.Requests.Timeout}
 	return natsclient.Subscriptions{Endpoints: []natsclient.Subscription{
+		{Name: "instance inventory", SubjectSuffix: "core.engines.instances.list.v1.get", Handle: h.List},
+		{Name: "instance repair", SubjectSuffix: "core.engines.instances.v1.repair", Handle: h.Repair},
+		{Name: "instance retention", SubjectSuffix: "core.engines.instances.retention.v1.set", Handle: h.Retention},
+		{Name: "instance lease", SubjectSuffix: "core.engines.instances.lease.v1.get", Handle: h.Lease},
+		{Name: "instance lease acquisition", SubjectSuffix: "core.engines.instances.lease.v1.acquire", Handle: h.AcquireLease},
+		{Name: "instance lease renewal", SubjectSuffix: "core.engines.instances.lease.v1.renew", Handle: h.RenewLease},
+		{Name: "instance lease release", SubjectSuffix: "core.engines.instances.lease.v1.release", Handle: h.ReleaseLease},
 		{Name: "instance status", SubjectSuffix: "core.engines.instances.status.v1.get", Handle: h.Status},
 		{Name: "instance start", SubjectSuffix: "core.engines.instances.v1.start", Handle: h.Start},
 		{Name: "instance stop", SubjectSuffix: "core.engines.instances.v1.stop", Handle: h.Stop},

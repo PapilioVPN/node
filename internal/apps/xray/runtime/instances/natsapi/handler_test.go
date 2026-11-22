@@ -28,3 +28,22 @@ func TestStrictSelectionDeadlinesAndPartialRestart(t *testing.T) {
 		t.Fatalf("partial restart: %s", data)
 	}
 }
+
+func TestRecoveryEnvelopeDeadlineAndBounds(t *testing.T) {
+	h, r := fixture()
+	for _, q := range []string{`{"instance_id":"a","max_attempts":4}`, `{"instance_id":"a","max_attempts":1,"max_attempts":2}`, `{"instance_id":"a","max_attempts":null}`} {
+		if reply := h.Repair(context.Background(), []byte(q), nil); !strings.Contains(string(reply), `"invalid_argument"`) {
+			t.Fatal(string(reply))
+		}
+	}
+	deadline := nats.Header{"Papilio-Deadline": []string{time.Now().Add(-time.Second).Format(time.RFC3339Nano)}}
+	if reply := h.Repair(context.Background(), []byte(`{"instance_id":"a","max_attempts":1}`), deadline); !strings.Contains(string(reply), "deadline_exceeded") {
+		t.Fatal(string(reply))
+	}
+	if reply := h.List(context.Background(), []byte(`{"limit":51}`), nil); !strings.Contains(string(reply), "invalid_argument") {
+		t.Fatal(string(reply))
+	}
+	if r.calls != 0 {
+		t.Fatal("rejected requests mutated engine")
+	}
+}

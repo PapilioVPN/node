@@ -122,7 +122,7 @@ func engineFixture(t *testing.T, id string) engine {
 }
 func nodeConfig(t *testing.T, pki testutil.PKI, brokerURL, transport string, engines ...engine) settings.Config {
 	t.Helper()
-	config := settings.Config{StartupTimeout: 5 * time.Second, ShutdownTimeout: 12 * time.Second}
+	config := settings.Config{StartupTimeout: 5 * time.Second, ShutdownTimeout: 30 * time.Second}
 	config.Communications.Requests.Timeout = 2 * time.Second
 	for _, engine := range engines {
 		config.Instances = append(config.Instances, engine.settings)
