@@ -5,15 +5,24 @@ package integration_test
 import (
 	"bytes"
 	"context"
+	"crypto/ecdh"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
+	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/base64"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
 	"io"
 	"log/slog"
+	"math/big"
 	"net"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -55,9 +64,10 @@ type clients struct {
 	nats    *nats.Conn
 }
 type fixture struct {
-	config settings.Config
-	pki    testutil.PKI
-	native string
+	config    settings.Config
+	pki       testutil.PKI
+	native    string
+	engineTLS mtls.Files
 }
 
 func newFixture(t *testing.T, pki testutil.PKI, broker, transport string) fixture {
@@ -121,7 +131,7 @@ func newFixture(t *testing.T, pki testutil.PKI, broker, transport string) fixtur
 	if err := config.Validate(); err != nil {
 		t.Fatal(err)
 	}
-	return fixture{config, pki, native}
+	return fixture{config: config, pki: pki, native: native}
 }
 func startNode(t *testing.T, f fixture) clients {
 	t.Helper()
@@ -236,7 +246,7 @@ func nativeAccountFamilies() []accountFamily {
 			return map[string]any{"method": "2022-blake3-aes-128-gcm", "password": key(1, 16), "clients": []any{member(email, map[string]any{"password": key(seed, 16)})}}
 		}},
 		{name: "wireguard", proxy: "wireguard", account: "xray.proxy.wireguard.PeerConfig", caseSensitive: true, duplicate: "replaced", missingRemovalOK: true, settings: func(email string, seed byte) map[string]any {
-			return map[string]any{"secretKey": key(1, 32), "address": []string{"10.55.0.1/24"}, "peers": []any{member(email, map[string]any{"publicKey": key(seed, 32), "allowedIPs": []string{fmt.Sprintf("10.55.0.%d/32", seed)}})}}
+			return map[string]any{"secretKey": key(1, 32), "address": []string{"10.55.0.1/24"}, "peers": []any{member(email, map[string]any{"publicKey": familyPublicKey(seed), "allowedIPs": []string{fmt.Sprintf("10.55.0.%d/32", seed)}})}}
 		}},
 		{name: "hysteria", proxy: "hysteria", account: "xray.proxy.hysteria.account.Account", caseSensitive: true, duplicate: "replaced", missingRemovalOK: true, settings: func(email string, seed byte) map[string]any {
 			return map[string]any{"version": 2, "clients": []any{member(email, map[string]any{"auth": fmt.Sprintf("fixture-%d", seed)})}}
@@ -245,6 +255,14 @@ func nativeAccountFamilies() []accountFamily {
 			return map[string]any{"address": []string{"10.56.0.1/24"}, "clients": []any{member(email, map[string]any{"pass": fmt.Sprintf("fixture-%d", seed)})}}
 		}},
 	}
+}
+
+func familyPublicKey(seed byte) string {
+	private, err := ecdh.X25519().NewPrivateKey(bytes.Repeat([]byte{seed}, 32))
+	if err != nil {
+		panic(err) // The fixture always supplies exactly 32 bytes.
+	}
+	return base64.StdEncoding.EncodeToString(private.PublicKey().Bytes())
 }
 
 func (f accountFamily) inbound(email string, seed byte) map[string]any {
@@ -260,7 +278,7 @@ func familySource(t *testing.T, family accountFamily, email string, seed byte) [
 	return data
 }
 
-func configureFamily(t *testing.T, f fixture, family accountFamily) {
+func configureFamily(t *testing.T, f *fixture, family accountFamily) {
 	t.Helper()
 	// MASQUE can bind both TCP and UDP; reserve both until its config is written.
 	var tcp net.Listener
@@ -294,15 +312,17 @@ func configureFamily(t *testing.T, f fixture, family accountFamily) {
 	inbound := family.inbound("original@example.test", 2)
 	inbound["listen"], inbound["port"] = "127.0.0.1", tcp.Addr().(*net.TCPAddr).Port
 	if family.name == "hysteria" || family.name == "masque" {
+		f.engineTLS = familyTLS(t)
 		inbound["streamSettings"] = map[string]any{
 			"network": family.name, "security": "tls",
-			"tlsSettings": map[string]any{"certificates": []any{map[string]any{"certificateFile": f.pki.Server.Certificate, "keyFile": f.pki.Server.PrivateKey}}},
+			"tlsSettings": map[string]any{"alpn": []string{"h3"}, "certificates": []any{map[string]any{"certificateFile": f.engineTLS.Certificate, "keyFile": f.engineTLS.PrivateKey}}},
 		}
 		if family.name == "hysteria" {
 			inbound["streamSettings"].(map[string]any)["hysteriaSettings"] = map[string]any{"version": 2}
 		}
 	}
 	configuration["inbounds"] = []any{inbound}
+	familyDiagnostics(t, configuration)
 	data, err = json.Marshal(configuration)
 	if err != nil {
 		t.Fatal(err)
@@ -310,4 +330,169 @@ func configureFamily(t *testing.T, f fixture, family accountFamily) {
 	if err := os.WriteFile(path, data, 0600); err != nil {
 		t.Fatal(err)
 	}
+}
+
+// familyTrafficClient adds an isolated native client owned by Node's normal
+// instance lifecycle. WireGuard uses a user-space TUN; host routes are untouched.
+func familyTrafficClient(t *testing.T, f *fixture, family accountFamily, id, address, email string, seed byte) (proxy, native string) {
+	t.Helper()
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer listener.Close()
+	api, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer api.Close()
+	host, number, err := net.SplitHostPort(address)
+	if err != nil {
+		t.Fatal(err)
+	}
+	port, err := strconv.Atoi(number)
+	if err != nil {
+		t.Fatal(err)
+	}
+	credential := fmt.Sprintf("fixture-%d", seed)
+	server := map[string]any{"address": host, "port": port}
+	outbound := map[string]any{"protocol": family.proxy}
+	switch family.name {
+	case "vless", "vmess":
+		user := map[string]any{"id": fmt.Sprintf("00000000-0000-4000-8000-%012x", seed)}
+		if family.name == "vless" {
+			user["encryption"] = "none"
+		}
+		server["users"] = []any{user}
+		outbound["settings"] = map[string]any{"vnext": []any{server}}
+	case "trojan", "shadowsocks", "shadowsocks2022":
+		server["password"] = credential
+		if family.name == "shadowsocks" {
+			server["method"] = "aes-128-gcm"
+		} else if family.name == "shadowsocks2022" {
+			server["method"] = "2022-blake3-aes-128-gcm"
+			server["password"] = base64.StdEncoding.EncodeToString(bytes.Repeat([]byte{1}, 16)) + ":" + base64.StdEncoding.EncodeToString(bytes.Repeat([]byte{seed}, 16))
+		}
+		outbound["settings"] = map[string]any{"servers": []any{server}}
+	case "wireguard":
+		outbound["settings"] = map[string]any{
+			"noKernelTun": true, "secretKey": base64.StdEncoding.EncodeToString(bytes.Repeat([]byte{seed}, 32)),
+			"address": []string{fmt.Sprintf("10.55.0.%d/32", seed)},
+			"peers":   []any{map[string]any{"publicKey": familyPublicKey(1), "endpoint": address, "allowedIPs": []string{"0.0.0.0/0"}}},
+		}
+	case "hysteria", "masque":
+		outbound["settings"] = server
+		stream := map[string]any{
+			"network": family.name, "security": "tls",
+			"tlsSettings": map[string]any{"alpn": []string{"h3"}, "serverName": "localhost", "disableSystemRoot": true, "certificates": []any{map[string]any{"certificateFile": f.engineTLS.CA, "usage": "verify"}}},
+		}
+		if family.name == "hysteria" {
+			server["version"] = 2
+			stream["hysteriaSettings"] = map[string]any{"version": 2, "auth": credential}
+		} else {
+			stream["masqueSettings"] = map[string]any{"user": email, "pass": credential}
+		}
+		outbound["streamSettings"] = stream
+	default:
+		t.Fatal("unknown native account family", family.name)
+	}
+	configuration := map[string]any{
+		"log": map[string]any{"loglevel": "none"},
+		"api": map[string]any{"tag": "api", "listen": api.Addr().String(), "services": []string{"StatsService"}}, "stats": map[string]any{},
+		"inbounds":  []any{map[string]any{"tag": "client", "listen": "127.0.0.1", "port": listener.Addr().(*net.TCPAddr).Port, "protocol": "http"}},
+		"outbounds": []any{outbound},
+	}
+	familyDiagnostics(t, configuration)
+	data, err := json.Marshal(configuration)
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(t.TempDir(), "client.json")
+	if err := os.WriteFile(path, data, 0600); err != nil {
+		t.Fatal(err)
+	}
+	f.config.Instances = append(f.config.Instances, settings.Instance{ID: id, Engine: "xray", StopTimeout: time.Second, Xray: &settings.Xray{Binary: f.config.Instances[0].Xray.Binary, Configuration: path}})
+	return "http://" + listener.Addr().String(), api.Addr().String()
+}
+
+// Hysteria's default Chrome TLS profile needs an ECDSA or RSA server identity.
+// Trust this isolated self-signed P-256 certificate without disabling verification.
+func familyTLS(t *testing.T) mtls.Files {
+	t.Helper()
+	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	now := time.Now()
+	certificate := &x509.Certificate{
+		SerialNumber: big.NewInt(1), Subject: pkix.Name{CommonName: "localhost"},
+		NotBefore: now.Add(-time.Hour), NotAfter: now.Add(time.Hour),
+		DNSNames: []string{"localhost"}, IPAddresses: []net.IP{net.ParseIP("127.0.0.1")},
+		KeyUsage: x509.KeyUsageDigitalSignature, ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+	}
+	der, err := x509.CreateCertificate(rand.Reader, certificate, certificate, &key.PublicKey, key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	private, err := x509.MarshalPKCS8PrivateKey(key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir := t.TempDir()
+	files := mtls.Files{Certificate: filepath.Join(dir, "engine.crt"), PrivateKey: filepath.Join(dir, "engine.key"), CA: filepath.Join(dir, "engine.crt")}
+	if err := os.WriteFile(files.Certificate, pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der}), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(files.PrivateKey, pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: private}), 0600); err != nil {
+		t.Fatal(err)
+	}
+	return files
+}
+
+func familyDiagnostics(t *testing.T, configuration map[string]any) {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), "xray.log")
+	configuration["log"] = map[string]any{"loglevel": "debug", "error": path}
+	t.Cleanup(func() {
+		if !t.Failed() {
+			return
+		}
+		file, err := os.Open(path)
+		if err != nil {
+			t.Log(err)
+			return
+		}
+		defer file.Close()
+		data, err := io.ReadAll(io.LimitReader(file, 32768))
+		t.Logf("isolated native diagnostics: %s (%v)", data, err)
+	})
+}
+
+func familyTrafficTarget(t *testing.T, f fixture, target string) (address, virtualTarget string) {
+	t.Helper()
+	address = allowAccountTraffic(t, f, target)
+	path := f.config.Instances[0].Xray.Configuration
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var configuration map[string]any
+	if err := json.Unmarshal(data, &configuration); err != nil {
+		t.Fatal(err)
+	}
+	// User-space IP clients deliver 127/8 to their own loopback. Send a virtual
+	// destination through the tunnel, then redirect only inside this test server.
+	configuration["outbounds"].([]any)[0].(map[string]any)["settings"].(map[string]any)["redirect"] = target
+	data, err = json.Marshal(configuration)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, data, 0600); err != nil {
+		t.Fatal(err)
+	}
+	_, port, err := net.SplitHostPort(target)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return address, "http://198.18.0.1:" + port
 }

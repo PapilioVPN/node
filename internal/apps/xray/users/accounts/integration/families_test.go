@@ -21,7 +21,7 @@ func TestLiveNativeAccountFamilies(t *testing.T) {
 			for _, transport := range []string{"http", "grpc", "nats"} {
 				t.Run(transport, func(t *testing.T) {
 					f := newFixture(t, pki, broker, transport)
-					configureFamily(t, f, family)
+					configureFamily(t, &f, family)
 					f.config.Instances[0].Xray.WorkDirectory = t.TempDir()
 					f.config.Communications.Requests.Timeout = 2 * time.Second
 					if f.config.Communications.HTTP != nil {
