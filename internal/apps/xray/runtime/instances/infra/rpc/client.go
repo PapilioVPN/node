@@ -95,6 +95,16 @@ func (c *Client) NewStream(ctx context.Context, description *grpc.StreamDesc, me
 	}
 	return connection.NewStream(ctx, description, method, options...)
 }
+
+// ResetConnectBackoff wakes the existing channel when an owned execution starts.
+func (c *Client) ResetConnectBackoff() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if !c.closed && c.connection != nil {
+		c.connection.ResetConnectBackoff()
+	}
+}
+
 func (c *Client) Close() error {
 	c.closeOnce.Do(func() {
 		c.mu.Lock()

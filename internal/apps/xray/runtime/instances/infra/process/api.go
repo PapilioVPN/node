@@ -45,6 +45,13 @@ func (a *api) check(ctx context.Context) (bool, error) {
 		return true, nil
 	}
 }
+
+func (a *api) resetConnectBackoff() {
+	if a.connection != nil {
+		a.connection.ResetConnectBackoff()
+	}
+}
+
 func (a *api) close() error {
 	if a.connection == nil {
 		return nil

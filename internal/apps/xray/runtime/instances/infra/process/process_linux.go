@@ -265,6 +265,7 @@ func (p *Process) Start(ctx context.Context) (startErr error) {
 		old.output.Close()
 	}
 	ownedInput = nil
+	p.api.resetConnectBackoff()
 	go p.watch(watch, run)
 	return nil
 }
