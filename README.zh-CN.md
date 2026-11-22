@@ -76,7 +76,7 @@ docker logs papilio-node
 | 模块 | 可用操作 |
 | --- | --- |
 | [系统与 Node](https://github.com/PapilioVPN/node/tree/main/internal/apps/system) | 主机标识、运行时长、负载、CPU、内存和交换空间、进程、会话与登录记录、传感器、文件系统和设备 I/O、网络接口计数器，以及 Node 进程与资源诊断。 |
-| [Xray 实例](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/runtime/instances) | 启动、停止和重启已配置的实例，查看状态并通过 Xray 原生 API 检查就绪情况。 |
+| [Xray 实例](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/runtime/instances) | 列出已配置的实例，查看状态，启动、停止和重启实例，并检查原生就绪状态。配置持久化状态后，可验证并重新接管健康进程，执行限次修复，明确设置进程保留策略并管理控制器租约。 |
 | [Xray 配置](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/runtime/configs) | 验证和编译配置源，查看期望和已应用的修订版本，以及替换和应用配置。 |
 | [Xray 入站](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/proxies/inbounds) | 列出处理器和标签，查看摘要及兼容性，从编译数据或配置源添加，按标签删除，以及审查并执行替换计划。 |
 | [Xray 出站](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/proxies/outbounds) | 分页读取处理器快照，从编译数据或配置源添加，以及按标签删除。审查替换计划，应用支持的在线变更并查看结果。需要重启的变更通过配置 API 应用。 |

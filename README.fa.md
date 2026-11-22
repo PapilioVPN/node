@@ -87,7 +87,7 @@ mountهای صریح توضیح‌داده‌شده در نمونه را به‌
 | بخش | عملیات قابل استفاده |
 | --- | --- |
 | [سیستم و Node](https://github.com/PapilioVPN/node/tree/main/internal/apps/system) | هویت میزبان، زمان کارکرد، بار، CPU، حافظه و swap، پردازش‌ها، نشست‌ها و سوابق ورود، حسگرها، فایل‌سیستم و ورودی‌وخروجی دیسک، شمارنده‌های رابط شبکه و عیب‌یابی پردازش و منابع Node. |
-| [نمونه‌های Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/runtime/instances) | شروع، توقف و راه‌اندازی مجدد نمونه‌های تعریف‌شده، خواندن وضعیت و بررسی آمادگی با API بومی Xray. |
+| [نمونه‌های Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/runtime/instances) | فهرست و وضعیت نمونه‌ها، شروع، توقف، راه‌اندازی مجدد و بررسی آمادگی بومی. با تنظیم مسیر ماندگار، تأیید و اتصال مجدد به پردازش سالم، بازیابی با تعداد تلاش محدود، تعیین حفظ پردازش هنگام توقف و مدیریت lease کنترلر. |
 | [تنظیمات Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/runtime/configs) | اعتبارسنجی و کامپایل سورس‌ها، مشاهدهٔ نسخهٔ مطلوب و اعمال‌شده، جایگزینی و اعمال کانفیگ. |
 | [ورودی‌های Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/proxies/inbounds) | فهرست handlerها و tagها، خلاصه و سازگاری ورودی‌ها، افزودن از دادهٔ کامپایل‌شده یا سورس، حذف با tag و بازبینی و اجرای طرح جایگزینی. |
 | [خروجی‌های Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/proxies/outbounds) | فهرست صفحه‌بندی‌شدهٔ handlerها، افزودن از دادهٔ کامپایل‌شده یا سورس و حذف با tag. بازبینی طرح جایگزینی، اعمال تغییر زندهٔ پشتیبانی‌شده و خواندن نتیجه. تغییرهای نیازمند راه‌اندازی مجدد از API تنظیمات اعمال می‌شوند. |

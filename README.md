@@ -81,7 +81,7 @@ described in the example settings.
 | Area | Available operations |
 | --- | --- |
 | [System and Node](https://github.com/PapilioVPN/node/tree/main/internal/apps/system) | Host identity, uptime, load, CPU, memory and swap, processes, sessions and login records, sensors, filesystem and device I/O, interface counters, and Node process and resource diagnostics. |
-| [Xray instances](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/runtime/instances) | Start, stop and restart configured instances, read status and check native readiness. |
+| [Xray instances](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/runtime/instances) | List and inspect configured instances, start, stop and restart them, and check native readiness. With durable state configured, verify and reattach healthy executions, request bounded repair, set explicit retention and manage controller leases. |
 | [Xray configuration](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/runtime/configs) | Validate and compile sources, inspect desired and applied revisions, and replace or apply configuration. |
 | [Xray inbounds](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/proxies/inbounds) | List handlers and tags, inspect summaries and compatibility, add from compiled data or sources, remove by tag, and review and execute replacement plans. |
 | [Xray outbounds](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/proxies/outbounds) | Read paginated handler snapshots, add from compiled data or sources, and remove by tag. Review replacement plans, apply supported live changes and retrieve their outcomes. Changes that need a restart use the configuration API. |
