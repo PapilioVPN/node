@@ -14,9 +14,10 @@ import (
 )
 
 type Handler struct {
-	Service *services.Service
-	Sources *services.Sources
-	Timeout time.Duration
+	Configurations *services.Configurations
+	Service        *services.Service
+	Sources        *services.Sources
+	Timeout        time.Duration
 }
 
 func (h Handler) requestContext(ctx context.Context, headers nats.Header) (context.Context, context.CancelFunc, error) {

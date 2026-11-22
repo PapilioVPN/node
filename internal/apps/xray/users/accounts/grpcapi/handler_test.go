@@ -59,3 +59,12 @@ func TestInvalidBatchMessagesNeverReachService(t *testing.T) {
 		}
 	}
 }
+
+func TestInvalidConfigurationPreparationNeverReachesService(t *testing.T) {
+	h := grpcapi.Handler{}
+	for _, request := range []*v1.PrepareAccountConfigurationRequest{nil, {Sources: []*v1.AccountSource{nil}}, {Inbounds: []*v1.InboundUserSet{nil}}} {
+		if _, err := h.PrepareAccountConfiguration(context.Background(), request); status.Code(err) != codes.InvalidArgument {
+			t.Fatal(err)
+		}
+	}
+}

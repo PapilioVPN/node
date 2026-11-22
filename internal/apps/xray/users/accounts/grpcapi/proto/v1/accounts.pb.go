@@ -7,6 +7,7 @@
 package accountsv1
 
 import (
+	v1 "github.com/PapilioVPN/node/internal/apps/xray/runtime/configs/grpcapi/proto/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
@@ -388,7 +389,7 @@ var File_internal_apps_xray_users_accounts_grpcapi_proto_v1_accounts_proto proto
 
 const file_internal_apps_xray_users_accounts_grpcapi_proto_v1_accounts_proto_rawDesc = "" +
 	"\n" +
-	"Ainternal/apps/xray/users/accounts/grpcapi/proto/v1/accounts.proto\x12\x1epapilio.xray.users.accounts.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a@internal/apps/xray/users/accounts/grpcapi/proto/v1/control.proto\x1a@internal/apps/xray/users/accounts/grpcapi/proto/v1/sources.proto\x1a@internal/apps/xray/users/accounts/grpcapi/proto/v1/batches.proto\"Z\n" +
+	"Ainternal/apps/xray/users/accounts/grpcapi/proto/v1/accounts.proto\x12\x1epapilio.xray.users.accounts.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a@internal/apps/xray/users/accounts/grpcapi/proto/v1/control.proto\x1a@internal/apps/xray/users/accounts/grpcapi/proto/v1/sources.proto\x1a@internal/apps/xray/users/accounts/grpcapi/proto/v1/batches.proto\x1aGinternal/apps/xray/users/accounts/grpcapi/proto/v1/configurations.proto\x1aEinternal/apps/xray/runtime/configs/grpcapi/proto/v1/compilation.proto\"Z\n" +
 	"\x16GetAccountCountRequest\x12\x1f\n" +
 	"\vinstance_id\x18\x01 \x01(\tR\n" +
 	"instanceId\x12\x1f\n" +
@@ -422,8 +423,9 @@ const file_internal_apps_xray_users_accounts_grpcapi_proto_v1_accounts_proto_raw
 	"\x12AccountObservation\x12M\n" +
 	"\vobservation\x18\x01 \x01(\v2+.papilio.xray.users.accounts.v1.ObservationR\vobservation\x12'\n" +
 	"\x0frequested_email\x18\x02 \x01(\tR\x0erequestedEmail\x12;\n" +
-	"\x04user\x18\x03 \x01(\v2'.papilio.xray.users.accounts.v1.AccountR\x04user2\xef\a\n" +
-	"\x0fAccountsService\x12o\n" +
+	"\x04user\x18\x03 \x01(\v2'.papilio.xray.users.accounts.v1.AccountR\x04user2\x8b\t\n" +
+	"\x0fAccountsService\x12\x99\x01\n" +
+	"\x1bPrepareAccountConfiguration\x12B.papilio.xray.users.accounts.v1.PrepareAccountConfigurationRequest\x1a6.papilio.xray.runtime.configs.v1.CompiledConfiguration\x12o\n" +
 	"\vAddAccounts\x122.papilio.xray.users.accounts.v1.AddAccountsRequest\x1a,.papilio.xray.users.accounts.v1.AccountBatch\x12u\n" +
 	"\x0eRemoveAccounts\x125.papilio.xray.users.accounts.v1.RemoveAccountsRequest\x1a,.papilio.xray.users.accounts.v1.AccountBatch\x12\x87\x01\n" +
 	"\x15AddAccountFromSources\x12<.papilio.xray.users.accounts.v1.AddAccountFromSourcesRequest\x1a0.papilio.xray.users.accounts.v1.AccountOperation\x12q\n" +
@@ -449,46 +451,50 @@ func file_internal_apps_xray_users_accounts_grpcapi_proto_v1_accounts_proto_rawD
 
 var file_internal_apps_xray_users_accounts_grpcapi_proto_v1_accounts_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_internal_apps_xray_users_accounts_grpcapi_proto_v1_accounts_proto_goTypes = []any{
-	(*GetAccountCountRequest)(nil),         // 0: papilio.xray.users.accounts.v1.GetAccountCountRequest
-	(*GetAccountRequest)(nil),              // 1: papilio.xray.users.accounts.v1.GetAccountRequest
-	(*Observation)(nil),                    // 2: papilio.xray.users.accounts.v1.Observation
-	(*AccountCount)(nil),                   // 3: papilio.xray.users.accounts.v1.AccountCount
-	(*Account)(nil),                        // 4: papilio.xray.users.accounts.v1.Account
-	(*AccountObservation)(nil),             // 5: papilio.xray.users.accounts.v1.AccountObservation
-	(*timestamppb.Timestamp)(nil),          // 6: google.protobuf.Timestamp
-	(*AddAccountsRequest)(nil),             // 7: papilio.xray.users.accounts.v1.AddAccountsRequest
-	(*RemoveAccountsRequest)(nil),          // 8: papilio.xray.users.accounts.v1.RemoveAccountsRequest
-	(*AddAccountFromSourcesRequest)(nil),   // 9: papilio.xray.users.accounts.v1.AddAccountFromSourcesRequest
-	(*AddAccountRequest)(nil),              // 10: papilio.xray.users.accounts.v1.AddAccountRequest
-	(*RemoveAccountRequest)(nil),           // 11: papilio.xray.users.accounts.v1.RemoveAccountRequest
-	(*GetAccountControlStatusRequest)(nil), // 12: papilio.xray.users.accounts.v1.GetAccountControlStatusRequest
-	(*AccountBatch)(nil),                   // 13: papilio.xray.users.accounts.v1.AccountBatch
-	(*AccountOperation)(nil),               // 14: papilio.xray.users.accounts.v1.AccountOperation
-	(*AccountControlStatus)(nil),           // 15: papilio.xray.users.accounts.v1.AccountControlStatus
+	(*GetAccountCountRequest)(nil),             // 0: papilio.xray.users.accounts.v1.GetAccountCountRequest
+	(*GetAccountRequest)(nil),                  // 1: papilio.xray.users.accounts.v1.GetAccountRequest
+	(*Observation)(nil),                        // 2: papilio.xray.users.accounts.v1.Observation
+	(*AccountCount)(nil),                       // 3: papilio.xray.users.accounts.v1.AccountCount
+	(*Account)(nil),                            // 4: papilio.xray.users.accounts.v1.Account
+	(*AccountObservation)(nil),                 // 5: papilio.xray.users.accounts.v1.AccountObservation
+	(*timestamppb.Timestamp)(nil),              // 6: google.protobuf.Timestamp
+	(*PrepareAccountConfigurationRequest)(nil), // 7: papilio.xray.users.accounts.v1.PrepareAccountConfigurationRequest
+	(*AddAccountsRequest)(nil),                 // 8: papilio.xray.users.accounts.v1.AddAccountsRequest
+	(*RemoveAccountsRequest)(nil),              // 9: papilio.xray.users.accounts.v1.RemoveAccountsRequest
+	(*AddAccountFromSourcesRequest)(nil),       // 10: papilio.xray.users.accounts.v1.AddAccountFromSourcesRequest
+	(*AddAccountRequest)(nil),                  // 11: papilio.xray.users.accounts.v1.AddAccountRequest
+	(*RemoveAccountRequest)(nil),               // 12: papilio.xray.users.accounts.v1.RemoveAccountRequest
+	(*GetAccountControlStatusRequest)(nil),     // 13: papilio.xray.users.accounts.v1.GetAccountControlStatusRequest
+	(*v1.CompiledConfiguration)(nil),           // 14: papilio.xray.runtime.configs.v1.CompiledConfiguration
+	(*AccountBatch)(nil),                       // 15: papilio.xray.users.accounts.v1.AccountBatch
+	(*AccountOperation)(nil),                   // 16: papilio.xray.users.accounts.v1.AccountOperation
+	(*AccountControlStatus)(nil),               // 17: papilio.xray.users.accounts.v1.AccountControlStatus
 }
 var file_internal_apps_xray_users_accounts_grpcapi_proto_v1_accounts_proto_depIdxs = []int32{
 	6,  // 0: papilio.xray.users.accounts.v1.Observation.observed_at:type_name -> google.protobuf.Timestamp
 	2,  // 1: papilio.xray.users.accounts.v1.AccountCount.observation:type_name -> papilio.xray.users.accounts.v1.Observation
 	2,  // 2: papilio.xray.users.accounts.v1.AccountObservation.observation:type_name -> papilio.xray.users.accounts.v1.Observation
 	4,  // 3: papilio.xray.users.accounts.v1.AccountObservation.user:type_name -> papilio.xray.users.accounts.v1.Account
-	7,  // 4: papilio.xray.users.accounts.v1.AccountsService.AddAccounts:input_type -> papilio.xray.users.accounts.v1.AddAccountsRequest
-	8,  // 5: papilio.xray.users.accounts.v1.AccountsService.RemoveAccounts:input_type -> papilio.xray.users.accounts.v1.RemoveAccountsRequest
-	9,  // 6: papilio.xray.users.accounts.v1.AccountsService.AddAccountFromSources:input_type -> papilio.xray.users.accounts.v1.AddAccountFromSourcesRequest
-	10, // 7: papilio.xray.users.accounts.v1.AccountsService.AddAccount:input_type -> papilio.xray.users.accounts.v1.AddAccountRequest
-	11, // 8: papilio.xray.users.accounts.v1.AccountsService.RemoveAccount:input_type -> papilio.xray.users.accounts.v1.RemoveAccountRequest
-	12, // 9: papilio.xray.users.accounts.v1.AccountsService.GetAccountControlStatus:input_type -> papilio.xray.users.accounts.v1.GetAccountControlStatusRequest
-	0,  // 10: papilio.xray.users.accounts.v1.AccountsService.GetAccountCount:input_type -> papilio.xray.users.accounts.v1.GetAccountCountRequest
-	1,  // 11: papilio.xray.users.accounts.v1.AccountsService.GetAccount:input_type -> papilio.xray.users.accounts.v1.GetAccountRequest
-	13, // 12: papilio.xray.users.accounts.v1.AccountsService.AddAccounts:output_type -> papilio.xray.users.accounts.v1.AccountBatch
-	13, // 13: papilio.xray.users.accounts.v1.AccountsService.RemoveAccounts:output_type -> papilio.xray.users.accounts.v1.AccountBatch
-	14, // 14: papilio.xray.users.accounts.v1.AccountsService.AddAccountFromSources:output_type -> papilio.xray.users.accounts.v1.AccountOperation
-	14, // 15: papilio.xray.users.accounts.v1.AccountsService.AddAccount:output_type -> papilio.xray.users.accounts.v1.AccountOperation
-	14, // 16: papilio.xray.users.accounts.v1.AccountsService.RemoveAccount:output_type -> papilio.xray.users.accounts.v1.AccountOperation
-	15, // 17: papilio.xray.users.accounts.v1.AccountsService.GetAccountControlStatus:output_type -> papilio.xray.users.accounts.v1.AccountControlStatus
-	3,  // 18: papilio.xray.users.accounts.v1.AccountsService.GetAccountCount:output_type -> papilio.xray.users.accounts.v1.AccountCount
-	5,  // 19: papilio.xray.users.accounts.v1.AccountsService.GetAccount:output_type -> papilio.xray.users.accounts.v1.AccountObservation
-	12, // [12:20] is the sub-list for method output_type
-	4,  // [4:12] is the sub-list for method input_type
+	7,  // 4: papilio.xray.users.accounts.v1.AccountsService.PrepareAccountConfiguration:input_type -> papilio.xray.users.accounts.v1.PrepareAccountConfigurationRequest
+	8,  // 5: papilio.xray.users.accounts.v1.AccountsService.AddAccounts:input_type -> papilio.xray.users.accounts.v1.AddAccountsRequest
+	9,  // 6: papilio.xray.users.accounts.v1.AccountsService.RemoveAccounts:input_type -> papilio.xray.users.accounts.v1.RemoveAccountsRequest
+	10, // 7: papilio.xray.users.accounts.v1.AccountsService.AddAccountFromSources:input_type -> papilio.xray.users.accounts.v1.AddAccountFromSourcesRequest
+	11, // 8: papilio.xray.users.accounts.v1.AccountsService.AddAccount:input_type -> papilio.xray.users.accounts.v1.AddAccountRequest
+	12, // 9: papilio.xray.users.accounts.v1.AccountsService.RemoveAccount:input_type -> papilio.xray.users.accounts.v1.RemoveAccountRequest
+	13, // 10: papilio.xray.users.accounts.v1.AccountsService.GetAccountControlStatus:input_type -> papilio.xray.users.accounts.v1.GetAccountControlStatusRequest
+	0,  // 11: papilio.xray.users.accounts.v1.AccountsService.GetAccountCount:input_type -> papilio.xray.users.accounts.v1.GetAccountCountRequest
+	1,  // 12: papilio.xray.users.accounts.v1.AccountsService.GetAccount:input_type -> papilio.xray.users.accounts.v1.GetAccountRequest
+	14, // 13: papilio.xray.users.accounts.v1.AccountsService.PrepareAccountConfiguration:output_type -> papilio.xray.runtime.configs.v1.CompiledConfiguration
+	15, // 14: papilio.xray.users.accounts.v1.AccountsService.AddAccounts:output_type -> papilio.xray.users.accounts.v1.AccountBatch
+	15, // 15: papilio.xray.users.accounts.v1.AccountsService.RemoveAccounts:output_type -> papilio.xray.users.accounts.v1.AccountBatch
+	16, // 16: papilio.xray.users.accounts.v1.AccountsService.AddAccountFromSources:output_type -> papilio.xray.users.accounts.v1.AccountOperation
+	16, // 17: papilio.xray.users.accounts.v1.AccountsService.AddAccount:output_type -> papilio.xray.users.accounts.v1.AccountOperation
+	16, // 18: papilio.xray.users.accounts.v1.AccountsService.RemoveAccount:output_type -> papilio.xray.users.accounts.v1.AccountOperation
+	17, // 19: papilio.xray.users.accounts.v1.AccountsService.GetAccountControlStatus:output_type -> papilio.xray.users.accounts.v1.AccountControlStatus
+	3,  // 20: papilio.xray.users.accounts.v1.AccountsService.GetAccountCount:output_type -> papilio.xray.users.accounts.v1.AccountCount
+	5,  // 21: papilio.xray.users.accounts.v1.AccountsService.GetAccount:output_type -> papilio.xray.users.accounts.v1.AccountObservation
+	13, // [13:22] is the sub-list for method output_type
+	4,  // [4:13] is the sub-list for method input_type
 	4,  // [4:4] is the sub-list for extension type_name
 	4,  // [4:4] is the sub-list for extension extendee
 	0,  // [0:4] is the sub-list for field type_name
@@ -502,6 +508,7 @@ func file_internal_apps_xray_users_accounts_grpcapi_proto_v1_accounts_proto_init
 	file_internal_apps_xray_users_accounts_grpcapi_proto_v1_control_proto_init()
 	file_internal_apps_xray_users_accounts_grpcapi_proto_v1_sources_proto_init()
 	file_internal_apps_xray_users_accounts_grpcapi_proto_v1_batches_proto_init()
+	file_internal_apps_xray_users_accounts_grpcapi_proto_v1_configurations_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

@@ -39,6 +39,9 @@ func TestMalformedControlRequestsNeverReachService(t *testing.T) {
 	app := fiber.New()
 	httpapi.Handler{}.Register(app)
 	for _, test := range []struct{ method, path, contentType, body string }{
+		{"POST", "/accounts/configurations", "application/json", `{"sources":[],"inbounds":null}`},
+		{"POST", "/accounts/configurations?unexpected=true", "application/json", `{}`},
+		{"POST", "/accounts/configurations", "application/x-protobuf", `x`},
 		{"POST", "/accounts", "application/x-protobuf", "x"},
 		{"POST", "/accounts?inbound_tag=a&inbound_tag=b", "application/x-protobuf", "x"},
 		{"POST", "/accounts?inbound_tag=a", "application/json", "{}"},

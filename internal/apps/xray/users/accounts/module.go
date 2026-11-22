@@ -17,7 +17,7 @@ import (
 )
 
 func Module(requests settings.Requests) fx.Option {
-	return fx.Module("xray-accounts", fx.Supply(requests, fx.Private), fx.Provide(compose, composeSources, fx.Private), fx.Invoke(register), fx.Provide(subscribe))
+	return fx.Module("xray-accounts", fx.Supply(requests, fx.Private), fx.Provide(compose, composeSources, composeConfigurations, fx.Private), fx.Invoke(register), fx.Provide(subscribe))
 }
 
 type inputs struct {
@@ -42,26 +42,32 @@ func composeSources(service *services.Service, compiler configuration.Compiler) 
 	return services.NewSources(service, configuration.Preparer{Compiler: compiler})
 }
 
+func composeConfigurations(compiler configuration.Compiler) (*services.Configurations, error) {
+	return services.NewConfigurations(compiler, configuration.ReplaceUsers)
+}
+
 type adapters struct {
 	fx.In
-	Sources  *services.Sources
-	Service  *services.Service
-	Requests settings.Requests
-	HTTP     *fiber.App   `optional:"true"`
-	GRPC     *grpc.Server `optional:"true"`
+	Configurations *services.Configurations
+	Sources        *services.Sources
+	Service        *services.Service
+	Requests       settings.Requests
+	HTTP           *fiber.App   `optional:"true"`
+	GRPC           *grpc.Server `optional:"true"`
 }
 
 func register(in adapters) {
 	if in.HTTP != nil {
-		httpapi.Handler{Service: in.Service, Sources: in.Sources, Timeout: in.Requests.Timeout}.Register(in.HTTP)
+		httpapi.Handler{Configurations: in.Configurations, Service: in.Service, Sources: in.Sources, Timeout: in.Requests.Timeout}.Register(in.HTTP)
 	}
 	if in.GRPC != nil {
-		grpcapi.Handler{Service: in.Service, Sources: in.Sources, Timeout: in.Requests.Timeout}.Register(in.GRPC)
+		grpcapi.Handler{Configurations: in.Configurations, Service: in.Service, Sources: in.Sources, Timeout: in.Requests.Timeout}.Register(in.GRPC)
 	}
 }
 func subscribe(in adapters) natsclient.Subscriptions {
-	handler := natsapi.Handler{Service: in.Service, Sources: in.Sources, Timeout: in.Requests.Timeout}
+	handler := natsapi.Handler{Configurations: in.Configurations, Service: in.Service, Sources: in.Sources, Timeout: in.Requests.Timeout}
 	return natsclient.Subscriptions{Endpoints: []natsclient.Subscription{
+		{Name: "Xray account configuration preparation", SubjectSuffix: "xray.users.accounts.configurations.v1.prepare", Handle: handler.PrepareConfiguration},
 		{Name: "Xray account batch addition", SubjectSuffix: "xray.users.accounts.batches.v1.add", Handle: handler.AddMany},
 		{Name: "Xray account batch removal", SubjectSuffix: "xray.users.accounts.batches.v1.remove", Handle: handler.RemoveMany},
 		{Name: "Xray account source addition", SubjectSuffix: "xray.users.accounts.sources.v1.add", Handle: handler.AddSources},

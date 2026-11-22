@@ -17,9 +17,10 @@ import (
 
 type Handler struct {
 	v1.UnimplementedAccountsServiceServer
-	Service *services.Service
-	Sources *services.Sources
-	Timeout time.Duration
+	Configurations *services.Configurations
+	Service        *services.Service
+	Sources        *services.Sources
+	Timeout        time.Duration
 }
 
 func (h Handler) Register(registrar grpc.ServiceRegistrar) {

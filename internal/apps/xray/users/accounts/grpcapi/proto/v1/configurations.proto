@@ -1,0 +1,17 @@
+syntax = "proto3";
+package papilio.xray.users.accounts.v1;
+option go_package = "github.com/PapilioVPN/node/internal/apps/xray/users/accounts/grpcapi/proto/v1;accountsv1";
+import "internal/apps/xray/users/accounts/grpcapi/proto/v1/sources.proto";
+
+message InboundUserSet {
+  string inbound_tag = 1;
+  // Native protocol.User protobuf; empty collection clears this inbound.
+  repeated bytes accounts = 2;
+}
+// Builds an executable artifact only. Does not apply, persist or restart.
+// Source environment settings are not retained by native compiled protobuf.
+message PrepareAccountConfigurationRequest {
+  string instance_id = 1;
+  repeated AccountSource sources = 2;
+  repeated InboundUserSet inbounds = 3;
+}

@@ -5,7 +5,10 @@ import "google/protobuf/timestamp.proto";
 import "internal/apps/xray/users/accounts/grpcapi/proto/v1/control.proto";
 import "internal/apps/xray/users/accounts/grpcapi/proto/v1/sources.proto";
 import "internal/apps/xray/users/accounts/grpcapi/proto/v1/batches.proto";
+import "internal/apps/xray/users/accounts/grpcapi/proto/v1/configurations.proto";
+import "internal/apps/xray/runtime/configs/grpcapi/proto/v1/compilation.proto";
 service AccountsService {
+ rpc PrepareAccountConfiguration(PrepareAccountConfigurationRequest) returns (papilio.xray.runtime.configs.v1.CompiledConfiguration);
   rpc AddAccounts(AddAccountsRequest) returns (AccountBatch);
   rpc RemoveAccounts(RemoveAccountsRequest) returns (AccountBatch);
   rpc AddAccountFromSources(AddAccountFromSourcesRequest) returns (AccountOperation);

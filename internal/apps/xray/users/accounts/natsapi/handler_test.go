@@ -42,6 +42,15 @@ func TestInvalidBatchEnvelopesNeverReachService(t *testing.T) {
 	}
 }
 
+func TestInvalidConfigurationPreparationNeverReachesService(t *testing.T) {
+	h := natsapi.Handler{}
+	for _, body := range []string{`{}`, `{"sources":[],"inbounds":null}`, `{"sources":[],"inbounds":[]}`} {
+		if result := h.PrepareConfiguration(context.Background(), []byte(body), nil); !strings.Contains(string(result), `"error":"invalid_argument"`) {
+			t.Fatal(string(result))
+		}
+	}
+}
+
 func TestMalformedControlRequestsNeverReachService(t *testing.T) {
 	h := natsapi.Handler{}
 	for _, test := range []struct {

@@ -13,12 +13,14 @@ import (
 )
 
 type Handler struct {
-	Service *services.Service
-	Sources *services.Sources
-	Timeout time.Duration
+	Configurations *services.Configurations
+	Service        *services.Service
+	Sources        *services.Sources
+	Timeout        time.Duration
 }
 
 func (h Handler) Register(router fiber.Router) {
+	router.Post("/v1/xray/users/instances/:id/accounts/configurations", h.PrepareConfiguration)
 	router.Post("/v1/xray/users/instances/:id/accounts/additions", h.AddMany)
 	router.Post("/v1/xray/users/instances/:id/accounts/removals", h.RemoveMany)
 	router.Get("/v1/xray/users/instances/:id/accounts/count", h.Count)

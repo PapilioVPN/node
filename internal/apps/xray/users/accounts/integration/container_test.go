@@ -5,6 +5,7 @@ package integration_test
 import (
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"flag"
@@ -84,6 +85,12 @@ func TestPackagedAccountReads(t *testing.T) {
 		exerciseAccountControl(t, client, transport, address, target.Listener.Addr().String())
 		exerciseSourceAccount(t, client, transport, "json", address, target.Listener.Addr().String())
 		exercisePackagedBatch(t, client, transport, address, target.Listener.Addr().String())
+		prepared := prepareAccounts(t, client, transport, []byte(`{"inbounds":[{"tag":"members","port":1,"protocol":"vless","settings":{"decryption":"none","clients":[]}}]}`), [][]byte{accountConfiguration(t, "prepared@example.test")})
+		hash := sha256.Sum256(prepared.Content)
+		if len(prepared.Content) == 0 || prepared.SHA256 != hex.EncodeToString(hash[:]) || prepared.InstanceID != "edge-a" {
+			t.Fatal("packaged preparation returned invalid artifact", prepared.SHA256)
+		}
+		assertFamilyCount(t, client, transport, 2)
 	}
 
 	docker(t, "stop", "--time", "8", name)
