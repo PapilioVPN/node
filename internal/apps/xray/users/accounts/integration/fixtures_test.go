@@ -28,6 +28,8 @@ import (
 	"testing"
 	"time"
 
+	configservices "github.com/PapilioVPN/node/internal/apps/xray/runtime/configs/app/services"
+	"github.com/PapilioVPN/node/internal/apps/xray/runtime/configs/infra/process"
 	"github.com/PapilioVPN/node/internal/bootstrap"
 	"github.com/PapilioVPN/node/internal/settings"
 	"github.com/PapilioVPN/node/internal/shared/mtls"
@@ -495,4 +497,28 @@ func familyTrafficTarget(t *testing.T, f fixture, target string) (address, virtu
 		t.Fatal(err)
 	}
 	return address, "http://198.18.0.1:" + port
+}
+
+func accountCompiler(t *testing.T) *configservices.Service {
+	t.Helper()
+	admission, err := process.NewAdmission(2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+		if err := admission.Close(ctx); err != nil {
+			t.Error(err)
+		}
+	})
+	builder, err := process.New(process.Config{Binary: os.Getenv("XRAY_TEST_BINARY"), Directory: t.TempDir(), WorkDirectory: t.TempDir()}, admission)
+	if err != nil {
+		t.Fatal(err)
+	}
+	compiler, err := configservices.New([]configservices.Binding{{ID: "a", Compiler: builder}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return compiler
 }
