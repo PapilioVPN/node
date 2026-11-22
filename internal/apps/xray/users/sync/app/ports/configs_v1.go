@@ -25,10 +25,11 @@ type ReviewV1 struct {
 	Reason string
 }
 type ResultV1 struct {
-	Revision         uint64
-	Generation       uint64
-	Effect           accounts.Effect
-	Durable          bool
+	Revision   uint64
+	Generation uint64
+	Effect     accounts.Effect
+	Durable    bool
+	// Ready is native API readiness, not payload traffic or endpoint attestation.
 	Ready            bool
 	RequiresRecovery bool
 }
