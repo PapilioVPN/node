@@ -169,8 +169,12 @@ const file_internal_apps_xray_runtime_configs_grpcapi_proto_v1_configs_proto_raw
 	"\n" +
 	"checked_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\tcheckedAt\x12\x1f\n" +
 	"\vduration_ns\x18\x04 \x01(\x03R\n" +
-	"durationNs2\xe0\x06\n" +
-	"\x15ConfigurationsService\x12\x90\x01\n" +
+	"durationNs2\xad\v\n" +
+	"\x15ConfigurationsService\x12\x82\x01\n" +
+	"\x11PlanConfiguration\x129.papilio.xray.runtime.configs.v1.PlanConfigurationRequest\x1a2.papilio.xray.runtime.configs.v1.ConfigurationPlan\x12\x93\x01\n" +
+	"\x16ApplyConfigurationPlan\x12>.papilio.xray.runtime.configs.v1.ApplyConfigurationPlanRequest\x1a9.papilio.xray.runtime.configs.v1.ConfigurationApplication\x12\x9d\x01\n" +
+	"\x1bGetConfigurationApplication\x12C.papilio.xray.runtime.configs.v1.GetConfigurationApplicationRequest\x1a9.papilio.xray.runtime.configs.v1.ConfigurationApplication\x12\x8f\x01\n" +
+	"\x14RecoverConfiguration\x12<.papilio.xray.runtime.configs.v1.RecoverConfigurationRequest\x1a9.papilio.xray.runtime.configs.v1.ConfigurationApplication\x12\x90\x01\n" +
 	"\x15ValidateConfiguration\x12=.papilio.xray.runtime.configs.v1.ValidateConfigurationRequest\x1a8.papilio.xray.runtime.configs.v1.ConfigurationValidation\x12\x8c\x01\n" +
 	"\x14CompileConfiguration\x12<.papilio.xray.runtime.configs.v1.CompileConfigurationRequest\x1a6.papilio.xray.runtime.configs.v1.CompiledConfiguration\x12\x88\x01\n" +
 	"\x16GetConfigurationStatus\x128.papilio.xray.runtime.configs.v1.GetConfigurationRequest\x1a4.papilio.xray.runtime.configs.v1.ConfigurationStatus\x12\x83\x01\n" +
@@ -192,34 +196,48 @@ func file_internal_apps_xray_runtime_configs_grpcapi_proto_v1_configs_proto_rawD
 
 var file_internal_apps_xray_runtime_configs_grpcapi_proto_v1_configs_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
 var file_internal_apps_xray_runtime_configs_grpcapi_proto_v1_configs_proto_goTypes = []any{
-	(*ValidateConfigurationRequest)(nil), // 0: papilio.xray.runtime.configs.v1.ValidateConfigurationRequest
-	(*ConfigurationValidation)(nil),      // 1: papilio.xray.runtime.configs.v1.ConfigurationValidation
-	(*timestamppb.Timestamp)(nil),        // 2: google.protobuf.Timestamp
-	(*CompileConfigurationRequest)(nil),  // 3: papilio.xray.runtime.configs.v1.CompileConfigurationRequest
-	(*GetConfigurationRequest)(nil),      // 4: papilio.xray.runtime.configs.v1.GetConfigurationRequest
-	(*ReplaceConfigurationRequest)(nil),  // 5: papilio.xray.runtime.configs.v1.ReplaceConfigurationRequest
-	(*ApplyConfigurationRequest)(nil),    // 6: papilio.xray.runtime.configs.v1.ApplyConfigurationRequest
-	(*CompiledConfiguration)(nil),        // 7: papilio.xray.runtime.configs.v1.CompiledConfiguration
-	(*ConfigurationStatus)(nil),          // 8: papilio.xray.runtime.configs.v1.ConfigurationStatus
-	(*DesiredConfiguration)(nil),         // 9: papilio.xray.runtime.configs.v1.DesiredConfiguration
-	(*ConfigurationChange)(nil),          // 10: papilio.xray.runtime.configs.v1.ConfigurationChange
+	(*ValidateConfigurationRequest)(nil),       // 0: papilio.xray.runtime.configs.v1.ValidateConfigurationRequest
+	(*ConfigurationValidation)(nil),            // 1: papilio.xray.runtime.configs.v1.ConfigurationValidation
+	(*timestamppb.Timestamp)(nil),              // 2: google.protobuf.Timestamp
+	(*PlanConfigurationRequest)(nil),           // 3: papilio.xray.runtime.configs.v1.PlanConfigurationRequest
+	(*ApplyConfigurationPlanRequest)(nil),      // 4: papilio.xray.runtime.configs.v1.ApplyConfigurationPlanRequest
+	(*GetConfigurationApplicationRequest)(nil), // 5: papilio.xray.runtime.configs.v1.GetConfigurationApplicationRequest
+	(*RecoverConfigurationRequest)(nil),        // 6: papilio.xray.runtime.configs.v1.RecoverConfigurationRequest
+	(*CompileConfigurationRequest)(nil),        // 7: papilio.xray.runtime.configs.v1.CompileConfigurationRequest
+	(*GetConfigurationRequest)(nil),            // 8: papilio.xray.runtime.configs.v1.GetConfigurationRequest
+	(*ReplaceConfigurationRequest)(nil),        // 9: papilio.xray.runtime.configs.v1.ReplaceConfigurationRequest
+	(*ApplyConfigurationRequest)(nil),          // 10: papilio.xray.runtime.configs.v1.ApplyConfigurationRequest
+	(*ConfigurationPlan)(nil),                  // 11: papilio.xray.runtime.configs.v1.ConfigurationPlan
+	(*ConfigurationApplication)(nil),           // 12: papilio.xray.runtime.configs.v1.ConfigurationApplication
+	(*CompiledConfiguration)(nil),              // 13: papilio.xray.runtime.configs.v1.CompiledConfiguration
+	(*ConfigurationStatus)(nil),                // 14: papilio.xray.runtime.configs.v1.ConfigurationStatus
+	(*DesiredConfiguration)(nil),               // 15: papilio.xray.runtime.configs.v1.DesiredConfiguration
+	(*ConfigurationChange)(nil),                // 16: papilio.xray.runtime.configs.v1.ConfigurationChange
 }
 var file_internal_apps_xray_runtime_configs_grpcapi_proto_v1_configs_proto_depIdxs = []int32{
 	2,  // 0: papilio.xray.runtime.configs.v1.ConfigurationValidation.checked_at:type_name -> google.protobuf.Timestamp
-	0,  // 1: papilio.xray.runtime.configs.v1.ConfigurationsService.ValidateConfiguration:input_type -> papilio.xray.runtime.configs.v1.ValidateConfigurationRequest
-	3,  // 2: papilio.xray.runtime.configs.v1.ConfigurationsService.CompileConfiguration:input_type -> papilio.xray.runtime.configs.v1.CompileConfigurationRequest
-	4,  // 3: papilio.xray.runtime.configs.v1.ConfigurationsService.GetConfigurationStatus:input_type -> papilio.xray.runtime.configs.v1.GetConfigurationRequest
-	4,  // 4: papilio.xray.runtime.configs.v1.ConfigurationsService.GetConfiguration:input_type -> papilio.xray.runtime.configs.v1.GetConfigurationRequest
-	5,  // 5: papilio.xray.runtime.configs.v1.ConfigurationsService.ReplaceConfiguration:input_type -> papilio.xray.runtime.configs.v1.ReplaceConfigurationRequest
-	6,  // 6: papilio.xray.runtime.configs.v1.ConfigurationsService.ApplyConfiguration:input_type -> papilio.xray.runtime.configs.v1.ApplyConfigurationRequest
-	1,  // 7: papilio.xray.runtime.configs.v1.ConfigurationsService.ValidateConfiguration:output_type -> papilio.xray.runtime.configs.v1.ConfigurationValidation
-	7,  // 8: papilio.xray.runtime.configs.v1.ConfigurationsService.CompileConfiguration:output_type -> papilio.xray.runtime.configs.v1.CompiledConfiguration
-	8,  // 9: papilio.xray.runtime.configs.v1.ConfigurationsService.GetConfigurationStatus:output_type -> papilio.xray.runtime.configs.v1.ConfigurationStatus
-	9,  // 10: papilio.xray.runtime.configs.v1.ConfigurationsService.GetConfiguration:output_type -> papilio.xray.runtime.configs.v1.DesiredConfiguration
-	10, // 11: papilio.xray.runtime.configs.v1.ConfigurationsService.ReplaceConfiguration:output_type -> papilio.xray.runtime.configs.v1.ConfigurationChange
-	10, // 12: papilio.xray.runtime.configs.v1.ConfigurationsService.ApplyConfiguration:output_type -> papilio.xray.runtime.configs.v1.ConfigurationChange
-	7,  // [7:13] is the sub-list for method output_type
-	1,  // [1:7] is the sub-list for method input_type
+	3,  // 1: papilio.xray.runtime.configs.v1.ConfigurationsService.PlanConfiguration:input_type -> papilio.xray.runtime.configs.v1.PlanConfigurationRequest
+	4,  // 2: papilio.xray.runtime.configs.v1.ConfigurationsService.ApplyConfigurationPlan:input_type -> papilio.xray.runtime.configs.v1.ApplyConfigurationPlanRequest
+	5,  // 3: papilio.xray.runtime.configs.v1.ConfigurationsService.GetConfigurationApplication:input_type -> papilio.xray.runtime.configs.v1.GetConfigurationApplicationRequest
+	6,  // 4: papilio.xray.runtime.configs.v1.ConfigurationsService.RecoverConfiguration:input_type -> papilio.xray.runtime.configs.v1.RecoverConfigurationRequest
+	0,  // 5: papilio.xray.runtime.configs.v1.ConfigurationsService.ValidateConfiguration:input_type -> papilio.xray.runtime.configs.v1.ValidateConfigurationRequest
+	7,  // 6: papilio.xray.runtime.configs.v1.ConfigurationsService.CompileConfiguration:input_type -> papilio.xray.runtime.configs.v1.CompileConfigurationRequest
+	8,  // 7: papilio.xray.runtime.configs.v1.ConfigurationsService.GetConfigurationStatus:input_type -> papilio.xray.runtime.configs.v1.GetConfigurationRequest
+	8,  // 8: papilio.xray.runtime.configs.v1.ConfigurationsService.GetConfiguration:input_type -> papilio.xray.runtime.configs.v1.GetConfigurationRequest
+	9,  // 9: papilio.xray.runtime.configs.v1.ConfigurationsService.ReplaceConfiguration:input_type -> papilio.xray.runtime.configs.v1.ReplaceConfigurationRequest
+	10, // 10: papilio.xray.runtime.configs.v1.ConfigurationsService.ApplyConfiguration:input_type -> papilio.xray.runtime.configs.v1.ApplyConfigurationRequest
+	11, // 11: papilio.xray.runtime.configs.v1.ConfigurationsService.PlanConfiguration:output_type -> papilio.xray.runtime.configs.v1.ConfigurationPlan
+	12, // 12: papilio.xray.runtime.configs.v1.ConfigurationsService.ApplyConfigurationPlan:output_type -> papilio.xray.runtime.configs.v1.ConfigurationApplication
+	12, // 13: papilio.xray.runtime.configs.v1.ConfigurationsService.GetConfigurationApplication:output_type -> papilio.xray.runtime.configs.v1.ConfigurationApplication
+	12, // 14: papilio.xray.runtime.configs.v1.ConfigurationsService.RecoverConfiguration:output_type -> papilio.xray.runtime.configs.v1.ConfigurationApplication
+	1,  // 15: papilio.xray.runtime.configs.v1.ConfigurationsService.ValidateConfiguration:output_type -> papilio.xray.runtime.configs.v1.ConfigurationValidation
+	13, // 16: papilio.xray.runtime.configs.v1.ConfigurationsService.CompileConfiguration:output_type -> papilio.xray.runtime.configs.v1.CompiledConfiguration
+	14, // 17: papilio.xray.runtime.configs.v1.ConfigurationsService.GetConfigurationStatus:output_type -> papilio.xray.runtime.configs.v1.ConfigurationStatus
+	15, // 18: papilio.xray.runtime.configs.v1.ConfigurationsService.GetConfiguration:output_type -> papilio.xray.runtime.configs.v1.DesiredConfiguration
+	16, // 19: papilio.xray.runtime.configs.v1.ConfigurationsService.ReplaceConfiguration:output_type -> papilio.xray.runtime.configs.v1.ConfigurationChange
+	16, // 20: papilio.xray.runtime.configs.v1.ConfigurationsService.ApplyConfiguration:output_type -> papilio.xray.runtime.configs.v1.ConfigurationChange
+	11, // [11:21] is the sub-list for method output_type
+	1,  // [1:11] is the sub-list for method input_type
 	1,  // [1:1] is the sub-list for extension type_name
 	1,  // [1:1] is the sub-list for extension extendee
 	0,  // [0:1] is the sub-list for field type_name

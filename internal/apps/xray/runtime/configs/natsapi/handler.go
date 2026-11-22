@@ -18,6 +18,7 @@ import (
 type Handler struct {
 	Service *services.Service
 	State   *services.StateService
+	Plans   *services.Plans
 	Timeout time.Duration
 }
 
@@ -103,6 +104,12 @@ func errorCode(err error) string {
 		code = "native_rejected"
 	case errors.Is(err, domain.ErrNotFound):
 		code = "not_found"
+	case errors.Is(err, domain.ErrPlanExpired):
+		return "plan_expired"
+	case errors.Is(err, domain.ErrStalePlan):
+		return "stale_plan"
+	case errors.Is(err, domain.ErrNoApplication):
+		return "application_not_retained"
 	case errors.Is(err, domain.ErrConflict):
 		code = "revision_conflict"
 	case errors.Is(err, domain.ErrDurabilityUnknown):

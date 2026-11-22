@@ -19,18 +19,26 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	ConfigurationsService_ValidateConfiguration_FullMethodName  = "/papilio.xray.runtime.configs.v1.ConfigurationsService/ValidateConfiguration"
-	ConfigurationsService_CompileConfiguration_FullMethodName   = "/papilio.xray.runtime.configs.v1.ConfigurationsService/CompileConfiguration"
-	ConfigurationsService_GetConfigurationStatus_FullMethodName = "/papilio.xray.runtime.configs.v1.ConfigurationsService/GetConfigurationStatus"
-	ConfigurationsService_GetConfiguration_FullMethodName       = "/papilio.xray.runtime.configs.v1.ConfigurationsService/GetConfiguration"
-	ConfigurationsService_ReplaceConfiguration_FullMethodName   = "/papilio.xray.runtime.configs.v1.ConfigurationsService/ReplaceConfiguration"
-	ConfigurationsService_ApplyConfiguration_FullMethodName     = "/papilio.xray.runtime.configs.v1.ConfigurationsService/ApplyConfiguration"
+	ConfigurationsService_PlanConfiguration_FullMethodName           = "/papilio.xray.runtime.configs.v1.ConfigurationsService/PlanConfiguration"
+	ConfigurationsService_ApplyConfigurationPlan_FullMethodName      = "/papilio.xray.runtime.configs.v1.ConfigurationsService/ApplyConfigurationPlan"
+	ConfigurationsService_GetConfigurationApplication_FullMethodName = "/papilio.xray.runtime.configs.v1.ConfigurationsService/GetConfigurationApplication"
+	ConfigurationsService_RecoverConfiguration_FullMethodName        = "/papilio.xray.runtime.configs.v1.ConfigurationsService/RecoverConfiguration"
+	ConfigurationsService_ValidateConfiguration_FullMethodName       = "/papilio.xray.runtime.configs.v1.ConfigurationsService/ValidateConfiguration"
+	ConfigurationsService_CompileConfiguration_FullMethodName        = "/papilio.xray.runtime.configs.v1.ConfigurationsService/CompileConfiguration"
+	ConfigurationsService_GetConfigurationStatus_FullMethodName      = "/papilio.xray.runtime.configs.v1.ConfigurationsService/GetConfigurationStatus"
+	ConfigurationsService_GetConfiguration_FullMethodName            = "/papilio.xray.runtime.configs.v1.ConfigurationsService/GetConfiguration"
+	ConfigurationsService_ReplaceConfiguration_FullMethodName        = "/papilio.xray.runtime.configs.v1.ConfigurationsService/ReplaceConfiguration"
+	ConfigurationsService_ApplyConfiguration_FullMethodName          = "/papilio.xray.runtime.configs.v1.ConfigurationsService/ApplyConfiguration"
 )
 
 // ConfigurationsServiceClient is the client API for ConfigurationsService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ConfigurationsServiceClient interface {
+	PlanConfiguration(ctx context.Context, in *PlanConfigurationRequest, opts ...grpc.CallOption) (*ConfigurationPlan, error)
+	ApplyConfigurationPlan(ctx context.Context, in *ApplyConfigurationPlanRequest, opts ...grpc.CallOption) (*ConfigurationApplication, error)
+	GetConfigurationApplication(ctx context.Context, in *GetConfigurationApplicationRequest, opts ...grpc.CallOption) (*ConfigurationApplication, error)
+	RecoverConfiguration(ctx context.Context, in *RecoverConfigurationRequest, opts ...grpc.CallOption) (*ConfigurationApplication, error)
 	// Native config building only. It neither applies the candidate nor proves readiness.
 	ValidateConfiguration(ctx context.Context, in *ValidateConfigurationRequest, opts ...grpc.CallOption) (*ConfigurationValidation, error)
 	// Builds ordered sources in one native conversion. Does not apply the result.
@@ -48,6 +56,46 @@ type configurationsServiceClient struct {
 
 func NewConfigurationsServiceClient(cc grpc.ClientConnInterface) ConfigurationsServiceClient {
 	return &configurationsServiceClient{cc}
+}
+
+func (c *configurationsServiceClient) PlanConfiguration(ctx context.Context, in *PlanConfigurationRequest, opts ...grpc.CallOption) (*ConfigurationPlan, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ConfigurationPlan)
+	err := c.cc.Invoke(ctx, ConfigurationsService_PlanConfiguration_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *configurationsServiceClient) ApplyConfigurationPlan(ctx context.Context, in *ApplyConfigurationPlanRequest, opts ...grpc.CallOption) (*ConfigurationApplication, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ConfigurationApplication)
+	err := c.cc.Invoke(ctx, ConfigurationsService_ApplyConfigurationPlan_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *configurationsServiceClient) GetConfigurationApplication(ctx context.Context, in *GetConfigurationApplicationRequest, opts ...grpc.CallOption) (*ConfigurationApplication, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ConfigurationApplication)
+	err := c.cc.Invoke(ctx, ConfigurationsService_GetConfigurationApplication_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *configurationsServiceClient) RecoverConfiguration(ctx context.Context, in *RecoverConfigurationRequest, opts ...grpc.CallOption) (*ConfigurationApplication, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ConfigurationApplication)
+	err := c.cc.Invoke(ctx, ConfigurationsService_RecoverConfiguration_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *configurationsServiceClient) ValidateConfiguration(ctx context.Context, in *ValidateConfigurationRequest, opts ...grpc.CallOption) (*ConfigurationValidation, error) {
@@ -114,6 +162,10 @@ func (c *configurationsServiceClient) ApplyConfiguration(ctx context.Context, in
 // All implementations must embed UnimplementedConfigurationsServiceServer
 // for forward compatibility.
 type ConfigurationsServiceServer interface {
+	PlanConfiguration(context.Context, *PlanConfigurationRequest) (*ConfigurationPlan, error)
+	ApplyConfigurationPlan(context.Context, *ApplyConfigurationPlanRequest) (*ConfigurationApplication, error)
+	GetConfigurationApplication(context.Context, *GetConfigurationApplicationRequest) (*ConfigurationApplication, error)
+	RecoverConfiguration(context.Context, *RecoverConfigurationRequest) (*ConfigurationApplication, error)
 	// Native config building only. It neither applies the candidate nor proves readiness.
 	ValidateConfiguration(context.Context, *ValidateConfigurationRequest) (*ConfigurationValidation, error)
 	// Builds ordered sources in one native conversion. Does not apply the result.
@@ -133,6 +185,18 @@ type ConfigurationsServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedConfigurationsServiceServer struct{}
 
+func (UnimplementedConfigurationsServiceServer) PlanConfiguration(context.Context, *PlanConfigurationRequest) (*ConfigurationPlan, error) {
+	return nil, status.Error(codes.Unimplemented, "method PlanConfiguration not implemented")
+}
+func (UnimplementedConfigurationsServiceServer) ApplyConfigurationPlan(context.Context, *ApplyConfigurationPlanRequest) (*ConfigurationApplication, error) {
+	return nil, status.Error(codes.Unimplemented, "method ApplyConfigurationPlan not implemented")
+}
+func (UnimplementedConfigurationsServiceServer) GetConfigurationApplication(context.Context, *GetConfigurationApplicationRequest) (*ConfigurationApplication, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetConfigurationApplication not implemented")
+}
+func (UnimplementedConfigurationsServiceServer) RecoverConfiguration(context.Context, *RecoverConfigurationRequest) (*ConfigurationApplication, error) {
+	return nil, status.Error(codes.Unimplemented, "method RecoverConfiguration not implemented")
+}
 func (UnimplementedConfigurationsServiceServer) ValidateConfiguration(context.Context, *ValidateConfigurationRequest) (*ConfigurationValidation, error) {
 	return nil, status.Error(codes.Unimplemented, "method ValidateConfiguration not implemented")
 }
@@ -170,6 +234,78 @@ func RegisterConfigurationsServiceServer(s grpc.ServiceRegistrar, srv Configurat
 		t.testEmbeddedByValue()
 	}
 	s.RegisterService(&ConfigurationsService_ServiceDesc, srv)
+}
+
+func _ConfigurationsService_PlanConfiguration_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PlanConfigurationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ConfigurationsServiceServer).PlanConfiguration(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ConfigurationsService_PlanConfiguration_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ConfigurationsServiceServer).PlanConfiguration(ctx, req.(*PlanConfigurationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ConfigurationsService_ApplyConfigurationPlan_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ApplyConfigurationPlanRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ConfigurationsServiceServer).ApplyConfigurationPlan(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ConfigurationsService_ApplyConfigurationPlan_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ConfigurationsServiceServer).ApplyConfigurationPlan(ctx, req.(*ApplyConfigurationPlanRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ConfigurationsService_GetConfigurationApplication_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetConfigurationApplicationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ConfigurationsServiceServer).GetConfigurationApplication(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ConfigurationsService_GetConfigurationApplication_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ConfigurationsServiceServer).GetConfigurationApplication(ctx, req.(*GetConfigurationApplicationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ConfigurationsService_RecoverConfiguration_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RecoverConfigurationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ConfigurationsServiceServer).RecoverConfiguration(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ConfigurationsService_RecoverConfiguration_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ConfigurationsServiceServer).RecoverConfiguration(ctx, req.(*RecoverConfigurationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _ConfigurationsService_ValidateConfiguration_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -287,6 +423,22 @@ var ConfigurationsService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "papilio.xray.runtime.configs.v1.ConfigurationsService",
 	HandlerType: (*ConfigurationsServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "PlanConfiguration",
+			Handler:    _ConfigurationsService_PlanConfiguration_Handler,
+		},
+		{
+			MethodName: "ApplyConfigurationPlan",
+			Handler:    _ConfigurationsService_ApplyConfigurationPlan_Handler,
+		},
+		{
+			MethodName: "GetConfigurationApplication",
+			Handler:    _ConfigurationsService_GetConfigurationApplication_Handler,
+		},
+		{
+			MethodName: "RecoverConfiguration",
+			Handler:    _ConfigurationsService_RecoverConfiguration_Handler,
+		},
 		{
 			MethodName: "ValidateConfiguration",
 			Handler:    _ConfigurationsService_ValidateConfiguration_Handler,

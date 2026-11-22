@@ -15,10 +15,13 @@ import (
 	"github.com/PapilioVPN/node/internal/apps/xray/runtime/configs/app/services"
 	"github.com/PapilioVPN/node/internal/apps/xray/runtime/configs/grpcapi"
 	"github.com/PapilioVPN/node/internal/apps/xray/runtime/configs/httpapi"
+	"github.com/PapilioVPN/node/internal/apps/xray/runtime/configs/infra/configuration"
+	"github.com/PapilioVPN/node/internal/apps/xray/runtime/configs/infra/live"
 	"github.com/PapilioVPN/node/internal/apps/xray/runtime/configs/infra/process"
 	"github.com/PapilioVPN/node/internal/apps/xray/runtime/configs/infra/state"
 	"github.com/PapilioVPN/node/internal/apps/xray/runtime/configs/natsapi"
 	instanceprocess "github.com/PapilioVPN/node/internal/apps/xray/runtime/instances/infra/process"
+	"github.com/PapilioVPN/node/internal/apps/xray/runtime/instances/infra/rpc"
 	accountconfiguration "github.com/PapilioVPN/node/internal/apps/xray/users/accounts/infra/configuration"
 	"github.com/PapilioVPN/node/internal/platform/natsclient"
 	"github.com/PapilioVPN/node/internal/settings"
@@ -31,7 +34,7 @@ func Module(config []settings.Instance, requests settings.Requests) fx.Option {
 	return fx.Module("xray-configs",
 		fx.Supply(config, requests, fx.Private),
 		fx.Provide(compose, composeStores, composeStateService, fx.Private),
-		fx.Provide(sourceProvider),
+		fx.Provide(sourceProvider, composePlans, composeMemberships),
 		fx.Provide(func(service *services.Service) inboundconfiguration.Compiler { return service }),
 		fx.Provide(func(service *services.Service) outboundconfiguration.Compiler { return service }),
 		fx.Provide(func(service *services.Service) accountconfiguration.Compiler { return service }),
@@ -71,6 +74,7 @@ type adapters struct {
 	fx.In
 	Service  *services.Service
 	State    *services.StateService
+	Plans    *services.Plans
 	Requests settings.Requests
 	HTTP     *fiber.App   `optional:"true"`
 	GRPC     *grpc.Server `optional:"true"`
@@ -78,16 +82,20 @@ type adapters struct {
 
 func register(in adapters) {
 	if in.HTTP != nil {
-		(httpapi.Handler{Service: in.Service, State: in.State, Timeout: in.Requests.Timeout}).Register(in.HTTP)
+		(httpapi.Handler{Service: in.Service, State: in.State, Plans: in.Plans, Timeout: in.Requests.Timeout}).Register(in.HTTP)
 	}
 	if in.GRPC != nil {
-		(grpcapi.Handler{Service: in.Service, State: in.State, Timeout: in.Requests.Timeout}).Register(in.GRPC)
+		(grpcapi.Handler{Service: in.Service, State: in.State, Plans: in.Plans, Timeout: in.Requests.Timeout}).Register(in.GRPC)
 	}
 }
 
 func subscribe(in adapters) natsclient.Subscriptions {
-	handler := natsapi.Handler{Service: in.Service, State: in.State, Timeout: in.Requests.Timeout}
+	handler := natsapi.Handler{Service: in.Service, State: in.State, Plans: in.Plans, Timeout: in.Requests.Timeout}
 	return natsclient.Subscriptions{Endpoints: []natsclient.Subscription{
+		{Name: "Xray configuration plan", SubjectSuffix: "xray.runtime.configs.plans.v1.create", Handle: handler.Plan},
+		{Name: "Xray reviewed configuration application", SubjectSuffix: "xray.runtime.configs.plans.v1.apply", Handle: handler.ApplyPlan},
+		{Name: "Xray configuration application result", SubjectSuffix: "xray.runtime.configs.applications.v1.get", Handle: handler.Application},
+		{Name: "Xray previous configuration recovery", SubjectSuffix: "xray.runtime.configs.applications.v1.recover", Handle: handler.Recover},
 		{Name: "Xray configuration validation", SubjectSuffix: "xray.runtime.configs.v1.validate", Handle: handler.Validate},
 		{Name: "Xray configuration compilation", SubjectSuffix: "xray.runtime.configs.v1.compile", Handle: handler.Compile},
 		{Name: "Xray desired configuration", SubjectSuffix: "xray.runtime.configs.v1.get", Handle: handler.Get},
@@ -166,4 +174,36 @@ func composeStateService(lifecycle fx.Lifecycle, stores *state.Collection, prep 
 	}
 	lifecycle.Append(fx.Hook{OnStop: service.Close})
 	return service, nil
+}
+
+type plannedInputs struct {
+	fx.In
+	State    *services.StateService
+	Compiler *services.Service
+	Runtime  services.Restarter
+	Stores   *state.Collection
+	Config   []settings.Instance
+	Native   []rpc.Binding `group:"xray-native-api"`
+}
+
+func composePlans(in plannedInputs) (*services.Plans, error) {
+	native := make(map[string]*rpc.Client, len(in.Native))
+	for _, binding := range in.Native {
+		native[binding.ID] = binding.Client
+	}
+	bindings := make([]services.PlanBinding, 0, len(in.Config))
+	for _, instance := range in.Config {
+		binding := services.PlanBinding{ID: instance.ID, Baseline: process.Baseline{Path: instance.Xray.Configuration}}
+		if store := in.Stores.Store(instance.ID); store != nil {
+			binding.Repository = store
+		}
+		if channel := native[instance.ID]; channel != nil {
+			binding.Live = live.New(channel)
+		}
+		bindings = append(bindings, binding)
+	}
+	return services.NewPlans(in.State, in.Compiler, configuration.Inspector{}, in.Runtime, bindings)
+}
+func composeMemberships(plans *services.Plans) (*services.Memberships, error) {
+	return services.NewMemberships(plans, accountconfiguration.ReplaceUsers, configuration.Embeddable)
 }

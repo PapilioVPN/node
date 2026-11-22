@@ -15,6 +15,7 @@ import (
 type Handler struct {
 	Service *services.Service
 	State   *services.StateService
+	Plans   *services.Plans
 	Timeout time.Duration
 }
 
@@ -25,6 +26,10 @@ func (h Handler) Register(router fiber.Router) {
 	router.Get("/v1/xray/runtime/instances/:id/configuration/status", h.Metadata)
 	router.Put("/v1/xray/runtime/instances/:id/configuration", h.Replace)
 	router.Post("/v1/xray/runtime/instances/:id/configuration/applications", h.Apply)
+	router.Post("/v1/xray/runtime/instances/:id/configuration/plans", h.Plan)
+	router.Post("/v1/xray/runtime/instances/:id/configuration/plans/:plan/applications", h.ApplyPlan)
+	router.Get("/v1/xray/runtime/instances/:id/configuration/applications/:application", h.Application)
+	router.Post("/v1/xray/runtime/instances/:id/configuration/applications/:application/recoveries", h.Recover)
 }
 
 func (h Handler) Validate(request fiber.Ctx) error {
@@ -59,6 +64,12 @@ func errorStatus(err error) (string, int) {
 		code, status = "native_rejected", fiber.StatusUnprocessableEntity
 	case errors.Is(err, domain.ErrNotFound):
 		code, status = "not_found", fiber.StatusNotFound
+	case errors.Is(err, domain.ErrPlanExpired):
+		code, status = "plan_expired", fiber.StatusConflict
+	case errors.Is(err, domain.ErrStalePlan):
+		code, status = "stale_plan", fiber.StatusConflict
+	case errors.Is(err, domain.ErrNoApplication):
+		code, status = "application_not_retained", fiber.StatusNotFound
 	case errors.Is(err, domain.ErrConflict):
 		code, status = "revision_conflict", fiber.StatusConflict
 	case errors.Is(err, domain.ErrDurabilityUnknown):

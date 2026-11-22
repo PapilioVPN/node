@@ -19,6 +19,7 @@ type Handler struct {
 	configsv1.UnimplementedConfigurationsServiceServer
 	Service *services.Service
 	State   *services.StateService
+	Plans   *services.Plans
 	Timeout time.Duration
 }
 
@@ -52,6 +53,12 @@ func failure(err error) error {
 		code, message = codes.InvalidArgument, "native_rejected"
 	case errors.Is(err, domain.ErrNotFound):
 		code, message = codes.NotFound, "not_found"
+	case errors.Is(err, domain.ErrPlanExpired):
+		code, message = codes.FailedPrecondition, "plan_expired"
+	case errors.Is(err, domain.ErrStalePlan):
+		code, message = codes.Aborted, "stale_plan"
+	case errors.Is(err, domain.ErrNoApplication):
+		code, message = codes.NotFound, "application_not_retained"
 	case errors.Is(err, domain.ErrConflict):
 		code, message = codes.Aborted, "revision_conflict"
 	case errors.Is(err, domain.ErrDurabilityUnknown):

@@ -7,6 +7,10 @@ import "internal/apps/xray/runtime/configs/grpcapi/proto/v1/compilation.proto";
 import "internal/apps/xray/runtime/configs/grpcapi/proto/v1/state.proto";
 
 service ConfigurationsService {
+  rpc PlanConfiguration(PlanConfigurationRequest) returns (ConfigurationPlan);
+  rpc ApplyConfigurationPlan(ApplyConfigurationPlanRequest) returns (ConfigurationApplication);
+  rpc GetConfigurationApplication(GetConfigurationApplicationRequest) returns (ConfigurationApplication);
+  rpc RecoverConfiguration(RecoverConfigurationRequest) returns (ConfigurationApplication);
   // Native config building only. It neither applies the candidate nor proves readiness.
   rpc ValidateConfiguration(ValidateConfigurationRequest) returns (ConfigurationValidation);
   // Builds ordered sources in one native conversion. Does not apply the result.

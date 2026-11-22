@@ -502,6 +502,796 @@ func (x *ConfigurationChange) GetExecution() *v1.ControlResult {
 	return nil
 }
 
+type PlanConfigurationRequest struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	InstanceId       string                 `protobuf:"bytes,1,opt,name=instance_id,json=instanceId,proto3" json:"instance_id,omitempty"`
+	ExpectedRevision *uint64                `protobuf:"varint,2,opt,name=expected_revision,json=expectedRevision,proto3,oneof" json:"expected_revision,omitempty"`
+	Sources          []*ConfigurationSource `protobuf:"bytes,3,rep,name=sources,proto3" json:"sources,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *PlanConfigurationRequest) Reset() {
+	*x = PlanConfigurationRequest{}
+	mi := &file_internal_apps_xray_runtime_configs_grpcapi_proto_v1_state_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PlanConfigurationRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PlanConfigurationRequest) ProtoMessage() {}
+
+func (x *PlanConfigurationRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_apps_xray_runtime_configs_grpcapi_proto_v1_state_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PlanConfigurationRequest.ProtoReflect.Descriptor instead.
+func (*PlanConfigurationRequest) Descriptor() ([]byte, []int) {
+	return file_internal_apps_xray_runtime_configs_grpcapi_proto_v1_state_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *PlanConfigurationRequest) GetInstanceId() string {
+	if x != nil {
+		return x.InstanceId
+	}
+	return ""
+}
+
+func (x *PlanConfigurationRequest) GetExpectedRevision() uint64 {
+	if x != nil && x.ExpectedRevision != nil {
+		return *x.ExpectedRevision
+	}
+	return 0
+}
+
+func (x *PlanConfigurationRequest) GetSources() []*ConfigurationSource {
+	if x != nil {
+		return x.Sources
+	}
+	return nil
+}
+
+type ConfigurationDifference struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Section       string                 `protobuf:"bytes,1,opt,name=section,proto3" json:"section,omitempty"`
+	BeforeCount   uint32                 `protobuf:"varint,2,opt,name=before_count,json=beforeCount,proto3" json:"before_count,omitempty"`
+	AfterCount    uint32                 `protobuf:"varint,3,opt,name=after_count,json=afterCount,proto3" json:"after_count,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ConfigurationDifference) Reset() {
+	*x = ConfigurationDifference{}
+	mi := &file_internal_apps_xray_runtime_configs_grpcapi_proto_v1_state_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ConfigurationDifference) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ConfigurationDifference) ProtoMessage() {}
+
+func (x *ConfigurationDifference) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_apps_xray_runtime_configs_grpcapi_proto_v1_state_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ConfigurationDifference.ProtoReflect.Descriptor instead.
+func (*ConfigurationDifference) Descriptor() ([]byte, []int) {
+	return file_internal_apps_xray_runtime_configs_grpcapi_proto_v1_state_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *ConfigurationDifference) GetSection() string {
+	if x != nil {
+		return x.Section
+	}
+	return ""
+}
+
+func (x *ConfigurationDifference) GetBeforeCount() uint32 {
+	if x != nil {
+		return x.BeforeCount
+	}
+	return 0
+}
+
+func (x *ConfigurationDifference) GetAfterCount() uint32 {
+	if x != nil {
+		return x.AfterCount
+	}
+	return 0
+}
+
+// Preview contains neither source bytes, field values nor account material.
+// No-op compares desired semantics; it does not reconcile separate live edits.
+type ConfigurationPlan struct {
+	state               protoimpl.MessageState     `protogen:"open.v1"`
+	PlanId              string                     `protobuf:"bytes,1,opt,name=plan_id,json=planId,proto3" json:"plan_id,omitempty"`
+	InstanceId          string                     `protobuf:"bytes,2,opt,name=instance_id,json=instanceId,proto3" json:"instance_id,omitempty"`
+	ExpectedRevision    uint64                     `protobuf:"varint,3,opt,name=expected_revision,json=expectedRevision,proto3" json:"expected_revision,omitempty"`
+	PreviousSha256      string                     `protobuf:"bytes,4,opt,name=previous_sha256,json=previousSha256,proto3" json:"previous_sha256,omitempty"`
+	CandidateSha256     string                     `protobuf:"bytes,5,opt,name=candidate_sha256,json=candidateSha256,proto3" json:"candidate_sha256,omitempty"`
+	ExecutionId         string                     `protobuf:"bytes,6,opt,name=execution_id,json=executionId,proto3" json:"execution_id,omitempty"`
+	Generation          uint64                     `protobuf:"varint,7,opt,name=generation,proto3" json:"generation,omitempty"`
+	Mode                string                     `protobuf:"bytes,8,opt,name=mode,proto3" json:"mode,omitempty"` // unchanged/live_routing/restart
+	Reason              string                     `protobuf:"bytes,9,opt,name=reason,proto3" json:"reason,omitempty"`
+	Differences         []*ConfigurationDifference `protobuf:"bytes,10,rep,name=differences,proto3" json:"differences,omitempty"`
+	ConnectionsRetained bool                       `protobuf:"varint,11,opt,name=connections_retained,json=connectionsRetained,proto3" json:"connections_retained,omitempty"`
+	CreatedAt           *timestamppb.Timestamp     `protobuf:"bytes,12,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	ExpiresAt           *timestamppb.Timestamp     `protobuf:"bytes,13,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *ConfigurationPlan) Reset() {
+	*x = ConfigurationPlan{}
+	mi := &file_internal_apps_xray_runtime_configs_grpcapi_proto_v1_state_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ConfigurationPlan) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ConfigurationPlan) ProtoMessage() {}
+
+func (x *ConfigurationPlan) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_apps_xray_runtime_configs_grpcapi_proto_v1_state_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ConfigurationPlan.ProtoReflect.Descriptor instead.
+func (*ConfigurationPlan) Descriptor() ([]byte, []int) {
+	return file_internal_apps_xray_runtime_configs_grpcapi_proto_v1_state_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *ConfigurationPlan) GetPlanId() string {
+	if x != nil {
+		return x.PlanId
+	}
+	return ""
+}
+
+func (x *ConfigurationPlan) GetInstanceId() string {
+	if x != nil {
+		return x.InstanceId
+	}
+	return ""
+}
+
+func (x *ConfigurationPlan) GetExpectedRevision() uint64 {
+	if x != nil {
+		return x.ExpectedRevision
+	}
+	return 0
+}
+
+func (x *ConfigurationPlan) GetPreviousSha256() string {
+	if x != nil {
+		return x.PreviousSha256
+	}
+	return ""
+}
+
+func (x *ConfigurationPlan) GetCandidateSha256() string {
+	if x != nil {
+		return x.CandidateSha256
+	}
+	return ""
+}
+
+func (x *ConfigurationPlan) GetExecutionId() string {
+	if x != nil {
+		return x.ExecutionId
+	}
+	return ""
+}
+
+func (x *ConfigurationPlan) GetGeneration() uint64 {
+	if x != nil {
+		return x.Generation
+	}
+	return 0
+}
+
+func (x *ConfigurationPlan) GetMode() string {
+	if x != nil {
+		return x.Mode
+	}
+	return ""
+}
+
+func (x *ConfigurationPlan) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
+func (x *ConfigurationPlan) GetDifferences() []*ConfigurationDifference {
+	if x != nil {
+		return x.Differences
+	}
+	return nil
+}
+
+func (x *ConfigurationPlan) GetConnectionsRetained() bool {
+	if x != nil {
+		return x.ConnectionsRetained
+	}
+	return false
+}
+
+func (x *ConfigurationPlan) GetCreatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return nil
+}
+
+func (x *ConfigurationPlan) GetExpiresAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ExpiresAt
+	}
+	return nil
+}
+
+type ApplyConfigurationPlanRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	InstanceId    string                 `protobuf:"bytes,1,opt,name=instance_id,json=instanceId,proto3" json:"instance_id,omitempty"`
+	PlanId        string                 `protobuf:"bytes,2,opt,name=plan_id,json=planId,proto3" json:"plan_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ApplyConfigurationPlanRequest) Reset() {
+	*x = ApplyConfigurationPlanRequest{}
+	mi := &file_internal_apps_xray_runtime_configs_grpcapi_proto_v1_state_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ApplyConfigurationPlanRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ApplyConfigurationPlanRequest) ProtoMessage() {}
+
+func (x *ApplyConfigurationPlanRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_apps_xray_runtime_configs_grpcapi_proto_v1_state_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ApplyConfigurationPlanRequest.ProtoReflect.Descriptor instead.
+func (*ApplyConfigurationPlanRequest) Descriptor() ([]byte, []int) {
+	return file_internal_apps_xray_runtime_configs_grpcapi_proto_v1_state_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *ApplyConfigurationPlanRequest) GetInstanceId() string {
+	if x != nil {
+		return x.InstanceId
+	}
+	return ""
+}
+
+func (x *ApplyConfigurationPlanRequest) GetPlanId() string {
+	if x != nil {
+		return x.PlanId
+	}
+	return ""
+}
+
+type GetConfigurationApplicationRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	InstanceId    string                 `protobuf:"bytes,1,opt,name=instance_id,json=instanceId,proto3" json:"instance_id,omitempty"`
+	ApplicationId string                 `protobuf:"bytes,2,opt,name=application_id,json=applicationId,proto3" json:"application_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetConfigurationApplicationRequest) Reset() {
+	*x = GetConfigurationApplicationRequest{}
+	mi := &file_internal_apps_xray_runtime_configs_grpcapi_proto_v1_state_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetConfigurationApplicationRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetConfigurationApplicationRequest) ProtoMessage() {}
+
+func (x *GetConfigurationApplicationRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_apps_xray_runtime_configs_grpcapi_proto_v1_state_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetConfigurationApplicationRequest.ProtoReflect.Descriptor instead.
+func (*GetConfigurationApplicationRequest) Descriptor() ([]byte, []int) {
+	return file_internal_apps_xray_runtime_configs_grpcapi_proto_v1_state_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *GetConfigurationApplicationRequest) GetInstanceId() string {
+	if x != nil {
+		return x.InstanceId
+	}
+	return ""
+}
+
+func (x *GetConfigurationApplicationRequest) GetApplicationId() string {
+	if x != nil {
+		return x.ApplicationId
+	}
+	return ""
+}
+
+type RecoverConfigurationRequest struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	InstanceId       string                 `protobuf:"bytes,1,opt,name=instance_id,json=instanceId,proto3" json:"instance_id,omitempty"`
+	ApplicationId    string                 `protobuf:"bytes,2,opt,name=application_id,json=applicationId,proto3" json:"application_id,omitempty"`
+	ExpectedRevision *uint64                `protobuf:"varint,3,opt,name=expected_revision,json=expectedRevision,proto3,oneof" json:"expected_revision,omitempty"`
+	// New 32-character lowercase hex identity; exact replay reads its receipt.
+	RecoveryId    string `protobuf:"bytes,4,opt,name=recovery_id,json=recoveryId,proto3" json:"recovery_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RecoverConfigurationRequest) Reset() {
+	*x = RecoverConfigurationRequest{}
+	mi := &file_internal_apps_xray_runtime_configs_grpcapi_proto_v1_state_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RecoverConfigurationRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RecoverConfigurationRequest) ProtoMessage() {}
+
+func (x *RecoverConfigurationRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_apps_xray_runtime_configs_grpcapi_proto_v1_state_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RecoverConfigurationRequest.ProtoReflect.Descriptor instead.
+func (*RecoverConfigurationRequest) Descriptor() ([]byte, []int) {
+	return file_internal_apps_xray_runtime_configs_grpcapi_proto_v1_state_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *RecoverConfigurationRequest) GetInstanceId() string {
+	if x != nil {
+		return x.InstanceId
+	}
+	return ""
+}
+
+func (x *RecoverConfigurationRequest) GetApplicationId() string {
+	if x != nil {
+		return x.ApplicationId
+	}
+	return ""
+}
+
+func (x *RecoverConfigurationRequest) GetExpectedRevision() uint64 {
+	if x != nil && x.ExpectedRevision != nil {
+		return *x.ExpectedRevision
+	}
+	return 0
+}
+
+func (x *RecoverConfigurationRequest) GetRecoveryId() string {
+	if x != nil {
+		return x.RecoveryId
+	}
+	return ""
+}
+
+type ConfigurationRecovery struct {
+	state            protoimpl.MessageState    `protogen:"open.v1"`
+	RecoveryId       string                    `protobuf:"bytes,1,opt,name=recovery_id,json=recoveryId,proto3" json:"recovery_id,omitempty"`
+	ExpectedRevision uint64                    `protobuf:"varint,2,opt,name=expected_revision,json=expectedRevision,proto3" json:"expected_revision,omitempty"`
+	Revision         uint64                    `protobuf:"varint,3,opt,name=revision,proto3" json:"revision,omitempty"`
+	Outcome          string                    `protobuf:"bytes,4,opt,name=outcome,proto3" json:"outcome,omitempty"`
+	EngineEffect     string                    `protobuf:"bytes,5,opt,name=engine_effect,json=engineEffect,proto3" json:"engine_effect,omitempty"`
+	Readiness        string                    `protobuf:"bytes,6,opt,name=readiness,proto3" json:"readiness,omitempty"`
+	Error            string                    `protobuf:"bytes,7,opt,name=error,proto3" json:"error,omitempty"`
+	ExecutionId      string                    `protobuf:"bytes,8,opt,name=execution_id,json=executionId,proto3" json:"execution_id,omitempty"`
+	Generation       uint64                    `protobuf:"varint,9,opt,name=generation,proto3" json:"generation,omitempty"`
+	Persistence      *ConfigurationPersistence `protobuf:"bytes,10,opt,name=persistence,proto3" json:"persistence,omitempty"`
+	StartedAt        *timestamppb.Timestamp    `protobuf:"bytes,11,opt,name=started_at,json=startedAt,proto3" json:"started_at,omitempty"`
+	CompletedAt      *timestamppb.Timestamp    `protobuf:"bytes,12,opt,name=completed_at,json=completedAt,proto3" json:"completed_at,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *ConfigurationRecovery) Reset() {
+	*x = ConfigurationRecovery{}
+	mi := &file_internal_apps_xray_runtime_configs_grpcapi_proto_v1_state_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ConfigurationRecovery) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ConfigurationRecovery) ProtoMessage() {}
+
+func (x *ConfigurationRecovery) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_apps_xray_runtime_configs_grpcapi_proto_v1_state_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ConfigurationRecovery.ProtoReflect.Descriptor instead.
+func (*ConfigurationRecovery) Descriptor() ([]byte, []int) {
+	return file_internal_apps_xray_runtime_configs_grpcapi_proto_v1_state_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *ConfigurationRecovery) GetRecoveryId() string {
+	if x != nil {
+		return x.RecoveryId
+	}
+	return ""
+}
+
+func (x *ConfigurationRecovery) GetExpectedRevision() uint64 {
+	if x != nil {
+		return x.ExpectedRevision
+	}
+	return 0
+}
+
+func (x *ConfigurationRecovery) GetRevision() uint64 {
+	if x != nil {
+		return x.Revision
+	}
+	return 0
+}
+
+func (x *ConfigurationRecovery) GetOutcome() string {
+	if x != nil {
+		return x.Outcome
+	}
+	return ""
+}
+
+func (x *ConfigurationRecovery) GetEngineEffect() string {
+	if x != nil {
+		return x.EngineEffect
+	}
+	return ""
+}
+
+func (x *ConfigurationRecovery) GetReadiness() string {
+	if x != nil {
+		return x.Readiness
+	}
+	return ""
+}
+
+func (x *ConfigurationRecovery) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
+}
+
+func (x *ConfigurationRecovery) GetExecutionId() string {
+	if x != nil {
+		return x.ExecutionId
+	}
+	return ""
+}
+
+func (x *ConfigurationRecovery) GetGeneration() uint64 {
+	if x != nil {
+		return x.Generation
+	}
+	return 0
+}
+
+func (x *ConfigurationRecovery) GetPersistence() *ConfigurationPersistence {
+	if x != nil {
+		return x.Persistence
+	}
+	return nil
+}
+
+func (x *ConfigurationRecovery) GetStartedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.StartedAt
+	}
+	return nil
+}
+
+func (x *ConfigurationRecovery) GetCompletedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CompletedAt
+	}
+	return nil
+}
+
+// Operational failures use this normal envelope. A missing reply never proves
+// no effect: query application_id (the plan_id) or replay the SAME identity.
+// Each new acceptance advances revision even when no engine change is required.
+type ConfigurationApplication struct {
+	state             protoimpl.MessageState    `protogen:"open.v1"`
+	ApplicationId     string                    `protobuf:"bytes,1,opt,name=application_id,json=applicationId,proto3" json:"application_id,omitempty"`
+	InstanceId        string                    `protobuf:"bytes,2,opt,name=instance_id,json=instanceId,proto3" json:"instance_id,omitempty"`
+	Epoch             string                    `protobuf:"bytes,3,opt,name=epoch,proto3" json:"epoch,omitempty"`
+	ExpectedRevision  uint64                    `protobuf:"varint,4,opt,name=expected_revision,json=expectedRevision,proto3" json:"expected_revision,omitempty"`
+	Revision          uint64                    `protobuf:"varint,5,opt,name=revision,proto3" json:"revision,omitempty"`
+	PreviousRevision  uint64                    `protobuf:"varint,6,opt,name=previous_revision,json=previousRevision,proto3" json:"previous_revision,omitempty"`
+	CandidateSha256   string                    `protobuf:"bytes,7,opt,name=candidate_sha256,json=candidateSha256,proto3" json:"candidate_sha256,omitempty"`
+	Mode              string                    `protobuf:"bytes,8,opt,name=mode,proto3" json:"mode,omitempty"`
+	Outcome           string                    `protobuf:"bytes,9,opt,name=outcome,proto3" json:"outcome,omitempty"`
+	Phase             string                    `protobuf:"bytes,10,opt,name=phase,proto3" json:"phase,omitempty"`
+	EngineEffect      string                    `protobuf:"bytes,11,opt,name=engine_effect,json=engineEffect,proto3" json:"engine_effect,omitempty"`
+	Acknowledged      bool                      `protobuf:"varint,12,opt,name=acknowledged,proto3" json:"acknowledged,omitempty"`
+	Readiness         string                    `protobuf:"bytes,13,opt,name=readiness,proto3" json:"readiness,omitempty"` // API readiness, never payload traffic attestation.
+	Error             string                    `protobuf:"bytes,14,opt,name=error,proto3" json:"error,omitempty"`
+	ExecutionId       string                    `protobuf:"bytes,15,opt,name=execution_id,json=executionId,proto3" json:"execution_id,omitempty"`
+	Generation        uint64                    `protobuf:"varint,16,opt,name=generation,proto3" json:"generation,omitempty"`
+	Persistence       *ConfigurationPersistence `protobuf:"bytes,17,opt,name=persistence,proto3" json:"persistence,omitempty"`
+	ReceiptDurable    bool                      `protobuf:"varint,18,opt,name=receipt_durable,json=receiptDurable,proto3" json:"receipt_durable,omitempty"`
+	RecoveryAvailable bool                      `protobuf:"varint,19,opt,name=recovery_available,json=recoveryAvailable,proto3" json:"recovery_available,omitempty"`
+	RequiresRecovery  bool                      `protobuf:"varint,20,opt,name=requires_recovery,json=requiresRecovery,proto3" json:"requires_recovery,omitempty"`
+	StartedAt         *timestamppb.Timestamp    `protobuf:"bytes,21,opt,name=started_at,json=startedAt,proto3" json:"started_at,omitempty"`
+	CompletedAt       *timestamppb.Timestamp    `protobuf:"bytes,22,opt,name=completed_at,json=completedAt,proto3" json:"completed_at,omitempty"`
+	Recovery          *ConfigurationRecovery    `protobuf:"bytes,23,opt,name=recovery,proto3" json:"recovery,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *ConfigurationApplication) Reset() {
+	*x = ConfigurationApplication{}
+	mi := &file_internal_apps_xray_runtime_configs_grpcapi_proto_v1_state_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ConfigurationApplication) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ConfigurationApplication) ProtoMessage() {}
+
+func (x *ConfigurationApplication) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_apps_xray_runtime_configs_grpcapi_proto_v1_state_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ConfigurationApplication.ProtoReflect.Descriptor instead.
+func (*ConfigurationApplication) Descriptor() ([]byte, []int) {
+	return file_internal_apps_xray_runtime_configs_grpcapi_proto_v1_state_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *ConfigurationApplication) GetApplicationId() string {
+	if x != nil {
+		return x.ApplicationId
+	}
+	return ""
+}
+
+func (x *ConfigurationApplication) GetInstanceId() string {
+	if x != nil {
+		return x.InstanceId
+	}
+	return ""
+}
+
+func (x *ConfigurationApplication) GetEpoch() string {
+	if x != nil {
+		return x.Epoch
+	}
+	return ""
+}
+
+func (x *ConfigurationApplication) GetExpectedRevision() uint64 {
+	if x != nil {
+		return x.ExpectedRevision
+	}
+	return 0
+}
+
+func (x *ConfigurationApplication) GetRevision() uint64 {
+	if x != nil {
+		return x.Revision
+	}
+	return 0
+}
+
+func (x *ConfigurationApplication) GetPreviousRevision() uint64 {
+	if x != nil {
+		return x.PreviousRevision
+	}
+	return 0
+}
+
+func (x *ConfigurationApplication) GetCandidateSha256() string {
+	if x != nil {
+		return x.CandidateSha256
+	}
+	return ""
+}
+
+func (x *ConfigurationApplication) GetMode() string {
+	if x != nil {
+		return x.Mode
+	}
+	return ""
+}
+
+func (x *ConfigurationApplication) GetOutcome() string {
+	if x != nil {
+		return x.Outcome
+	}
+	return ""
+}
+
+func (x *ConfigurationApplication) GetPhase() string {
+	if x != nil {
+		return x.Phase
+	}
+	return ""
+}
+
+func (x *ConfigurationApplication) GetEngineEffect() string {
+	if x != nil {
+		return x.EngineEffect
+	}
+	return ""
+}
+
+func (x *ConfigurationApplication) GetAcknowledged() bool {
+	if x != nil {
+		return x.Acknowledged
+	}
+	return false
+}
+
+func (x *ConfigurationApplication) GetReadiness() string {
+	if x != nil {
+		return x.Readiness
+	}
+	return ""
+}
+
+func (x *ConfigurationApplication) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
+}
+
+func (x *ConfigurationApplication) GetExecutionId() string {
+	if x != nil {
+		return x.ExecutionId
+	}
+	return ""
+}
+
+func (x *ConfigurationApplication) GetGeneration() uint64 {
+	if x != nil {
+		return x.Generation
+	}
+	return 0
+}
+
+func (x *ConfigurationApplication) GetPersistence() *ConfigurationPersistence {
+	if x != nil {
+		return x.Persistence
+	}
+	return nil
+}
+
+func (x *ConfigurationApplication) GetReceiptDurable() bool {
+	if x != nil {
+		return x.ReceiptDurable
+	}
+	return false
+}
+
+func (x *ConfigurationApplication) GetRecoveryAvailable() bool {
+	if x != nil {
+		return x.RecoveryAvailable
+	}
+	return false
+}
+
+func (x *ConfigurationApplication) GetRequiresRecovery() bool {
+	if x != nil {
+		return x.RequiresRecovery
+	}
+	return false
+}
+
+func (x *ConfigurationApplication) GetStartedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.StartedAt
+	}
+	return nil
+}
+
+func (x *ConfigurationApplication) GetCompletedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CompletedAt
+	}
+	return nil
+}
+
+func (x *ConfigurationApplication) GetRecovery() *ConfigurationRecovery {
+	if x != nil {
+		return x.Recovery
+	}
+	return nil
+}
+
 var File_internal_apps_xray_runtime_configs_grpcapi_proto_v1_state_proto protoreflect.FileDescriptor
 
 const file_internal_apps_xray_runtime_configs_grpcapi_proto_v1_state_proto_rawDesc = "" +
@@ -546,7 +1336,101 @@ const file_internal_apps_xray_runtime_configs_grpcapi_proto_v1_state_proto_rawDe
 	"\vinstance_id\x18\x01 \x01(\tR\n" +
 	"instanceId\x12[\n" +
 	"\vpersistence\x18\x02 \x01(\v29.papilio.xray.runtime.configs.v1.ConfigurationPersistenceR\vpersistence\x12N\n" +
-	"\texecution\x18\x03 \x01(\v20.papilio.core.engines.instances.v1.ControlResultR\texecutionBZZXgithub.com/PapilioVPN/node/internal/apps/xray/runtime/configs/grpcapi/proto/v1;configsv1b\x06proto3"
+	"\texecution\x18\x03 \x01(\v20.papilio.core.engines.instances.v1.ControlResultR\texecution\"\xd3\x01\n" +
+	"\x18PlanConfigurationRequest\x12\x1f\n" +
+	"\vinstance_id\x18\x01 \x01(\tR\n" +
+	"instanceId\x120\n" +
+	"\x11expected_revision\x18\x02 \x01(\x04H\x00R\x10expectedRevision\x88\x01\x01\x12N\n" +
+	"\asources\x18\x03 \x03(\v24.papilio.xray.runtime.configs.v1.ConfigurationSourceR\asourcesB\x14\n" +
+	"\x12_expected_revision\"w\n" +
+	"\x17ConfigurationDifference\x12\x18\n" +
+	"\asection\x18\x01 \x01(\tR\asection\x12!\n" +
+	"\fbefore_count\x18\x02 \x01(\rR\vbeforeCount\x12\x1f\n" +
+	"\vafter_count\x18\x03 \x01(\rR\n" +
+	"afterCount\"\xc2\x04\n" +
+	"\x11ConfigurationPlan\x12\x17\n" +
+	"\aplan_id\x18\x01 \x01(\tR\x06planId\x12\x1f\n" +
+	"\vinstance_id\x18\x02 \x01(\tR\n" +
+	"instanceId\x12+\n" +
+	"\x11expected_revision\x18\x03 \x01(\x04R\x10expectedRevision\x12'\n" +
+	"\x0fprevious_sha256\x18\x04 \x01(\tR\x0epreviousSha256\x12)\n" +
+	"\x10candidate_sha256\x18\x05 \x01(\tR\x0fcandidateSha256\x12!\n" +
+	"\fexecution_id\x18\x06 \x01(\tR\vexecutionId\x12\x1e\n" +
+	"\n" +
+	"generation\x18\a \x01(\x04R\n" +
+	"generation\x12\x12\n" +
+	"\x04mode\x18\b \x01(\tR\x04mode\x12\x16\n" +
+	"\x06reason\x18\t \x01(\tR\x06reason\x12Z\n" +
+	"\vdifferences\x18\n" +
+	" \x03(\v28.papilio.xray.runtime.configs.v1.ConfigurationDifferenceR\vdifferences\x121\n" +
+	"\x14connections_retained\x18\v \x01(\bR\x13connectionsRetained\x129\n" +
+	"\n" +
+	"created_at\x18\f \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
+	"\n" +
+	"expires_at\x18\r \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\"Y\n" +
+	"\x1dApplyConfigurationPlanRequest\x12\x1f\n" +
+	"\vinstance_id\x18\x01 \x01(\tR\n" +
+	"instanceId\x12\x17\n" +
+	"\aplan_id\x18\x02 \x01(\tR\x06planId\"l\n" +
+	"\"GetConfigurationApplicationRequest\x12\x1f\n" +
+	"\vinstance_id\x18\x01 \x01(\tR\n" +
+	"instanceId\x12%\n" +
+	"\x0eapplication_id\x18\x02 \x01(\tR\rapplicationId\"\xce\x01\n" +
+	"\x1bRecoverConfigurationRequest\x12\x1f\n" +
+	"\vinstance_id\x18\x01 \x01(\tR\n" +
+	"instanceId\x12%\n" +
+	"\x0eapplication_id\x18\x02 \x01(\tR\rapplicationId\x120\n" +
+	"\x11expected_revision\x18\x03 \x01(\x04H\x00R\x10expectedRevision\x88\x01\x01\x12\x1f\n" +
+	"\vrecovery_id\x18\x04 \x01(\tR\n" +
+	"recoveryIdB\x14\n" +
+	"\x12_expected_revision\"\x8e\x04\n" +
+	"\x15ConfigurationRecovery\x12\x1f\n" +
+	"\vrecovery_id\x18\x01 \x01(\tR\n" +
+	"recoveryId\x12+\n" +
+	"\x11expected_revision\x18\x02 \x01(\x04R\x10expectedRevision\x12\x1a\n" +
+	"\brevision\x18\x03 \x01(\x04R\brevision\x12\x18\n" +
+	"\aoutcome\x18\x04 \x01(\tR\aoutcome\x12#\n" +
+	"\rengine_effect\x18\x05 \x01(\tR\fengineEffect\x12\x1c\n" +
+	"\treadiness\x18\x06 \x01(\tR\treadiness\x12\x14\n" +
+	"\x05error\x18\a \x01(\tR\x05error\x12!\n" +
+	"\fexecution_id\x18\b \x01(\tR\vexecutionId\x12\x1e\n" +
+	"\n" +
+	"generation\x18\t \x01(\x04R\n" +
+	"generation\x12[\n" +
+	"\vpersistence\x18\n" +
+	" \x01(\v29.papilio.xray.runtime.configs.v1.ConfigurationPersistenceR\vpersistence\x129\n" +
+	"\n" +
+	"started_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\tstartedAt\x12=\n" +
+	"\fcompleted_at\x18\f \x01(\v2\x1a.google.protobuf.TimestampR\vcompletedAt\"\xcd\a\n" +
+	"\x18ConfigurationApplication\x12%\n" +
+	"\x0eapplication_id\x18\x01 \x01(\tR\rapplicationId\x12\x1f\n" +
+	"\vinstance_id\x18\x02 \x01(\tR\n" +
+	"instanceId\x12\x14\n" +
+	"\x05epoch\x18\x03 \x01(\tR\x05epoch\x12+\n" +
+	"\x11expected_revision\x18\x04 \x01(\x04R\x10expectedRevision\x12\x1a\n" +
+	"\brevision\x18\x05 \x01(\x04R\brevision\x12+\n" +
+	"\x11previous_revision\x18\x06 \x01(\x04R\x10previousRevision\x12)\n" +
+	"\x10candidate_sha256\x18\a \x01(\tR\x0fcandidateSha256\x12\x12\n" +
+	"\x04mode\x18\b \x01(\tR\x04mode\x12\x18\n" +
+	"\aoutcome\x18\t \x01(\tR\aoutcome\x12\x14\n" +
+	"\x05phase\x18\n" +
+	" \x01(\tR\x05phase\x12#\n" +
+	"\rengine_effect\x18\v \x01(\tR\fengineEffect\x12\"\n" +
+	"\facknowledged\x18\f \x01(\bR\facknowledged\x12\x1c\n" +
+	"\treadiness\x18\r \x01(\tR\treadiness\x12\x14\n" +
+	"\x05error\x18\x0e \x01(\tR\x05error\x12!\n" +
+	"\fexecution_id\x18\x0f \x01(\tR\vexecutionId\x12\x1e\n" +
+	"\n" +
+	"generation\x18\x10 \x01(\x04R\n" +
+	"generation\x12[\n" +
+	"\vpersistence\x18\x11 \x01(\v29.papilio.xray.runtime.configs.v1.ConfigurationPersistenceR\vpersistence\x12'\n" +
+	"\x0freceipt_durable\x18\x12 \x01(\bR\x0ereceiptDurable\x12-\n" +
+	"\x12recovery_available\x18\x13 \x01(\bR\x11recoveryAvailable\x12+\n" +
+	"\x11requires_recovery\x18\x14 \x01(\bR\x10requiresRecovery\x129\n" +
+	"\n" +
+	"started_at\x18\x15 \x01(\v2\x1a.google.protobuf.TimestampR\tstartedAt\x12=\n" +
+	"\fcompleted_at\x18\x16 \x01(\v2\x1a.google.protobuf.TimestampR\vcompletedAt\x12R\n" +
+	"\brecovery\x18\x17 \x01(\v26.papilio.xray.runtime.configs.v1.ConfigurationRecoveryR\brecoveryBZZXgithub.com/PapilioVPN/node/internal/apps/xray/runtime/configs/grpcapi/proto/v1;configsv1b\x06proto3"
 
 var (
 	file_internal_apps_xray_runtime_configs_grpcapi_proto_v1_state_proto_rawDescOnce sync.Once
@@ -560,34 +1444,53 @@ func file_internal_apps_xray_runtime_configs_grpcapi_proto_v1_state_proto_rawDes
 	return file_internal_apps_xray_runtime_configs_grpcapi_proto_v1_state_proto_rawDescData
 }
 
-var file_internal_apps_xray_runtime_configs_grpcapi_proto_v1_state_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_internal_apps_xray_runtime_configs_grpcapi_proto_v1_state_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
 var file_internal_apps_xray_runtime_configs_grpcapi_proto_v1_state_proto_goTypes = []any{
-	(*GetConfigurationRequest)(nil),     // 0: papilio.xray.runtime.configs.v1.GetConfigurationRequest
-	(*ConfigurationMetadata)(nil),       // 1: papilio.xray.runtime.configs.v1.ConfigurationMetadata
-	(*ConfigurationStatus)(nil),         // 2: papilio.xray.runtime.configs.v1.ConfigurationStatus
-	(*DesiredConfiguration)(nil),        // 3: papilio.xray.runtime.configs.v1.DesiredConfiguration
-	(*ReplaceConfigurationRequest)(nil), // 4: papilio.xray.runtime.configs.v1.ReplaceConfigurationRequest
-	(*ApplyConfigurationRequest)(nil),   // 5: papilio.xray.runtime.configs.v1.ApplyConfigurationRequest
-	(*ConfigurationPersistence)(nil),    // 6: papilio.xray.runtime.configs.v1.ConfigurationPersistence
-	(*ConfigurationChange)(nil),         // 7: papilio.xray.runtime.configs.v1.ConfigurationChange
-	(*timestamppb.Timestamp)(nil),       // 8: google.protobuf.Timestamp
-	(*ConfigurationSource)(nil),         // 9: papilio.xray.runtime.configs.v1.ConfigurationSource
-	(*v1.ControlResult)(nil),            // 10: papilio.core.engines.instances.v1.ControlResult
+	(*GetConfigurationRequest)(nil),            // 0: papilio.xray.runtime.configs.v1.GetConfigurationRequest
+	(*ConfigurationMetadata)(nil),              // 1: papilio.xray.runtime.configs.v1.ConfigurationMetadata
+	(*ConfigurationStatus)(nil),                // 2: papilio.xray.runtime.configs.v1.ConfigurationStatus
+	(*DesiredConfiguration)(nil),               // 3: papilio.xray.runtime.configs.v1.DesiredConfiguration
+	(*ReplaceConfigurationRequest)(nil),        // 4: papilio.xray.runtime.configs.v1.ReplaceConfigurationRequest
+	(*ApplyConfigurationRequest)(nil),          // 5: papilio.xray.runtime.configs.v1.ApplyConfigurationRequest
+	(*ConfigurationPersistence)(nil),           // 6: papilio.xray.runtime.configs.v1.ConfigurationPersistence
+	(*ConfigurationChange)(nil),                // 7: papilio.xray.runtime.configs.v1.ConfigurationChange
+	(*PlanConfigurationRequest)(nil),           // 8: papilio.xray.runtime.configs.v1.PlanConfigurationRequest
+	(*ConfigurationDifference)(nil),            // 9: papilio.xray.runtime.configs.v1.ConfigurationDifference
+	(*ConfigurationPlan)(nil),                  // 10: papilio.xray.runtime.configs.v1.ConfigurationPlan
+	(*ApplyConfigurationPlanRequest)(nil),      // 11: papilio.xray.runtime.configs.v1.ApplyConfigurationPlanRequest
+	(*GetConfigurationApplicationRequest)(nil), // 12: papilio.xray.runtime.configs.v1.GetConfigurationApplicationRequest
+	(*RecoverConfigurationRequest)(nil),        // 13: papilio.xray.runtime.configs.v1.RecoverConfigurationRequest
+	(*ConfigurationRecovery)(nil),              // 14: papilio.xray.runtime.configs.v1.ConfigurationRecovery
+	(*ConfigurationApplication)(nil),           // 15: papilio.xray.runtime.configs.v1.ConfigurationApplication
+	(*timestamppb.Timestamp)(nil),              // 16: google.protobuf.Timestamp
+	(*ConfigurationSource)(nil),                // 17: papilio.xray.runtime.configs.v1.ConfigurationSource
+	(*v1.ControlResult)(nil),                   // 18: papilio.core.engines.instances.v1.ControlResult
 }
 var file_internal_apps_xray_runtime_configs_grpcapi_proto_v1_state_proto_depIdxs = []int32{
-	8,  // 0: papilio.xray.runtime.configs.v1.ConfigurationMetadata.updated_at:type_name -> google.protobuf.Timestamp
+	16, // 0: papilio.xray.runtime.configs.v1.ConfigurationMetadata.updated_at:type_name -> google.protobuf.Timestamp
 	1,  // 1: papilio.xray.runtime.configs.v1.ConfigurationStatus.metadata:type_name -> papilio.xray.runtime.configs.v1.ConfigurationMetadata
 	1,  // 2: papilio.xray.runtime.configs.v1.DesiredConfiguration.metadata:type_name -> papilio.xray.runtime.configs.v1.ConfigurationMetadata
-	9,  // 3: papilio.xray.runtime.configs.v1.DesiredConfiguration.sources:type_name -> papilio.xray.runtime.configs.v1.ConfigurationSource
-	9,  // 4: papilio.xray.runtime.configs.v1.ReplaceConfigurationRequest.sources:type_name -> papilio.xray.runtime.configs.v1.ConfigurationSource
+	17, // 3: papilio.xray.runtime.configs.v1.DesiredConfiguration.sources:type_name -> papilio.xray.runtime.configs.v1.ConfigurationSource
+	17, // 4: papilio.xray.runtime.configs.v1.ReplaceConfigurationRequest.sources:type_name -> papilio.xray.runtime.configs.v1.ConfigurationSource
 	1,  // 5: papilio.xray.runtime.configs.v1.ConfigurationPersistence.metadata:type_name -> papilio.xray.runtime.configs.v1.ConfigurationMetadata
 	6,  // 6: papilio.xray.runtime.configs.v1.ConfigurationChange.persistence:type_name -> papilio.xray.runtime.configs.v1.ConfigurationPersistence
-	10, // 7: papilio.xray.runtime.configs.v1.ConfigurationChange.execution:type_name -> papilio.core.engines.instances.v1.ControlResult
-	8,  // [8:8] is the sub-list for method output_type
-	8,  // [8:8] is the sub-list for method input_type
-	8,  // [8:8] is the sub-list for extension type_name
-	8,  // [8:8] is the sub-list for extension extendee
-	0,  // [0:8] is the sub-list for field type_name
+	18, // 7: papilio.xray.runtime.configs.v1.ConfigurationChange.execution:type_name -> papilio.core.engines.instances.v1.ControlResult
+	17, // 8: papilio.xray.runtime.configs.v1.PlanConfigurationRequest.sources:type_name -> papilio.xray.runtime.configs.v1.ConfigurationSource
+	9,  // 9: papilio.xray.runtime.configs.v1.ConfigurationPlan.differences:type_name -> papilio.xray.runtime.configs.v1.ConfigurationDifference
+	16, // 10: papilio.xray.runtime.configs.v1.ConfigurationPlan.created_at:type_name -> google.protobuf.Timestamp
+	16, // 11: papilio.xray.runtime.configs.v1.ConfigurationPlan.expires_at:type_name -> google.protobuf.Timestamp
+	6,  // 12: papilio.xray.runtime.configs.v1.ConfigurationRecovery.persistence:type_name -> papilio.xray.runtime.configs.v1.ConfigurationPersistence
+	16, // 13: papilio.xray.runtime.configs.v1.ConfigurationRecovery.started_at:type_name -> google.protobuf.Timestamp
+	16, // 14: papilio.xray.runtime.configs.v1.ConfigurationRecovery.completed_at:type_name -> google.protobuf.Timestamp
+	6,  // 15: papilio.xray.runtime.configs.v1.ConfigurationApplication.persistence:type_name -> papilio.xray.runtime.configs.v1.ConfigurationPersistence
+	16, // 16: papilio.xray.runtime.configs.v1.ConfigurationApplication.started_at:type_name -> google.protobuf.Timestamp
+	16, // 17: papilio.xray.runtime.configs.v1.ConfigurationApplication.completed_at:type_name -> google.protobuf.Timestamp
+	14, // 18: papilio.xray.runtime.configs.v1.ConfigurationApplication.recovery:type_name -> papilio.xray.runtime.configs.v1.ConfigurationRecovery
+	19, // [19:19] is the sub-list for method output_type
+	19, // [19:19] is the sub-list for method input_type
+	19, // [19:19] is the sub-list for extension type_name
+	19, // [19:19] is the sub-list for extension extendee
+	0,  // [0:19] is the sub-list for field type_name
 }
 
 func init() { file_internal_apps_xray_runtime_configs_grpcapi_proto_v1_state_proto_init() }
@@ -598,13 +1501,15 @@ func file_internal_apps_xray_runtime_configs_grpcapi_proto_v1_state_proto_init()
 	file_internal_apps_xray_runtime_configs_grpcapi_proto_v1_compilation_proto_init()
 	file_internal_apps_xray_runtime_configs_grpcapi_proto_v1_state_proto_msgTypes[4].OneofWrappers = []any{}
 	file_internal_apps_xray_runtime_configs_grpcapi_proto_v1_state_proto_msgTypes[5].OneofWrappers = []any{}
+	file_internal_apps_xray_runtime_configs_grpcapi_proto_v1_state_proto_msgTypes[8].OneofWrappers = []any{}
+	file_internal_apps_xray_runtime_configs_grpcapi_proto_v1_state_proto_msgTypes[13].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_internal_apps_xray_runtime_configs_grpcapi_proto_v1_state_proto_rawDesc), len(file_internal_apps_xray_runtime_configs_grpcapi_proto_v1_state_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   8,
+			NumMessages:   16,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
