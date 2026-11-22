@@ -1,150 +1,144 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="assets/banner.png">
-    <source media="(prefers-color-scheme: light)" srcset="assets/banner-light.png">
-    <img alt="PapilioVPN Node — the service for managed VPN nodes" src="assets/banner-light.png" width="100%">
+    <img alt="PapilioVPN Node" src="assets/banner-light.png" width="100%">
   </picture>
 </p>
 
 <h1 align="center">PapilioVPN Node</h1>
 
-<p align="center">The Go service for nodes managed by the PapilioVPN platform.</p>
+<p align="center" lang="en">The standalone Go service for Linux-host observations and engine management, starting with Xray.</p>
 
 <p align="center">
-  <a href="https://github.com/papilio-platform/Node/actions/workflows/ci.yml"><img alt="CI status" src="https://github.com/papilio-platform/Node/actions/workflows/ci.yml/badge.svg?branch=main"></a>
-  <a href="go.mod"><img alt="Go 1.27.3 or newer" src="https://img.shields.io/badge/Go-1.27.3%2B-00ADD8?style=flat-square&amp;logo=go&amp;logoColor=white"></a>
-  <img alt="Status: early development" src="https://img.shields.io/badge/status-early_development-8B5CF6?style=flat-square">
+  <strong lang="en"><img src="assets/flags/gb.svg" width="24" alt=""> English</strong> ·
+  <a href="README.fa.md" lang="fa"><img src="assets/flags/ir-lion-and-sun.svg" width="24" alt=""> فارسی</a> ·
+  <a href="README.ru.md" lang="ru"><img src="assets/flags/ru.svg" width="24" alt=""> Русский</a> ·
+  <a href="README.zh-CN.md" lang="zh-CN"><img src="assets/flags/cn.svg" width="24" alt=""> 简体中文</a>
 </p>
 
-<p align="center"><strong>English</strong> · <a href="README.fa.md" lang="fa">فارسی</a></p>
+<p align="center">
+  <a href="https://github.com/PapilioVPN/node/actions/workflows/check.yml"><img alt="Checks" src="https://github.com/PapilioVPN/node/actions/workflows/check.yml/badge.svg?branch=main"></a>
+</p>
 
 <p align="center">
-  <a href="#current-capabilities">Capabilities</a> ·
   <a href="#quick-start">Quick start</a> ·
-  <a href="#development">Development</a> ·
-  <a href="CONTRIBUTING.md">Contributing</a>
+  <a href="#capabilities">Capabilities</a> ·
+  <a href="#management">Management APIs</a> ·
+  <a href="#development">Development</a>
 </p>
-
----
-
-## Current capabilities
-
-This revision provides the executable foundation and command-line interface.
-The internal Xray adapter provides native configuration validation and owned
-process startup/shutdown. Engine operations are not exposed as CLI commands
-or network control endpoints yet.
-The internal instance service coordinates lifecycle operations and reports
-configuration revisions, native version and confirmed process outcomes.
-
-| Available now | Behavior |
-| --- | --- |
-| Command discovery | Help lists the commands this binary actually provides. |
-| Terminal console | Branded, keyboard-driven overview, build details and command reference with scrolling and responsive layout. |
-| Version inspection | Human-readable version, Go version and target platform. |
-| Structured build metadata | JSON includes revision and working-tree state when embedded by Go. |
-| Native configuration checks | Bounded Xray validation with cancellation and private diagnostics. See [tested scope and limits](docs/engines/xray.md). |
-| Owned Xray processes | Native API readiness through a private Unix socket, bounded shutdown and owned-resource cleanup. Internal adapter only; see [lifecycle limits](docs/engines/xray.md#owned-process-contract). |
-| Instance lifecycle | Typed state/revisions, native version and exit/cleanup outcomes. Bounded start/stop/restart with explicit recovery; real-engine tests cover local forwarding, crash recovery and lifetime shutdown. Status reads perform no engine I/O; see [instance contracts](docs/instances.md). |
-| Engine console logs | Opt-in bounded replay/live reads with resumable cursors, explicit retention gaps and per-run identity. Xray console capture is verified across real traffic and restart; native file/disabled settings remain authoritative. See [log contracts](docs/engine-logs.md). |
-| Engine configuration | Sensitive desired-source reads, effective native validation and revision-conditional full replacement. Unchanged healthy input reuses the process; failed replacement retains actual desired/applied history. Full changes require restart; see [configuration contracts](docs/configuration.md). [Empty managed Shadowsocks2022 AES membership](docs/engines/xray.md#empty-shadowsocks2022-membership) starts with zero real users. |
-| Live users | Focused reads and revision-conditional create/replace/remove for VMess, VLESS (including Vision over verified TLS 1.3), Trojan, legacy Shadowsocks AEAD and Shadowsocks2022 AES accounts, with real accepted/denied traffic checks. Live edits reset on restart; removal preserves established streams. See [user contracts and tested scope](docs/users.md). |
-| Linux verification | CI builds and tests natively on amd64 and arm64, including checksum-pinned Xray validation and process tests. |
 
 ## Quick start
 
-Install [Go 1.27.3 or newer](https://go.dev/dl/), then build from source:
+The runtime bundle targets **Linux amd64** and requires Docker and GNU coreutils.
+Download the `node-linux-amd64-<commit>` artifact for a successful
+[Checks run](https://github.com/PapilioVPN/node/actions/workflows/check.yml)
+and extract the GitHub artifact. In the directory containing the archive and
+its checksum, replace `YOUR_FULL_COMMIT_SHA` with the artifact's commit SHA.
 
 ```bash
-git clone https://github.com/papilio-platform/Node.git
-cd Node
-go build -trimpath -o bin/node ./cmd/node
-./bin/node help
-./bin/node version
-./bin/node version --json
-./bin/node tui
+revision=YOUR_FULL_COMMIT_SHA
+archive="node-linux-amd64-$revision.tar.gz"
+sha256sum -c "$archive.sha256" && tar -xzf "$archive"
 ```
 
-This builds the development CLI. It does not install a system service or change
-network configuration. Versioned installation packages are not published yet.
+After verification and extraction succeed, install the bundled image and copy
+the example settings for first-time setup.
 
-## Command reference
+```bash
+install_dir="$HOME/.local/share/papilio-node"
+config_dir="$HOME/.config/papilio-node"
+./node/install.sh "$install_dir"
+install -d -m 700 "$config_dir"
+test -f "$config_dir/config.yml" ||
+  cp "$install_dir/deploy/config.example.yml" "$config_dir/config.yml"
+```
 
-| Command | Result |
+Edit `config.yml` and supply the configured certificates before starting.
+The sample enables all three transports. For HTTP-only use, remove
+`communications.grpc`, `communications.nats`, and
+`communications.requests.nats`. The sample HTTP listener binds to
+`127.0.0.1:8443`.
+
+```bash
+"$install_dir/run.sh" "$config_dir" papilio-node --network=host --detach
+docker logs papilio-node
+```
+
+Stop this example with `docker stop --time 120 papilio-node`.
+
+The runner mounts the configuration directory read-only. For Xray, add
+`instances` in [the example settings](deploy/config.example.yml) and mount
+the selected binary and configuration read-only. Give each instance its own
+private writable work directory and, if configured, durable state directory.
+For host observations in Docker, use the explicit namespaces and mounts
+described in the example settings.
+
+<a name="current-capabilities"></a>
+
+## Capabilities
+
+| Area | Available operations |
 | --- | --- |
-| `node help` | Show usage and available commands. `-h` and `--help` are also accepted. |
-| `node version` | Print a readable version and platform description. |
-| `node version --json` | Print `version`, `revision`, `modified`, `go_version`, `os` and `arch`. |
-| `node version --help` | Show version command options. |
-| `node tui` | Open the interactive console in a terminal. |
-| `node tui --help` | Show console requirements and navigation. |
-| `node --color=auto\|always\|never <command>` | Select styling. Global options go before the command. |
+| [System and Node](internal/apps/system) | Host identity, uptime, load, CPU, memory and swap, processes, sessions and login records, sensors, filesystem and device I/O, interface counters, and Node process and resource diagnostics. |
+| [Xray instances](internal/apps/xray/runtime/instances) | Start, stop and restart configured instances, read status and check native readiness. |
+| [Xray configuration](internal/apps/xray/runtime/configs) | Validate and compile sources, inspect desired and applied revisions, and replace or apply configuration. |
+| [Xray inbounds](internal/apps/xray/proxies/inbounds) | List handlers and tags, inspect summaries and compatibility, add from compiled data or sources, remove by tag, and review and execute replacement plans. |
+| [Xray outbounds](internal/apps/xray/proxies/outbounds) | List handlers, add from compiled data or sources, and remove by tag. |
+| [Xray accounts](internal/apps/xray/users/accounts) | Read and count live accounts, add or remove one at a time or in bounded batches, and prepare account membership in compiled configuration. |
+| [Xray presence](internal/apps/xray/users/online) | Read online counts, users, records and individual users’ IP addresses. |
+| [Xray routing](internal/apps/xray/network/routing) | List, add and remove live rules, test route selection, inspect balancers and override their target. |
+| [Xray statistics](internal/apps/xray/runtime/statistics) | Read native runtime statistics. |
+| [Xray traffic](internal/apps/xray/observability/traffic) | Read and reset individual counters, upload/download pairs and selected groups of counters. |
+| [Xray outbound health](internal/apps/xray/observability/outboundhealth) | List observable outbound health results and inspect individual outbounds by tag. |
+| [Xray loggers](internal/apps/xray/observability/loggers) | Reopen Xray loggers and inspect the outcome. |
 
-### Interactive console
+Live operations act on the running instance. Configuration operations manage
+what Xray starts with. Keep application user records and policies in the
+controller and use Node for native engine operations and configuration.
 
-Run `node tui` to browse **Overview**, **Build** and **Commands**. The console
-inspects the current binary; it does not query a running Node service or manage
-engines. It uses a full-screen terminal view and restores the previous screen,
-cursor and input modes when it closes.
+<a name="management"></a>
 
-| Keys | Action |
-| --- | --- |
-| `Tab` / `Shift+Tab`, `←` / `→` or `h` / `l` | Switch pages. |
-| `1` / `2` / `3` | Overview, build details or commands. |
-| `↑` / `↓` or `k` / `j` | Scroll the page. |
-| `PgUp` / `PgDown`, `Home` / `End` | Page through content or jump to its start/end. |
-| `?` | Toggle keyboard help. |
-| `Esc` | Close help; otherwise quit. |
-| `q` / `Ctrl+C` | Quit the console. |
+## Management APIs
 
-The layout adapts to window size and terminal light/dark background reports.
-Below **48 columns × 16 rows**, it shows a resize hint and keeps exit keys active.
-The console requires terminal input and output; redirected streams and
-`TERM=dumb` receive a usage error without entering interactive mode.
+Enable the transports your controller uses. They expose versioned operations
+over the same capability services.
 
-Human output uses color automatically on a capable terminal. Any nonempty
-`NO_COLOR` disables automatic styling. `--color=never` removes styling;
-`--color=always` explicitly enables it, including for redirected human output.
-The explicit option takes precedence over `NO_COLOR`. Interactive screen-control
-codes are still necessary in the colorless TUI. JSON is always unstyled and
-contains no terminal control codes, regardless of the color option.
+| Transport | Runtime information example | Trust |
+| --- | --- | --- |
+| HTTP | `GET /v1/system/node/runtime` | Node verifies the controller certificate using mTLS. |
+| gRPC | `papilio.system.node.runtime.v1.NodeRuntimeService/GetNodeInfo` | Node verifies the controller certificate using mTLS. |
+| NATS | `<prefix>.system.node.runtime.info.v1.get` with an empty JSON object | The broker authenticates both parties with mTLS and limits subject access through ACLs. |
 
-Version output uses Go's embedded module version, which can be a commit-based
-pseudo-version for a development build. It falls back to `devel` when no module
-version is available. A build without VCS metadata reports an empty `revision`;
-the binary does not invoke Git at runtime. `modified` describes the source state
-at build time, not files on the machine running the binary.
+Use the configured NATS prefix for requests. Keep the Xray native management
+endpoint local to Node, using a numeric loopback address or a Unix socket.
 
-Exit codes are **0** for success, **1** for execution/output failure and **2** for invalid
-usage. Invalid commands produce a diagnostic on stderr.
+From the host, verify the HTTP endpoint with a trusted controller certificate.
+Use the CA that signed the server certificate and an address in that certificate.
+
+```bash
+curl --fail --show-error --silent \
+  --cacert node-ca.crt --cert controller.crt --key controller.key \
+  https://127.0.0.1:8443/v1/system/node/runtime
+```
 
 ## Development
 
-The terminal interface uses pinned [Bubble Tea](https://github.com/charmbracelet/bubbletea),
-[Bubbles](https://github.com/charmbracelet/bubbles) and
-[Lip Gloss](https://github.com/charmbracelet/lipgloss) dependencies. Run the same
-core checks used in CI:
+Build with the Go version declared in [go.mod](go.mod). Pass
+`-config /path/to/config.yml` when running the resulting binary.
 
 ```bash
-gofmt -w cmd internal tests
-go mod tidy
-go mod verify
-go vet ./...
-go test -race -count=1 ./...
 go build -trimpath -o bin/node ./cmd/node
+./bin/node -help
+go test -race ./...
 ```
 
-CI also checks module/formatting consistency and reachable vulnerabilities with
-a pinned `govulncheck`. Compiler and scanner versions are declared in the
-[CI workflow](.github/workflows/ci.yml). Race tests require a supported C toolchain.
-Linux tests exercise real pseudo-terminals for navigation, resize, color policy,
-cancellation, signals and terminal restoration.
-Real engine tests require the pinned Xray executable; see the
-[engine verification instructions](CONTRIBUTING.md#native-xray-tests).
+On Linux amd64, run the integration suite with the pinned Xray binary.
 
-## Contributing
+```bash
+xray_test_binary="$(sh scripts/ci/prepare-xray.sh)" &&
+  XRAY_TEST_BINARY="$xray_test_binary" go test -race -tags=integration ./...
+```
 
-Read the [contribution guide](CONTRIBUTING.md),
-[report an issue](https://github.com/papilio-platform/Node/issues), or
-[open a pull request](https://github.com/papilio-platform/Node/pulls).
-Include the binary metadata and a reproducible example when reporting a problem.
-Keep English and Persian instructions consistent when changing behavior.
+[Checks](.github/workflows/check.yml) runs source and packaging verification.
+When merging a capability, update the relevant row in all four READMEs after
+its public operations have been wired and verified.

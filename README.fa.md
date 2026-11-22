@@ -1,167 +1,155 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="assets/banner.png">
-    <source media="(prefers-color-scheme: light)" srcset="assets/banner-light.png">
-    <img alt="PapilioVPN Node — سرویس مدیریت نودهای وی‌پی‌ان" src="assets/banner-light.png" width="100%">
+    <img alt="PapilioVPN Node" src="assets/banner-light.png" width="100%">
   </picture>
 </p>
 
 <h1 align="center">PapilioVPN Node</h1>
 
-<p align="center" dir="rtl">سرویس نوشته‌شده با Go برای نودهای تحت مدیریت پلتفرم PapilioVPN.</p>
+<p align="center" lang="fa" dir="rtl">سرویس مستقل Go برای مشاهدهٔ وضعیت میزبان Linux و مدیریت موتورهای شبکه، با پشتیبانی از Xray.</p>
 
 <p align="center">
-  <a href="https://github.com/papilio-platform/Node/actions/workflows/ci.yml"><img alt="وضعیت CI" src="https://github.com/papilio-platform/Node/actions/workflows/ci.yml/badge.svg?branch=main"></a>
-  <a href="go.mod"><img alt="Go 1.27.3 یا جدیدتر" src="https://img.shields.io/badge/Go-1.27.3%2B-00ADD8?style=flat-square&amp;logo=go&amp;logoColor=white"></a>
-  <img alt="وضعیت: ابتدای توسعه" src="https://img.shields.io/badge/status-early_development-8B5CF6?style=flat-square">
+  <a href="README.md" lang="en"><img src="assets/flags/gb.svg" width="24" alt=""> English</a> ·
+  <strong lang="fa"><img src="assets/flags/ir-lion-and-sun.svg" width="24" alt=""> فارسی</strong> ·
+  <a href="README.ru.md" lang="ru"><img src="assets/flags/ru.svg" width="24" alt=""> Русский</a> ·
+  <a href="README.zh-CN.md" lang="zh-CN"><img src="assets/flags/cn.svg" width="24" alt=""> 简体中文</a>
 </p>
 
-<p align="center"><a href="README.md" lang="en">English</a> · <strong lang="fa">فارسی</strong></p>
+<p align="center">
+  <a href="https://github.com/PapilioVPN/node/actions/workflows/check.yml"><img alt="Checks" src="https://github.com/PapilioVPN/node/actions/workflows/check.yml/badge.svg?branch=main"></a>
+</p>
 
 <p align="center" dir="rtl">
-  <a href="#current-capabilities">قابلیت‌ها</a> ·
-  <a href="#quick-start">شروع کار</a> ·
-  <a href="#development">توسعه</a> ·
-  <a href="CONTRIBUTING.md">مشارکت</a>
+  <a href="#quick-start">شروع سریع</a> ·
+  <a href="#capabilities">قابلیت‌ها</a> ·
+  <a href="#management">رابط‌های مدیریتی</a> ·
+  <a href="#development">توسعه</a>
 </p>
 
----
+<div dir="rtl" lang="fa">
 
-<div dir="rtl">
+<a name="quick-start"></a>
 
-<a id="current-capabilities"></a>
+## شروع سریع
 
-## قابلیت‌های فعلی
-
-این نسخه، پایهٔ اجرایی و رابط خط فرمان پروژه را فراهم می‌کند.
-آداپتر داخلی Xray اعتبارسنجی بومی تنظیمات و شروع و توقف فرایند متعلق به Node
-را انجام می‌دهد. عملیات هسته هنوز فرمان CLI یا endpoint کنترل شبکه ندارد.
-سرویس داخلی instance عملیات چرخهٔ اجرا را هماهنگ می‌کند و revision تنظیمات،
-نسخهٔ بومی و نتیجهٔ تأییدشدهٔ خروج و پاک‌سازی فرایند را گزارش می‌دهد.
-
-| قابلیت موجود | رفتار |
-| --- | --- |
-| مشاهدهٔ فرمان‌ها | راهنما، فرمان‌هایی را نشان می‌دهد که همین فایل اجرایی ارائه می‌کند. |
-| کنسول ترمینال | رابط با هویت بصری Papilio، ناوبری با کیبورد، اطلاعات ساخت و راهنمای فرمان‌ها؛ همراه با اسکرول و چیدمان متناسب با اندازهٔ پنجره. |
-| بررسی نسخه | نسخه، نسخهٔ Go و پلتفرم هدف را به‌شکل خوانا نمایش می‌دهد. |
-| اطلاعات ساخت ساختاریافته | خروجی JSON شامل revision و وضعیت تغییرات کد، در صورت درج توسط Go است. |
-| بررسی بومی تنظیمات | اعتبارسنجی Xray با سقف منابع، امکان لغو و جزئیات خطای خصوصی؛ [دامنهٔ آزمایش‌شده و محدودیت‌ها](docs/engines/xray.md). |
-| فرایندهای Xray متعلق به Node | تأیید آمادگی از API بومی روی سوکت Unix خصوصی، توقف با مهلت مشخص و پاک‌سازی منابع همان اجرا؛ فعلاً در آداپتر داخلی. [محدودیت‌های چرخهٔ اجرا](docs/engines/xray.md#owned-process-contract). |
-| چرخهٔ اجرای instance | وضعیت و revisionها، نسخهٔ بومی و نتیجهٔ خروج و پاک‌سازی؛ عملیات start/stop/restart محدود با بازیابی صریح. تست با هستهٔ واقعی عبور دادهٔ محلی، بازیابی پس از crash و توقف با پایان عمر مالک را پوشش می‌دهد. خواندن وضعیت بدون I/O هسته انجام می‌شود. [قراردادهای instance](docs/instances.md). |
-| لاگ کنسول هسته | دریافت اختیاری، محدود و زنده همراه با بازپخش، نشانگر ادامه، گزارش صریح خط‌های ازدست‌رفته و هویت هر اجرا. دریافت خروجی Xray با ترافیک واقعی و restart بررسی شده؛ مقصد فایل و تنظیم غیرفعال‌بودن لاگ حفظ می‌شوند. [قراردادهای لاگ](docs/engine-logs.md). |
-| تنظیمات هسته | خواندن صریح و خصوصی ورودی مطلوب، اعتبارسنجی مؤثر بومی و جایگزینی کامل با شرط revision؛ ورودی بدون تغییر و اجرای سالم دوباره استفاده می‌شود. شکست جایگزین، تاریخچهٔ واقعی تنظیم مطلوب و اعمال‌شده را حفظ می‌کند. تغییر کامل نیازمند restart است؛ [قراردادهای تنظیمات](docs/configuration.md). [عضویت خالیِ مدیریت‌شدهٔ Shadowsocks2022 AES](docs/engines/xray.md#empty-shadowsocks2022-membership) با صفر کاربر واقعی شروع می‌شود. |
-| کاربران زنده | خواندن مستقل و ساخت، جایگزینی و حذف حساب‌های VMess،‏ VLESS (شامل Vision روی TLS 1.3 با بررسی گواهی)،‏ Trojan،‏ Shadowsocks قدیمی با روش‌های AEAD و Shadowsocks2022 AES با شرط revision؛ همراه با تست واقعی عبور و رد ترافیک. تغییر زنده پس از restart بازنشانی می‌شود؛ حذف حساب جریان‌های برقرار را حفظ می‌کند. [قراردادها و دامنهٔ آزمایش‌شده](docs/users.md). |
-| بررسی روی Linux | در CI، ساخت و تست روی amd64 و arm64 به‌صورت native انجام می‌شود؛ همراه با بررسی تنظیمات و فرایند Xray با نسخه و checksum ثابت. |
-
-<a id="quick-start"></a>
-
-## شروع کار
-
-[Go نسخهٔ 1.27.3 یا جدیدتر](https://go.dev/dl/) را نصب کنید و سپس پروژه را از سورس بسازید:
-
-<div dir="ltr">
+بستهٔ اجرایی برای **Linux amd64** است و به Docker و GNU coreutils نیاز دارد.
+آرتیفکت `node-linux-amd64-<commit>` را از یک اجرای موفق
+[Checks](https://github.com/PapilioVPN/node/actions/workflows/check.yml)
+دانلود و فایل دریافتی از GitHub را باز کن. در پوشه‌ای که آرشیو و فایل checksum
+آن قرار دارند، به‌جای `YOUR_FULL_COMMIT_SHA` شناسهٔ کامل کامیت آرتیفکت را بگذار.
 
 ```bash
-git clone https://github.com/papilio-platform/Node.git
-cd Node
-go build -trimpath -o bin/node ./cmd/node
-./bin/node help
-./bin/node version
-./bin/node version --json
-./bin/node tui
+revision=YOUR_FULL_COMMIT_SHA
+archive="node-linux-amd64-$revision.tar.gz"
+sha256sum -c "$archive.sha256" && tar -xzf "$archive"
 ```
 
-</div>
+بعد از تأیید checksum و باز شدن آرشیو، ایمیج داخل بسته را نصب کن و برای
+راه‌اندازی اول از تنظیمات نمونه کپی بگیر.
 
-این دستورها رابط خط فرمان نسخهٔ توسعه را می‌سازند. سرویس سیستمی نصب نمی‌کنند
-و تنظیمات شبکه را تغییر نمی‌دهند. بسته‌های نصب نسخه‌دار هنوز منتشر نشده‌اند.
+```bash
+install_dir="$HOME/.local/share/papilio-node"
+config_dir="$HOME/.config/papilio-node"
+./node/install.sh "$install_dir"
+install -d -m 700 "$config_dir"
+test -f "$config_dir/config.yml" ||
+  cp "$install_dir/deploy/config.example.yml" "$config_dir/config.yml"
+```
 
-## راهنمای فرمان‌ها
+پیش از اجرا `config.yml` را ویرایش کن و گواهی‌های معرفی‌شده در تنظیمات را
+قرار بده. نمونه هر سه روش ارتباطی را فعال می‌کند. برای اجرا فقط با HTTP،
+بخش‌های `communications.grpc`، `communications.nats` و
+`communications.requests.nats` را حذف کن. آدرس شنود HTTP در نمونه
+`127.0.0.1:8443` است.
 
-| فرمان | نتیجه |
+```bash
+"$install_dir/run.sh" "$config_dir" papilio-node --network=host --detach
+docker logs papilio-node
+```
+
+برای توقف اجرای نمونه از `docker stop --time 120 papilio-node` استفاده کن.
+
+اسکریپت اجرا پوشهٔ تنظیمات را فقط‌خواندنی mount می‌کند. برای Xray،
+`instances` را طبق [تنظیمات نمونه](deploy/config.example.yml) تعریف کن و فایل
+اجرایی و کانفیگ انتخاب‌شده را فقط‌خواندنی mount کن. برای هر نمونه یک پوشهٔ
+کاری خصوصی و قابل‌نوشتن و در صورت پیکربندی، یک مسیر ماندگار خصوصی برای
+وضعیت آن تعیین کن. برای دیدن اطلاعات میزبان از داخل Docker، namespaceها و
+mountهای صریح توضیح‌داده‌شده در نمونه را به‌کار ببر.
+
+<a name="capabilities"></a>
+
+<a name="current-capabilities"></a>
+
+## قابلیت‌ها
+
+| بخش | عملیات قابل استفاده |
 | --- | --- |
-| <code dir="ltr">node help</code> | نمایش راهنما و فرمان‌های موجود؛ <code dir="ltr">-h</code> و <code dir="ltr">--help</code> هم پذیرفته می‌شوند. |
-| <code dir="ltr">node version</code> | نمایش خوانای نسخه و پلتفرم. |
-| <code dir="ltr">node version --json</code> | نمایش فیلدهای <code dir="ltr">version</code>، <code dir="ltr">revision</code>، <code dir="ltr">modified</code>، <code dir="ltr">go_version</code>، <code dir="ltr">os</code> و <code dir="ltr">arch</code>. |
-| <code dir="ltr">node version --help</code> | نمایش گزینه‌های فرمان نسخه. |
-| <code dir="ltr">node tui</code> | بازکردن کنسول تعاملی در ترمینال. |
-| <code dir="ltr">node tui --help</code> | نمایش پیش‌نیازها و روش ناوبری کنسول. |
-| <code dir="ltr">node --color=auto\|always\|never &lt;command&gt;</code> | انتخاب حالت رنگ؛ گزینه‌های عمومی قبل از فرمان نوشته می‌شوند. |
+| [سیستم و Node](internal/apps/system) | هویت میزبان، زمان کارکرد، بار، CPU، حافظه و swap، پردازش‌ها، نشست‌ها و سوابق ورود، حسگرها، فایل‌سیستم و ورودی‌وخروجی دیسک، شمارنده‌های رابط شبکه و عیب‌یابی پردازش و منابع Node. |
+| [نمونه‌های Xray](internal/apps/xray/runtime/instances) | شروع، توقف و راه‌اندازی مجدد نمونه‌های تعریف‌شده، خواندن وضعیت و بررسی آمادگی با API بومی Xray. |
+| [تنظیمات Xray](internal/apps/xray/runtime/configs) | اعتبارسنجی و کامپایل سورس‌ها، مشاهدهٔ نسخهٔ مطلوب و اعمال‌شده، جایگزینی و اعمال کانفیگ. |
+| [ورودی‌های Xray](internal/apps/xray/proxies/inbounds) | فهرست handlerها و tagها، خلاصه و سازگاری ورودی‌ها، افزودن از دادهٔ کامپایل‌شده یا سورس، حذف با tag و بازبینی و اجرای طرح جایگزینی. |
+| [خروجی‌های Xray](internal/apps/xray/proxies/outbounds) | فهرست handlerها، افزودن از دادهٔ کامپایل‌شده یا سورس و حذف با tag. |
+| [حساب‌های Xray](internal/apps/xray/users/accounts) | خواندن و شمارش حساب‌های موتور، افزودن و حذف تکی یا گروهی با سقف مشخص و آماده‌سازی اعضا در کانفیگ کامپایل‌شده. |
+| [حضور آنلاین در Xray](internal/apps/xray/users/online) | مشاهدهٔ شمارش، کاربران و رکوردهای آنلاین و IPهای هر کاربر. |
+| [مسیریابی Xray](internal/apps/xray/network/routing) | فهرست‌کردن، افزودن و حذف قوانین زنده، آزمایش انتخاب مسیر، خواندن وضعیت balancer و تعیین مقصد آن. |
+| [آمار Xray](internal/apps/xray/runtime/statistics) | خواندن آمار اجرایی بومی موتور. |
+| [ترافیک Xray](internal/apps/xray/observability/traffic) | خواندن و بازنشانی شمارنده‌های تکی، جفت ارسال و دریافت و مجموعهٔ شمارنده‌های انتخاب‌شده. |
+| [سلامت خروجی‌های Xray](internal/apps/xray/observability/outboundhealth) | فهرست نتایج قابل مشاهدهٔ سلامت و بررسی یک خروجی با tag. |
+| [Loggerهای Xray](internal/apps/xray/observability/loggers) | بازکردن مجدد loggerهای Xray و مشاهدهٔ نتیجهٔ عملیات. |
 
-### کنسول تعاملی
+عملیات زنده روی نمونهٔ در حال اجرا اثر می‌گذارد. عملیات کانفیگ تعیین
+می‌کند Xray با چه تنظیماتی شروع شود. سوابق کاربران محصول و سیاست‌هایشان
+در کنترلر می‌ماند و Node عملیات بومی موتور و مدیریت کانفیگ را ارائه می‌دهد.
 
-با <code dir="ltr">node tui</code> صفحه‌های **Overview**، **Build** و **Commands** را مرور کنید.
-کنسول اطلاعات همین فایل اجرایی را نشان می‌دهد؛ سرویس در حال اجرا را بررسی نمی‌کند
-و مدیریت هسته‌ها را انجام نمی‌دهد. رابط تمام‌صفحه است و هنگام خروج، صفحهٔ قبلی،
-نشانگر و حالت ورودی ترمینال را بازمی‌گرداند.
+<a name="management"></a>
 
-| کلیدها | عملکرد |
-| --- | --- |
-| <code dir="ltr">Tab / Shift+Tab</code>، <code dir="ltr">← / →</code> یا <code dir="ltr">h / l</code> | رفتن به صفحهٔ قبلی یا بعدی. |
-| <code dir="ltr">1 / 2 / 3</code> | معرفی، جزئیات ساخت یا فرمان‌ها. |
-| <code dir="ltr">↑ / ↓</code> یا <code dir="ltr">k / j</code> | اسکرول صفحه. |
-| <code dir="ltr">PgUp / PgDown</code>، <code dir="ltr">Home / End</code> | حرکت صفحه‌ای یا رفتن به ابتدا و انتهای محتوا. |
-| <code dir="ltr">?</code> | نمایش یا بستن راهنمای کیبورد. |
-| <code dir="ltr">Esc</code> | بستن راهنما؛ در حالت عادی خروج. |
-| <code dir="ltr">q / Ctrl+C</code> | خروج از کنسول. |
+## رابط‌های مدیریتی
 
-چیدمان با اندازهٔ پنجره و گزارش پس‌زمینهٔ روشن یا تاریک ترمینال سازگار می‌شود.
-در اندازهٔ کمتر از **۴۸ ستون × ۱۶ سطر**، پیام تغییر اندازه نمایش داده می‌شود و
-کلیدهای خروج فعال می‌مانند. ورودی و خروجی کنسول باید ترمینال باشند؛ در حالت
-redirect یا <code dir="ltr">TERM=dumb</code>، بدون ورود به حالت تعاملی خطای استفاده گزارش می‌شود.
+روش‌هایی را فعال کن که کنترلر استفاده می‌کند. هر سه رابط عملیات نسخه‌بندی‌شدهٔ
+همان سرویس‌های Node را ارائه می‌دهند.
 
-خروجی خواندنی روی ترمینال مناسب به‌طور خودکار رنگی است. هر مقدار غیرخالی برای
-<code dir="ltr">NO_COLOR</code> قالب‌بندی خودکار را غیرفعال می‌کند.
-گزینهٔ <code dir="ltr">--color=never</code> قالب‌بندی را حذف می‌کند و
-<code dir="ltr">--color=always</code> آن را حتی برای خروجی خواندنی redirectشده فعال می‌کند.
-گزینهٔ صریح بر <code dir="ltr">NO_COLOR</code> اولویت دارد. کدهای کنترل صفحه در TUI بدون رنگ
-هم ضروری‌اند. خروجی JSON، مستقل از گزینهٔ رنگ، همیشه بدون قالب‌بندی و کد کنترل ترمینال است.
+| روش | نمونهٔ خواندن اطلاعات اجرایی | کنترل دسترسی |
+| --- | --- | --- |
+| HTTP | `GET /v1/system/node/runtime` | Node گواهی کنترلر را با mTLS اعتبارسنجی می‌کند. |
+| gRPC | `papilio.system.node.runtime.v1.NodeRuntimeService/GetNodeInfo` | Node گواهی کنترلر را با mTLS اعتبارسنجی می‌کند. |
+| NATS | `<prefix>.system.node.runtime.info.v1.get` با یک شیء خالی JSON | کارگزار هر دو طرف را با mTLS احراز هویت می‌کند و دسترسی به subjectها را با ACL محدود می‌کند. |
 
-خروجی نسخه از اطلاعات ماژول درج‌شده توسط Go استفاده می‌کند؛ در ساخت توسعه ممکن است
-یک pseudo-version براساس commit باشد. اگر نسخهٔ ماژول موجود نباشد، <code dir="ltr">devel</code> گزارش می‌شود.
-اگر اطلاعات VCS هنگام ساخت درج نشده باشد، <code dir="ltr">revision</code> خالی است؛ فایل اجرایی در زمان اجرا Git را فراخوانی نمی‌کند.
-فیلد <code dir="ltr">modified</code> وضعیت کد در زمان ساخت را نشان می‌دهد، نه وضعیت فایل‌های سیستم مقصد.
+برای درخواست‌های NATS از پیشوند تعریف‌شده در تنظیمات استفاده کن.
+رابط مدیریتی بومی Xray را در دسترس محلی Node نگه دار و برای آن از
+آدرس عددی loopback یا سوکت Unix استفاده کن.
 
-کد خروج **0** به‌معنی موفقیت، **1** به‌معنی خطای اجرا یا نوشتن خروجی و **2** به‌معنی
-استفادهٔ نادرست است. خطای فرمان نامعتبر در stderr نوشته می‌شود.
+از میزبان، مسیر HTTP را با گواهی معتبر کنترلر بررسی کن. از CA امضاکنندهٔ
+گواهی سرور و آدرسی استفاده کن که در همان گواهی آمده است.
 
-<a id="development"></a>
+```bash
+curl --fail --show-error --silent \
+  --cacert node-ca.crt --cert controller.crt --key controller.key \
+  https://127.0.0.1:8443/v1/system/node/runtime
+```
+
+<a name="development"></a>
 
 ## توسعه
 
-رابط ترمینال از وابستگی‌های نسخه‌ثابت
-[Bubble Tea](https://github.com/charmbracelet/bubbletea)،
-[Bubbles](https://github.com/charmbracelet/bubbles) و
-[Lip Gloss](https://github.com/charmbracelet/lipgloss) استفاده می‌کند.
-بررسی‌های اصلی CI را می‌توانید به این شکل اجرا کنید:
-
-<div dir="ltr">
+برای ساخت از نسخهٔ Go ثبت‌شده در [go.mod](go.mod) استفاده کن. برای اجرای
+برنامهٔ ساخته‌شده، مسیر تنظیمات را با `-config /path/to/config.yml` بده.
 
 ```bash
-gofmt -w cmd internal tests
-go mod tidy
-go mod verify
-go vet ./...
-go test -race -count=1 ./...
 go build -trimpath -o bin/node ./cmd/node
+./bin/node -help
+go test -race ./...
 ```
 
-</div>
+در Linux amd64 تست‌های یکپارچه را با نسخهٔ پین‌شدهٔ Xray اجرا کن.
 
-CI همچنین یکسان‌بودن قالب‌بندی و وابستگی‌ها و آسیب‌پذیری‌های قابل‌دسترسی را با
-نسخهٔ ثابت <code dir="ltr">govulncheck</code> بررسی می‌کند. نسخهٔ کامپایلر و ابزار بررسی در
-[فایل CI](.github/workflows/ci.yml) مشخص شده‌اند. تست race به ابزار C پشتیبانی‌شده نیاز دارد.
-تست‌های Linux با pseudo-terminal واقعی، ناوبری، تغییر اندازه، سیاست رنگ، لغو اجرا،
-سیگنال‌ها و بازگرداندن حالت ترمینال را بررسی می‌کنند.
-تست واقعی هسته به فایل اجرایی نسخهٔ ثابت Xray نیاز دارد؛
-[دستورهای بررسی هسته](CONTRIBUTING.md#native-xray-tests) را ببینید.
+```bash
+xray_test_binary="$(sh scripts/ci/prepare-xray.sh)" &&
+  XRAY_TEST_BINARY="$xray_test_binary" go test -race -tags=integration ./...
+```
 
-## مشارکت
-
-[راهنمای مشارکت](CONTRIBUTING.md) را بخوانید،
-[مشکلی گزارش کنید](https://github.com/papilio-platform/Node/issues) یا
-[درخواست ادغام بفرستید](https://github.com/papilio-platform/Node/pulls).
-در گزارش خطا، اطلاعات ساخت و یک نمونهٔ قابل‌بازتولید را بنویسید.
-هنگام تغییر رفتار، راهنمای انگلیسی و فارسی را با هم به‌روز کنید.
+[Checks](.github/workflows/check.yml) کد و بستهٔ اجرایی را بررسی می‌کند.
+هنگام ادغام هر قابلیت، پس از اتصال و بررسی عملیات عمومی آن، ردیف مربوط
+را در هر چهار README به‌روز کن.
 
 </div>
