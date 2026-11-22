@@ -29,6 +29,8 @@ go test -run="^$" -fuzz="^FuzzAccountBatchEnvelope$" -fuzztime=10s -parallel=2 .
 go test -run="^$" -fuzz="^FuzzAccountConfigurationEnvelope$" -fuzztime=10s -parallel=2 ./internal/apps/xray/users/accounts/infra/jsonwire
 go test -run="^$" -fuzz="^FuzzCompiledAccountSelection$" -fuzztime=10s -parallel=2 ./internal/apps/xray/users/accounts/infra/configuration
 go test -run="^$" -fuzz="^FuzzCompiledMembershipReplacement$" -fuzztime=10s -parallel=2 ./internal/apps/xray/users/accounts/infra/configuration
+go test -run="^$" -fuzz="^FuzzCredentialEnvelopes$" -fuzztime=10s -parallel=2 ./internal/apps/xray/tools/credentials/infra/jsonwire
+go test -run="^$" -fuzz="^FuzzECHKeyFraming$" -fuzztime=10s -parallel=2 ./internal/apps/xray/tools/credentials/infra/process
 govulncheck ./...
 mkdir -p dist
 CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -o dist/node ./cmd/node
@@ -77,6 +79,9 @@ go test -race -tags=integration,distribution ./internal/apps/xray/runtime/config
 
 go test -race -tags=integration,distribution ./internal/apps/xray/runtime/statistics/integration \
     -run="^TestPackagedRuntimeStatistics$" -count=1 -args -image="papilio-node-build:$revision"
+
+go test -race -tags=integration,distribution ./internal/apps/xray/tools/credentials/integration \
+    -run="^TestPackagedCredentialTools$" -count=1 -args -image="papilio-node-build:$revision"
 
 go test -race -tags=integration,distribution ./internal/apps/xray/observability/loggers/integration \
     -run="^TestPackagedLoggerReopening$" -count=1 -args -image="papilio-node-build:$revision"

@@ -275,8 +275,13 @@ func boundary(t *testing.T, pki testutil.PKI, broker, transport string) *boundar
 			t.Error("management runtime failed to stop")
 		}
 	})
+	f.connect(t, pki, broker, listeningAddresses(f.logs.text()))
+	return f
+}
+
+func listeningAddresses(logs string) map[string]string {
 	addresses := map[string]string{}
-	for line := range strings.SplitSeq(f.logs.text(), "\n") {
+	for line := range strings.SplitSeq(logs, "\n") {
 		var event struct {
 			Message string `json:"msg"`
 			Address string `json:"address"`
@@ -285,11 +290,16 @@ func boundary(t *testing.T, pki testutil.PKI, broker, transport string) *boundar
 			addresses[event.Message] = event.Address
 		}
 	}
+	return addresses
+}
+
+func (f *boundaryFixture) connect(t *testing.T, pki testutil.PKI, broker string, addresses map[string]string) {
+	t.Helper()
 	tlsConfig, err := mtls.Client(pki.Client)
 	if err != nil {
 		t.Fatal(err)
 	}
-	switch transport {
+	switch f.transport {
 	case "http":
 		tr := &http.Transport{TLSClientConfig: tlsConfig}
 		f.http = &http.Client{Transport: tr, Timeout: 3 * time.Second}
@@ -328,7 +338,6 @@ func boundary(t *testing.T, pki testutil.PKI, broker, transport string) *boundar
 		}
 		t.Cleanup(f.nats.Close)
 	}
-	return f
 }
 
 type wireArtifact struct {

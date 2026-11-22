@@ -25,6 +25,10 @@ type Binding struct {
 	ID        string
 	Generator Generator
 }
+
+// Service selects a configured executable without depending on native API
+// readiness. Artifacts exist only in the current response. Repeating random
+// generation after a lost response creates new material.
 type Service struct{ bindings map[string]Generator }
 
 func New(bindings []Binding) (*Service, error) {
