@@ -66,6 +66,8 @@ type Gap struct {
 // Page is volatile console evidence. CapacityReached means the source retains a
 // prefix only: restart is needed to capture subsequent output with this source.
 // File-configured native logs and output from older executions are not included.
+// Native logging can drop records before writing console bytes; this source cannot
+// detect those drops or attest complete engine event delivery.
 type Page struct {
 	InstanceID, Source, ExecutionID                        string
 	Generation                                             uint64

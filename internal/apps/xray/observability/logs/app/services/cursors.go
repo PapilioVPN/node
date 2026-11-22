@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"strings"
 
+	"github.com/PapilioVPN/node/internal/apps/xray/observability/logs/app/validators"
 	"github.com/PapilioVPN/node/internal/apps/xray/observability/logs/domain"
 )
 
@@ -40,7 +41,7 @@ func decode(cursor, id string) (position, error) {
 	}
 	instance, execution, ok := strings.Cut(string(data[18:]), "\x00")
 	p := position{instance: instance, execution: execution, generation: binary.BigEndian.Uint64(data[2:10]), offset: binary.BigEndian.Uint64(data[10:18]), skipping: data[1] == 1}
-	if !ok || instance != id || execution == "" || len(execution) > 128 || strings.ContainsRune(execution, 0) || p.generation == 0 || p.offset > domain.MaxOutputBytes {
+	if !ok || instance != id || validators.ID(execution) != nil || p.generation == 0 || p.offset > domain.MaxOutputBytes {
 		return position{}, domain.ErrInvalidArgument
 	}
 	return p, nil
