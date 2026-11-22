@@ -3,38 +3,16 @@ package api
 import (
 	"context"
 	"errors"
-	"net"
 	"net/netip"
 	"testing"
 
 	"github.com/PapilioVPN/node/internal/apps/xray/network/routing/domain"
 	native "github.com/xtls/xray-core/app/router/command"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 )
 
-type connection struct {
-	call   func(string, any, any) error
-	calls  int
-	noPeer bool
-}
-
-func (c *connection) Invoke(ctx context.Context, method string, input, output any, options ...grpc.CallOption) error {
-	c.calls++
-	if !c.noPeer {
-		for _, o := range options {
-			if p, ok := o.(grpc.PeerCallOption); ok {
-				p.PeerAddr.Addr = &net.TCPAddr{Port: 1}
-			}
-		}
-	}
-	return c.call(method, input, output)
-}
-func (*connection) NewStream(context.Context, *grpc.StreamDesc, string, ...grpc.CallOption) (grpc.ClientStream, error) {
-	panic("unexpected stream")
-}
 func TestProjectionUsesNativeReplyAndForwardsSelectors(t *testing.T) {
 	c := &connection{call: func(method string, input, output any) error {
 		request := input.(*native.TestRouteRequest)

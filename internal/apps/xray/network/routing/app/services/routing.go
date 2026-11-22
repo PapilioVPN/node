@@ -23,6 +23,10 @@ type Backend interface {
 	Remove(context.Context, string) (domain.NativeResult, error)
 	Override(context.Context, string, string) (domain.NativeResult, error)
 }
+
+// Preparer returns an owned native payload containing exactly one routing rule,
+// with no balancer or router script changes. It validates compiler output before
+// returning; Backend.Add forwards that prepared payload without decoding it again.
 type Preparer interface {
 	Prepare(context.Context, string, []byte) ([]byte, error)
 }

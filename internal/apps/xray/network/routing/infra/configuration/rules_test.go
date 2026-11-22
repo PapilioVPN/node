@@ -40,7 +40,15 @@ func TestSingleCompilationAndUnknownNativeFieldsArePreserved(t *testing.T) {
 	}
 }
 func TestMalformedCompiledConfigurationHasNoCandidate(t *testing.T) {
-	for _, apps := range [][]*serial.TypedMessage{nil, {serial.ToTypedMessage(&router.Config{})}, {serial.ToTypedMessage(&router.Config{Rule: []*router.RoutingRule{{}}}), serial.ToTypedMessage(&router.Config{Rule: []*router.RoutingRule{{}}})}} {
+	for _, apps := range [][]*serial.TypedMessage{
+		nil,
+		{serial.ToTypedMessage(&router.Config{})},
+		{serial.ToTypedMessage(&router.Config{Rule: []*router.RoutingRule{{}, {}}})},
+		{serial.ToTypedMessage(&router.Config{Rule: []*router.RoutingRule{{}}, BalancingRule: []*router.BalancingRule{{}}})},
+		{serial.ToTypedMessage(&router.Config{Rule: []*router.RoutingRule{{}}, Script: "return true"})},
+		{{Type: "xray.app.router.Config", Value: []byte{0xff}}},
+		{serial.ToTypedMessage(&router.Config{Rule: []*router.RoutingRule{{}}}), serial.ToTypedMessage(&router.Config{Rule: []*router.RoutingRule{{}}})},
+	} {
 		data, _ := proto.Marshal(&core.Config{App: apps})
 		out, err := Extract(context.Background(), data)
 		if !errors.Is(err, domain.ErrInvalidResponse) || out != nil {

@@ -8,7 +8,6 @@ import (
 
 	"github.com/PapilioVPN/node/internal/apps/xray/network/routing/domain"
 	"github.com/PapilioVPN/node/internal/apps/xray/runtime/instances/infra/rpc"
-	"github.com/xtls/xray-core/app/router"
 	native "github.com/xtls/xray-core/app/router/command"
 	xnet "github.com/xtls/xray-core/common/net"
 	"github.com/xtls/xray-core/common/serial"
@@ -109,13 +108,6 @@ func (r *Router) Add(ctx context.Context, data []byte, mode domain.Mode) (domain
 		return no, err
 	}
 	if len(data) == 0 || len(data) > domain.MaxNativeBytes {
-		return no, domain.ErrInvalidArgument
-	}
-	var config router.Config
-	if err := proto.Unmarshal(data, &config); err != nil {
-		return no, errors.Join(domain.ErrInvalidArgument, err)
-	}
-	if len(config.Rule) != 1 || config.Rule[0] == nil || len(config.BalancingRule) != 0 {
 		return no, domain.ErrInvalidArgument
 	}
 	var remote peer.Peer
