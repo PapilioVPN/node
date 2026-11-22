@@ -49,7 +49,7 @@ func TestExactIPsOneCallBoundsAndNativeLastSeen(t *testing.T) {
 			if c.calls != 1 || c.method != stats.StatsService_GetStatsOnlineIpList_FullMethodName {
 				t.Fatal(c)
 			}
-			if size > domain.MaxIPs {
+			if size > domain.MaxRecords {
 				if !errors.Is(err, domain.ErrCapacity) || len(result.IPs) != 0 {
 					t.Fatal(result, err)
 				}

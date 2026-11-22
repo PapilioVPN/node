@@ -23,6 +23,7 @@ import (
 
 	instancesv1 "github.com/PapilioVPN/node/internal/apps/xray/runtime/instances/grpcapi/proto/v1"
 	"github.com/PapilioVPN/node/internal/apps/xray/runtime/instances/infra/rpc"
+	"github.com/PapilioVPN/node/internal/apps/xray/users/online/domain"
 	onlinev1 "github.com/PapilioVPN/node/internal/apps/xray/users/online/grpcapi/proto/v1"
 	"github.com/PapilioVPN/node/internal/bootstrap"
 	"github.com/PapilioVPN/node/internal/settings"
@@ -502,7 +503,7 @@ func (s *controlledStats) GetStatsOnlineIpList(ctx context.Context, r *stats.Get
 	s.record(ctx)
 	key := "native-ip"
 	if r.Name == "user>>>oversized>>>online" {
-		key = strings.Repeat("x", 70<<10)
+		key = strings.Repeat("x", domain.MaxNativeBytes+1)
 	}
 	return &stats.GetStatsOnlineIpListResponse{Name: r.Name, Ips: map[string]int64{key: -1}}, nil
 }

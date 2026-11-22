@@ -19,26 +19,30 @@ type StatusReader interface {
 	Status(context.Context, string) (instances.Status, error)
 }
 type Binding struct {
-	ID     string
-	Reader Reader
+	ID         string
+	Reader     Reader
+	Collection CollectionReader
 }
 type entry struct {
-	reader Reader
-	slots  chan struct{}
+	reader     Reader
+	collection CollectionReader
+	slots      chan struct{}
 }
 type Service struct {
 	entries map[string]entry
 	status  StatusReader
 	slots   chan struct{}
+	pages   pageStore
 }
 
 // New admits 32 reads globally and eight per instance across both operations,
-// rejecting overload immediately. It owns no channel, background work or cache.
+// rejecting overload immediately. It owns bounded short-lived page observations,
+// with no native channel, background refresh or durable history.
 func New(bindings []Binding, status StatusReader) (*Service, error) {
 	if status == nil {
 		return nil, domain.ErrInvalidArgument
 	}
-	s := &Service{entries: make(map[string]entry, len(bindings)), status: status, slots: make(chan struct{}, 32)}
+	s := &Service{entries: make(map[string]entry, len(bindings)), status: status, slots: make(chan struct{}, 32), pages: pageStore{observations: make(map[string]*retained)}}
 	for _, b := range bindings {
 		if instancevalidators.ID(b.ID) != nil {
 			return nil, domain.ErrInvalidArgument
@@ -46,7 +50,7 @@ func New(bindings []Binding, status StatusReader) (*Service, error) {
 		if _, ok := s.entries[b.ID]; ok {
 			return nil, domain.ErrInvalidArgument
 		}
-		s.entries[b.ID] = entry{reader: b.Reader, slots: make(chan struct{}, 8)}
+		s.entries[b.ID] = entry{reader: b.Reader, collection: b.Collection, slots: make(chan struct{}, 8)}
 	}
 	return s, nil
 }
@@ -73,6 +77,9 @@ func (s *Service) IPs(ctx context.Context, selection domain.Selection) (domain.I
 	if err != nil {
 		return domain.IPList{}, err
 	}
+	if len(visitors.IPs) > domain.MaxIPs {
+		return domain.IPList{}, domain.ErrCapacity
+	}
 	return domain.IPList{Observation: observation, Visitors: visitors}, nil
 }
 
@@ -83,6 +90,10 @@ func (s *Service) observe(ctx context.Context, selection domain.Selection, read 
 	if err := validateSelection(selection); err != nil {
 		return domain.Observation{}, err
 	}
+	return s.observeRead(ctx, selection, read)
+}
+
+func (s *Service) observeRead(ctx context.Context, selection domain.Selection, read func(Reader) error) (domain.Observation, error) {
 	selected, exists := s.entries[selection.InstanceID]
 	if !exists {
 		return domain.Observation{}, domain.ErrNotFound

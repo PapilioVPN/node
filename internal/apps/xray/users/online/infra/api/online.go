@@ -38,15 +38,14 @@ func (r Reader) Count(ctx context.Context, email string) (domain.Summary, error)
 	return domain.Summary{Count: &reply.Stat.Value}, nil
 }
 
-// IPs uses one targeted RPC; no all-user scan or per-IP enrichment. Responses
-// above MaxIPs fail completely. The channel's 64 KiB receive bound applies before
-// decoding; neither bound limits Xray's own scan, serialization or allocation.
+// IPs materializes one bounded targeted native reply for the paging owner.
+// Receive bytes do not bound native scans, allocation or protobuf heap usage.
 func (r Reader) IPs(ctx context.Context, email string) (domain.Visitors, error) {
 	if err := ctx.Err(); err != nil {
 		return domain.Visitors{}, err
 	}
 	name := "user>>>" + email + ">>>online"
-	reply, err := r.client.GetStatsOnlineIpList(ctx, &stats.GetStatsRequest{Name: name})
+	reply, err := r.client.GetStatsOnlineIpList(ctx, &stats.GetStatsRequest{Name: name}, grpc.MaxCallRecvMsgSize(domain.MaxNativeBytes))
 	if status.Code(err) == codes.NotFound {
 		return domain.Visitors{}, nil
 	}
@@ -56,7 +55,7 @@ func (r Reader) IPs(ctx context.Context, email string) (domain.Visitors, error) 
 	if reply == nil || reply.Name != name {
 		return domain.Visitors{}, domain.ErrUnavailable
 	}
-	if len(reply.Ips) > domain.MaxIPs {
+	if len(reply.Ips) > domain.MaxRecords {
 		return domain.Visitors{}, domain.ErrCapacity
 	}
 	rows := make([]domain.IP, 0, len(reply.Ips))
