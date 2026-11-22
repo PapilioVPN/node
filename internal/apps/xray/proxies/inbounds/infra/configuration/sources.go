@@ -15,11 +15,17 @@ import (
 type Compiler interface {
 	Compile(context.Context, string, []configs.Source) (configs.Compilation, error)
 }
-type Preparer struct{ Compiler Compiler }
+type Factory interface {
+	PrepareNative(*core.InboundHandlerConfig) (domain.Addition, error)
+}
+type Preparer struct {
+	Compiler  Compiler
+	Factories map[string]Factory
+}
 
 // Prepare selects exactly one matching tag. Other handlers, features and source
 // environment settings are not applied to the running execution.
-func (p Preparer) Prepare(ctx context.Context, id, tag string, sources []configs.Source) ([]byte, error) {
+func (p Preparer) Prepare(ctx context.Context, id, tag string, sources []configs.Source) (domain.Addition, error) {
 	compiled, err := p.Compiler.Compile(ctx, id, sources)
 	if err != nil {
 		return nil, compileError(err)
@@ -49,11 +55,14 @@ func (p Preparer) Prepare(ctx context.Context, id, tag string, sources []configs
 	if proto.Size(selected) > domain.MaxConfigurationBytes {
 		return nil, domain.ErrCapacity
 	}
-	content, err := proto.Marshal(selected)
-	if err != nil {
+	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
-	return content, ctx.Err()
+	factory := p.Factories[id]
+	if factory == nil {
+		return nil, domain.ErrUnsupported
+	}
+	return factory.PrepareNative(selected)
 }
 func compileError(err error) error {
 	switch {

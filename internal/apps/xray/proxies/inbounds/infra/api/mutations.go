@@ -23,13 +23,34 @@ func (c Client) Add(ctx context.Context, content []byte) (domain.NativeResult, e
 	if err := proto.Unmarshal(content, &configuration); err != nil {
 		return domain.NativeResult{Effect: domain.NotApplied}, errors.Join(domain.ErrInvalidArgument, err)
 	}
-	if configuration.ReceiverSettings == nil || configuration.ProxySettings == nil || configuration.ReceiverSettings.Type == "" || configuration.ProxySettings.Type == "" {
-		return domain.NativeResult{Effect: domain.NotApplied}, domain.ErrInvalidArgument
+	prepared, err := c.PrepareNative(&configuration)
+	if err != nil {
+		return domain.NativeResult{Effect: domain.NotApplied}, err
+	}
+	return prepared.Add(ctx)
+}
+
+type addition struct {
+	client        Client
+	configuration *core.InboundHandlerConfig
+}
+
+// PrepareNative takes ownership of an already decoded handler. It validates its
+// native envelope once without re-encoding the compiler's selected object.
+func (c Client) PrepareNative(configuration *core.InboundHandlerConfig) (domain.Addition, error) {
+	if configuration == nil || configuration.ReceiverSettings == nil || configuration.ProxySettings == nil || configuration.ReceiverSettings.Type == "" || configuration.ProxySettings.Type == "" {
+		return nil, domain.ErrInvalidArgument
+	}
+	return addition{client: c, configuration: configuration}, nil
+}
+func (a addition) Add(ctx context.Context) (domain.NativeResult, error) {
+	if err := ctx.Err(); err != nil {
+		return domain.NativeResult{Tag: a.configuration.Tag, Effect: domain.NotApplied}, err
 	}
 	var remote peer.Peer
-	_, err := c.native.AddInbound(ctx, &handlers.AddInboundRequest{Inbound: &configuration}, grpc.Peer(&remote))
+	_, err := a.client.native.AddInbound(ctx, &handlers.AddInboundRequest{Inbound: a.configuration}, grpc.Peer(&remote))
 	result, cause := outcome(ctx, err, remote)
-	result.Tag = configuration.Tag
+	result.Tag = a.configuration.Tag
 	return result, cause
 }
 func (c Client) Remove(ctx context.Context, tag string) (domain.NativeResult, error) {

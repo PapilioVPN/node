@@ -19,22 +19,39 @@ type compiler func(context.Context, string, []configs.Source) (configs.Compilati
 func (c compiler) Compile(ctx context.Context, id string, sources []configs.Source) (configs.Compilation, error) {
 	return c(ctx, id, sources)
 }
+
+type nativeFactory func(*core.InboundHandlerConfig) (domain.Addition, error)
+
+func (f nativeFactory) PrepareNative(config *core.InboundHandlerConfig) (domain.Addition, error) {
+	return f(config)
+}
+
+type unusedAddition struct{}
+
+func (unusedAddition) Add(context.Context) (domain.NativeResult, error) {
+	panic("preparation executed native work")
+}
+
 func TestPreparationSelectsOneHandlerInOneCompilation(t *testing.T) {
 	target := &core.InboundHandlerConfig{Tag: "selected", ProxySettings: &serial.TypedMessage{Type: "opaque", Value: []byte{1, 2, 3}}}
 	target.ProtoReflect().SetUnknown([]byte{0xa0, 0x06, 7})
 	content, _ := proto.Marshal(&core.Config{Inbound: []*core.InboundHandlerConfig{{Tag: "excluded"}, target}})
 	calls := 0
+	var actual *core.InboundHandlerConfig
+	factories := map[string]configuration.Factory{"a": nativeFactory(func(config *core.InboundHandlerConfig) (domain.Addition, error) {
+		actual = config
+		return unusedAddition{}, nil
+	})}
 	p := configuration.Preparer{Compiler: compiler(func(_ context.Context, id string, sources []configs.Source) (configs.Compilation, error) {
 		calls++
 		if id != "a" || len(sources) != 2 || sources[1].Name != "tail.json" {
 			t.Fatal(id, sources)
 		}
 		return configs.Compilation{Content: content}, nil
-	})}
+	}), Factories: factories}
 	result, err := p.Prepare(context.Background(), "a", "selected", []configs.Source{{Name: "first.json"}, {Name: "tail.json"}})
-	var actual core.InboundHandlerConfig
-	if err != nil || proto.Unmarshal(result, &actual) != nil || !proto.Equal(target, &actual) || calls != 1 {
-		t.Fatal(&actual, err, calls)
+	if err != nil || result == nil || !proto.Equal(target, actual) || calls != 1 {
+		t.Fatal(actual, err, calls)
 	}
 }
 func TestPreparationRejectsAmbiguityAndCompilerFailuresWithoutOutput(t *testing.T) {
@@ -63,6 +80,6 @@ func TestPreparationRejectsAmbiguityAndCompilerFailuresWithoutOutput(t *testing.
 	})}
 	result, err := p.Prepare(context.Background(), "i", "a", nil)
 	if !errors.Is(err, domain.ErrCapacity) || result != nil {
-		t.Fatal(len(result), err)
+		t.Fatal(result, err)
 	}
 }
