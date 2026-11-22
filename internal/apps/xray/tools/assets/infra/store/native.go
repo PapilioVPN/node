@@ -22,53 +22,58 @@ import (
 
 // Native decoding checks every entry, rather than merely checking file presence
 // or one country. Protobuf byte limits do not bound native/protobuf heap usage.
-func geodataInfo(ctx context.Context, ip, site []byte) (uint32, uint32, error) {
+type geoInfo struct {
+	ipCount, siteCount uint32
+	ipCode, siteCode   string
+}
+
+func geodataInfo(ctx context.Context, ip, site []byte) (geoInfo, error) {
 	var ips geodata.GeoIPList
 	var sites geodata.GeoSiteList
 	if proto.Unmarshal(ip, &ips) != nil || proto.Unmarshal(site, &sites) != nil || len(ips.Entry) == 0 || len(sites.Entry) == 0 {
-		return 0, 0, domain.ErrRejected
+		return geoInfo{}, domain.ErrRejected
 	}
 	codes := map[string]bool{}
 	for _, e := range ips.Entry {
 		if err := ctx.Err(); err != nil {
-			return 0, 0, err
+			return geoInfo{}, err
 		}
 		key := strings.ToUpper(e.Code)
 		if !validCode(key) || codes[key] || len(e.Cidr) == 0 {
-			return 0, 0, domain.ErrRejected
+			return geoInfo{}, domain.ErrRejected
 		}
 		codes[key] = true
 		for _, c := range e.Cidr {
 			if c == nil || (len(c.Ip) != 4 && len(c.Ip) != 16) || c.Prefix > uint32(8*len(c.Ip)) {
-				return 0, 0, domain.ErrRejected
+				return geoInfo{}, domain.ErrRejected
 			}
 		}
 	}
 	codes = map[string]bool{}
 	for _, e := range sites.Entry {
 		if err := ctx.Err(); err != nil {
-			return 0, 0, err
+			return geoInfo{}, err
 		}
 		key := strings.ToUpper(e.Code)
 		if !validCode(key) || codes[key] || len(e.Domain) == 0 {
-			return 0, 0, domain.ErrRejected
+			return geoInfo{}, domain.ErrRejected
 		}
 		codes[key] = true
 		for _, d := range e.Domain {
 			if d == nil || d.Value == "" || d.Type < geodata.Domain_Substr || d.Type > geodata.Domain_Full {
-				return 0, 0, domain.ErrRejected
+				return geoInfo{}, domain.ErrRejected
 			}
 			if d.Type == geodata.Domain_Regex {
 				if _, err := regexp.Compile(d.Value); err != nil {
-					return 0, 0, domain.ErrRejected
+					return geoInfo{}, domain.ErrRejected
 				}
 			}
 		}
 	}
 	if len(ips.Entry) > 65536 || len(sites.Entry) > 65536 {
-		return 0, 0, domain.ErrCapacity
+		return geoInfo{}, domain.ErrCapacity
 	}
-	return uint32(len(ips.Entry)), uint32(len(sites.Entry)), nil
+	return geoInfo{ipCount: uint32(len(ips.Entry)), siteCount: uint32(len(sites.Entry)), ipCode: ips.Entry[0].Code, siteCode: sites.Entry[0].Code}, nil
 }
 func validCode(s string) bool {
 	if len(s) == 0 || len(s) > 128 {
@@ -123,14 +128,10 @@ func version(ctx context.Context, binary string) (string, error) {
 
 // Probe both staged files using the candidate's native converter. All entry
 // structure is checked above; conversion is not runtime construction/readiness.
-func nativeCheck(ctx context.Context, dir string, ip, site []byte) error {
-	var ips geodata.GeoIPList
-	var sites geodata.GeoSiteList
-	_ = proto.Unmarshal(ip, &ips)
-	_ = proto.Unmarshal(site, &sites)
+func nativeCheck(ctx context.Context, dir string, info geoInfo) error {
 	data, err := json.Marshal(map[string]any{"routing": map[string]any{"rules": []any{
-		map[string]any{"type": "field", "ip": []string{"geoip:" + ips.Entry[0].Code}, "outboundTag": "direct"},
-		map[string]any{"type": "field", "domain": []string{"geosite:" + sites.Entry[0].Code}, "outboundTag": "direct"},
+		map[string]any{"type": "field", "ip": []string{"geoip:" + info.ipCode}, "outboundTag": "direct"},
+		map[string]any{"type": "field", "domain": []string{"geosite:" + info.siteCode}, "outboundTag": "direct"},
 	}}, "outbounds": []any{map[string]any{"tag": "direct", "protocol": "freedom"}}})
 	if err != nil {
 		return err

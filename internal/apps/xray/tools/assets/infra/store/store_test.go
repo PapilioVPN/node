@@ -30,3 +30,35 @@ func TestCorruptCandidatePreservesPrivateFiles(t *testing.T) {
 		t.Fatal("private state changed", err)
 	}
 }
+
+func TestStoreRequiresExclusivePrivateOwnership(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.Chmod(dir, 0700); err != nil {
+		t.Fatal(err)
+	}
+	first, err := Open(dir, "one")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if second, err := Open(dir, "two"); !errors.Is(err, domain.ErrBusy) {
+		if second != nil {
+			second.Close()
+		}
+		t.Fatal("second writer admitted", err)
+	}
+	if err := first.Close(); err != nil {
+		t.Fatal(err)
+	}
+	next, err := Open(dir, "one")
+	if err != nil {
+		t.Fatal(err)
+	}
+	next.Close()
+	if err := os.Chmod(dir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if next, err := Open(dir, "one"); err == nil {
+		next.Close()
+		t.Fatal("non-private root admitted")
+	}
+}

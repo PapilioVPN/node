@@ -172,9 +172,6 @@ func (s *Service) activate(ctx context.Context, id string, q domain.Activation, 
 			return result, domain.ErrNotFound
 		}
 	}
-	if _, err = r.Release(ctx, q.ReleaseID); err != nil {
-		return result, err
-	}
 	if !previous {
 		ready, err := session.Check(ctx)
 		if err != nil || !ready {

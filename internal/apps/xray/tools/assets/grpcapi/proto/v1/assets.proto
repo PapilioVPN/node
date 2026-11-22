@@ -1,0 +1,58 @@
+syntax = "proto3";
+package papilio.xray.tools.assets.v1;
+option go_package = "github.com/PapilioVPN/node/internal/apps/xray/tools/assets/grpcapi/proto/v1;assetsv1";
+import "google/protobuf/timestamp.proto";
+
+service AssetsService {
+ rpc InspectAssets(InspectRequest) returns (Inventory);
+ rpc StageAssets(StageRequest) returns (Release);
+ rpc ActivateAssets(ActivateRequest) returns (ActivationResult);
+ rpc RollbackAssets(RecoveryRequest) returns (ActivationResult);
+ rpc RecoverAssets(RecoveryRequest) returns (ActivationResult);
+}
+message InspectRequest { string instance_id = 1; }
+message Upload { bytes content = 1; string sha256 = 2; }
+message Candidate { Upload binary = 1; Upload geoip = 2; Upload geosite = 3; }
+message StageRequest { string instance_id = 1; Candidate candidate = 2; }
+message ActivateRequest {
+ string instance_id = 1;
+ optional uint64 expected_revision = 2;
+ string execution_id = 3;
+ string release_id = 4;
+}
+message RecoveryRequest {
+ string instance_id = 1;
+ optional uint64 expected_revision = 2;
+ string execution_id = 3;
+}
+message Artifact { string sha256 = 1; uint64 bytes = 2; uint32 entries = 3; }
+message Release {
+ string id = 1;
+ string version = 2;
+ Artifact binary = 3;
+ Artifact geoip = 4;
+ Artifact geosite = 5;
+ google.protobuf.Timestamp prepared_at = 6;
+}
+message State {
+ string instance_id = 1;
+ uint64 revision = 2;
+ string active = 3;
+ string previous = 4;
+ string pending = 5;
+}
+message Inventory {
+ State state = 1;
+ Release installed = 2;
+ google.protobuf.Timestamp observed_at = 3;
+ string selected = 4;
+}
+// Operational failures retain the receipt in a normal response envelope. A lost
+// reply still requires InspectAssets; never infer no effect or blindly replay.
+message ActivationResult {
+ State state = 1;
+ string outcome = 2;
+ bool ready = 3;
+ google.protobuf.Timestamp completed_at = 4;
+ string error_code = 5;
+}

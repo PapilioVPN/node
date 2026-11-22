@@ -99,7 +99,7 @@ func (s *Store) Stage(ctx context.Context, c domain.Candidate) (domain.Release, 
 		return domain.Release{}, err
 	}
 	defer release()
-	ipCount, siteCount, err := geodataInfo(ctx, c.GeoIP.Content, c.GeoSite.Content)
+	info, err := geodataInfo(ctx, c.GeoIP.Content, c.GeoSite.Content)
 	if err != nil {
 		return domain.Release{}, err
 	}
@@ -139,10 +139,10 @@ func (s *Store) Stage(ctx context.Context, c domain.Candidate) (domain.Release, 
 	if err != nil {
 		return domain.Release{}, err
 	}
-	if err = nativeCheck(ctx, dir, c.GeoIP.Content, c.GeoSite.Content); err != nil {
+	if err = nativeCheck(ctx, dir, info); err != nil {
 		return domain.Release{}, err
 	}
-	result := domain.Release{ID: id, Version: ver, Binary: artifact(c.Binary, 0), GeoIP: artifact(c.GeoIP, ipCount), GeoSite: artifact(c.GeoSite, siteCount), PreparedAt: time.Now().UTC()}
+	result := domain.Release{ID: id, Version: ver, Binary: artifact(c.Binary, 0), GeoIP: artifact(c.GeoIP, info.ipCount), GeoSite: artifact(c.GeoSite, info.siteCount), PreparedAt: time.Now().UTC()}
 	data, err := json.Marshal(result)
 	if err != nil {
 		return domain.Release{}, err
@@ -262,11 +262,11 @@ func (s *Store) readRelease(ctx context.Context, id string) (domain.Release, err
 	if candidateID(c) != id {
 		return domain.Release{}, domain.ErrRejected
 	}
-	ip, site, err := geodataInfo(ctx, c.GeoIP.Content, c.GeoSite.Content)
+	geo, err := geodataInfo(ctx, c.GeoIP.Content, c.GeoSite.Content)
 	if err != nil {
 		return domain.Release{}, err
 	}
-	if ip != r.GeoIP.Entries || site != r.GeoSite.Entries {
+	if geo.ipCount != r.GeoIP.Entries || geo.siteCount != r.GeoSite.Entries {
 		return domain.Release{}, domain.ErrRejected
 	}
 	ver, err := version(ctx, filepath.Join(s.Path(id), "xray"))
