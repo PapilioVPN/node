@@ -1,6 +1,6 @@
 //go:build integration && linux
 
-package integration_test
+package testutil
 
 import (
 	"context"
@@ -13,11 +13,11 @@ import (
 	"time"
 )
 
-// lostReplies is a test-only TCP relay to the real engine. It forwards HTTP/2
+// LostReplies is a test-only TCP relay to the real engine. It forwards HTTP/2
 // connection-control frames while dropping response stream frames, so a request
 // is genuinely dispatched/applied but its RPC acknowledgement cannot arrive.
 // One connection at a time and frames <=64KiB bound its owned work and buffering.
-func lostReplies(t *testing.T, target string) (string, *atomic.Bool) {
+func LostReplies(t *testing.T, target string) (string, *atomic.Bool) {
 	t.Helper()
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {

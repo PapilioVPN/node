@@ -27,7 +27,7 @@ func TestLostNativeAcknowledgementRequiresExplicitExecutionReplacement(t *testin
 	defer target.Close()
 	f := newFixture(t, testutil.NewPKI(t), "", "http")
 	address := configureProbe(t, f, true)
-	relay, drop := lostReplies(t, f.native)
+	relay, drop := testutil.LostReplies(t, f.native)
 	f.config.Instances[0].Xray.API.Address = relay
 	f.config.Communications.Requests.Timeout = 200 * time.Millisecond
 	c := startNode(t, f)
