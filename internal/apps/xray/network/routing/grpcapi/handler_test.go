@@ -26,6 +26,12 @@ func TestRoutingInputPresenceAndWidthsBeforeInstanceLookup(t *testing.T) {
 		if len(status.Convert(err).Details()) != 1 {
 			t.Fatal("missing known-not-applied evidence", err)
 		}
+		if r != nil {
+			detail := status.Convert(err).Details()[0].(*v1.RoutingOperation)
+			if detail.InstanceId != r.InstanceId {
+				t.Fatal("instance selection lost", detail)
+			}
+		}
 	}
 	_, err = h.OverrideBalancerTarget(ctx, &v1.OverrideBalancerTargetRequest{InstanceId: "unknown", BalancerTag: "b"})
 	if status.Code(err) != codes.InvalidArgument {

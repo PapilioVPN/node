@@ -82,11 +82,14 @@ func (h Handler) ListRoutingRules(ctx context.Context, r *v1.ListRoutingRulesReq
 	return result, nil
 }
 func (h Handler) AddRoutingRule(ctx context.Context, r *v1.AddRoutingRuleRequest) (*v1.RoutingOperation, error) {
-	if r == nil || (r.Mode != v1.RuleMode_RULE_MODE_APPEND && r.Mode != v1.RuleMode_RULE_MODE_REPLACE) {
+	if r == nil {
 		return mutation(domain.Operation{Kind: "add_rule", Effect: domain.NotApplied}, domain.ErrInvalidArgument)
 	}
-	mode := domain.Append
-	if r.Mode == v1.RuleMode_RULE_MODE_REPLACE {
+	var mode domain.Mode
+	switch r.Mode {
+	case v1.RuleMode_RULE_MODE_APPEND:
+		mode = domain.Append
+	case v1.RuleMode_RULE_MODE_REPLACE:
 		mode = domain.Replace
 	}
 	ctx, cancel := context.WithTimeout(ctx, h.Timeout)
