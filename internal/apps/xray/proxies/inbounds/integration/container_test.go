@@ -159,7 +159,7 @@ func exercisePackagedInbound(t *testing.T, c clients, transport string) {
 	address := listener.Addr().String()
 	port := uint32(listener.Addr().(*net.TCPAddr).Port)
 	listener.Close()
-	tag := "packaged-" + transport
+	tag := "tunnel"
 	config := &core.InboundHandlerConfig{Tag: tag, ReceiverSettings: serial.ToTypedMessage(&proxyman.ReceiverConfig{Listen: xnet.NewIPOrDomain(xnet.LocalHostIP), PortList: &xnet.PortList{Range: []*xnet.PortRange{{From: port, To: port}}}}), ProxySettings: serial.ToTypedMessage(&xhttp.ServerConfig{})}
 	content, err := proto.Marshal(config)
 	if err != nil {
@@ -181,6 +181,26 @@ func exercisePackagedInbound(t *testing.T, c clients, transport string) {
 	response.Body.Close()
 	if err != nil || string(body) != "packaged-inbound" {
 		t.Fatal(string(body), err)
+	}
+
+	observed := compatibility(t, c, transport, tag)
+	if observed.Inbound.Protocol != "http" || observed.Inbound.LiveAccounts {
+		t.Fatal("packaged compatibility", observed)
+	}
+	_ = catalogPage(t, c, transport, "summaries", "")
+	plan := planInbound(t, c, transport, content, false)
+	progress, code, requires := replaceInbound(t, c, transport, plan.Token)
+	if code != "" || requires || progress == nil || !progress.Remove.Acknowledged || !progress.Add.Acknowledged {
+		t.Fatal("packaged replacement", progress, code, requires)
+	}
+	response, err = traffic.Get(target.URL)
+	if err != nil {
+		t.Fatal("packaged replacement stopped new traffic", err)
+	}
+	body, err = io.ReadAll(response.Body)
+	response.Body.Close()
+	if err != nil || string(body) != "packaged-inbound" {
+		t.Fatal("packaged replacement traffic", string(body), err)
 	}
 	_, tags := nativeRecords(t, c, transport, true)
 	if !slices.Contains(tags, tag) {
