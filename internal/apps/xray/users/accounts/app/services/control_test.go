@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"testing"
 	"time"
+	"unsafe"
 
 	instances "github.com/PapilioVPN/node/internal/apps/xray/runtime/instances/domain"
 	"github.com/PapilioVPN/node/internal/apps/xray/users/accounts/app/services"
@@ -137,5 +138,31 @@ func TestGlobalAccountMutationCapacityIsBounded(t *testing.T) {
 		if err := <-done; !errors.Is(err, context.Canceled) {
 			t.Fatal(err)
 		}
+	}
+}
+
+func TestRetainedControlEvidenceOwnsRequestSelectors(t *testing.T) {
+	// Fiber lends request-backed strings until its handler returns. Recycle that
+	// backing memory deterministically after completion, without relying on a pool.
+	id, tag, email := []byte("instance-a"), []byte("members"), []byte("peer@example.test")
+	borrow := func(value []byte) string { return unsafe.String(unsafe.SliceData(value), len(value)) }
+	c := client{remove: func(context.Context, string, string) (domain.NativeResult, error) {
+		return domain.NativeResult{Effect: domain.Completed, Acknowledged: true}, nil
+	}}
+	s, err := services.New([]services.Binding{{ID: "instance-a", Client: c}}, &execution{generation: 1, state: instances.Running})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.Remove(context.Background(), borrow(id), borrow(tag), borrow(email)); err != nil {
+		t.Fatal(err)
+	}
+	for _, value := range [][]byte{id, tag, email} {
+		for i := range value {
+			value[i] = 'x'
+		}
+	}
+	state, err := s.Status(context.Background(), "instance-a")
+	if err != nil || state.LastOperation == nil || state.LastOperation.InstanceID != "instance-a" || state.LastOperation.InboundTag != "members" || state.LastOperation.Email != "peer@example.test" {
+		t.Fatal("retained evidence borrowed recycled request memory", state.LastOperation, err)
 	}
 }

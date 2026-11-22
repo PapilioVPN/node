@@ -68,6 +68,8 @@ func failure(err error) error {
 		code, message = codes.NotFound, "not_found"
 	case errors.Is(err, domain.ErrUnsupported), errors.Is(err, domain.ErrNotRunning):
 		code, message = codes.FailedPrecondition, "failed_precondition"
+	case errors.Is(err, domain.ErrUncertain):
+		code, message = codes.FailedPrecondition, "restart_required"
 	case errors.Is(err, domain.ErrExecutionChanged):
 		code, message = codes.Aborted, "execution_changed"
 	case errors.Is(err, domain.ErrCapacity):

@@ -24,6 +24,7 @@ go test -run="^$" -fuzz="^FuzzPowerSupply$" -fuzztime=10s -parallel=2 ./internal
 go test -run="^$" -fuzz="^FuzzCompilationEnvelope$" -fuzztime=10s -parallel=2 ./internal/apps/xray/runtime/configs/infra/jsonwire
 go test -run="^$" -fuzz="^FuzzSelection$" -fuzztime=10s -parallel=2 ./internal/apps/xray/users/accounts/infra/jsonwire
 go test -run="^$" -fuzz="^FuzzStateEnvelope$" -fuzztime=10s -parallel=2 ./internal/apps/xray/runtime/configs/infra/jsonwire
+go test -run="^$" -fuzz="^FuzzAccountControlEnvelope$" -fuzztime=10s -parallel=2 ./internal/apps/xray/users/accounts/infra/jsonwire
 govulncheck ./...
 mkdir -p dist
 CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -o dist/node ./cmd/node

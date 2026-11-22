@@ -29,7 +29,9 @@ func TestPackagedAccountReads(t *testing.T) {
 		t.Fatal("-image must select the prebuilt image")
 	}
 	pki := testutil.NewPKI(t)
+	target := accountTarget(t)
 	f := newFixture(t, pki, brokerFixture(t, pki), "all")
+	address := allowAccountTraffic(t, f, target.Listener.Addr().String())
 	config := f.config
 	config.Instances = append(config.Instances[:0:0], config.Instances...)
 	xray := *config.Instances[0].Xray
@@ -68,6 +70,7 @@ func TestPackagedAccountReads(t *testing.T) {
 	awaitNative(t, f.native)
 	for _, transport := range []string{"http", "grpc", "nats"} {
 		assertNativeAccounts(t, client, transport)
+		exerciseAccountControl(t, client, transport, address, target.Listener.Addr().String())
 	}
 
 	docker(t, "stop", "--time", "8", name)

@@ -19,15 +19,23 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	AccountsService_GetAccountCount_FullMethodName = "/papilio.xray.users.accounts.v1.AccountsService/GetAccountCount"
-	AccountsService_GetAccount_FullMethodName      = "/papilio.xray.users.accounts.v1.AccountsService/GetAccount"
+	AccountsService_AddAccount_FullMethodName              = "/papilio.xray.users.accounts.v1.AccountsService/AddAccount"
+	AccountsService_RemoveAccount_FullMethodName           = "/papilio.xray.users.accounts.v1.AccountsService/RemoveAccount"
+	AccountsService_GetAccountControlStatus_FullMethodName = "/papilio.xray.users.accounts.v1.AccountsService/GetAccountControlStatus"
+	AccountsService_GetAccountCount_FullMethodName         = "/papilio.xray.users.accounts.v1.AccountsService/GetAccountCount"
+	AccountsService_GetAccount_FullMethodName              = "/papilio.xray.users.accounts.v1.AccountsService/GetAccount"
 )
 
 // AccountsServiceClient is the client API for AccountsService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type AccountsServiceClient interface {
-	// Native count only; does not fetch the user collection.
+	// Live native membership only, not durable desired-state replacement.
+	AddAccount(ctx context.Context, in *AddAccountRequest, opts ...grpc.CallOption) (*AccountOperation, error)
+	// Protocol-specific removal; does not guarantee closing established sessions.
+	RemoveAccount(ctx context.Context, in *RemoveAccountRequest, opts ...grpc.CallOption) (*AccountOperation, error)
+	GetAccountControlStatus(ctx context.Context, in *GetAccountControlStatusRequest, opts ...grpc.CallOption) (*AccountControlStatus, error)
+	// Native count only; does not fetch the collection. Protocols can omit anonymous users.
 	GetAccountCount(ctx context.Context, in *GetAccountCountRequest, opts ...grpc.CallOption) (*AccountCount, error)
 	// Native exact lookup. Absence is a missing user, not a fabricated empty account.
 	GetAccount(ctx context.Context, in *GetAccountRequest, opts ...grpc.CallOption) (*AccountObservation, error)
@@ -39,6 +47,36 @@ type accountsServiceClient struct {
 
 func NewAccountsServiceClient(cc grpc.ClientConnInterface) AccountsServiceClient {
 	return &accountsServiceClient{cc}
+}
+
+func (c *accountsServiceClient) AddAccount(ctx context.Context, in *AddAccountRequest, opts ...grpc.CallOption) (*AccountOperation, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AccountOperation)
+	err := c.cc.Invoke(ctx, AccountsService_AddAccount_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *accountsServiceClient) RemoveAccount(ctx context.Context, in *RemoveAccountRequest, opts ...grpc.CallOption) (*AccountOperation, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AccountOperation)
+	err := c.cc.Invoke(ctx, AccountsService_RemoveAccount_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *accountsServiceClient) GetAccountControlStatus(ctx context.Context, in *GetAccountControlStatusRequest, opts ...grpc.CallOption) (*AccountControlStatus, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AccountControlStatus)
+	err := c.cc.Invoke(ctx, AccountsService_GetAccountControlStatus_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *accountsServiceClient) GetAccountCount(ctx context.Context, in *GetAccountCountRequest, opts ...grpc.CallOption) (*AccountCount, error) {
@@ -65,7 +103,12 @@ func (c *accountsServiceClient) GetAccount(ctx context.Context, in *GetAccountRe
 // All implementations must embed UnimplementedAccountsServiceServer
 // for forward compatibility.
 type AccountsServiceServer interface {
-	// Native count only; does not fetch the user collection.
+	// Live native membership only, not durable desired-state replacement.
+	AddAccount(context.Context, *AddAccountRequest) (*AccountOperation, error)
+	// Protocol-specific removal; does not guarantee closing established sessions.
+	RemoveAccount(context.Context, *RemoveAccountRequest) (*AccountOperation, error)
+	GetAccountControlStatus(context.Context, *GetAccountControlStatusRequest) (*AccountControlStatus, error)
+	// Native count only; does not fetch the collection. Protocols can omit anonymous users.
 	GetAccountCount(context.Context, *GetAccountCountRequest) (*AccountCount, error)
 	// Native exact lookup. Absence is a missing user, not a fabricated empty account.
 	GetAccount(context.Context, *GetAccountRequest) (*AccountObservation, error)
@@ -79,6 +122,15 @@ type AccountsServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedAccountsServiceServer struct{}
 
+func (UnimplementedAccountsServiceServer) AddAccount(context.Context, *AddAccountRequest) (*AccountOperation, error) {
+	return nil, status.Error(codes.Unimplemented, "method AddAccount not implemented")
+}
+func (UnimplementedAccountsServiceServer) RemoveAccount(context.Context, *RemoveAccountRequest) (*AccountOperation, error) {
+	return nil, status.Error(codes.Unimplemented, "method RemoveAccount not implemented")
+}
+func (UnimplementedAccountsServiceServer) GetAccountControlStatus(context.Context, *GetAccountControlStatusRequest) (*AccountControlStatus, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetAccountControlStatus not implemented")
+}
 func (UnimplementedAccountsServiceServer) GetAccountCount(context.Context, *GetAccountCountRequest) (*AccountCount, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetAccountCount not implemented")
 }
@@ -104,6 +156,60 @@ func RegisterAccountsServiceServer(s grpc.ServiceRegistrar, srv AccountsServiceS
 		t.testEmbeddedByValue()
 	}
 	s.RegisterService(&AccountsService_ServiceDesc, srv)
+}
+
+func _AccountsService_AddAccount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddAccountRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AccountsServiceServer).AddAccount(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AccountsService_AddAccount_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AccountsServiceServer).AddAccount(ctx, req.(*AddAccountRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AccountsService_RemoveAccount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RemoveAccountRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AccountsServiceServer).RemoveAccount(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AccountsService_RemoveAccount_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AccountsServiceServer).RemoveAccount(ctx, req.(*RemoveAccountRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AccountsService_GetAccountControlStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetAccountControlStatusRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AccountsServiceServer).GetAccountControlStatus(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AccountsService_GetAccountControlStatus_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AccountsServiceServer).GetAccountControlStatus(ctx, req.(*GetAccountControlStatusRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _AccountsService_GetAccountCount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -149,6 +255,18 @@ var AccountsService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "papilio.xray.users.accounts.v1.AccountsService",
 	HandlerType: (*AccountsServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "AddAccount",
+			Handler:    _AccountsService_AddAccount_Handler,
+		},
+		{
+			MethodName: "RemoveAccount",
+			Handler:    _AccountsService_RemoveAccount_Handler,
+		},
+		{
+			MethodName: "GetAccountControlStatus",
+			Handler:    _AccountsService_GetAccountControlStatus_Handler,
+		},
 		{
 			MethodName: "GetAccountCount",
 			Handler:    _AccountsService_GetAccountCount_Handler,

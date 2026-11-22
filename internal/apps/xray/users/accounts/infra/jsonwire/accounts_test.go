@@ -29,3 +29,14 @@ func FuzzSelection(f *testing.F) {
 		}
 	})
 }
+
+func FuzzAccountControlEnvelope(f *testing.F) {
+	for _, seed := range []string{`{}`, `{"instance_id":"a","inbound_tag":"b","configuration":"AQ=="}`, `{"instance_id":"a","inbound_tag":"b","email":""}`} {
+		f.Add(seed)
+	}
+	f.Fuzz(func(t *testing.T, data string) {
+		if _, err := jsonwire.DecodeControl([]byte(data)); err == nil && !json.Valid([]byte(data)) {
+			t.Fatal("invalid JSON accepted")
+		}
+	})
+}

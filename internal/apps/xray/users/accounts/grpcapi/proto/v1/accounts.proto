@@ -2,8 +2,14 @@ syntax = "proto3";
 package papilio.xray.users.accounts.v1;
 option go_package = "github.com/PapilioVPN/node/internal/apps/xray/users/accounts/grpcapi/proto/v1;accountsv1";
 import "google/protobuf/timestamp.proto";
+import "internal/apps/xray/users/accounts/grpcapi/proto/v1/control.proto";
 service AccountsService {
-  // Native count only; does not fetch the user collection.
+  // Live native membership only, not durable desired-state replacement.
+  rpc AddAccount(AddAccountRequest) returns (AccountOperation);
+  // Protocol-specific removal; does not guarantee closing established sessions.
+  rpc RemoveAccount(RemoveAccountRequest) returns (AccountOperation);
+  rpc GetAccountControlStatus(GetAccountControlStatusRequest) returns (AccountControlStatus);
+  // Native count only; does not fetch the collection. Protocols can omit anonymous users.
   rpc GetAccountCount(GetAccountCountRequest) returns (AccountCount);
   // Native exact lookup. Absence is a missing user, not a fabricated empty account.
   rpc GetAccount(GetAccountRequest) returns (AccountObservation);

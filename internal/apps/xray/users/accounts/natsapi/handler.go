@@ -81,7 +81,7 @@ func (h Handler) Get(ctx context.Context, data []byte, headers nats.Header) []by
 	}
 	return encoded
 }
-func failure(err error) []byte {
+func errorCode(err error) string {
 	code := "unavailable"
 	switch {
 	case errors.Is(err, context.DeadlineExceeded):
@@ -94,11 +94,17 @@ func failure(err error) []byte {
 		code = "not_found"
 	case errors.Is(err, domain.ErrUnsupported), errors.Is(err, domain.ErrNotRunning):
 		code = "failed_precondition"
+	case errors.Is(err, domain.ErrUncertain):
+		code = "restart_required"
 	case errors.Is(err, domain.ErrExecutionChanged):
 		code = "execution_changed"
 	case errors.Is(err, domain.ErrCapacity):
 		code = "resource_exhausted"
 	}
+	return code
+}
+func failure(err error) []byte {
+	code := errorCode(err)
 	data, _ := json.Marshal(struct {
 		Error string `json:"error"`
 	}{code})

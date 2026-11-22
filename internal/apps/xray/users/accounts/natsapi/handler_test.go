@@ -30,3 +30,24 @@ func TestMalformedSelectionNeverReachesService(t *testing.T) {
 		}
 	}
 }
+
+func TestMalformedControlRequestsNeverReachService(t *testing.T) {
+	h := natsapi.Handler{}
+	for _, test := range []struct {
+		call func(context.Context, []byte, nats.Header) []byte
+		body string
+	}{
+		{h.Add, `{"instance_id":"a","inbound_tag":"b","email":"c","configuration":"AQ=="}`},
+		{h.Add, `{"instance_id":"a","inbound_tag":"b"}`},
+		{h.Add, `{"instance_id":"a","inbound_tag":"b","configuration":"AQ==","configuration":"Ag=="}`},
+		{h.Remove, `{"instance_id":"a","inbound_tag":"b"}`},
+		{h.Remove, `{"instance_id":"a","inbound_tag":"b","email":null}`},
+		{h.Remove, `{"instance_id":"a","inbound_tag":"b","email":"c","configuration":"AQ=="}`},
+		{h.Status, `{"instance_id":"a","email":"c"}`},
+		{h.Status, `{"instance_id":"a"} {}`},
+	} {
+		if result := test.call(context.Background(), []byte(test.body), nil); !strings.Contains(string(result), `"error":"invalid_argument"`) {
+			t.Fatal(test.body, string(result))
+		}
+	}
+}

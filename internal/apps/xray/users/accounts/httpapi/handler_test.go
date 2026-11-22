@@ -34,3 +34,28 @@ func TestMalformedSelectionNeverReachesService(t *testing.T) {
 		t.Fatal(response.StatusCode)
 	}
 }
+
+func TestMalformedControlRequestsNeverReachService(t *testing.T) {
+	app := fiber.New()
+	httpapi.Handler{}.Register(app)
+	for _, test := range []struct{ method, path, contentType, body string }{
+		{"POST", "/accounts", "application/x-protobuf", "x"},
+		{"POST", "/accounts?inbound_tag=a&inbound_tag=b", "application/x-protobuf", "x"},
+		{"POST", "/accounts?inbound_tag=a", "application/json", "{}"},
+		{"DELETE", "/account?inbound_tag=a", "", ""},
+		{"DELETE", "/account?inbound_tag=a&email=b&email=c", "", ""},
+		{"DELETE", "/account?inbound_tag=a&email=b", "", "body"},
+		{"GET", "/accounts/control-status?inbound_tag=a", "", ""},
+	} {
+		request := httptest.NewRequest(test.method, "/v1/xray/users/instances/a"+test.path, strings.NewReader(test.body))
+		request.Header.Set("Content-Type", test.contentType)
+		response, err := app.Test(request)
+		if err != nil {
+			t.Fatal(err)
+		}
+		response.Body.Close()
+		if response.StatusCode != 400 {
+			t.Fatal(test.path, response.StatusCode)
+		}
+	}
+}

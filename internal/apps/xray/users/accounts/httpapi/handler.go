@@ -20,6 +20,9 @@ type Handler struct {
 func (h Handler) Register(router fiber.Router) {
 	router.Get("/v1/xray/users/instances/:id/accounts/count", h.Count)
 	router.Get("/v1/xray/users/instances/:id/account", h.Get)
+	router.Post("/v1/xray/users/instances/:id/accounts", h.Add)
+	router.Delete("/v1/xray/users/instances/:id/account", h.Remove)
+	router.Get("/v1/xray/users/instances/:id/accounts/control-status", h.Status)
 }
 
 // selection rejects duplicate/unknown query keys rather than silently choosing one.
@@ -88,7 +91,7 @@ func (h Handler) Get(request fiber.Ctx) error {
 	request.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
 	return request.Send(data)
 }
-func failure(request fiber.Ctx, err error) error {
+func errorStatus(err error) (string, int) {
 	code, status := "unavailable", fiber.StatusServiceUnavailable
 	switch {
 	case errors.Is(err, context.DeadlineExceeded):
@@ -101,11 +104,17 @@ func failure(request fiber.Ctx, err error) error {
 		code, status = "not_found", fiber.StatusNotFound
 	case errors.Is(err, domain.ErrUnsupported), errors.Is(err, domain.ErrNotRunning):
 		code, status = "failed_precondition", fiber.StatusConflict
+	case errors.Is(err, domain.ErrUncertain):
+		code, status = "restart_required", fiber.StatusConflict
 	case errors.Is(err, domain.ErrExecutionChanged):
 		code, status = "execution_changed", fiber.StatusConflict
 	case errors.Is(err, domain.ErrCapacity):
 		code, status = "resource_exhausted", fiber.StatusTooManyRequests
 	}
+	return code, status
+}
+func failure(request fiber.Ctx, err error) error {
+	code, status := errorStatus(err)
 	return request.Status(status).JSON(struct {
 		Error string `json:"error"`
 	}{code})
