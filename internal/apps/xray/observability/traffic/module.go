@@ -1,4 +1,3 @@
-// Package traffic composes exact native byte observations and their transports.
 package traffic
 
 import (
@@ -30,7 +29,10 @@ func compose(in inputs) (*services.Service, error) {
 	for _, resource := range in.Bindings {
 		binding := services.Binding{ID: resource.ID}
 		if resource.Client != nil {
-			binding.Reader = api.New(resource.Client)
+			adapter := api.New(resource.Client)
+			binding.Reader = adapter
+			binding.Lister = adapter
+			binding.Resetter = adapter
 		}
 		bindings = append(bindings, binding)
 	}
@@ -55,5 +57,13 @@ func register(in adapters) {
 }
 func subscribe(in adapters) natsclient.Subscriptions {
 	handler := natsapi.Handler{Service: in.Service, Timeout: in.Requests.Timeout}
-	return natsclient.Subscriptions{Endpoints: []natsclient.Subscription{{Name: "Xray exact traffic counter", SubjectSuffix: "xray.observability.traffic.v1.get", Handle: handler.Read}}}
+	return natsclient.Subscriptions{Endpoints: []natsclient.Subscription{
+		{Name: "Xray exact traffic counter", SubjectSuffix: "xray.observability.traffic.v1.get", Handle: handler.Read},
+		{Name: "Xray traffic collection", SubjectSuffix: "xray.observability.traffic.v1.list", Handle: handler.List},
+		{Name: "Xray traffic pair", SubjectSuffix: "xray.observability.traffic.v1.pair", Handle: handler.Pair},
+		{Name: "Xray traffic counter reset", SubjectSuffix: "xray.observability.traffic.v1.reset_counter", Handle: handler.ResetCounter},
+		{Name: "Xray traffic pair reset", SubjectSuffix: "xray.observability.traffic.v1.reset_pair", Handle: handler.ResetPair},
+		{Name: "Xray traffic scope reset", SubjectSuffix: "xray.observability.traffic.v1.reset_scope", Handle: handler.ResetScope},
+		{Name: "Xray traffic reset status", SubjectSuffix: "xray.observability.traffic.v1.reset_status", Handle: handler.ResetStatus},
+	}}
 }

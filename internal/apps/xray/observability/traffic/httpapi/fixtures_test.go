@@ -24,3 +24,7 @@ type statusFixture struct{}
 func (statusFixture) Status(context.Context, string) (instances.Status, error) {
 	return instances.Status{Execution: instances.Execution{State: instances.Running, Generation: 1}}, nil
 }
+
+func (r *readerFixture) Reset(ctx context.Context, selection domain.Selection) (int64, error) {
+	return r.Read(ctx, selection)
+}

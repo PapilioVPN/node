@@ -23,20 +23,10 @@ func (h Handler) Read(ctx context.Context, data []byte, headers nats.Header) []b
 	if err != nil {
 		return failure(err)
 	}
-	deadline := time.Now().Add(h.Timeout)
-	if values, ok := headers["Papilio-Deadline"]; ok {
-		if len(values) != 1 {
-			return failure(domain.ErrInvalidArgument)
-		}
-		requested, err := time.Parse(time.RFC3339Nano, values[0])
-		if err != nil {
-			return failure(domain.ErrInvalidArgument)
-		}
-		if requested.Before(deadline) {
-			deadline = requested
-		}
+	ctx, cancel, err := h.deadline(ctx, headers)
+	if err != nil {
+		return failure(err)
 	}
-	ctx, cancel := context.WithDeadline(ctx, deadline)
 	defer cancel()
 	result, err := h.Service.Read(ctx, id, selection)
 	if err != nil {
@@ -58,6 +48,12 @@ func failure(err error) []byte {
 		code = "canceled"
 	case errors.Is(err, domain.ErrInvalidArgument):
 		code = "invalid_argument"
+	case errors.Is(err, domain.ErrConflict):
+		code = "revision_conflict"
+	case errors.Is(err, domain.ErrContinuation):
+		code = "continuation_expired"
+	case errors.Is(err, domain.ErrRestartRequired):
+		code = "restart_required"
 	case errors.Is(err, domain.ErrExecutionChanged):
 		code = "execution_changed"
 	case errors.Is(err, domain.ErrCounterNotFound):

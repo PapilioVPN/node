@@ -19,7 +19,13 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	TrafficService_GetTrafficCounter_FullMethodName = "/papilio.xray.observability.traffic.v1.TrafficService/GetTrafficCounter"
+	TrafficService_GetTrafficCounter_FullMethodName     = "/papilio.xray.observability.traffic.v1.TrafficService/GetTrafficCounter"
+	TrafficService_ListTrafficCounters_FullMethodName   = "/papilio.xray.observability.traffic.v1.TrafficService/ListTrafficCounters"
+	TrafficService_GetTrafficPair_FullMethodName        = "/papilio.xray.observability.traffic.v1.TrafficService/GetTrafficPair"
+	TrafficService_ResetTrafficCounter_FullMethodName   = "/papilio.xray.observability.traffic.v1.TrafficService/ResetTrafficCounter"
+	TrafficService_ResetTrafficPair_FullMethodName      = "/papilio.xray.observability.traffic.v1.TrafficService/ResetTrafficPair"
+	TrafficService_ResetTrafficCounters_FullMethodName  = "/papilio.xray.observability.traffic.v1.TrafficService/ResetTrafficCounters"
+	TrafficService_GetTrafficResetStatus_FullMethodName = "/papilio.xray.observability.traffic.v1.TrafficService/GetTrafficResetStatus"
 )
 
 // TrafficServiceClient is the client API for TrafficService service.
@@ -27,6 +33,12 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type TrafficServiceClient interface {
 	GetTrafficCounter(ctx context.Context, in *GetTrafficCounterRequest, opts ...grpc.CallOption) (*TrafficCounter, error)
+	ListTrafficCounters(ctx context.Context, in *ListTrafficCountersRequest, opts ...grpc.CallOption) (*TrafficPage, error)
+	GetTrafficPair(ctx context.Context, in *GetTrafficPairRequest, opts ...grpc.CallOption) (*TrafficPair, error)
+	ResetTrafficCounter(ctx context.Context, in *ResetTrafficRequest, opts ...grpc.CallOption) (*TrafficResetReport, error)
+	ResetTrafficPair(ctx context.Context, in *ResetTrafficRequest, opts ...grpc.CallOption) (*TrafficResetReport, error)
+	ResetTrafficCounters(ctx context.Context, in *ResetTrafficRequest, opts ...grpc.CallOption) (*TrafficResetReport, error)
+	GetTrafficResetStatus(ctx context.Context, in *GetTrafficResetStatusRequest, opts ...grpc.CallOption) (*TrafficResetReport, error)
 }
 
 type trafficServiceClient struct {
@@ -47,11 +59,77 @@ func (c *trafficServiceClient) GetTrafficCounter(ctx context.Context, in *GetTra
 	return out, nil
 }
 
+func (c *trafficServiceClient) ListTrafficCounters(ctx context.Context, in *ListTrafficCountersRequest, opts ...grpc.CallOption) (*TrafficPage, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TrafficPage)
+	err := c.cc.Invoke(ctx, TrafficService_ListTrafficCounters_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *trafficServiceClient) GetTrafficPair(ctx context.Context, in *GetTrafficPairRequest, opts ...grpc.CallOption) (*TrafficPair, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TrafficPair)
+	err := c.cc.Invoke(ctx, TrafficService_GetTrafficPair_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *trafficServiceClient) ResetTrafficCounter(ctx context.Context, in *ResetTrafficRequest, opts ...grpc.CallOption) (*TrafficResetReport, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TrafficResetReport)
+	err := c.cc.Invoke(ctx, TrafficService_ResetTrafficCounter_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *trafficServiceClient) ResetTrafficPair(ctx context.Context, in *ResetTrafficRequest, opts ...grpc.CallOption) (*TrafficResetReport, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TrafficResetReport)
+	err := c.cc.Invoke(ctx, TrafficService_ResetTrafficPair_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *trafficServiceClient) ResetTrafficCounters(ctx context.Context, in *ResetTrafficRequest, opts ...grpc.CallOption) (*TrafficResetReport, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TrafficResetReport)
+	err := c.cc.Invoke(ctx, TrafficService_ResetTrafficCounters_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *trafficServiceClient) GetTrafficResetStatus(ctx context.Context, in *GetTrafficResetStatusRequest, opts ...grpc.CallOption) (*TrafficResetReport, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TrafficResetReport)
+	err := c.cc.Invoke(ctx, TrafficService_GetTrafficResetStatus_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // TrafficServiceServer is the server API for TrafficService service.
 // All implementations must embed UnimplementedTrafficServiceServer
 // for forward compatibility.
 type TrafficServiceServer interface {
 	GetTrafficCounter(context.Context, *GetTrafficCounterRequest) (*TrafficCounter, error)
+	ListTrafficCounters(context.Context, *ListTrafficCountersRequest) (*TrafficPage, error)
+	GetTrafficPair(context.Context, *GetTrafficPairRequest) (*TrafficPair, error)
+	ResetTrafficCounter(context.Context, *ResetTrafficRequest) (*TrafficResetReport, error)
+	ResetTrafficPair(context.Context, *ResetTrafficRequest) (*TrafficResetReport, error)
+	ResetTrafficCounters(context.Context, *ResetTrafficRequest) (*TrafficResetReport, error)
+	GetTrafficResetStatus(context.Context, *GetTrafficResetStatusRequest) (*TrafficResetReport, error)
 	mustEmbedUnimplementedTrafficServiceServer()
 }
 
@@ -64,6 +142,24 @@ type UnimplementedTrafficServiceServer struct{}
 
 func (UnimplementedTrafficServiceServer) GetTrafficCounter(context.Context, *GetTrafficCounterRequest) (*TrafficCounter, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetTrafficCounter not implemented")
+}
+func (UnimplementedTrafficServiceServer) ListTrafficCounters(context.Context, *ListTrafficCountersRequest) (*TrafficPage, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListTrafficCounters not implemented")
+}
+func (UnimplementedTrafficServiceServer) GetTrafficPair(context.Context, *GetTrafficPairRequest) (*TrafficPair, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetTrafficPair not implemented")
+}
+func (UnimplementedTrafficServiceServer) ResetTrafficCounter(context.Context, *ResetTrafficRequest) (*TrafficResetReport, error) {
+	return nil, status.Error(codes.Unimplemented, "method ResetTrafficCounter not implemented")
+}
+func (UnimplementedTrafficServiceServer) ResetTrafficPair(context.Context, *ResetTrafficRequest) (*TrafficResetReport, error) {
+	return nil, status.Error(codes.Unimplemented, "method ResetTrafficPair not implemented")
+}
+func (UnimplementedTrafficServiceServer) ResetTrafficCounters(context.Context, *ResetTrafficRequest) (*TrafficResetReport, error) {
+	return nil, status.Error(codes.Unimplemented, "method ResetTrafficCounters not implemented")
+}
+func (UnimplementedTrafficServiceServer) GetTrafficResetStatus(context.Context, *GetTrafficResetStatusRequest) (*TrafficResetReport, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetTrafficResetStatus not implemented")
 }
 func (UnimplementedTrafficServiceServer) mustEmbedUnimplementedTrafficServiceServer() {}
 func (UnimplementedTrafficServiceServer) testEmbeddedByValue()                        {}
@@ -104,6 +200,114 @@ func _TrafficService_GetTrafficCounter_Handler(srv interface{}, ctx context.Cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _TrafficService_ListTrafficCounters_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListTrafficCountersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TrafficServiceServer).ListTrafficCounters(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: TrafficService_ListTrafficCounters_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TrafficServiceServer).ListTrafficCounters(ctx, req.(*ListTrafficCountersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _TrafficService_GetTrafficPair_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetTrafficPairRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TrafficServiceServer).GetTrafficPair(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: TrafficService_GetTrafficPair_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TrafficServiceServer).GetTrafficPair(ctx, req.(*GetTrafficPairRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _TrafficService_ResetTrafficCounter_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ResetTrafficRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TrafficServiceServer).ResetTrafficCounter(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: TrafficService_ResetTrafficCounter_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TrafficServiceServer).ResetTrafficCounter(ctx, req.(*ResetTrafficRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _TrafficService_ResetTrafficPair_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ResetTrafficRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TrafficServiceServer).ResetTrafficPair(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: TrafficService_ResetTrafficPair_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TrafficServiceServer).ResetTrafficPair(ctx, req.(*ResetTrafficRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _TrafficService_ResetTrafficCounters_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ResetTrafficRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TrafficServiceServer).ResetTrafficCounters(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: TrafficService_ResetTrafficCounters_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TrafficServiceServer).ResetTrafficCounters(ctx, req.(*ResetTrafficRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _TrafficService_GetTrafficResetStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetTrafficResetStatusRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TrafficServiceServer).GetTrafficResetStatus(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: TrafficService_GetTrafficResetStatus_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TrafficServiceServer).GetTrafficResetStatus(ctx, req.(*GetTrafficResetStatusRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // TrafficService_ServiceDesc is the grpc.ServiceDesc for TrafficService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -114,6 +318,30 @@ var TrafficService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetTrafficCounter",
 			Handler:    _TrafficService_GetTrafficCounter_Handler,
+		},
+		{
+			MethodName: "ListTrafficCounters",
+			Handler:    _TrafficService_ListTrafficCounters_Handler,
+		},
+		{
+			MethodName: "GetTrafficPair",
+			Handler:    _TrafficService_GetTrafficPair_Handler,
+		},
+		{
+			MethodName: "ResetTrafficCounter",
+			Handler:    _TrafficService_ResetTrafficCounter_Handler,
+		},
+		{
+			MethodName: "ResetTrafficPair",
+			Handler:    _TrafficService_ResetTrafficPair_Handler,
+		},
+		{
+			MethodName: "ResetTrafficCounters",
+			Handler:    _TrafficService_ResetTrafficCounters_Handler,
+		},
+		{
+			MethodName: "GetTrafficResetStatus",
+			Handler:    _TrafficService_GetTrafficResetStatus_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

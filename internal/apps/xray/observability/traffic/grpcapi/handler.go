@@ -64,6 +64,12 @@ func failure(err error) error {
 		code, message = codes.Canceled, "canceled"
 	case errors.Is(err, domain.ErrInvalidArgument):
 		code, message = codes.InvalidArgument, "invalid_argument"
+	case errors.Is(err, domain.ErrConflict):
+		code, message = codes.FailedPrecondition, "revision_conflict"
+	case errors.Is(err, domain.ErrContinuation):
+		code, message = codes.FailedPrecondition, "continuation_expired"
+	case errors.Is(err, domain.ErrRestartRequired):
+		code, message = codes.FailedPrecondition, "restart_required"
 	case errors.Is(err, domain.ErrExecutionChanged):
 		code, message = codes.Aborted, "execution_changed"
 	case errors.Is(err, domain.ErrCounterNotFound):

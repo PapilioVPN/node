@@ -19,6 +19,12 @@ type Handler struct {
 
 func (h Handler) Register(router fiber.Router) {
 	router.Get("/v1/xray/observability/instances/:id/traffic/counter", h.Read)
+	router.Get("/v1/xray/observability/instances/:id/traffic/counters", h.List)
+	router.Get("/v1/xray/observability/instances/:id/traffic/pair", h.Pair)
+	router.Post("/v1/xray/observability/instances/:id/traffic/counter-resets", h.ResetCounter)
+	router.Post("/v1/xray/observability/instances/:id/traffic/pair-resets", h.ResetPair)
+	router.Post("/v1/xray/observability/instances/:id/traffic/scope-resets", h.ResetScope)
+	router.Get("/v1/xray/observability/instances/:id/traffic/reset-status", h.ResetStatus)
 }
 func (h Handler) Read(request fiber.Ctx) error {
 	request.Set(fiber.HeaderCacheControl, "no-store")
@@ -66,6 +72,12 @@ func failure(request fiber.Ctx, err error) error {
 		code = "canceled"
 	case errors.Is(err, domain.ErrInvalidArgument):
 		code, status = "invalid_argument", fiber.StatusBadRequest
+	case errors.Is(err, domain.ErrConflict):
+		code, status = "revision_conflict", fiber.StatusConflict
+	case errors.Is(err, domain.ErrContinuation):
+		code, status = "continuation_expired", fiber.StatusConflict
+	case errors.Is(err, domain.ErrRestartRequired):
+		code, status = "restart_required", fiber.StatusConflict
 	case errors.Is(err, domain.ErrExecutionChanged):
 		code, status = "execution_changed", fiber.StatusConflict
 	case errors.Is(err, domain.ErrCounterNotFound):

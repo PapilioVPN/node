@@ -7,6 +7,12 @@ import "google/protobuf/timestamp.proto";
 
 service TrafficService {
   rpc GetTrafficCounter(GetTrafficCounterRequest) returns (TrafficCounter);
+  rpc ListTrafficCounters(ListTrafficCountersRequest) returns (TrafficPage);
+  rpc GetTrafficPair(GetTrafficPairRequest) returns (TrafficPair);
+  rpc ResetTrafficCounter(ResetTrafficRequest) returns (TrafficResetReport);
+  rpc ResetTrafficPair(ResetTrafficRequest) returns (TrafficResetReport);
+  rpc ResetTrafficCounters(ResetTrafficRequest) returns (TrafficResetReport);
+  rpc GetTrafficResetStatus(GetTrafficResetStatusRequest) returns (TrafficResetReport);
 }
 
 enum Scope {
@@ -38,4 +44,91 @@ message TrafficCounter {
   string source = 7;
   google.protobuf.Timestamp observed_at = 8;
   int64 duration_ns = 9;
+}
+
+message ListTrafficCountersRequest {
+  string instance_id = 1;
+  Scope scope = 2;
+  uint32 page_size = 3; // Default/max 50.
+  string page_token = 4;
+}
+message CounterValue {
+  string name = 1;
+  Direction direction = 2;
+  int64 bytes = 3;
+}
+// One scan, stable pages for one minute; a new scan for this instance invalidates
+// the old continuation. Replacement of the local execution rejects continuation.
+message TrafficPage {
+  string instance_id = 1;
+  uint64 generation = 2;
+  Scope scope = 3;
+  repeated CounterValue counters = 4;
+  string source = 5;
+  google.protobuf.Timestamp observed_at = 6;
+  int64 duration_ns = 7;
+  string next_page_token = 8;
+}
+message GetTrafficPairRequest {
+  string instance_id = 1;
+  Scope scope = 2;
+  string name = 3;
+}
+message TrafficPair {
+  string instance_id = 1;
+  uint64 generation = 2;
+  Scope scope = 3;
+  string name = 4;
+  TrafficCounter uplink = 5; // Absent is missing, present zero is registered.
+  TrafficCounter downlink = 6;
+  string source = 7;
+  google.protobuf.Timestamp observed_at = 8;
+  int64 duration_ns = 9;
+}
+// Get reset status first. Reuse the SAME epoch/revision/operation_id after a
+// lost reply. Never refresh the revision to automatically replay a reset.
+message ResetTrafficRequest {
+  string instance_id = 1;
+  string epoch = 2;
+  string operation_id = 3;
+  optional uint64 expected_revision = 4;
+  Scope scope = 5;
+  string name = 6; // Required for exact/pair, absent for scope.
+  Direction direction = 7; // Required only for exact.
+  uint32 max_counters = 8; // Required 1..1000 only for scope.
+}
+message GetTrafficResetStatusRequest {
+  string instance_id = 1;
+  uint64 revision = 2; // Zero selects latest; nonzero binds result paging.
+  uint32 offset = 3; // Pages contain at most 50 items.
+}
+message ResetCounterResult {
+  string name = 1;
+  Direction direction = 2;
+  bool attempted = 3; // Adapter invocation, not proof of delivery.
+  string effect = 4; // acknowledged/missing/not_applied/unknown/not_attempted
+  optional int64 previous_bytes = 5;
+  google.protobuf.Timestamp acknowledged_at = 6;
+  string error = 7;
+}
+// Operational errors are in this envelope (gRPC OK), not oversized trailers.
+// Evidence is volatile, last operation only, and scoped to this Node epoch.
+message TrafficResetReport {
+  string instance_id = 1;
+  string epoch = 2;
+  string operation_id = 3;
+  uint64 revision = 4;
+  uint64 generation = 5;
+  string kind = 6;
+  Scope scope = 7;
+  string name = 8;
+  Direction direction = 9;
+  string outcome = 10;
+  string error = 11;
+  bool recovery_required = 12;
+  google.protobuf.Timestamp started_at = 13;
+  google.protobuf.Timestamp completed_at = 14;
+  repeated ResetCounterResult items = 15;
+  uint32 total = 16;
+  uint32 next_offset = 17;
 }
