@@ -30,18 +30,21 @@ type entry struct {
 	mutating            bool
 	uncertainGeneration uint64
 	last                *domain.Operation
+	revision            uint64
 }
 type Service struct {
 	entries          map[string]*entry
 	status           StatusReader
 	reads, mutations chan struct{}
+	pagesMu          sync.Mutex
+	pages            map[string]recordPage
 }
 
 func New(bindings []Binding, status StatusReader) (*Service, error) {
 	if status == nil {
 		return nil, domain.ErrInvalidArgument
 	}
-	service := &Service{entries: make(map[string]*entry, len(bindings)), status: status, reads: make(chan struct{}, 32), mutations: make(chan struct{}, 8)}
+	service := &Service{entries: make(map[string]*entry, len(bindings)), status: status, reads: make(chan struct{}, 32), mutations: make(chan struct{}, 8), pages: make(map[string]recordPage)}
 	for _, binding := range bindings {
 		if instancevalidators.ID(binding.ID) != nil || service.entries[binding.ID] != nil {
 			return nil, domain.ErrInvalidArgument

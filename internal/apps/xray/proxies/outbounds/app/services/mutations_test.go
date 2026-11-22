@@ -121,3 +121,16 @@ func TestRetainedMutationEvidenceOwnsRequestSelectors(t *testing.T) {
 		t.Fatal("retained evidence borrowed request memory", state.LastOperation, err)
 	}
 }
+
+func TestConfirmedNativeAcknowledgementSurvivesLateCallerCancellation(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	s := service(t, native{add: func(context.Context) (domain.NativeResult, error) {
+		cancel()
+		return domain.NativeResult{Effect: domain.Completed, Acknowledged: true}, nil
+	}}, &execution{generation: 1})
+	result, err := s.Remove(ctx, "edge-a", "selected")
+	if err != nil || !result.Acknowledged || result.Effect != domain.Completed {
+		t.Fatal(result, err)
+	}
+}

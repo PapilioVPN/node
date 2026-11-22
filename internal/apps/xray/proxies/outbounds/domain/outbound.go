@@ -31,11 +31,14 @@ type Record struct {
 	Configuration []byte
 }
 type Records struct {
-	InstanceID string
-	Generation uint64
-	Outbounds  []Record
-	ObservedAt time.Time
-	Duration   time.Duration
+	NextPageToken string
+	Source        string
+	DefaultState  string
+	InstanceID    string
+	Generation    uint64
+	Outbounds     []Record
+	ObservedAt    time.Time
+	Duration      time.Duration
 }
 
 type Effect string
@@ -77,4 +80,20 @@ type ControlStatus struct {
 	RequiresInstanceRestart bool
 	LastOperation           *Operation
 	ObservedAt              time.Time
+}
+
+var (
+	ErrContinuation     = errors.New("outbound continuation expired or changed")
+	ErrPlanExpired      = errors.New("outbound replacement plan expired or superseded")
+	ErrStalePlan        = errors.New("outbound replacement observation changed")
+	ErrOutboundNotFound = errors.New("selected outbound is absent")
+	ErrRestartRequired  = errors.New("outbound replacement requires configuration restart")
+)
+
+const MaxPageSize = 50
+const Source = "xray.handler.list_outbounds"
+
+type PageRequest struct {
+	PageSize  uint32
+	PageToken string
 }

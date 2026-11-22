@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"errors"
+	"math"
 	"strings"
 	"time"
 
@@ -58,7 +59,7 @@ func (s *Service) mutate(ctx context.Context, id, kind, tag string, invoke func(
 		operation.RequiresInstanceRestart = true
 		return operation, domain.ErrUncertain
 	}
-	if selected.mutating || selected.readers != 0 {
+	if selected.mutating || selected.readers != 0 || selected.revision == math.MaxUint64 {
 		selected.mu.Unlock()
 		return operation, domain.ErrCapacity
 	}
@@ -71,6 +72,9 @@ func (s *Service) mutate(ctx context.Context, id, kind, tag string, invoke func(
 		selected.mu.Lock()
 		defer selected.mu.Unlock()
 		selected.mutating = false
+		if operation.Effect != domain.NotApplied {
+			selected.revision++
+		}
 		if operation.RequiresInstanceRestart {
 			selected.uncertainGeneration = operation.Generation
 		}
@@ -91,7 +95,7 @@ func (s *Service) mutate(ctx context.Context, id, kind, tag string, invoke func(
 	operation.Effect = native.Effect
 	operation.Acknowledged = native.Acknowledged
 	operation.RequiresInstanceRestart = native.RequiresInstanceRestart
-	after, statusErr := s.status.Status(ctx, id)
+	after, statusErr := s.status.Status(context.WithoutCancel(ctx), id)
 	if statusErr != nil {
 		if operation.Acknowledged {
 			operation.Effect = domain.Unknown
