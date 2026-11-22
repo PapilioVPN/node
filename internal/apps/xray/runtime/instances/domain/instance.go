@@ -2,6 +2,7 @@
 package domain
 
 import (
+	"context"
 	"errors"
 	"time"
 )
@@ -29,6 +30,10 @@ const (
 // Execution retains the last run after exit. Failure is private native evidence.
 // StartedAt acknowledges process creation, not engine readiness or signal admission.
 type Execution struct {
+	ExecutionID           string
+	IdentityVerified      bool
+	Reattached            bool
+	PreserveOnClose       bool
 	State                 State
 	Generation            uint64
 	StartedAt             *time.Time
@@ -77,4 +82,99 @@ type Readiness struct {
 	APIState     ProbeState
 	TrafficState ProbeState
 	CheckedAt    time.Time
+}
+
+var (
+	ErrOwnership        = errors.New("execution ownership cannot be verified")
+	ErrRecoveryRequired = errors.New("execution recovery requires explicit resolution")
+	ErrReadiness        = errors.New("execution failed readiness")
+	ErrConflict         = errors.New("execution or lease revision conflict")
+)
+
+const MaxOutputBytes = 1 << 20
+const MaxOutputRead = 64 << 10
+
+// OutputRequest selects a bounded raw console prefix. This internal source is
+// private input for Logs, whose own boundary must redact and frame records.
+type OutputRequest struct {
+	ExecutionID string
+	Offset      uint64
+	Limit       uint32
+}
+type OutputPage struct {
+	ExecutionID       string
+	Generation        uint64
+	Offset            uint64
+	NextOffset        uint64
+	Data              []byte
+	CapacityReached   bool
+	PositionUncertain bool
+	Reattached        bool
+	Exited            bool
+	ObservedAt        time.Time
+}
+type OutputSource interface {
+	ReadOutput(context.Context, OutputRequest) (OutputPage, error)
+}
+type OutputBinding struct {
+	ID     string
+	Source OutputSource
+}
+
+type RetentionRequest struct {
+	ExecutionID string
+	Preserve    bool
+}
+type RepairRequest struct {
+	ExecutionID    string
+	MaxAttempts    uint32
+	ReplaceUnready bool
+}
+type RepairResult struct {
+	Control  Control
+	Attempts uint32
+	Ready    bool
+	Action   string
+}
+type InstancePage struct {
+	Items     []Status
+	NextAfter string
+}
+
+type LeaseStatus struct {
+	Revision    uint64
+	State       string
+	Owner       string
+	ExecutionID string
+	Policy      string
+	ExpiresAt   *time.Time
+	StopEffect  Effect
+	Error       string
+	ObservedAt  time.Time
+}
+
+// LeaseRecord is private storage. Token is returned only by explicit acquisition.
+type LeaseRecord struct {
+	Status LeaseStatus
+	Token  string
+}
+type LeaseReceipt struct {
+	Status LeaseStatus
+	Token  string
+}
+type AcquireLease struct {
+	ExpectedRevision uint64
+	ExecutionID      string
+	Owner            string
+	TTLSeconds       uint32
+	Policy           string
+}
+type RenewLease struct {
+	ExpectedRevision uint64
+	Token            string
+	TTLSeconds       uint32
+}
+type ReleaseLease struct {
+	ExpectedRevision uint64
+	Token            string
 }
