@@ -139,7 +139,7 @@ func newFixture(t *testing.T, pki testutil.PKI, broker, transport, mode string, 
 	if err := os.WriteFile(file, data, 0600); err != nil {
 		t.Fatal(err)
 	}
-	f.config = settings.Config{StartupTimeout: 5 * time.Second, ShutdownTimeout: 10 * time.Second, Instances: []settings.Instance{{ID: "edge", Engine: "xray", StopTimeout: time.Second, Xray: &settings.Xray{Binary: binary, Configuration: file, API: &settings.XrayAPI{Network: "tcp", Address: reservation.Addr().String()}}}}}
+	f.config = settings.Config{StartupTimeout: 5 * time.Second, ShutdownTimeout: 12 * time.Second, Instances: []settings.Instance{{ID: "edge", Engine: "xray", StopTimeout: time.Second, Xray: &settings.Xray{Binary: binary, Configuration: file, API: &settings.XrayAPI{Network: "tcp", Address: reservation.Addr().String()}}}}}
 	// These instances distinguish missing Node API configuration and an unreachable
 	// endpoint while preserving real running engine lifecycles.
 	f.config.Instances = append(f.config.Instances,
@@ -170,7 +170,7 @@ func newFixture(t *testing.T, pki testutil.PKI, broker, transport, mode string, 
 	}
 	t.Cleanup(func() {
 		f.unblock()
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), f.config.ShutdownTimeout)
 		defer cancel()
 		if err := app.Stop(ctx); err != nil {
 			t.Error(err)

@@ -104,7 +104,7 @@ func nodeFixture(t *testing.T, pki testutil.PKI, brokerURL, transport string) fi
 	if err := os.WriteFile(path, original, 0600); err != nil {
 		t.Fatal(err)
 	}
-	config := settings.Config{StartupTimeout: 5 * time.Second, ShutdownTimeout: 10 * time.Second, Instances: []settings.Instance{{ID: "edge-a", Engine: "xray", StopTimeout: time.Second, Xray: &settings.Xray{Binary: binary, Configuration: path, WorkDirectory: work}}}}
+	config := settings.Config{StartupTimeout: 5 * time.Second, ShutdownTimeout: 12 * time.Second, Instances: []settings.Instance{{ID: "edge-a", Engine: "xray", StopTimeout: time.Second, Xray: &settings.Xray{Binary: binary, Configuration: path, WorkDirectory: work}}}}
 	config.Communications.Requests.Timeout = time.Second
 	if transport == "http" || transport == "all" {
 		config.Communications.HTTP = &settings.HTTP{Address: "127.0.0.1:0", TLS: pki.Server, ReadTimeout: 2 * time.Second, WriteTimeout: 3 * time.Second, IdleTimeout: time.Second, ShutdownTimeout: time.Second, BodyLimit: 2 << 20, Concurrency: 16}

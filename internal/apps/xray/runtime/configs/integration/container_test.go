@@ -215,6 +215,7 @@ func containerAddresses(t *testing.T, name string, since ...string) map[string]s
 	defer cancel()
 	tick := time.NewTicker(20 * time.Millisecond)
 	defer tick.Stop()
+	var startupError string
 	for {
 		addresses := map[string]string{}
 		started := false
@@ -225,11 +226,16 @@ func containerAddresses(t *testing.T, name string, since ...string) map[string]s
 		args = append(args, name)
 		for line := range strings.SplitSeq(docker(t, args...), "\n") {
 			var event struct {
+				Level   string `json:"level"`
 				Message string `json:"msg"`
+				Error   string `json:"error"`
 				Address string `json:"address"`
 			}
 			if json.Unmarshal([]byte(line), &event) != nil {
 				continue
+			}
+			if event.Level == "ERROR" && event.Error != "" {
+				startupError = event.Error
 			}
 			if event.Message == "HTTP listening" || event.Message == "gRPC listening" {
 				addresses[event.Message] = event.Address
@@ -243,7 +249,7 @@ func containerAddresses(t *testing.T, name string, since ...string) map[string]s
 		}
 		select {
 		case <-ctx.Done():
-			t.Fatal("packaged configuration endpoint did not start")
+			t.Fatalf("packaged configuration endpoint did not start: %s", startupError)
 		case <-tick.C:
 		}
 	}
