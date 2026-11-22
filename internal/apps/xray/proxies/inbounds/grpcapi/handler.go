@@ -17,6 +17,7 @@ import (
 
 type Handler struct {
 	inboundsv1.UnimplementedInboundsServiceServer
+	Catalog *services.Catalog
 	Service *services.Service
 	Sources *services.Sources
 	Timeout time.Duration
@@ -31,7 +32,7 @@ func (h Handler) ListInbounds(ctx context.Context, request *inboundsv1.ListInbou
 	}
 	ctx, cancel := context.WithTimeout(ctx, h.Timeout)
 	defer cancel()
-	result, err := h.Service.Records(ctx, request.InstanceId)
+	result, err := h.Service.RecordPage(ctx, request.InstanceId, domain.PageRequest{Size: request.PageSize, Cursor: request.Cursor})
 	if err != nil {
 		return nil, failure(err)
 	}
@@ -39,7 +40,7 @@ func (h Handler) ListInbounds(ctx context.Context, request *inboundsv1.ListInbou
 	for i, item := range result.Inbounds {
 		records[i] = &inboundsv1.InboundConfiguration{Tag: item.Tag, Configuration: item.Configuration}
 	}
-	return &inboundsv1.InboundConfigurations{InstanceId: result.InstanceID, Generation: result.Generation, Inbounds: records, ObservedAt: timestamppb.New(result.ObservedAt), DurationNs: int64(result.Duration)}, nil
+	return &inboundsv1.InboundConfigurations{InstanceId: result.InstanceID, Generation: result.Generation, Inbounds: records, ObservedAt: timestamppb.New(result.ObservedAt), DurationNs: int64(result.Duration), NextCursor: result.NextCursor, ExpiresAt: timestamppb.New(result.ExpiresAt)}, nil
 }
 func (h Handler) ListInboundTags(ctx context.Context, request *inboundsv1.ListInboundTagsRequest) (*inboundsv1.InboundTags, error) {
 	if request == nil {
@@ -47,11 +48,11 @@ func (h Handler) ListInboundTags(ctx context.Context, request *inboundsv1.ListIn
 	}
 	ctx, cancel := context.WithTimeout(ctx, h.Timeout)
 	defer cancel()
-	result, err := h.Service.Tags(ctx, request.InstanceId)
+	result, err := h.Service.TagPage(ctx, request.InstanceId, domain.PageRequest{Size: request.PageSize, Cursor: request.Cursor})
 	if err != nil {
 		return nil, failure(err)
 	}
-	return &inboundsv1.InboundTags{InstanceId: result.InstanceID, Generation: result.Generation, Tags: result.Tags, ObservedAt: timestamppb.New(result.ObservedAt), DurationNs: int64(result.Duration)}, nil
+	return &inboundsv1.InboundTags{InstanceId: result.InstanceID, Generation: result.Generation, Tags: result.Tags, ObservedAt: timestamppb.New(result.ObservedAt), DurationNs: int64(result.Duration), NextCursor: result.NextCursor, ExpiresAt: timestamppb.New(result.ExpiresAt)}, nil
 }
 func (h Handler) GetInboundControlStatus(ctx context.Context, request *inboundsv1.GetInboundControlStatusRequest) (*inboundsv1.InboundControlStatus, error) {
 	if request == nil {
@@ -78,12 +79,18 @@ func failure(err error) error {
 		code, message = codes.Canceled, "canceled"
 	case errors.Is(err, domain.ErrInvalidArgument):
 		code, message = codes.InvalidArgument, "invalid_argument"
+	case errors.Is(err, domain.ErrInboundNotFound):
+		code, message = codes.NotFound, "inbound_not_found"
+	case errors.Is(err, domain.ErrAmbiguousInbound):
+		code, message = codes.FailedPrecondition, "ambiguous_inbound"
 	case errors.Is(err, domain.ErrNotFound):
 		code, message = codes.NotFound, "not_found"
 	case errors.Is(err, domain.ErrUnsupported), errors.Is(err, domain.ErrNotRunning):
 		code, message = codes.FailedPrecondition, "failed_precondition"
 	case errors.Is(err, domain.ErrUncertain):
 		code, message = codes.FailedPrecondition, "restart_required"
+	case errors.Is(err, domain.ErrStale):
+		code, message = codes.Aborted, "stale_observation"
 	case errors.Is(err, domain.ErrExecutionChanged):
 		code, message = codes.Aborted, "execution_changed"
 	case errors.Is(err, domain.ErrCapacity):

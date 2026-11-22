@@ -29,7 +29,7 @@ func (h Handler) RemoveInbound(ctx context.Context, request *inboundsv1.RemoveIn
 	return mutationResult(result, err)
 }
 func operationResult(result domain.Operation) *inboundsv1.InboundOperation {
-	response := &inboundsv1.InboundOperation{InstanceId: result.InstanceID, Generation: result.Generation, Kind: result.Kind, Tag: result.Tag, Effect: string(result.Effect), Acknowledged: result.Acknowledged, RequiresInstanceRestart: result.RequiresInstanceRestart, DurationNs: int64(result.Duration)}
+	response := &inboundsv1.InboundOperation{Replacement: replacementProgress(result.Replacement), InstanceId: result.InstanceID, Generation: result.Generation, Kind: result.Kind, Tag: result.Tag, Effect: string(result.Effect), Acknowledged: result.Acknowledged, RequiresInstanceRestart: result.RequiresInstanceRestart, DurationNs: int64(result.Duration)}
 	if !result.ObservedAt.IsZero() {
 		response.ObservedAt = timestamppb.New(result.ObservedAt)
 	}
@@ -65,4 +65,11 @@ func (h Handler) AddInboundFromSources(ctx context.Context, request *inboundsv1.
 	defer cancel()
 	result, err := h.Sources.Add(ctx, request.InstanceId, request.Tag, sources)
 	return mutationResult(result, err)
+}
+
+func replacementProgress(p *domain.ReplacementProgress) *inboundsv1.InboundReplacementProgress {
+	if p == nil {
+		return nil
+	}
+	return &inboundsv1.InboundReplacementProgress{Token: p.Token, NextAction: p.NextAction, Remove: &inboundsv1.InboundReplacementStep{Attempted: p.Remove.Attempted, Effect: string(p.Remove.Effect), Acknowledged: p.Remove.Acknowledged}, Add: &inboundsv1.InboundReplacementStep{Attempted: p.Add.Attempted, Effect: string(p.Add.Effect), Acknowledged: p.Add.Acknowledged}}
 }

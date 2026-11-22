@@ -8,11 +8,14 @@ import (
 
 var (
 	ErrInvalidArgument  = errors.New("invalid inbound input")
+	ErrInboundNotFound  = errors.New("inbound not found")
+	ErrAmbiguousInbound = errors.New("ambiguous inbound tag")
 	ErrNotFound         = errors.New("instance not found")
 	ErrUnsupported      = errors.New("inbound API not configured or implemented")
 	ErrNotRunning       = errors.New("instance is not running")
 	ErrCapacity         = errors.New("inbound operation capacity exceeded")
 	ErrExecutionChanged = errors.New("execution changed during inbound operation")
+	ErrStale            = errors.New("inbound observation or plan is stale")
 	ErrUncertain        = errors.New("replace the uncertain inbound execution")
 )
 
@@ -29,6 +32,7 @@ type Record struct {
 	Configuration []byte
 }
 type Records struct {
+	PageEvidence
 	InstanceID string
 	Generation uint64
 	Inbounds   []Record
@@ -39,6 +43,7 @@ type Records struct {
 // Tags is a separate native projection; duplicates/empty untagged values and the
 // native unspecified ordering are retained, without fetching configurations.
 type Tags struct {
+	PageEvidence
 	InstanceID string
 	Generation uint64
 	Tags       []string
@@ -50,10 +55,12 @@ type Effect string
 const (
 	NotApplied Effect = "not_applied"
 	Completed  Effect = "completed"
+	Partial    Effect = "partial"
 	Unknown    Effect = "unknown"
 )
 
 type NativeResult struct {
+	Replacement             *ReplacementProgress
 	Tag                     string
 	Effect                  Effect
 	Acknowledged            bool
@@ -65,6 +72,7 @@ type NativeResult struct {
 // acknowledgement does not prove termination of established connections or
 // complete resource cleanup; the pinned native manager discards Close errors.
 type Operation struct {
+	Replacement             *ReplacementProgress
 	InstanceID              string
 	Generation              uint64
 	Kind                    string

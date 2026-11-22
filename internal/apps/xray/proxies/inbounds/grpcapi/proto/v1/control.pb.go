@@ -178,12 +178,13 @@ type InboundOperation struct {
 	Generation uint64                 `protobuf:"varint,2,opt,name=generation,proto3" json:"generation,omitempty"`
 	Kind       string                 `protobuf:"bytes,3,opt,name=kind,proto3" json:"kind,omitempty"`
 	Tag        string                 `protobuf:"bytes,4,opt,name=tag,proto3" json:"tag,omitempty"`
-	// completed, not_applied or unknown; live changes are not durable desired state.
-	Effect                  string                 `protobuf:"bytes,5,opt,name=effect,proto3" json:"effect,omitempty"`
-	Acknowledged            bool                   `protobuf:"varint,6,opt,name=acknowledged,proto3" json:"acknowledged,omitempty"`
-	RequiresInstanceRestart bool                   `protobuf:"varint,7,opt,name=requires_instance_restart,json=requiresInstanceRestart,proto3" json:"requires_instance_restart,omitempty"`
-	ObservedAt              *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=observed_at,json=observedAt,proto3" json:"observed_at,omitempty"`
-	DurationNs              int64                  `protobuf:"varint,9,opt,name=duration_ns,json=durationNs,proto3" json:"duration_ns,omitempty"`
+	// completed, not_applied, partial or unknown; live changes are not durable desired state.
+	Effect                  string                      `protobuf:"bytes,5,opt,name=effect,proto3" json:"effect,omitempty"`
+	Acknowledged            bool                        `protobuf:"varint,6,opt,name=acknowledged,proto3" json:"acknowledged,omitempty"`
+	RequiresInstanceRestart bool                        `protobuf:"varint,7,opt,name=requires_instance_restart,json=requiresInstanceRestart,proto3" json:"requires_instance_restart,omitempty"`
+	ObservedAt              *timestamppb.Timestamp      `protobuf:"bytes,8,opt,name=observed_at,json=observedAt,proto3" json:"observed_at,omitempty"`
+	DurationNs              int64                       `protobuf:"varint,9,opt,name=duration_ns,json=durationNs,proto3" json:"duration_ns,omitempty"`
+	Replacement             *InboundReplacementProgress `protobuf:"bytes,10,opt,name=replacement,proto3" json:"replacement,omitempty"`
 	unknownFields           protoimpl.UnknownFields
 	sizeCache               protoimpl.SizeCache
 }
@@ -279,6 +280,13 @@ func (x *InboundOperation) GetDurationNs() int64 {
 		return x.DurationNs
 	}
 	return 0
+}
+
+func (x *InboundOperation) GetReplacement() *InboundReplacementProgress {
+	if x != nil {
+		return x.Replacement
+	}
+	return nil
 }
 
 type InboundControlStatus struct {
@@ -443,6 +451,397 @@ func (x *AddInboundFromSourcesRequest) GetSources() []*v1.ConfigurationSource {
 	return nil
 }
 
+type PlanInboundReplacementRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	InstanceId    string                 `protobuf:"bytes,1,opt,name=instance_id,json=instanceId,proto3" json:"instance_id,omitempty"`
+	Tag           string                 `protobuf:"bytes,2,opt,name=tag,proto3" json:"tag,omitempty"`
+	Configuration []byte                 `protobuf:"bytes,3,opt,name=configuration,proto3" json:"configuration,omitempty"`
+	// Explicit consent to a remove/add listener gap, without guaranteed disconnect.
+	AllowInterruption  bool `protobuf:"varint,4,opt,name=allow_interruption,json=allowInterruption,proto3" json:"allow_interruption,omitempty"`
+	DisconnectExisting bool `protobuf:"varint,5,opt,name=disconnect_existing,json=disconnectExisting,proto3" json:"disconnect_existing,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *PlanInboundReplacementRequest) Reset() {
+	*x = PlanInboundReplacementRequest{}
+	mi := &file_internal_apps_xray_proxies_inbounds_grpcapi_proto_v1_control_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PlanInboundReplacementRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PlanInboundReplacementRequest) ProtoMessage() {}
+
+func (x *PlanInboundReplacementRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_apps_xray_proxies_inbounds_grpcapi_proto_v1_control_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PlanInboundReplacementRequest.ProtoReflect.Descriptor instead.
+func (*PlanInboundReplacementRequest) Descriptor() ([]byte, []int) {
+	return file_internal_apps_xray_proxies_inbounds_grpcapi_proto_v1_control_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *PlanInboundReplacementRequest) GetInstanceId() string {
+	if x != nil {
+		return x.InstanceId
+	}
+	return ""
+}
+
+func (x *PlanInboundReplacementRequest) GetTag() string {
+	if x != nil {
+		return x.Tag
+	}
+	return ""
+}
+
+func (x *PlanInboundReplacementRequest) GetConfiguration() []byte {
+	if x != nil {
+		return x.Configuration
+	}
+	return nil
+}
+
+func (x *PlanInboundReplacementRequest) GetAllowInterruption() bool {
+	if x != nil {
+		return x.AllowInterruption
+	}
+	return false
+}
+
+func (x *PlanInboundReplacementRequest) GetDisconnectExisting() bool {
+	if x != nil {
+		return x.DisconnectExisting
+	}
+	return false
+}
+
+type InboundReplacementPlan struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	Token           string                 `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
+	InstanceId      string                 `protobuf:"bytes,2,opt,name=instance_id,json=instanceId,proto3" json:"instance_id,omitempty"`
+	Generation      uint64                 `protobuf:"varint,3,opt,name=generation,proto3" json:"generation,omitempty"`
+	Tag             string                 `protobuf:"bytes,4,opt,name=tag,proto3" json:"tag,omitempty"`
+	CurrentSha256   string                 `protobuf:"bytes,5,opt,name=current_sha256,json=currentSha256,proto3" json:"current_sha256,omitempty"`
+	CandidateSha256 string                 `protobuf:"bytes,6,opt,name=candidate_sha256,json=candidateSha256,proto3" json:"candidate_sha256,omitempty"`
+	// live or restart. Restart uses existing ConfigurationsService contracts with
+	// full original ordered sources and expected_revision; no config is synthesized.
+	Mode                string                 `protobuf:"bytes,7,opt,name=mode,proto3" json:"mode,omitempty"`
+	Reason              string                 `protobuf:"bytes,8,opt,name=reason,proto3" json:"reason,omitempty"`
+	ExistingConnections string                 `protobuf:"bytes,9,opt,name=existing_connections,json=existingConnections,proto3" json:"existing_connections,omitempty"`
+	NewConnections      string                 `protobuf:"bytes,10,opt,name=new_connections,json=newConnections,proto3" json:"new_connections,omitempty"`
+	Fallback            string                 `protobuf:"bytes,11,opt,name=fallback,proto3" json:"fallback,omitempty"`
+	ExpiresAt           *timestamppb.Timestamp `protobuf:"bytes,12,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *InboundReplacementPlan) Reset() {
+	*x = InboundReplacementPlan{}
+	mi := &file_internal_apps_xray_proxies_inbounds_grpcapi_proto_v1_control_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InboundReplacementPlan) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InboundReplacementPlan) ProtoMessage() {}
+
+func (x *InboundReplacementPlan) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_apps_xray_proxies_inbounds_grpcapi_proto_v1_control_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InboundReplacementPlan.ProtoReflect.Descriptor instead.
+func (*InboundReplacementPlan) Descriptor() ([]byte, []int) {
+	return file_internal_apps_xray_proxies_inbounds_grpcapi_proto_v1_control_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *InboundReplacementPlan) GetToken() string {
+	if x != nil {
+		return x.Token
+	}
+	return ""
+}
+
+func (x *InboundReplacementPlan) GetInstanceId() string {
+	if x != nil {
+		return x.InstanceId
+	}
+	return ""
+}
+
+func (x *InboundReplacementPlan) GetGeneration() uint64 {
+	if x != nil {
+		return x.Generation
+	}
+	return 0
+}
+
+func (x *InboundReplacementPlan) GetTag() string {
+	if x != nil {
+		return x.Tag
+	}
+	return ""
+}
+
+func (x *InboundReplacementPlan) GetCurrentSha256() string {
+	if x != nil {
+		return x.CurrentSha256
+	}
+	return ""
+}
+
+func (x *InboundReplacementPlan) GetCandidateSha256() string {
+	if x != nil {
+		return x.CandidateSha256
+	}
+	return ""
+}
+
+func (x *InboundReplacementPlan) GetMode() string {
+	if x != nil {
+		return x.Mode
+	}
+	return ""
+}
+
+func (x *InboundReplacementPlan) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
+func (x *InboundReplacementPlan) GetExistingConnections() string {
+	if x != nil {
+		return x.ExistingConnections
+	}
+	return ""
+}
+
+func (x *InboundReplacementPlan) GetNewConnections() string {
+	if x != nil {
+		return x.NewConnections
+	}
+	return ""
+}
+
+func (x *InboundReplacementPlan) GetFallback() string {
+	if x != nil {
+		return x.Fallback
+	}
+	return ""
+}
+
+func (x *InboundReplacementPlan) GetExpiresAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ExpiresAt
+	}
+	return nil
+}
+
+type ReplaceInboundRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	InstanceId    string                 `protobuf:"bytes,1,opt,name=instance_id,json=instanceId,proto3" json:"instance_id,omitempty"`
+	Token         string                 `protobuf:"bytes,2,opt,name=token,proto3" json:"token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ReplaceInboundRequest) Reset() {
+	*x = ReplaceInboundRequest{}
+	mi := &file_internal_apps_xray_proxies_inbounds_grpcapi_proto_v1_control_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReplaceInboundRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReplaceInboundRequest) ProtoMessage() {}
+
+func (x *ReplaceInboundRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_apps_xray_proxies_inbounds_grpcapi_proto_v1_control_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReplaceInboundRequest.ProtoReflect.Descriptor instead.
+func (*ReplaceInboundRequest) Descriptor() ([]byte, []int) {
+	return file_internal_apps_xray_proxies_inbounds_grpcapi_proto_v1_control_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *ReplaceInboundRequest) GetInstanceId() string {
+	if x != nil {
+		return x.InstanceId
+	}
+	return ""
+}
+
+func (x *ReplaceInboundRequest) GetToken() string {
+	if x != nil {
+		return x.Token
+	}
+	return ""
+}
+
+type InboundReplacementStep struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Attempted     bool                   `protobuf:"varint,1,opt,name=attempted,proto3" json:"attempted,omitempty"`
+	Effect        string                 `protobuf:"bytes,2,opt,name=effect,proto3" json:"effect,omitempty"`
+	Acknowledged  bool                   `protobuf:"varint,3,opt,name=acknowledged,proto3" json:"acknowledged,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *InboundReplacementStep) Reset() {
+	*x = InboundReplacementStep{}
+	mi := &file_internal_apps_xray_proxies_inbounds_grpcapi_proto_v1_control_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InboundReplacementStep) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InboundReplacementStep) ProtoMessage() {}
+
+func (x *InboundReplacementStep) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_apps_xray_proxies_inbounds_grpcapi_proto_v1_control_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InboundReplacementStep.ProtoReflect.Descriptor instead.
+func (*InboundReplacementStep) Descriptor() ([]byte, []int) {
+	return file_internal_apps_xray_proxies_inbounds_grpcapi_proto_v1_control_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *InboundReplacementStep) GetAttempted() bool {
+	if x != nil {
+		return x.Attempted
+	}
+	return false
+}
+
+func (x *InboundReplacementStep) GetEffect() string {
+	if x != nil {
+		return x.Effect
+	}
+	return ""
+}
+
+func (x *InboundReplacementStep) GetAcknowledged() bool {
+	if x != nil {
+		return x.Acknowledged
+	}
+	return false
+}
+
+type InboundReplacementProgress struct {
+	state         protoimpl.MessageState  `protogen:"open.v1"`
+	Token         string                  `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
+	Remove        *InboundReplacementStep `protobuf:"bytes,2,opt,name=remove,proto3" json:"remove,omitempty"`
+	Add           *InboundReplacementStep `protobuf:"bytes,3,opt,name=add,proto3" json:"add,omitempty"`
+	NextAction    string                  `protobuf:"bytes,4,opt,name=next_action,json=nextAction,proto3" json:"next_action,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *InboundReplacementProgress) Reset() {
+	*x = InboundReplacementProgress{}
+	mi := &file_internal_apps_xray_proxies_inbounds_grpcapi_proto_v1_control_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InboundReplacementProgress) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InboundReplacementProgress) ProtoMessage() {}
+
+func (x *InboundReplacementProgress) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_apps_xray_proxies_inbounds_grpcapi_proto_v1_control_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InboundReplacementProgress.ProtoReflect.Descriptor instead.
+func (*InboundReplacementProgress) Descriptor() ([]byte, []int) {
+	return file_internal_apps_xray_proxies_inbounds_grpcapi_proto_v1_control_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *InboundReplacementProgress) GetToken() string {
+	if x != nil {
+		return x.Token
+	}
+	return ""
+}
+
+func (x *InboundReplacementProgress) GetRemove() *InboundReplacementStep {
+	if x != nil {
+		return x.Remove
+	}
+	return nil
+}
+
+func (x *InboundReplacementProgress) GetAdd() *InboundReplacementStep {
+	if x != nil {
+		return x.Add
+	}
+	return nil
+}
+
+func (x *InboundReplacementProgress) GetNextAction() string {
+	if x != nil {
+		return x.NextAction
+	}
+	return ""
+}
+
 var File_internal_apps_xray_proxies_inbounds_grpcapi_proto_v1_control_proto protoreflect.FileDescriptor
 
 const file_internal_apps_xray_proxies_inbounds_grpcapi_proto_v1_control_proto_rawDesc = "" +
@@ -458,7 +857,7 @@ const file_internal_apps_xray_proxies_inbounds_grpcapi_proto_v1_control_proto_ra
 	"\x03tag\x18\x02 \x01(\tR\x03tag\"A\n" +
 	"\x1eGetInboundControlStatusRequest\x12\x1f\n" +
 	"\vinstance_id\x18\x01 \x01(\tR\n" +
-	"instanceId\"\xcf\x02\n" +
+	"instanceId\"\xaf\x03\n" +
 	"\x10InboundOperation\x12\x1f\n" +
 	"\vinstance_id\x18\x01 \x01(\tR\n" +
 	"instanceId\x12\x1e\n" +
@@ -473,7 +872,9 @@ const file_internal_apps_xray_proxies_inbounds_grpcapi_proto_v1_control_proto_ra
 	"\vobserved_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\n" +
 	"observedAt\x12\x1f\n" +
 	"\vduration_ns\x18\t \x01(\x03R\n" +
-	"durationNs\"\xa7\x03\n" +
+	"durationNs\x12^\n" +
+	"\vreplacement\x18\n" +
+	" \x01(\v2<.papilio.xray.proxies.inbounds.v1.InboundReplacementProgressR\vreplacement\"\xa7\x03\n" +
 	"\x14InboundControlStatus\x12\x1f\n" +
 	"\vinstance_id\x18\x01 \x01(\tR\n" +
 	"instanceId\x12\x1e\n" +
@@ -491,7 +892,46 @@ const file_internal_apps_xray_proxies_inbounds_grpcapi_proto_v1_control_proto_ra
 	"\vinstance_id\x18\x01 \x01(\tR\n" +
 	"instanceId\x12\x10\n" +
 	"\x03tag\x18\x02 \x01(\tR\x03tag\x12N\n" +
-	"\asources\x18\x03 \x03(\v24.papilio.xray.runtime.configs.v1.ConfigurationSourceR\asourcesB\\ZZgithub.com/PapilioVPN/node/internal/apps/xray/proxies/inbounds/grpcapi/proto/v1;inboundsv1b\x06proto3"
+	"\asources\x18\x03 \x03(\v24.papilio.xray.runtime.configs.v1.ConfigurationSourceR\asources\"\xd8\x01\n" +
+	"\x1dPlanInboundReplacementRequest\x12\x1f\n" +
+	"\vinstance_id\x18\x01 \x01(\tR\n" +
+	"instanceId\x12\x10\n" +
+	"\x03tag\x18\x02 \x01(\tR\x03tag\x12$\n" +
+	"\rconfiguration\x18\x03 \x01(\fR\rconfiguration\x12-\n" +
+	"\x12allow_interruption\x18\x04 \x01(\bR\x11allowInterruption\x12/\n" +
+	"\x13disconnect_existing\x18\x05 \x01(\bR\x12disconnectExisting\"\xb2\x03\n" +
+	"\x16InboundReplacementPlan\x12\x14\n" +
+	"\x05token\x18\x01 \x01(\tR\x05token\x12\x1f\n" +
+	"\vinstance_id\x18\x02 \x01(\tR\n" +
+	"instanceId\x12\x1e\n" +
+	"\n" +
+	"generation\x18\x03 \x01(\x04R\n" +
+	"generation\x12\x10\n" +
+	"\x03tag\x18\x04 \x01(\tR\x03tag\x12%\n" +
+	"\x0ecurrent_sha256\x18\x05 \x01(\tR\rcurrentSha256\x12)\n" +
+	"\x10candidate_sha256\x18\x06 \x01(\tR\x0fcandidateSha256\x12\x12\n" +
+	"\x04mode\x18\a \x01(\tR\x04mode\x12\x16\n" +
+	"\x06reason\x18\b \x01(\tR\x06reason\x121\n" +
+	"\x14existing_connections\x18\t \x01(\tR\x13existingConnections\x12'\n" +
+	"\x0fnew_connections\x18\n" +
+	" \x01(\tR\x0enewConnections\x12\x1a\n" +
+	"\bfallback\x18\v \x01(\tR\bfallback\x129\n" +
+	"\n" +
+	"expires_at\x18\f \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\"N\n" +
+	"\x15ReplaceInboundRequest\x12\x1f\n" +
+	"\vinstance_id\x18\x01 \x01(\tR\n" +
+	"instanceId\x12\x14\n" +
+	"\x05token\x18\x02 \x01(\tR\x05token\"r\n" +
+	"\x16InboundReplacementStep\x12\x1c\n" +
+	"\tattempted\x18\x01 \x01(\bR\tattempted\x12\x16\n" +
+	"\x06effect\x18\x02 \x01(\tR\x06effect\x12\"\n" +
+	"\facknowledged\x18\x03 \x01(\bR\facknowledged\"\xf1\x01\n" +
+	"\x1aInboundReplacementProgress\x12\x14\n" +
+	"\x05token\x18\x01 \x01(\tR\x05token\x12P\n" +
+	"\x06remove\x18\x02 \x01(\v28.papilio.xray.proxies.inbounds.v1.InboundReplacementStepR\x06remove\x12J\n" +
+	"\x03add\x18\x03 \x01(\v28.papilio.xray.proxies.inbounds.v1.InboundReplacementStepR\x03add\x12\x1f\n" +
+	"\vnext_action\x18\x04 \x01(\tR\n" +
+	"nextActionB\\ZZgithub.com/PapilioVPN/node/internal/apps/xray/proxies/inbounds/grpcapi/proto/v1;inboundsv1b\x06proto3"
 
 var (
 	file_internal_apps_xray_proxies_inbounds_grpcapi_proto_v1_control_proto_rawDescOnce sync.Once
@@ -505,7 +945,7 @@ func file_internal_apps_xray_proxies_inbounds_grpcapi_proto_v1_control_proto_raw
 	return file_internal_apps_xray_proxies_inbounds_grpcapi_proto_v1_control_proto_rawDescData
 }
 
-var file_internal_apps_xray_proxies_inbounds_grpcapi_proto_v1_control_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_internal_apps_xray_proxies_inbounds_grpcapi_proto_v1_control_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_internal_apps_xray_proxies_inbounds_grpcapi_proto_v1_control_proto_goTypes = []any{
 	(*AddInboundRequest)(nil),              // 0: papilio.xray.proxies.inbounds.v1.AddInboundRequest
 	(*RemoveInboundRequest)(nil),           // 1: papilio.xray.proxies.inbounds.v1.RemoveInboundRequest
@@ -513,19 +953,28 @@ var file_internal_apps_xray_proxies_inbounds_grpcapi_proto_v1_control_proto_goTy
 	(*InboundOperation)(nil),               // 3: papilio.xray.proxies.inbounds.v1.InboundOperation
 	(*InboundControlStatus)(nil),           // 4: papilio.xray.proxies.inbounds.v1.InboundControlStatus
 	(*AddInboundFromSourcesRequest)(nil),   // 5: papilio.xray.proxies.inbounds.v1.AddInboundFromSourcesRequest
-	(*timestamppb.Timestamp)(nil),          // 6: google.protobuf.Timestamp
-	(*v1.ConfigurationSource)(nil),         // 7: papilio.xray.runtime.configs.v1.ConfigurationSource
+	(*PlanInboundReplacementRequest)(nil),  // 6: papilio.xray.proxies.inbounds.v1.PlanInboundReplacementRequest
+	(*InboundReplacementPlan)(nil),         // 7: papilio.xray.proxies.inbounds.v1.InboundReplacementPlan
+	(*ReplaceInboundRequest)(nil),          // 8: papilio.xray.proxies.inbounds.v1.ReplaceInboundRequest
+	(*InboundReplacementStep)(nil),         // 9: papilio.xray.proxies.inbounds.v1.InboundReplacementStep
+	(*InboundReplacementProgress)(nil),     // 10: papilio.xray.proxies.inbounds.v1.InboundReplacementProgress
+	(*timestamppb.Timestamp)(nil),          // 11: google.protobuf.Timestamp
+	(*v1.ConfigurationSource)(nil),         // 12: papilio.xray.runtime.configs.v1.ConfigurationSource
 }
 var file_internal_apps_xray_proxies_inbounds_grpcapi_proto_v1_control_proto_depIdxs = []int32{
-	6, // 0: papilio.xray.proxies.inbounds.v1.InboundOperation.observed_at:type_name -> google.protobuf.Timestamp
-	3, // 1: papilio.xray.proxies.inbounds.v1.InboundControlStatus.last_operation:type_name -> papilio.xray.proxies.inbounds.v1.InboundOperation
-	6, // 2: papilio.xray.proxies.inbounds.v1.InboundControlStatus.observed_at:type_name -> google.protobuf.Timestamp
-	7, // 3: papilio.xray.proxies.inbounds.v1.AddInboundFromSourcesRequest.sources:type_name -> papilio.xray.runtime.configs.v1.ConfigurationSource
-	4, // [4:4] is the sub-list for method output_type
-	4, // [4:4] is the sub-list for method input_type
-	4, // [4:4] is the sub-list for extension type_name
-	4, // [4:4] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	11, // 0: papilio.xray.proxies.inbounds.v1.InboundOperation.observed_at:type_name -> google.protobuf.Timestamp
+	10, // 1: papilio.xray.proxies.inbounds.v1.InboundOperation.replacement:type_name -> papilio.xray.proxies.inbounds.v1.InboundReplacementProgress
+	3,  // 2: papilio.xray.proxies.inbounds.v1.InboundControlStatus.last_operation:type_name -> papilio.xray.proxies.inbounds.v1.InboundOperation
+	11, // 3: papilio.xray.proxies.inbounds.v1.InboundControlStatus.observed_at:type_name -> google.protobuf.Timestamp
+	12, // 4: papilio.xray.proxies.inbounds.v1.AddInboundFromSourcesRequest.sources:type_name -> papilio.xray.runtime.configs.v1.ConfigurationSource
+	11, // 5: papilio.xray.proxies.inbounds.v1.InboundReplacementPlan.expires_at:type_name -> google.protobuf.Timestamp
+	9,  // 6: papilio.xray.proxies.inbounds.v1.InboundReplacementProgress.remove:type_name -> papilio.xray.proxies.inbounds.v1.InboundReplacementStep
+	9,  // 7: papilio.xray.proxies.inbounds.v1.InboundReplacementProgress.add:type_name -> papilio.xray.proxies.inbounds.v1.InboundReplacementStep
+	8,  // [8:8] is the sub-list for method output_type
+	8,  // [8:8] is the sub-list for method input_type
+	8,  // [8:8] is the sub-list for extension type_name
+	8,  // [8:8] is the sub-list for extension extendee
+	0,  // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_internal_apps_xray_proxies_inbounds_grpcapi_proto_v1_control_proto_init() }
@@ -539,7 +988,7 @@ func file_internal_apps_xray_proxies_inbounds_grpcapi_proto_v1_control_proto_ini
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_internal_apps_xray_proxies_inbounds_grpcapi_proto_v1_control_proto_rawDesc), len(file_internal_apps_xray_proxies_inbounds_grpcapi_proto_v1_control_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   6,
+			NumMessages:   11,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

@@ -30,7 +30,7 @@ func (connection) NewStream(context.Context, *grpc.StreamDesc, string, ...grpc.C
 	panic("unexpected stream")
 }
 func TestCollectionCallGrowthAndProjection(t *testing.T) {
-	for _, count := range []int{1, 8, 32} {
+	for _, count := range []int{0, 1, 8, 32, 50, 51, 1000} {
 		for _, tagsOnly := range []bool{false, true} {
 			t.Run(fmt.Sprintf("%d/tags=%t", count, tagsOnly), func(t *testing.T) {
 				calls := 0
@@ -70,9 +70,11 @@ func TestCollectionCallGrowthAndProjection(t *testing.T) {
 					if err != nil || len(records) != count {
 						t.Fatal(records, err)
 					}
-					var decoded core.InboundHandlerConfig
-					if err := proto.Unmarshal(records[0].Configuration, &decoded); err != nil || len(decoded.ProtoReflect().GetUnknown()) == 0 || decoded.ProxySettings.Type != "opaque.proxy" {
-						t.Fatal("native bytes lost", err)
+					if count > 0 {
+						var decoded core.InboundHandlerConfig
+						if err := proto.Unmarshal(records[0].Configuration, &decoded); err != nil || len(decoded.ProtoReflect().GetUnknown()) == 0 || decoded.ProxySettings.Type != "opaque.proxy" {
+							t.Fatal("native bytes lost", err)
+						}
 					}
 				}
 				if calls != 1 {

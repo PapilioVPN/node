@@ -14,6 +14,7 @@ import (
 )
 
 type Handler struct {
+	Catalog *services.Catalog
 	Service *services.Service
 	Sources *services.Sources
 	Timeout time.Duration
@@ -49,10 +50,10 @@ func (h Handler) Records(ctx context.Context, data []byte, headers nats.Header) 
 		return failure(err)
 	}
 	defer cancel()
-	if input.Tag != nil || input.HasConfiguration || input.HasSources {
+	if input.Tag != nil || input.HasConfiguration || input.HasSources || input.HasReplacement() {
 		return failure(domain.ErrInvalidArgument)
 	}
-	result, err := h.Service.Records(ctx, *input.InstanceID)
+	result, err := h.Service.RecordPage(ctx, *input.InstanceID, input.Page())
 	if err != nil {
 		return failure(err)
 	}
@@ -65,10 +66,10 @@ func (h Handler) Tags(ctx context.Context, data []byte, headers nats.Header) []b
 		return failure(err)
 	}
 	defer cancel()
-	if input.Tag != nil || input.HasConfiguration || input.HasSources {
+	if input.Tag != nil || input.HasConfiguration || input.HasSources || input.HasReplacement() {
 		return failure(domain.ErrInvalidArgument)
 	}
-	result, err := h.Service.Tags(ctx, *input.InstanceID)
+	result, err := h.Service.TagPage(ctx, *input.InstanceID, input.Page())
 	if err != nil {
 		return failure(err)
 	}
@@ -81,7 +82,7 @@ func (h Handler) Status(ctx context.Context, data []byte, headers nats.Header) [
 		return failure(err)
 	}
 	defer cancel()
-	if input.Tag != nil || input.HasConfiguration || input.HasSources {
+	if input.Tag != nil || input.HasConfiguration || input.HasSources || input.HasReplacement() || input.HasPage() {
 		return failure(domain.ErrInvalidArgument)
 	}
 	result, err := h.Service.Status(ctx, *input.InstanceID)
@@ -97,7 +98,7 @@ func (h Handler) Add(ctx context.Context, data []byte, headers nats.Header) []by
 		return failure(err)
 	}
 	defer cancel()
-	if input.Tag != nil || !input.HasConfiguration || input.HasSources {
+	if input.Tag != nil || !input.HasConfiguration || input.HasSources || input.HasReplacement() || input.HasPage() {
 		return failure(domain.ErrInvalidArgument)
 	}
 	result, err := h.Service.Add(ctx, *input.InstanceID, input.Configuration)
@@ -109,7 +110,7 @@ func (h Handler) Remove(ctx context.Context, data []byte, headers nats.Header) [
 		return failure(err)
 	}
 	defer cancel()
-	if input.Tag == nil || input.HasConfiguration || input.HasSources {
+	if input.Tag == nil || input.HasConfiguration || input.HasSources || input.HasReplacement() || input.HasPage() {
 		return failure(domain.ErrInvalidArgument)
 	}
 	result, err := h.Service.Remove(ctx, *input.InstanceID, *input.Tag)
@@ -138,12 +139,18 @@ func errorCode(err error) string {
 		code = "canceled"
 	case errors.Is(err, domain.ErrInvalidArgument):
 		code = "invalid_argument"
+	case errors.Is(err, domain.ErrInboundNotFound):
+		code = "inbound_not_found"
+	case errors.Is(err, domain.ErrAmbiguousInbound):
+		code = "ambiguous_inbound"
 	case errors.Is(err, domain.ErrNotFound):
 		code = "not_found"
 	case errors.Is(err, domain.ErrUnsupported), errors.Is(err, domain.ErrNotRunning):
 		code = "failed_precondition"
 	case errors.Is(err, domain.ErrUncertain):
 		code = "restart_required"
+	case errors.Is(err, domain.ErrStale):
+		code = "stale_observation"
 	case errors.Is(err, domain.ErrExecutionChanged):
 		code = "execution_changed"
 	case errors.Is(err, domain.ErrCapacity):
@@ -164,7 +171,7 @@ func (h Handler) AddSources(ctx context.Context, data []byte, headers nats.Heade
 		return failure(err)
 	}
 	defer cancel()
-	if input.Tag == nil || !input.HasSources || input.HasConfiguration {
+	if input.Tag == nil || !input.HasSources || input.HasConfiguration || input.HasReplacement() || input.HasPage() {
 		return failure(domain.ErrInvalidArgument)
 	}
 	result, err := h.Sources.Add(ctx, *input.InstanceID, *input.Tag, input.Sources)

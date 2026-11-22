@@ -19,6 +19,10 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
+	InboundsService_ListInboundSummaries_FullMethodName    = "/papilio.xray.proxies.inbounds.v1.InboundsService/ListInboundSummaries"
+	InboundsService_GetInboundCompatibility_FullMethodName = "/papilio.xray.proxies.inbounds.v1.InboundsService/GetInboundCompatibility"
+	InboundsService_PlanInboundReplacement_FullMethodName  = "/papilio.xray.proxies.inbounds.v1.InboundsService/PlanInboundReplacement"
+	InboundsService_ReplaceInbound_FullMethodName          = "/papilio.xray.proxies.inbounds.v1.InboundsService/ReplaceInbound"
 	InboundsService_ListInbounds_FullMethodName            = "/papilio.xray.proxies.inbounds.v1.InboundsService/ListInbounds"
 	InboundsService_ListInboundTags_FullMethodName         = "/papilio.xray.proxies.inbounds.v1.InboundsService/ListInboundTags"
 	InboundsService_AddInboundFromSources_FullMethodName   = "/papilio.xray.proxies.inbounds.v1.InboundsService/AddInboundFromSources"
@@ -31,7 +35,11 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type InboundsServiceClient interface {
-	// One native collection read; no per-inbound fetches or invented paging.
+	ListInboundSummaries(ctx context.Context, in *ListInboundSummariesRequest, opts ...grpc.CallOption) (*InboundSummaries, error)
+	GetInboundCompatibility(ctx context.Context, in *GetInboundCompatibilityRequest, opts ...grpc.CallOption) (*InboundCompatibility, error)
+	PlanInboundReplacement(ctx context.Context, in *PlanInboundReplacementRequest, opts ...grpc.CallOption) (*InboundReplacementPlan, error)
+	ReplaceInbound(ctx context.Context, in *ReplaceInboundRequest, opts ...grpc.CallOption) (*InboundOperation, error)
+	// One native read per observation; continuations use a bounded 30-second snapshot.
 	ListInbounds(ctx context.Context, in *ListInboundsRequest, opts ...grpc.CallOption) (*InboundConfigurations, error)
 	// Uses the separate native tag-only projection without configuration bytes.
 	ListInboundTags(ctx context.Context, in *ListInboundTagsRequest, opts ...grpc.CallOption) (*InboundTags, error)
@@ -50,6 +58,46 @@ type inboundsServiceClient struct {
 
 func NewInboundsServiceClient(cc grpc.ClientConnInterface) InboundsServiceClient {
 	return &inboundsServiceClient{cc}
+}
+
+func (c *inboundsServiceClient) ListInboundSummaries(ctx context.Context, in *ListInboundSummariesRequest, opts ...grpc.CallOption) (*InboundSummaries, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(InboundSummaries)
+	err := c.cc.Invoke(ctx, InboundsService_ListInboundSummaries_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *inboundsServiceClient) GetInboundCompatibility(ctx context.Context, in *GetInboundCompatibilityRequest, opts ...grpc.CallOption) (*InboundCompatibility, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(InboundCompatibility)
+	err := c.cc.Invoke(ctx, InboundsService_GetInboundCompatibility_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *inboundsServiceClient) PlanInboundReplacement(ctx context.Context, in *PlanInboundReplacementRequest, opts ...grpc.CallOption) (*InboundReplacementPlan, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(InboundReplacementPlan)
+	err := c.cc.Invoke(ctx, InboundsService_PlanInboundReplacement_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *inboundsServiceClient) ReplaceInbound(ctx context.Context, in *ReplaceInboundRequest, opts ...grpc.CallOption) (*InboundOperation, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(InboundOperation)
+	err := c.cc.Invoke(ctx, InboundsService_ReplaceInbound_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *inboundsServiceClient) ListInbounds(ctx context.Context, in *ListInboundsRequest, opts ...grpc.CallOption) (*InboundConfigurations, error) {
@@ -116,7 +164,11 @@ func (c *inboundsServiceClient) GetInboundControlStatus(ctx context.Context, in 
 // All implementations must embed UnimplementedInboundsServiceServer
 // for forward compatibility.
 type InboundsServiceServer interface {
-	// One native collection read; no per-inbound fetches or invented paging.
+	ListInboundSummaries(context.Context, *ListInboundSummariesRequest) (*InboundSummaries, error)
+	GetInboundCompatibility(context.Context, *GetInboundCompatibilityRequest) (*InboundCompatibility, error)
+	PlanInboundReplacement(context.Context, *PlanInboundReplacementRequest) (*InboundReplacementPlan, error)
+	ReplaceInbound(context.Context, *ReplaceInboundRequest) (*InboundOperation, error)
+	// One native read per observation; continuations use a bounded 30-second snapshot.
 	ListInbounds(context.Context, *ListInboundsRequest) (*InboundConfigurations, error)
 	// Uses the separate native tag-only projection without configuration bytes.
 	ListInboundTags(context.Context, *ListInboundTagsRequest) (*InboundTags, error)
@@ -137,6 +189,18 @@ type InboundsServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedInboundsServiceServer struct{}
 
+func (UnimplementedInboundsServiceServer) ListInboundSummaries(context.Context, *ListInboundSummariesRequest) (*InboundSummaries, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListInboundSummaries not implemented")
+}
+func (UnimplementedInboundsServiceServer) GetInboundCompatibility(context.Context, *GetInboundCompatibilityRequest) (*InboundCompatibility, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetInboundCompatibility not implemented")
+}
+func (UnimplementedInboundsServiceServer) PlanInboundReplacement(context.Context, *PlanInboundReplacementRequest) (*InboundReplacementPlan, error) {
+	return nil, status.Error(codes.Unimplemented, "method PlanInboundReplacement not implemented")
+}
+func (UnimplementedInboundsServiceServer) ReplaceInbound(context.Context, *ReplaceInboundRequest) (*InboundOperation, error) {
+	return nil, status.Error(codes.Unimplemented, "method ReplaceInbound not implemented")
+}
 func (UnimplementedInboundsServiceServer) ListInbounds(context.Context, *ListInboundsRequest) (*InboundConfigurations, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListInbounds not implemented")
 }
@@ -174,6 +238,78 @@ func RegisterInboundsServiceServer(s grpc.ServiceRegistrar, srv InboundsServiceS
 		t.testEmbeddedByValue()
 	}
 	s.RegisterService(&InboundsService_ServiceDesc, srv)
+}
+
+func _InboundsService_ListInboundSummaries_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListInboundSummariesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(InboundsServiceServer).ListInboundSummaries(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: InboundsService_ListInboundSummaries_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(InboundsServiceServer).ListInboundSummaries(ctx, req.(*ListInboundSummariesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _InboundsService_GetInboundCompatibility_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetInboundCompatibilityRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(InboundsServiceServer).GetInboundCompatibility(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: InboundsService_GetInboundCompatibility_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(InboundsServiceServer).GetInboundCompatibility(ctx, req.(*GetInboundCompatibilityRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _InboundsService_PlanInboundReplacement_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PlanInboundReplacementRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(InboundsServiceServer).PlanInboundReplacement(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: InboundsService_PlanInboundReplacement_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(InboundsServiceServer).PlanInboundReplacement(ctx, req.(*PlanInboundReplacementRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _InboundsService_ReplaceInbound_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ReplaceInboundRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(InboundsServiceServer).ReplaceInbound(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: InboundsService_ReplaceInbound_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(InboundsServiceServer).ReplaceInbound(ctx, req.(*ReplaceInboundRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _InboundsService_ListInbounds_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -291,6 +427,22 @@ var InboundsService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "papilio.xray.proxies.inbounds.v1.InboundsService",
 	HandlerType: (*InboundsServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "ListInboundSummaries",
+			Handler:    _InboundsService_ListInboundSummaries_Handler,
+		},
+		{
+			MethodName: "GetInboundCompatibility",
+			Handler:    _InboundsService_GetInboundCompatibility_Handler,
+		},
+		{
+			MethodName: "PlanInboundReplacement",
+			Handler:    _InboundsService_PlanInboundReplacement_Handler,
+		},
+		{
+			MethodName: "ReplaceInbound",
+			Handler:    _InboundsService_ReplaceInbound_Handler,
+		},
 		{
 			MethodName: "ListInbounds",
 			Handler:    _InboundsService_ListInbounds_Handler,

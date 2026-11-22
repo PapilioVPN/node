@@ -17,22 +17,31 @@ type Client interface {
 	Add(context.Context, []byte) (domain.NativeResult, error)
 	Remove(context.Context, string) (domain.NativeResult, error)
 }
+type SummaryReader interface {
+	Summaries(context.Context) ([]domain.Summary, error)
+	Compatibility(context.Context, string) (domain.Summary, error)
+}
 type StatusReader interface {
 	Status(context.Context, string) (instances.Status, error)
 }
 type Binding struct {
-	ID     string
-	Client Client
+	Projection SummaryReader
+	ID         string
+	Client     Client
 }
 type entry struct {
+	projection          SummaryReader
 	client              Client
 	mu                  sync.Mutex
+	epoch               uint64
 	readers             int
 	mutating            bool
 	uncertainGeneration uint64
 	last                *domain.Operation
 }
 type Service struct {
+	records          pageStore[domain.Record]
+	tags             pageStore[string]
 	entries          map[string]*entry
 	status           StatusReader
 	reads, mutations chan struct{}
@@ -47,7 +56,7 @@ func New(bindings []Binding, status StatusReader) (*Service, error) {
 		if instancevalidators.ID(binding.ID) != nil || service.entries[binding.ID] != nil {
 			return nil, domain.ErrInvalidArgument
 		}
-		service.entries[binding.ID] = &entry{client: binding.Client}
+		service.entries[binding.ID] = &entry{client: binding.Client, projection: binding.Projection}
 	}
 	return service, nil
 }
@@ -77,8 +86,16 @@ func (s *Service) Status(ctx context.Context, id string) (domain.ControlStatus, 
 	defer selected.mu.Unlock()
 	result := domain.ControlStatus{InstanceID: id, Generation: state.Execution.Generation, ExecutionState: string(state.Execution.State), APIConfigured: selected.client != nil, RequestInFlight: selected.mutating, RequiresInstanceRestart: selected.uncertainGeneration != 0 && selected.uncertainGeneration == state.Execution.Generation, ObservedAt: time.Now().UTC()}
 	if selected.last != nil {
-		copy := *selected.last
+		copy := cloneOperation(*selected.last)
 		result.LastOperation = &copy
 	}
 	return result, nil
+}
+
+func cloneOperation(operation domain.Operation) domain.Operation {
+	if operation.Replacement != nil {
+		copy := *operation.Replacement
+		operation.Replacement = &copy
+	}
+	return operation
 }

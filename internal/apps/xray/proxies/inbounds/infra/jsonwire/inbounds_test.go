@@ -29,3 +29,21 @@ func TestStrictObject(t *testing.T) {
 		}
 	}
 }
+
+func TestCatalogEnvelopePreservesPresenceAndRejectsNulls(t *testing.T) {
+	for _, input := range []string{`{"page_size":null}`, `{"cursor":null}`, `{"token":null}`, `{"allow_interruption":null}`, `{"disconnect_existing":null}`, `{"page_size":1.5}`, `{"page_size":-1}`, `{"page_size":4294967296}`, `{"token":"x","token":"y"}`} {
+		if _, err := jsonwire.Decode([]byte(input)); err == nil {
+			t.Fatal(input)
+		}
+	}
+	input, err := jsonwire.Decode([]byte(`{"page_size":0,"allow_interruption":false,"disconnect_existing":false}`))
+	if err != nil || !input.HasPage() || input.AllowInterruption == nil || *input.AllowInterruption || input.DisconnectExisting == nil {
+		t.Fatal(input, err)
+	}
+}
+func FuzzInboundEnvelope(f *testing.F) {
+	for _, seed := range []string{`{}`, `{"instance_id":"a","page_size":50}`, `{"tag":"a","configuration":"AQ==","allow_interruption":true}`, `{"token":"0123456789abcdef0123456789abcdef"}`, `{"page_size":null}`, `{"sources":[]}`} {
+		f.Add([]byte(seed))
+	}
+	f.Fuzz(func(t *testing.T, data []byte) { _, _ = jsonwire.Decode(data) })
+}

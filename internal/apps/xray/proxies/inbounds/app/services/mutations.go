@@ -63,6 +63,7 @@ func (s *Service) mutate(ctx context.Context, id, kind, tag string, invoke func(
 		return operation, domain.ErrCapacity
 	}
 	selected.mutating = true
+	selected.epoch++
 	selected.mu.Unlock()
 	started := time.Now()
 	defer func() {
@@ -75,7 +76,7 @@ func (s *Service) mutate(ctx context.Context, id, kind, tag string, invoke func(
 			selected.uncertainGeneration = operation.Generation
 		}
 		// Retained evidence must outlive transport-owned request buffers.
-		copy := operation
+		copy := cloneOperation(operation)
 		copy.InstanceID = strings.Clone(operation.InstanceID)
 		copy.Tag = strings.Clone(operation.Tag)
 
@@ -85,9 +86,10 @@ func (s *Service) mutate(ctx context.Context, id, kind, tag string, invoke func(
 		return operation, err
 	}
 	native, nativeErr := invoke(selected.client, operation.Generation)
-	if kind == "add" {
+	if kind == "add" || kind == "replace" {
 		operation.Tag = native.Tag
 	}
+	operation.Replacement = native.Replacement
 	operation.Effect = native.Effect
 	operation.Acknowledged = native.Acknowledged
 	operation.RequiresInstanceRestart = native.RequiresInstanceRestart

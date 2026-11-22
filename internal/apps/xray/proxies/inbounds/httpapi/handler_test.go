@@ -14,7 +14,13 @@ func TestMalformedRequestsAreRejectedBeforeService(t *testing.T) {
 	app := fiber.New()
 	httpapi.Handler{}.Register(app)
 	for _, tc := range []struct{ method, path, body, contentType string }{
-		{"GET", "inbounds?unknown=1", "", ""}, {"GET", "inbound-tags", "body", ""}, {"GET", "inbounds/control-status?tag=a", "", ""},
+		{"GET", "inbounds?unknown=1", "", ""},
+		{"GET", "inbound-summaries?page_size=51", "", ""},
+		{"GET", "inbounds?page_size=1&page_size=2", "", ""},
+		{"GET", "inbounds/compatibility", "", ""},
+		{"POST", "inbounds/replacement-plans", `{"tag":"a","configuration":"AQ==","sources":[]}`, "application/json"},
+		{"POST", "inbounds/replacements", `{"token":"x","allow_interruption":true}`, "application/json"},
+		{"POST", "inbounds/replacement-plans", `{"tag":"a","configuration":"AQ==","allow_interruption":null}`, "application/json"}, {"GET", "inbound-tags", "body", ""}, {"GET", "inbounds/control-status?tag=a", "", ""},
 		{"POST", "inbounds", "{}", "application/json"}, {"POST", "inbounds?tag=a", "protobuf", "application/x-protobuf"},
 		{"DELETE", "inbounds", "", ""}, {"DELETE", "inbounds?tag=a&tag=b", "", ""}, {"DELETE", "inbounds?tag=a", "body", ""},
 	} {

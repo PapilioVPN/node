@@ -14,6 +14,7 @@ import (
 )
 
 type Handler struct {
+	Catalog *services.Catalog
 	Service *services.Service
 	Sources *services.Sources
 	Timeout time.Duration
@@ -21,6 +22,10 @@ type Handler struct {
 
 func (h Handler) Register(router fiber.Router) {
 	router.Get("/v1/xray/proxies/instances/:id/inbounds", h.Records)
+	router.Get("/v1/xray/proxies/instances/:id/inbound-summaries", h.Summaries)
+	router.Get("/v1/xray/proxies/instances/:id/inbounds/compatibility", h.Compatibility)
+	router.Post("/v1/xray/proxies/instances/:id/inbounds/replacement-plans", h.Plan)
+	router.Post("/v1/xray/proxies/instances/:id/inbounds/replacements", h.Replace)
 	router.Get("/v1/xray/proxies/instances/:id/inbound-tags", h.Tags)
 	router.Post("/v1/xray/proxies/instances/:id/inbounds", h.Add)
 	router.Delete("/v1/xray/proxies/instances/:id/inbounds", h.Remove)
@@ -34,12 +39,13 @@ func noInput(request fiber.Ctx) error {
 	return nil
 }
 func (h Handler) Records(request fiber.Ctx) error {
-	if err := noInput(request); err != nil {
+	input, err := pageInput(request)
+	if err != nil {
 		return failure(request, err)
 	}
 	ctx, cancel := context.WithTimeout(request.Context(), h.Timeout)
 	defer cancel()
-	result, err := h.Service.Records(ctx, request.Params("id"))
+	result, err := h.Service.RecordPage(ctx, request.Params("id"), input)
 	if err != nil {
 		return failure(request, err)
 	}
@@ -47,12 +53,13 @@ func (h Handler) Records(request fiber.Ctx) error {
 	return send(request, data, err)
 }
 func (h Handler) Tags(request fiber.Ctx) error {
-	if err := noInput(request); err != nil {
+	input, err := pageInput(request)
+	if err != nil {
 		return failure(request, err)
 	}
 	ctx, cancel := context.WithTimeout(request.Context(), h.Timeout)
 	defer cancel()
-	result, err := h.Service.Tags(ctx, request.Params("id"))
+	result, err := h.Service.TagPage(ctx, request.Params("id"), input)
 	if err != nil {
 		return failure(request, err)
 	}
@@ -85,7 +92,7 @@ func (h Handler) Add(request fiber.Ctx) error {
 		if err != nil {
 			return failure(request, err)
 		}
-		if input.InstanceID != nil || input.Tag == nil || !input.HasSources || input.HasConfiguration {
+		if input.InstanceID != nil || input.Tag == nil || !input.HasSources || input.HasConfiguration || input.HasPage() || input.HasReplacement() {
 			return failure(request, domain.ErrInvalidArgument)
 		}
 		result, err := h.Sources.Add(ctx, request.Params("id"), *input.Tag, input.Sources)
@@ -134,12 +141,18 @@ func errorStatus(err error) (string, int) {
 		code = "canceled"
 	case errors.Is(err, domain.ErrInvalidArgument):
 		code, status = "invalid_argument", fiber.StatusBadRequest
+	case errors.Is(err, domain.ErrInboundNotFound):
+		code, status = "inbound_not_found", fiber.StatusNotFound
+	case errors.Is(err, domain.ErrAmbiguousInbound):
+		code, status = "ambiguous_inbound", fiber.StatusConflict
 	case errors.Is(err, domain.ErrNotFound):
 		code, status = "not_found", fiber.StatusNotFound
 	case errors.Is(err, domain.ErrUnsupported), errors.Is(err, domain.ErrNotRunning):
 		code, status = "failed_precondition", fiber.StatusConflict
 	case errors.Is(err, domain.ErrUncertain):
 		code, status = "restart_required", fiber.StatusConflict
+	case errors.Is(err, domain.ErrStale):
+		code, status = "stale_observation", fiber.StatusConflict
 	case errors.Is(err, domain.ErrExecutionChanged):
 		code, status = "execution_changed", fiber.StatusConflict
 	case errors.Is(err, domain.ErrCapacity):

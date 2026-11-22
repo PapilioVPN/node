@@ -24,8 +24,13 @@ var File_internal_apps_xray_proxies_inbounds_grpcapi_proto_v1_inbounds_proto pro
 
 const file_internal_apps_xray_proxies_inbounds_grpcapi_proto_v1_inbounds_proto_rawDesc = "" +
 	"\n" +
-	"Cinternal/apps/xray/proxies/inbounds/grpcapi/proto/v1/inbounds.proto\x12 papilio.xray.proxies.inbounds.v1\x1aBinternal/apps/xray/proxies/inbounds/grpcapi/proto/v1/records.proto\x1aBinternal/apps/xray/proxies/inbounds/grpcapi/proto/v1/control.proto2\xa5\x06\n" +
-	"\x0fInboundsService\x12~\n" +
+	"Cinternal/apps/xray/proxies/inbounds/grpcapi/proto/v1/inbounds.proto\x12 papilio.xray.proxies.inbounds.v1\x1aBinternal/apps/xray/proxies/inbounds/grpcapi/proto/v1/records.proto\x1aBinternal/apps/xray/proxies/inbounds/grpcapi/proto/v1/control.proto2\xdc\n" +
+	"\n" +
+	"\x0fInboundsService\x12\x89\x01\n" +
+	"\x14ListInboundSummaries\x12=.papilio.xray.proxies.inbounds.v1.ListInboundSummariesRequest\x1a2.papilio.xray.proxies.inbounds.v1.InboundSummaries\x12\x93\x01\n" +
+	"\x17GetInboundCompatibility\x12@.papilio.xray.proxies.inbounds.v1.GetInboundCompatibilityRequest\x1a6.papilio.xray.proxies.inbounds.v1.InboundCompatibility\x12\x93\x01\n" +
+	"\x16PlanInboundReplacement\x12?.papilio.xray.proxies.inbounds.v1.PlanInboundReplacementRequest\x1a8.papilio.xray.proxies.inbounds.v1.InboundReplacementPlan\x12}\n" +
+	"\x0eReplaceInbound\x127.papilio.xray.proxies.inbounds.v1.ReplaceInboundRequest\x1a2.papilio.xray.proxies.inbounds.v1.InboundOperation\x12~\n" +
 	"\fListInbounds\x125.papilio.xray.proxies.inbounds.v1.ListInboundsRequest\x1a7.papilio.xray.proxies.inbounds.v1.InboundConfigurations\x12z\n" +
 	"\x0fListInboundTags\x128.papilio.xray.proxies.inbounds.v1.ListInboundTagsRequest\x1a-.papilio.xray.proxies.inbounds.v1.InboundTags\x12\x8b\x01\n" +
 	"\x15AddInboundFromSources\x12>.papilio.xray.proxies.inbounds.v1.AddInboundFromSourcesRequest\x1a2.papilio.xray.proxies.inbounds.v1.InboundOperation\x12u\n" +
@@ -35,35 +40,50 @@ const file_internal_apps_xray_proxies_inbounds_grpcapi_proto_v1_inbounds_proto_r
 	"\x17GetInboundControlStatus\x12@.papilio.xray.proxies.inbounds.v1.GetInboundControlStatusRequest\x1a6.papilio.xray.proxies.inbounds.v1.InboundControlStatusB\\ZZgithub.com/PapilioVPN/node/internal/apps/xray/proxies/inbounds/grpcapi/proto/v1;inboundsv1b\x06proto3"
 
 var file_internal_apps_xray_proxies_inbounds_grpcapi_proto_v1_inbounds_proto_goTypes = []any{
-	(*ListInboundsRequest)(nil),            // 0: papilio.xray.proxies.inbounds.v1.ListInboundsRequest
-	(*ListInboundTagsRequest)(nil),         // 1: papilio.xray.proxies.inbounds.v1.ListInboundTagsRequest
-	(*AddInboundFromSourcesRequest)(nil),   // 2: papilio.xray.proxies.inbounds.v1.AddInboundFromSourcesRequest
-	(*AddInboundRequest)(nil),              // 3: papilio.xray.proxies.inbounds.v1.AddInboundRequest
-	(*RemoveInboundRequest)(nil),           // 4: papilio.xray.proxies.inbounds.v1.RemoveInboundRequest
-	(*GetInboundControlStatusRequest)(nil), // 5: papilio.xray.proxies.inbounds.v1.GetInboundControlStatusRequest
-	(*InboundConfigurations)(nil),          // 6: papilio.xray.proxies.inbounds.v1.InboundConfigurations
-	(*InboundTags)(nil),                    // 7: papilio.xray.proxies.inbounds.v1.InboundTags
-	(*InboundOperation)(nil),               // 8: papilio.xray.proxies.inbounds.v1.InboundOperation
-	(*InboundControlStatus)(nil),           // 9: papilio.xray.proxies.inbounds.v1.InboundControlStatus
+	(*ListInboundSummariesRequest)(nil),    // 0: papilio.xray.proxies.inbounds.v1.ListInboundSummariesRequest
+	(*GetInboundCompatibilityRequest)(nil), // 1: papilio.xray.proxies.inbounds.v1.GetInboundCompatibilityRequest
+	(*PlanInboundReplacementRequest)(nil),  // 2: papilio.xray.proxies.inbounds.v1.PlanInboundReplacementRequest
+	(*ReplaceInboundRequest)(nil),          // 3: papilio.xray.proxies.inbounds.v1.ReplaceInboundRequest
+	(*ListInboundsRequest)(nil),            // 4: papilio.xray.proxies.inbounds.v1.ListInboundsRequest
+	(*ListInboundTagsRequest)(nil),         // 5: papilio.xray.proxies.inbounds.v1.ListInboundTagsRequest
+	(*AddInboundFromSourcesRequest)(nil),   // 6: papilio.xray.proxies.inbounds.v1.AddInboundFromSourcesRequest
+	(*AddInboundRequest)(nil),              // 7: papilio.xray.proxies.inbounds.v1.AddInboundRequest
+	(*RemoveInboundRequest)(nil),           // 8: papilio.xray.proxies.inbounds.v1.RemoveInboundRequest
+	(*GetInboundControlStatusRequest)(nil), // 9: papilio.xray.proxies.inbounds.v1.GetInboundControlStatusRequest
+	(*InboundSummaries)(nil),               // 10: papilio.xray.proxies.inbounds.v1.InboundSummaries
+	(*InboundCompatibility)(nil),           // 11: papilio.xray.proxies.inbounds.v1.InboundCompatibility
+	(*InboundReplacementPlan)(nil),         // 12: papilio.xray.proxies.inbounds.v1.InboundReplacementPlan
+	(*InboundOperation)(nil),               // 13: papilio.xray.proxies.inbounds.v1.InboundOperation
+	(*InboundConfigurations)(nil),          // 14: papilio.xray.proxies.inbounds.v1.InboundConfigurations
+	(*InboundTags)(nil),                    // 15: papilio.xray.proxies.inbounds.v1.InboundTags
+	(*InboundControlStatus)(nil),           // 16: papilio.xray.proxies.inbounds.v1.InboundControlStatus
 }
 var file_internal_apps_xray_proxies_inbounds_grpcapi_proto_v1_inbounds_proto_depIdxs = []int32{
-	0, // 0: papilio.xray.proxies.inbounds.v1.InboundsService.ListInbounds:input_type -> papilio.xray.proxies.inbounds.v1.ListInboundsRequest
-	1, // 1: papilio.xray.proxies.inbounds.v1.InboundsService.ListInboundTags:input_type -> papilio.xray.proxies.inbounds.v1.ListInboundTagsRequest
-	2, // 2: papilio.xray.proxies.inbounds.v1.InboundsService.AddInboundFromSources:input_type -> papilio.xray.proxies.inbounds.v1.AddInboundFromSourcesRequest
-	3, // 3: papilio.xray.proxies.inbounds.v1.InboundsService.AddInbound:input_type -> papilio.xray.proxies.inbounds.v1.AddInboundRequest
-	4, // 4: papilio.xray.proxies.inbounds.v1.InboundsService.RemoveInbound:input_type -> papilio.xray.proxies.inbounds.v1.RemoveInboundRequest
-	5, // 5: papilio.xray.proxies.inbounds.v1.InboundsService.GetInboundControlStatus:input_type -> papilio.xray.proxies.inbounds.v1.GetInboundControlStatusRequest
-	6, // 6: papilio.xray.proxies.inbounds.v1.InboundsService.ListInbounds:output_type -> papilio.xray.proxies.inbounds.v1.InboundConfigurations
-	7, // 7: papilio.xray.proxies.inbounds.v1.InboundsService.ListInboundTags:output_type -> papilio.xray.proxies.inbounds.v1.InboundTags
-	8, // 8: papilio.xray.proxies.inbounds.v1.InboundsService.AddInboundFromSources:output_type -> papilio.xray.proxies.inbounds.v1.InboundOperation
-	8, // 9: papilio.xray.proxies.inbounds.v1.InboundsService.AddInbound:output_type -> papilio.xray.proxies.inbounds.v1.InboundOperation
-	8, // 10: papilio.xray.proxies.inbounds.v1.InboundsService.RemoveInbound:output_type -> papilio.xray.proxies.inbounds.v1.InboundOperation
-	9, // 11: papilio.xray.proxies.inbounds.v1.InboundsService.GetInboundControlStatus:output_type -> papilio.xray.proxies.inbounds.v1.InboundControlStatus
-	6, // [6:12] is the sub-list for method output_type
-	0, // [0:6] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	0,  // 0: papilio.xray.proxies.inbounds.v1.InboundsService.ListInboundSummaries:input_type -> papilio.xray.proxies.inbounds.v1.ListInboundSummariesRequest
+	1,  // 1: papilio.xray.proxies.inbounds.v1.InboundsService.GetInboundCompatibility:input_type -> papilio.xray.proxies.inbounds.v1.GetInboundCompatibilityRequest
+	2,  // 2: papilio.xray.proxies.inbounds.v1.InboundsService.PlanInboundReplacement:input_type -> papilio.xray.proxies.inbounds.v1.PlanInboundReplacementRequest
+	3,  // 3: papilio.xray.proxies.inbounds.v1.InboundsService.ReplaceInbound:input_type -> papilio.xray.proxies.inbounds.v1.ReplaceInboundRequest
+	4,  // 4: papilio.xray.proxies.inbounds.v1.InboundsService.ListInbounds:input_type -> papilio.xray.proxies.inbounds.v1.ListInboundsRequest
+	5,  // 5: papilio.xray.proxies.inbounds.v1.InboundsService.ListInboundTags:input_type -> papilio.xray.proxies.inbounds.v1.ListInboundTagsRequest
+	6,  // 6: papilio.xray.proxies.inbounds.v1.InboundsService.AddInboundFromSources:input_type -> papilio.xray.proxies.inbounds.v1.AddInboundFromSourcesRequest
+	7,  // 7: papilio.xray.proxies.inbounds.v1.InboundsService.AddInbound:input_type -> papilio.xray.proxies.inbounds.v1.AddInboundRequest
+	8,  // 8: papilio.xray.proxies.inbounds.v1.InboundsService.RemoveInbound:input_type -> papilio.xray.proxies.inbounds.v1.RemoveInboundRequest
+	9,  // 9: papilio.xray.proxies.inbounds.v1.InboundsService.GetInboundControlStatus:input_type -> papilio.xray.proxies.inbounds.v1.GetInboundControlStatusRequest
+	10, // 10: papilio.xray.proxies.inbounds.v1.InboundsService.ListInboundSummaries:output_type -> papilio.xray.proxies.inbounds.v1.InboundSummaries
+	11, // 11: papilio.xray.proxies.inbounds.v1.InboundsService.GetInboundCompatibility:output_type -> papilio.xray.proxies.inbounds.v1.InboundCompatibility
+	12, // 12: papilio.xray.proxies.inbounds.v1.InboundsService.PlanInboundReplacement:output_type -> papilio.xray.proxies.inbounds.v1.InboundReplacementPlan
+	13, // 13: papilio.xray.proxies.inbounds.v1.InboundsService.ReplaceInbound:output_type -> papilio.xray.proxies.inbounds.v1.InboundOperation
+	14, // 14: papilio.xray.proxies.inbounds.v1.InboundsService.ListInbounds:output_type -> papilio.xray.proxies.inbounds.v1.InboundConfigurations
+	15, // 15: papilio.xray.proxies.inbounds.v1.InboundsService.ListInboundTags:output_type -> papilio.xray.proxies.inbounds.v1.InboundTags
+	13, // 16: papilio.xray.proxies.inbounds.v1.InboundsService.AddInboundFromSources:output_type -> papilio.xray.proxies.inbounds.v1.InboundOperation
+	13, // 17: papilio.xray.proxies.inbounds.v1.InboundsService.AddInbound:output_type -> papilio.xray.proxies.inbounds.v1.InboundOperation
+	13, // 18: papilio.xray.proxies.inbounds.v1.InboundsService.RemoveInbound:output_type -> papilio.xray.proxies.inbounds.v1.InboundOperation
+	16, // 19: papilio.xray.proxies.inbounds.v1.InboundsService.GetInboundControlStatus:output_type -> papilio.xray.proxies.inbounds.v1.InboundControlStatus
+	10, // [10:20] is the sub-list for method output_type
+	0,  // [0:10] is the sub-list for method input_type
+	0,  // [0:0] is the sub-list for extension type_name
+	0,  // [0:0] is the sub-list for extension extendee
+	0,  // [0:0] is the sub-list for field type_name
 }
 
 func init() { file_internal_apps_xray_proxies_inbounds_grpcapi_proto_v1_inbounds_proto_init() }

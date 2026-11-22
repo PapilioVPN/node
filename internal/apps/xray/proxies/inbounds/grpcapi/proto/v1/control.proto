@@ -20,12 +20,13 @@ message InboundOperation {
   uint64 generation = 2;
   string kind = 3;
   string tag = 4;
-  // completed, not_applied or unknown; live changes are not durable desired state.
+  // completed, not_applied, partial or unknown; live changes are not durable desired state.
   string effect = 5;
   bool acknowledged = 6;
   bool requires_instance_restart = 7;
   google.protobuf.Timestamp observed_at = 8;
   int64 duration_ns = 9;
+  InboundReplacementProgress replacement = 10;
 }
 message InboundControlStatus {
   string instance_id = 1;
@@ -44,4 +45,44 @@ message AddInboundFromSourcesRequest {
   string instance_id = 1;
   string tag = 2;
   repeated papilio.xray.runtime.configs.v1.ConfigurationSource sources = 3;
+}
+
+message PlanInboundReplacementRequest {
+  string instance_id = 1;
+  string tag = 2;
+  bytes configuration = 3;
+  // Explicit consent to a remove/add listener gap, without guaranteed disconnect.
+  bool allow_interruption = 4;
+  bool disconnect_existing = 5;
+}
+message InboundReplacementPlan {
+  string token = 1;
+  string instance_id = 2;
+  uint64 generation = 3;
+  string tag = 4;
+  string current_sha256 = 5;
+  string candidate_sha256 = 6;
+  // live or restart. Restart uses existing ConfigurationsService contracts with
+  // full original ordered sources and expected_revision; no config is synthesized.
+  string mode = 7;
+  string reason = 8;
+  string existing_connections = 9;
+  string new_connections = 10;
+  string fallback = 11;
+  google.protobuf.Timestamp expires_at = 12;
+}
+message ReplaceInboundRequest {
+  string instance_id = 1;
+  string token = 2;
+}
+message InboundReplacementStep {
+  bool attempted = 1;
+  string effect = 2;
+  bool acknowledged = 3;
+}
+message InboundReplacementProgress {
+  string token = 1;
+  InboundReplacementStep remove = 2;
+  InboundReplacementStep add = 3;
+  string next_action = 4;
 }
