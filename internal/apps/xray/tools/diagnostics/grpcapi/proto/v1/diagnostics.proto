@@ -1,0 +1,62 @@
+syntax = "proto3";
+package papilio.xray.tools.diagnostics.v1;
+option go_package = "github.com/PapilioVPN/node/internal/apps/xray/tools/diagnostics/grpcapi/proto/v1;diagnosticsv1";
+import "google/protobuf/timestamp.proto";
+service DiagnosticsService {
+ rpc GetInstanceDiagnostics(GetInstanceDiagnosticsRequest) returns (DiagnosticReport);
+}
+message GetInstanceDiagnosticsRequest { string instance_id = 1; uint32 max_age_seconds = 2; }
+message Evidence {
+ string state = 1;
+ string reason = 2;
+ string source = 3;
+ google.protobuf.Timestamp observed_at = 4;
+ string freshness = 5;
+}
+message BinaryEvidence {
+ Evidence evidence = 1;
+ string version = 2;
+ string build = 3;
+ string go_version = 4;
+ string os = 5;
+ string architecture = 6;
+ string scope = 7;
+}
+message ExecutionEvidence {
+ Evidence evidence = 1;
+ string lifecycle_state = 2;
+ uint64 generation = 3;
+ optional uint64 applied_revision = 4;
+ google.protobuf.Timestamp started_at = 5;
+ google.protobuf.Timestamp exited_at = 6;
+ optional int32 exit_code = 7;
+ string failure_reason = 8;
+ string cleanup_reason = 9;
+}
+message ConfigurationEvidence {
+ Evidence evidence = 1;
+ optional uint64 desired_revision = 2;
+ google.protobuf.Timestamp updated_at = 3;
+ optional bool durable = 4;
+ optional bool matches_applied = 5;
+}
+message Capability { string name = 1; string state = 2; string basis = 3; }
+message NativeEvidence {
+ Evidence evidence = 1;
+ optional uint64 generation = 2;
+ Evidence runtime = 3;
+ Evidence discovery = 4;
+ optional uint64 uptime_seconds = 5;
+ repeated Capability capabilities = 6;
+}
+message DiagnosticReport {
+ string instance_id = 1;
+ google.protobuf.Timestamp observed_at = 2;
+ int64 duration_ns = 3;
+ uint32 max_age_seconds = 4;
+ string consistency = 5;
+ ExecutionEvidence execution = 6;
+ ConfigurationEvidence configuration = 7;
+ BinaryEvidence binary = 8;
+ NativeEvidence native_api = 9;
+}
