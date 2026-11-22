@@ -8,6 +8,8 @@ const (
 	NotApplied Effect = "not_applied"
 	Completed  Effect = "completed"
 	Unknown    Effect = "unknown"
+	// Partial is used only for a batch with a known mixture of completed and unsent work.
+	Partial Effect = "partial"
 )
 
 type NativeResult struct {
