@@ -23,6 +23,7 @@ import (
 	"github.com/PapilioVPN/node/internal/apps/xray/runtime/instances/infra/rpc"
 	"github.com/PapilioVPN/node/internal/apps/xray/runtime/instances/natsapi"
 	statservices "github.com/PapilioVPN/node/internal/apps/xray/runtime/statistics/app/services"
+	diagnosticservices "github.com/PapilioVPN/node/internal/apps/xray/tools/diagnostics/app/services"
 	accountservices "github.com/PapilioVPN/node/internal/apps/xray/users/accounts/app/services"
 	onlineservices "github.com/PapilioVPN/node/internal/apps/xray/users/online/app/services"
 	"github.com/PapilioVPN/node/internal/platform/natsclient"
@@ -48,6 +49,7 @@ func Module(config []settings.Instance, requests settings.Requests) fx.Option {
 		fx.Provide(func(service *services.Service) trafficservices.StatusReader { return service }),
 		fx.Provide(func(service *services.Service) routingservices.StatusReader { return service }),
 		fx.Provide(func(service *services.Service) healthservices.StatusReader { return service }),
+		fx.Provide(func(service *services.Service) diagnosticservices.StatusReader { return service }),
 		fx.Provide(fx.Annotate(finalize, fx.ResultTags(`group:"final-resources"`))),
 		fx.Invoke(register), fx.Provide(subscribe),
 	)

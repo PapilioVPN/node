@@ -265,6 +265,12 @@ func newFixture(t *testing.T, pki testutil.PKI, broker, mode string) *fixture {
 			t.Fatal(err)
 		}
 	}
+	f.connect(t, pki, broker, logs)
+	return f
+}
+
+func (f *fixture) connect(t *testing.T, pki testutil.PKI, broker string, logs *listenerLog) {
+	t.Helper()
 	identity, err := mtls.Client(pki.Client)
 	if err != nil {
 		t.Fatal(err)
@@ -286,7 +292,6 @@ func newFixture(t *testing.T, pki testutil.PKI, broker, mode string) *fixture {
 		t.Fatal(err)
 	}
 	t.Cleanup(f.nats.Close)
-	return f
 }
 func (f *fixture) report(t *testing.T, transport string) jsonwire.Report {
 	t.Helper()
@@ -327,7 +332,7 @@ func (f *fixture) report(t *testing.T, transport string) jsonwire.Report {
 		// The JSON API flattens Evidence, while protobuf keeps typed nested messages.
 		checkProto(t, response)
 		e, c, n := response.Execution, response.Configuration, response.NativeApi
-		return jsonwire.Report{InstanceID: response.InstanceId, Consistency: response.Consistency, Execution: jsonwire.Execution{Generation: e.Generation, AppliedRevision: e.AppliedRevision, LifecycleState: e.LifecycleState}, Configuration: jsonwire.Configuration{DesiredRevision: c.DesiredRevision, MatchesApplied: c.MatchesApplied}, Binary: jsonwire.Binary{Evidence: jsonwire.Evidence{State: response.Binary.Evidence.State, Reason: response.Binary.Evidence.Reason}, Version: response.Binary.Version, Build: response.Binary.Build, Scope: response.Binary.Scope}, Native: jsonwire.Native{Evidence: jsonwire.Evidence{State: n.Evidence.State}, Discovery: jsonwire.Evidence{State: n.Discovery.State}, Runtime: jsonwire.Evidence{State: n.Runtime.State}, Capabilities: protoCapabilities(n.Capabilities)}}
+		return jsonwire.Report{InstanceID: response.InstanceId, Consistency: response.Consistency, Execution: jsonwire.Execution{Generation: e.Generation, AppliedRevision: e.AppliedRevision, LifecycleState: e.LifecycleState}, Configuration: jsonwire.Configuration{Evidence: jsonwire.Evidence{State: c.Evidence.State, Reason: c.Evidence.Reason}, DesiredRevision: c.DesiredRevision, MatchesApplied: c.MatchesApplied}, Binary: jsonwire.Binary{Evidence: jsonwire.Evidence{State: response.Binary.Evidence.State, Reason: response.Binary.Evidence.Reason}, Version: response.Binary.Version, Build: response.Binary.Build, Scope: response.Binary.Scope}, Native: jsonwire.Native{Evidence: jsonwire.Evidence{State: n.Evidence.State}, Discovery: jsonwire.Evidence{State: n.Discovery.State}, Runtime: jsonwire.Evidence{State: n.Runtime.State}, Capabilities: protoCapabilities(n.Capabilities)}}
 	}
 	if strings.Contains(string(data), secret) || len(data) > 32<<10 {
 		t.Fatal("unsafe diagnostic report")

@@ -22,6 +22,7 @@ import (
 	"github.com/PapilioVPN/node/internal/apps/xray/runtime/configs/natsapi"
 	instanceprocess "github.com/PapilioVPN/node/internal/apps/xray/runtime/instances/infra/process"
 	"github.com/PapilioVPN/node/internal/apps/xray/runtime/instances/infra/rpc"
+	diagnosticservices "github.com/PapilioVPN/node/internal/apps/xray/tools/diagnostics/app/services"
 	accountconfiguration "github.com/PapilioVPN/node/internal/apps/xray/users/accounts/infra/configuration"
 	"github.com/PapilioVPN/node/internal/platform/natsclient"
 	"github.com/PapilioVPN/node/internal/settings"
@@ -35,6 +36,7 @@ func Module(config []settings.Instance, requests settings.Requests) fx.Option {
 		fx.Supply(config, requests, fx.Private),
 		fx.Provide(compose, composeStores, composeStateService, fx.Private),
 		fx.Provide(sourceProvider, composePlans, composeMemberships),
+		fx.Provide(func(service *services.StateService) diagnosticservices.MetadataReader { return service }),
 		fx.Provide(func(service *services.Service) inboundconfiguration.Compiler { return service }),
 		fx.Provide(func(service *services.Service) outboundconfiguration.Compiler { return service }),
 		fx.Provide(func(service *services.Service) accountconfiguration.Compiler { return service }),
