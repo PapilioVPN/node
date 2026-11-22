@@ -1,4 +1,4 @@
-// Package outboundhealth composes native outbound health observations.
+// Package outboundhealth composes Xray outbound health observations.
 package outboundhealth
 
 import (

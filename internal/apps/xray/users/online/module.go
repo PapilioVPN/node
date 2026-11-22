@@ -1,4 +1,4 @@
-// Package online composes exact native online observations and their transports.
+// Package online composes Xray presence and visitor IP observations.
 package online
 
 import (

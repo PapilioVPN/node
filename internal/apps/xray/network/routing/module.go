@@ -1,4 +1,4 @@
-// Package routing composes live Xray routing management and transport adapters.
+// Package routing composes Xray routing observations and live changes.
 package routing
 
 import (

@@ -1,3 +1,4 @@
+// Package traffic composes Xray counter observations and reset operations.
 package traffic
 
 import (
