@@ -13,9 +13,13 @@ import (
 	instances "github.com/PapilioVPN/node/internal/apps/xray/runtime/instances/domain"
 )
 
+// Reader receives a service-validated selection. Native response validation
+// belongs to its implementation, independently of request validation.
 type Reader interface {
 	Read(context.Context, domain.Selection) (int64, error)
 }
+
+// Lister receives a service-validated scope and validates newly observed counters.
 type Lister interface {
 	List(context.Context, domain.Scope) ([]domain.Counter, error)
 }

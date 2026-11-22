@@ -13,6 +13,8 @@ import (
 	instancevalidators "github.com/PapilioVPN/node/internal/apps/xray/runtime/instances/app/validators"
 )
 
+// Resetter receives a validated exact selection. Discovery results are checked
+// by their reader before the service derives exact reset selections.
 type Resetter interface {
 	Reset(context.Context, domain.Selection) (int64, error)
 }

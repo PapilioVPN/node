@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 
-	"github.com/PapilioVPN/node/internal/apps/xray/observability/traffic/app/validators"
 	"github.com/PapilioVPN/node/internal/apps/xray/observability/traffic/domain"
 	"github.com/PapilioVPN/node/internal/apps/xray/runtime/instances/infra/rpc"
 	stats "github.com/xtls/xray-core/app/stats/command"
@@ -18,9 +17,6 @@ import (
 // The old value cannot be reconstructed by a later observation after reply loss.
 func (r Reader) Reset(ctx context.Context, selection domain.Selection) (int64, error) {
 	if err := ctx.Err(); err != nil {
-		return 0, err
-	}
-	if err := validators.Selection(selection); err != nil {
 		return 0, err
 	}
 	name := string(selection.Scope) + ">>>" + selection.Name + ">>>traffic>>>" + string(selection.Direction)

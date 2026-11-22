@@ -55,7 +55,4 @@ func TestNativeFailureAndMalformedRepliesNeverBecomeZeroSuccess(t *testing.T) {
 	if _, err := New(connection).Read(ctx, selection); !errors.Is(err, context.Canceled) || connection.calls != 0 {
 		t.Fatal("canceled read dispatched", err, connection.calls)
 	}
-	if _, err := New(connection).Read(context.Background(), domain.Selection{}); !errors.Is(err, domain.ErrInvalidArgument) || connection.calls != 0 {
-		t.Fatal("invalid native selection dispatched", err, connection.calls)
-	}
 }

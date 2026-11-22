@@ -18,9 +18,6 @@ func (r Reader) List(ctx context.Context, scope domain.Scope) ([]domain.Counter,
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
-	if validators.Selection(domain.Selection{Scope: scope, Name: "validation", Direction: domain.Uplink}) != nil {
-		return nil, domain.ErrInvalidArgument
-	}
 	prefix := string(scope) + ">>>"
 	response, err := r.client.QueryStats(ctx, &stats.QueryStatsRequest{Pattern: prefix, Reset_: false}, grpc.MaxCallRecvMsgSize(domain.MaxCollectionBytes))
 	if err != nil {
