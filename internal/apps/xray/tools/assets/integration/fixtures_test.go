@@ -3,18 +3,21 @@
 package integration_test
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -22,11 +25,23 @@ import (
 	instance "github.com/PapilioVPN/node/internal/apps/xray/runtime/instances/app/services"
 	"github.com/PapilioVPN/node/internal/apps/xray/runtime/instances/infra/process"
 	"github.com/PapilioVPN/node/internal/apps/xray/runtime/instances/infra/rpc"
+	"github.com/PapilioVPN/node/internal/apps/xray/tools/assets"
 	"github.com/PapilioVPN/node/internal/apps/xray/tools/assets/app/services"
 	"github.com/PapilioVPN/node/internal/apps/xray/tools/assets/domain"
+	v1 "github.com/PapilioVPN/node/internal/apps/xray/tools/assets/grpcapi/proto/v1"
 	lifecycle "github.com/PapilioVPN/node/internal/apps/xray/tools/assets/infra/instances"
 	"github.com/PapilioVPN/node/internal/apps/xray/tools/assets/infra/store"
+	"github.com/PapilioVPN/node/internal/bootstrap"
+	"github.com/PapilioVPN/node/internal/settings"
+	"github.com/PapilioVPN/node/internal/shared/mtls"
+	"github.com/PapilioVPN/node/internal/testutil"
+	"github.com/nats-io/nats-server/v2/server"
+	"github.com/nats-io/nats.go"
 	"github.com/xtls/xray-core/common/geodata"
+	"go.uber.org/fx"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -236,4 +251,241 @@ func encode(t *testing.T, v any) []byte {
 		t.Fatal(err)
 	}
 	return data
+}
+
+type eventLog struct {
+	mu   sync.Mutex
+	data bytes.Buffer
+}
+
+func (l *eventLog) Write(data []byte) (int, error) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	return l.data.Write(data)
+}
+func (l *eventLog) text() string { l.mu.Lock(); defer l.mu.Unlock(); return l.data.String() }
+func assetBroker(t *testing.T, pki testutil.PKI) string {
+	t.Helper()
+	tls, err := mtls.Server(pki.Server)
+	if err != nil {
+		t.Fatal(err)
+	}
+	broker, err := server.NewServer(&server.Options{Host: "127.0.0.1", Port: -1, NoLog: true, NoSigs: true, TLSConfig: tls, TLSTimeout: 2, TLSMap: true, TLSHandshakeFirst: true, MaxPayload: 64 << 20, MaxPending: 128 << 20, Users: []*server.User{{Username: "CN=client", Permissions: &server.Permissions{Publish: &server.SubjectPermission{Allow: []string{"fixture.>", "_INBOX.>"}}, Subscribe: &server.SubjectPermission{Allow: []string{"fixture.>", "_INBOX.>"}}}}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	go broker.Start()
+	t.Cleanup(func() { broker.Shutdown(); broker.WaitForShutdown() })
+	if !broker.ReadyForConnections(3 * time.Second) {
+		t.Fatal("broker did not start")
+	}
+	return strings.Replace(broker.ClientURL(), "nats://", "tls://", 1)
+}
+
+type finalResources struct {
+	fx.In
+	Items []io.Closer `group:"final-resources"`
+}
+type controller struct {
+	transport string
+	http      *http.Client
+	url       string
+	grpc      *grpc.ClientConn
+	nats      *nats.Conn
+	logs      *eventLog
+}
+
+func management(t *testing.T, f *fixture, pki testutil.PKI, broker, transport string) *controller {
+	t.Helper()
+	if err := f.service.Close(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.repo.Close(); err != nil {
+		t.Fatal(err)
+	}
+	cfg := settings.Config{StartupTimeout: 10 * time.Second, ShutdownTimeout: 45 * time.Second}
+	cfg.Communications.Requests.Timeout = 20 * time.Second
+	switch transport {
+	case "http":
+		cfg.Communications.HTTP = &settings.HTTP{Address: address(t), TLS: pki.Server, ReadTimeout: 20 * time.Second, WriteTimeout: 25 * time.Second, IdleTimeout: time.Second, ShutdownTimeout: time.Second, BodyLimit: domain.MaxRequest, Concurrency: 8}
+	case "grpc":
+		cfg.Communications.GRPC = &settings.GRPC{Address: address(t), TLS: pki.Server, ConnectionTimeout: 100 * time.Millisecond, ShutdownTimeout: time.Second, MaxRecvMessageSize: domain.MaxRequest, MaxSendMessageSize: 1 << 20, MaxConnections: 8, MaxConcurrentStreams: 8, MaxHeaderListSize: 8192}
+	case "nats":
+		cfg.Communications.NATS = &settings.NATS{Servers: []string{broker}, TLS: pki.Client, TLSHandshakeFirst: true, ConnectTimeout: time.Second, ShutdownTimeout: time.Second, WriteTimeout: 10 * time.Second, ReconnectWait: time.Second, ReconnectBufferSize: -1, PingInterval: time.Second, MaxPingsOutstanding: 5}
+		cfg.Communications.Requests.NATS = &settings.NATSRequests{SubjectPrefix: "fixture.assets", PendingMessages: 2, PendingBytes: 64 << 20, ShutdownTimeout: 10 * time.Millisecond}
+	}
+	if err := cfg.Validate(); err != nil {
+		t.Fatal(err)
+	}
+	c := &controller{transport: transport, logs: &eventLog{}}
+	var resources []io.Closer
+	app := bootstrap.New(cfg, slog.New(slog.NewJSONHandler(c.logs, nil)), assets.Module([]assets.Config{{ID: "one", Directory: f.root}}, cfg.Communications.Requests), fx.Provide(func() services.Lifecycle {
+		return lifecycle.Lifecycle{Acquire: func(ctx context.Context, id, executionID string) (instance.Runtime, func(), error) {
+			if ctx.Err() != nil {
+				return nil, nil, ctx.Err()
+			}
+			if !f.gate.TryLock() {
+				return nil, nil, domain.ErrBusy
+			}
+			return f.runtime, f.gate.Unlock, nil
+		}}
+	}), fx.Invoke(func(in finalResources) { resources = in.Items }))
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := app.Start(ctx); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
+		defer cancel()
+		if err := app.Stop(ctx); err != nil {
+			t.Error(err)
+		}
+		for i := len(resources) - 1; i >= 0; i-- {
+			if err := resources[i].Close(); err != nil {
+				t.Error(err)
+			}
+		}
+		if strings.Contains(c.logs.text(), "private-password") {
+			t.Error("private state leaked into logs")
+		}
+	})
+	tls, err := mtls.Client(pki.Client)
+	if err != nil {
+		t.Fatal(err)
+	}
+	switch transport {
+	case "http":
+		tr := &http.Transport{TLSClientConfig: tls}
+		c.http = &http.Client{Transport: tr, Timeout: 35 * time.Second}
+		t.Cleanup(tr.CloseIdleConnections)
+		c.url = "https://" + cfg.Communications.HTTP.Address
+		badTLS := tls.Clone()
+		badTLS.Certificates = nil
+		bad := &http.Transport{TLSClientConfig: badTLS}
+		defer bad.CloseIdleConnections()
+		if r, err := (&http.Client{Transport: bad, Timeout: time.Second}).Get(c.url + "/v1/xray/tools/instances/one/assets"); err == nil {
+			r.Body.Close()
+			t.Fatal("HTTP accepted unauthenticated controller")
+		}
+	case "grpc":
+		c.grpc, err = grpc.NewClient(cfg.Communications.GRPC.Address, grpc.WithTransportCredentials(credentials.NewTLS(tls)), grpc.WithDefaultCallOptions(grpc.MaxCallSendMsgSize(domain.MaxRequest)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { c.grpc.Close() })
+		badTLS := tls.Clone()
+		badTLS.Certificates = nil
+		bad, err := grpc.NewClient(cfg.Communications.GRPC.Address, grpc.WithTransportCredentials(credentials.NewTLS(badTLS)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer bad.Close()
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+		if _, err := v1.NewAssetsServiceClient(bad).InspectAssets(ctx, &v1.InspectRequest{InstanceId: "one"}); err == nil {
+			t.Fatal("gRPC accepted unauthenticated controller")
+		}
+	case "nats":
+		c.nats, err = nats.Connect(broker, nats.Secure(tls), nats.TLSHandshakeFirst(), nats.NoReconnect(), nats.Timeout(2*time.Second))
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(c.nats.Close)
+	}
+	return c
+}
+func (c *controller) call(t *testing.T, op string, q map[string]any) []byte {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), 35*time.Second)
+	defer cancel()
+	if c.transport == "grpc" {
+		client := v1.NewAssetsServiceClient(c.grpc)
+		var message proto.Message
+		var err error
+		switch op {
+		case "inspect":
+			message, err = client.InspectAssets(ctx, &v1.InspectRequest{InstanceId: "one"})
+		case "stage":
+			candidate := q["candidate"].(domain.Candidate)
+			upload := func(f domain.File) *v1.Upload { return &v1.Upload{Content: f.Content, Sha256: f.SHA256} }
+			message, err = client.StageAssets(ctx, &v1.StageRequest{InstanceId: "one", Candidate: &v1.Candidate{Binary: upload(candidate.Binary), Geoip: upload(candidate.GeoIP), Geosite: upload(candidate.GeoSite)}})
+		default:
+			revision := q["revision"].(uint64)
+			execution := q["execution_id"].(string)
+			switch op {
+			case "activate":
+				message, err = client.ActivateAssets(ctx, &v1.ActivateRequest{InstanceId: "one", ExpectedRevision: &revision, ExecutionId: execution, ReleaseId: q["release_id"].(string)})
+			case "rollback":
+				message, err = client.RollbackAssets(ctx, &v1.RecoveryRequest{InstanceId: "one", ExpectedRevision: &revision, ExecutionId: execution})
+			case "recover":
+				message, err = client.RecoverAssets(ctx, &v1.RecoveryRequest{InstanceId: "one", ExpectedRevision: &revision, ExecutionId: execution})
+			}
+		}
+		if err != nil {
+			t.Fatal("gRPC", op, err)
+		}
+		data, err := (protojson.MarshalOptions{UseProtoNames: true, EmitUnpopulated: true}).Marshal(message)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return data
+	}
+	if q == nil {
+		q = map[string]any{}
+	}
+	delete(q, "revision")
+	if c.transport == "nats" {
+		q["instance_id"] = "one"
+		r, err := c.nats.RequestWithContext(ctx, "fixture.assets.xray.tools.assets.v1."+op, encode(t, q))
+		if err != nil {
+			t.Fatal("NATS", op, err)
+		}
+		return r.Data
+	}
+	path := "/v1/xray/tools/instances/one/assets"
+	method := "POST"
+	switch op {
+	case "inspect":
+		method = "GET"
+	case "stage":
+		path += "/candidates"
+	case "activate":
+		path += "/activations"
+	case "rollback":
+		path += "/rollbacks"
+	case "recover":
+		path += "/recoveries"
+	}
+	var body io.Reader
+	if method != "GET" {
+		body = bytes.NewReader(encode(t, q))
+	}
+	request, err := http.NewRequestWithContext(ctx, method, c.url+path, body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	request.Header.Set("Content-Type", "application/json")
+	r, err := c.http.Do(request)
+	if err != nil {
+		t.Fatal("HTTP", op, err)
+	}
+	defer r.Body.Close()
+	data, err := io.ReadAll(io.LimitReader(r.Body, 1<<20))
+	if err != nil || r.StatusCode != 200 || r.Header.Get("Cache-Control") != "no-store" {
+		t.Fatal("HTTP response", op, r.StatusCode, string(data), err)
+	}
+	return data
+}
+func (c *controller) inspect(t *testing.T) domain.Inventory {
+	t.Helper()
+	var result domain.Inventory
+	data := c.call(t, "inspect", nil)
+	if err := json.Unmarshal(data, &result); err != nil {
+		t.Fatal(err, string(data))
+	}
+	if result.State.Active == "" {
+		t.Fatal("missing installed assets", string(data))
+	}
+	return result
 }
