@@ -14,6 +14,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/PapilioVPN/node/internal/apps/xray/tools/assets/app/validators"
@@ -37,7 +38,8 @@ func Open(path, id string) (*Store, error) {
 	if err != nil {
 		return nil, err
 	}
-	if !filepath.IsAbs(path) || !info.IsDir() || info.Mode().Perm() != 0700 || !validators.ID(id) {
+	stat, ok := info.Sys().(*syscall.Stat_t)
+	if !ok || stat.Uid != uint32(os.Geteuid()) || !filepath.IsAbs(path) || !info.IsDir() || info.Mode().Perm() != 0700 || !validators.ID(id) {
 		return nil, domain.ErrInvalidArgument
 	}
 	root, err := os.OpenRoot(path)
@@ -86,6 +88,9 @@ func candidateID(c domain.Candidate) string {
 }
 
 func (s *Store) Stage(ctx context.Context, c domain.Candidate) (domain.Release, error) {
+	if err := ctx.Err(); err != nil {
+		return domain.Release{}, err
+	}
 	if err := validators.Candidate(c); err != nil {
 		return domain.Release{}, err
 	}
@@ -307,7 +312,20 @@ func (s *Store) Inspect(ctx context.Context) (domain.Inventory, error) {
 	}
 	result := domain.Inventory{State: state, ObservedAt: time.Now().UTC()}
 	if state.Active != "" {
-		r, err := s.readRelease(ctx, state.Active)
+		link, err := s.root.Readlink("current")
+		if err != nil {
+			return result, err
+		}
+		selected := ""
+		if link == "releases/"+state.Active {
+			selected = state.Active
+		} else if state.Pending != "" && link == "releases/"+state.Pending {
+			selected = state.Pending
+		} else {
+			return result, domain.ErrRecovery
+		}
+		result.Selected = selected
+		r, err := s.readRelease(ctx, selected)
 		if err != nil {
 			return domain.Inventory{}, err
 		}
@@ -451,4 +469,14 @@ func (s *Store) save(state domain.State) error {
 		return err
 	}
 	return s.lock.Sync() // A sync error is uncertain publication: callers must read back.
+}
+
+// State reads durable recovery authority without executing a possibly damaged candidate.
+func (s *Store) State(ctx context.Context) (domain.State, error) {
+	release, err := s.lockIO(ctx)
+	if err != nil {
+		return domain.State{}, err
+	}
+	defer release()
+	return s.state()
 }

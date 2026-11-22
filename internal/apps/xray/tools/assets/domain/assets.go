@@ -62,6 +62,7 @@ type State struct {
 }
 type Inventory struct {
 	State      State     `json:"state"`
+	Selected   string    `json:"selected"`
 	Installed  *Release  `json:"installed"`
 	ObservedAt time.Time `json:"observed_at"`
 }
