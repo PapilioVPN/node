@@ -32,8 +32,11 @@ type syncEntry struct {
 	bytes   int
 }
 
-// Service retains one review/receipt per configured instance. Eight retained
-// reviews/receipts share 32 MiB logical storage. Native I/O holds no state lock;
+// Service retains one review/receipt per configured instance. Pending and
+// retained reviews/receipts share eight slots. Retained data shares
+// 32 MiB logical storage; pending input/native decoding is additional memory.
+// Completed receipts become reclaimable after 30 seconds; uncertain receipts
+// remain until explicit resolution. Native I/O holds no state lock;
 // competing syncs reject rather than queue. Other Accounts writers still own
 // their separate admission: preview/read/check/write is not native atomicity.
 type Service struct {
@@ -65,6 +68,9 @@ func New(ids []string, observer Observer, accounts Accounts, configs ports.Confi
 func (s *Service) acquire(ctx context.Context, id string) (*syncEntry, func(), error) {
 	if err := ctx.Err(); err != nil {
 		return nil, nil, err
+	}
+	if !policies.Identifier(id) {
+		return nil, nil, domain.ErrInvalid
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -121,6 +127,27 @@ func clonePreview(p domain.Preview) domain.Preview {
 	return p
 }
 
+func (s *Service) reclaim() {
+	for _, e := range s.entries {
+		if e.busy || e.plan == nil {
+			continue
+		}
+		expired := e.receipt == nil && !s.now().Before(e.plan.Preview.ExpiresAt)
+		if e.receipt != nil && !e.receipt.RequiresRecovery && !s.now().Before(e.receipt.CompletedAt.Add(domain.Lifetime)) {
+			expired = true
+		}
+		if expired {
+			s.retained--
+			s.bytes -= e.bytes
+			e.plan = nil
+			e.receipt = nil
+			e.cause = nil
+			e.full = ports.ReviewV1{}
+			e.bytes = 0
+		}
+	}
+}
+
 func (s *Service) Preview(ctx context.Context, r domain.Request) (domain.Preview, error) {
 	if err := policies.Validate(ctx, r); err != nil {
 		return domain.Preview{}, err
@@ -152,6 +179,7 @@ func (s *Service) Preview(ctx context.Context, r domain.Request) (domain.Preview
 		return domain.Preview{}, domain.ErrStale
 	}
 	s.mu.Lock()
+	s.reclaim()
 	occupied := s.retained + s.pending
 	if e.plan != nil {
 		occupied--
@@ -208,6 +236,9 @@ func (s *Service) Preview(ctx context.Context, r domain.Request) (domain.Preview
 func (s *Service) Status(ctx context.Context, id, operation string, offset int) (domain.ReceiptPage, error) {
 	if err := ctx.Err(); err != nil {
 		return domain.ReceiptPage{}, err
+	}
+	if !policies.Identifier(id) || !policies.Identifier(operation) || len(operation) > 128 || offset < 0 {
+		return domain.ReceiptPage{}, domain.ErrInvalid
 	}
 	s.mu.Lock()
 	e := s.entries[id]

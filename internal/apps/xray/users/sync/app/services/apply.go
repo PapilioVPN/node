@@ -41,7 +41,7 @@ func (s *Service) Apply(ctx context.Context, id, planID string, expected domain.
 	if current.Revision != expected || !policies.SameObservation(p.Snapshot, current) {
 		return domain.ReceiptPage{}, domain.ErrStale
 	}
-	r := domain.Receipt{InstanceID: id, OperationID: p.Request.OperationID, ConfigOperationID: p.Preview.ConfigOperationID, Revision: expected, Effect: accounts.NotApplied, InFlight: true}
+	r := domain.Receipt{InstanceID: p.Preview.InstanceID, OperationID: p.Request.OperationID, ConfigOperationID: p.Preview.ConfigOperationID, Revision: expected, Effect: accounts.NotApplied, InFlight: true}
 	if p.Request.Mode == domain.Delta {
 		for _, step := range p.Steps {
 			r.Steps = append(r.Steps, domain.StepResult{InboundTag: step.InboundTag, Email: step.Email, Action: step.Action, Effect: accounts.NotApplied, Code: "not_attempted"})
@@ -59,7 +59,7 @@ func (s *Service) Apply(ctx context.Context, id, planID string, expected domain.
 		applyFullResult(&r, result, err)
 		s.mu.Unlock()
 	} else {
-		err = s.applyLive(ctx, e, p, &r)
+		err = s.applyLive(ctx, p, &r)
 	}
 	s.mu.Lock()
 	r.InFlight = false
@@ -78,8 +78,9 @@ func (s *Service) Apply(ctx context.Context, id, planID string, expected domain.
 	return page, err
 }
 
-func (s *Service) applyLive(ctx context.Context, e *syncEntry, p *domain.Plan, receipt *domain.Receipt) error {
+func (s *Service) applyLive(ctx context.Context, p *domain.Plan, receipt *domain.Receipt) error {
 	var cause error
+	executionChanged := false
 	for start := 0; start < len(p.Steps); {
 		if err := ctx.Err(); err != nil {
 			cause = err
@@ -141,6 +142,16 @@ func (s *Service) applyLive(ctx context.Context, e *syncEntry, p *domain.Plan, r
 		}
 		start = end
 	}
+	// A configuration can be published during the final account batch before
+	// the instance restarts. Preserve each ACK, but do not attribute completion
+	// to the reviewed config/execution when those local facts changed.
+	if cause == nil && ctx.Err() == nil && len(p.Steps) > 0 {
+		state, err := s.observer.Snapshot(ctx, p.Request.InstanceID, nil)
+		if err != nil || state.Revision.Config != p.Preview.Revision.Config || state.Revision.Generation != p.Preview.Revision.Generation {
+			executionChanged = true
+			cause = errors.Join(domain.ErrStale, err)
+		}
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	completed, unknown := 0, false
@@ -151,9 +162,9 @@ func (s *Service) applyLive(ctx context.Context, e *syncEntry, p *domain.Plan, r
 		unknown = unknown || step.Effect == accounts.Unknown || step.RequiresRestart
 	}
 	switch {
-	case unknown:
+	case unknown || executionChanged:
 		receipt.Effect, receipt.RequiresRecovery = accounts.Unknown, true
-	case completed == len(receipt.Steps) && cause == nil:
+	case completed == len(receipt.Steps) && (completed > 0 || cause == nil):
 		receipt.Effect = accounts.Completed
 	case completed > 0:
 		receipt.Effect = accounts.Partial

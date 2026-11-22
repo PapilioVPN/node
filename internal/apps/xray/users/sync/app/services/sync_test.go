@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
+	"unsafe"
 
 	accounts "github.com/PapilioVPN/node/internal/apps/xray/users/accounts/domain"
 	"github.com/PapilioVPN/node/internal/apps/xray/users/sync/domain"
@@ -217,5 +219,90 @@ func TestPendingReviewsAreGloballyBoundedBeforeReads(t *testing.T) {
 	}
 	if s.pending != 0 || s.retained != 0 {
 		t.Fatalf("pending=%d retained=%d", s.pending, s.retained)
+	}
+}
+
+func TestExpiredCompletedReceiptsReleaseCapacityWithoutDroppingUncertainty(t *testing.T) {
+	_, c := newControlled(t)
+	ids := []string{"one", "two", "three", "four", "five", "six", "seven", "eight", "nine"}
+	s, err := New(ids, c, c, c, codec.Codec{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx := context.Background()
+	for _, id := range ids[:8] {
+		revision, _ := s.Revision(ctx, id)
+		p, err := s.Preview(ctx, domain.Request{InstanceID: id, OperationID: "done", Expected: revision, Mode: domain.Delta, Selection: []string{"selected"}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err = s.Apply(ctx, id, p.PlanID, p.Revision); err != nil {
+			t.Fatal(err)
+		}
+	}
+	s.entries["one"].receipt.RequiresRecovery = true
+	advanced := time.Now().Add(domain.Lifetime + time.Second)
+	s.now = func() time.Time { return advanced }
+	revision, _ := s.Revision(ctx, "nine")
+	if _, err := s.Preview(ctx, domain.Request{InstanceID: "nine", OperationID: "next", Expected: revision, Mode: domain.Delta, Selection: []string{"selected"}}); err != nil {
+		t.Fatal(err)
+	}
+	if s.retained != 2 || s.entries["one"].receipt == nil || !s.entries["one"].receipt.RequiresRecovery {
+		t.Fatalf("retained=%d uncertain=%+v", s.retained, s.entries["one"].receipt)
+	}
+}
+
+func TestApplyReceiptOwnsBorrowedInstanceSelector(t *testing.T) {
+	s, _ := newControlled(t)
+	ctx := context.Background()
+	p, err := s.Preview(ctx, syncRequest(t, s, domain.Delta, 1))
+	if err != nil {
+		t.Fatal(err)
+	}
+	buffer := []byte("one")
+	borrowed := unsafe.String(&buffer[0], len(buffer))
+	if _, err := s.Apply(ctx, borrowed, p.PlanID, p.Revision); err != nil {
+		t.Fatal(err)
+	}
+	copy(buffer, "two")
+	r, err := s.Status(ctx, "one", "operation", 0)
+	if err != nil || r.Receipt.InstanceID != "one" {
+		t.Fatal(r, err)
+	}
+}
+
+type afterAdd struct {
+	Accounts
+	after func()
+}
+
+func (a afterAdd) AddMany(ctx context.Context, id string, items []accounts.Addition, parallel int) (accounts.Batch, error) {
+	r, err := a.Accounts.AddMany(ctx, id, items, parallel)
+	a.after()
+	return r, err
+}
+func TestFinalAcknowledgementSurvivesCancellationAndFencesConfigPublication(t *testing.T) {
+	s, c := newControlled(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	s.accounts = afterAdd{Accounts: c, after: cancel}
+	p, err := s.Preview(ctx, syncRequest(t, s, domain.Delta, 1))
+	if err != nil {
+		t.Fatal(err)
+	}
+	r, err := s.Apply(ctx, "one", p.PlanID, p.Revision)
+	if err != nil || r.Receipt.Effect != accounts.Completed || !r.Receipt.Steps[0].Acknowledged {
+		t.Fatal(r, err)
+	}
+	s, c = newControlled(t)
+	ctx = context.Background()
+	s.accounts = afterAdd{Accounts: c, after: func() { c.revision++ }}
+	p, err = s.Preview(ctx, syncRequest(t, s, domain.Delta, 1))
+	if err != nil {
+		t.Fatal(err)
+	}
+	r, err = s.Apply(ctx, "one", p.PlanID, p.Revision)
+	if !errors.Is(err, domain.ErrStale) || r.Receipt.Effect != accounts.Unknown || !r.Receipt.RequiresRecovery || !r.Receipt.Steps[0].Acknowledged {
+		t.Fatal(r, err)
 	}
 }
