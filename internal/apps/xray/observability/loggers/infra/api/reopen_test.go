@@ -68,3 +68,16 @@ func TestNoNativeTransportDoesNotFenceAnUnsentRequest(t *testing.T) {
 		t.Fatalf("unsent mutation falsely blocked recovery %+v %v", result, err)
 	}
 }
+
+func TestNativeContextStatusPreservesErrorIdentity(t *testing.T) {
+	for code, want := range map[codes.Code]error{
+		codes.DeadlineExceeded: context.DeadlineExceeded,
+		codes.Canceled:         context.Canceled,
+	} {
+		native := status.Error(code, "native request interrupted")
+		result, err := New(&connectionFixture{err: native}).Reopen(context.Background())
+		if !errors.Is(err, want) || !errors.Is(err, native) || result.Effect != domain.Unknown || !result.RequiresInstanceRestart {
+			t.Fatalf("expected %s to retain uncertainty and context error, got %+v %v", code, result, err)
+		}
+	}
+}
