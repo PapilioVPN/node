@@ -1,4 +1,3 @@
-// Package outbounds composes native outbound resources and management adapters.
 package outbounds
 
 import (
@@ -17,7 +16,7 @@ import (
 )
 
 func Module(requests settings.Requests) fx.Option {
-	return fx.Module("xray-outbounds", fx.Supply(requests, fx.Private), fx.Provide(compose, composeSources, fx.Private), fx.Invoke(register), fx.Provide(subscribe))
+	return fx.Module("xray-outbounds", fx.Supply(requests, fx.Private), fx.Provide(compose, composeSources, composeReplacements, fx.Private), fx.Invoke(register), fx.Provide(subscribe))
 }
 
 type inputs struct {
@@ -42,26 +41,34 @@ func composeSources(service *services.Service, compiler configuration.Compiler) 
 	return services.NewSources(service, configuration.Preparer{Compiler: compiler})
 }
 
+func composeReplacements(service *services.Service, compiler configuration.Compiler) (*services.Replacements, error) {
+	return services.NewReplacements(service, configuration.Inspector{}, configuration.Preparer{Compiler: compiler})
+}
+
 type adapters struct {
 	fx.In
-	Sources  *services.Sources
-	Service  *services.Service
-	Requests settings.Requests
-	HTTP     *fiber.App   `optional:"true"`
-	GRPC     *grpc.Server `optional:"true"`
+	Sources      *services.Sources
+	Replacements *services.Replacements
+	Service      *services.Service
+	Requests     settings.Requests
+	HTTP         *fiber.App   `optional:"true"`
+	GRPC         *grpc.Server `optional:"true"`
 }
 
 func register(in adapters) {
 	if in.HTTP != nil {
-		httpapi.Handler{Service: in.Service, Sources: in.Sources, Timeout: in.Requests.Timeout}.Register(in.HTTP)
+		httpapi.Handler{Service: in.Service, Sources: in.Sources, Replacements: in.Replacements, Timeout: in.Requests.Timeout}.Register(in.HTTP)
 	}
 	if in.GRPC != nil {
-		grpcapi.Handler{Service: in.Service, Sources: in.Sources, Timeout: in.Requests.Timeout}.Register(in.GRPC)
+		grpcapi.Handler{Service: in.Service, Sources: in.Sources, Replacements: in.Replacements, Timeout: in.Requests.Timeout}.Register(in.GRPC)
 	}
 }
 func subscribe(in adapters) natsclient.Subscriptions {
-	handler := natsapi.Handler{Service: in.Service, Sources: in.Sources, Timeout: in.Requests.Timeout}
+	handler := natsapi.Handler{Service: in.Service, Sources: in.Sources, Replacements: in.Replacements, Timeout: in.Requests.Timeout}
 	return natsclient.Subscriptions{Endpoints: []natsclient.Subscription{
+		{Name: "Xray outbound replacement plan", SubjectSuffix: "xray.proxies.outbounds.replacements.v1.plan", Handle: handler.PlanReplacement},
+		{Name: "Xray outbound replacement application", SubjectSuffix: "xray.proxies.outbounds.replacements.v1.apply", Handle: handler.ApplyReplacement},
+		{Name: "Xray outbound replacement result", SubjectSuffix: "xray.proxies.outbounds.replacements.v1.get", Handle: handler.ReplacementResult},
 		{Name: "Xray outbound addition", SubjectSuffix: "xray.proxies.outbounds.v1.add", Handle: handler.Add},
 		{Name: "Xray outbound source addition", SubjectSuffix: "xray.proxies.outbounds.sources.v1.add", Handle: handler.AddSources},
 		{Name: "Xray outbound removal", SubjectSuffix: "xray.proxies.outbounds.v1.remove", Handle: handler.Remove},

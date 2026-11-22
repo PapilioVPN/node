@@ -45,10 +45,13 @@ func Encode(result domain.Records) ([]byte, error) {
 		records[i] = record{item.Tag, item.Configuration}
 	}
 	return json.Marshal(struct {
-		InstanceID string    `json:"instance_id"`
-		Generation uint64    `json:"generation,string"`
-		Outbounds  []record  `json:"outbounds"`
-		ObservedAt time.Time `json:"observed_at"`
-		DurationNS int64     `json:"duration_ns,string"`
-	}{result.InstanceID, result.Generation, records, result.ObservedAt, int64(result.Duration)})
+		InstanceID    string    `json:"instance_id"`
+		Generation    uint64    `json:"generation,string"`
+		Outbounds     []record  `json:"outbounds"`
+		ObservedAt    time.Time `json:"observed_at"`
+		DurationNS    int64     `json:"duration_ns,string"`
+		NextPageToken string    `json:"next_page_token"`
+		Source        string    `json:"source"`
+		DefaultState  string    `json:"default_state"`
+	}{result.InstanceID, result.Generation, records, result.ObservedAt, int64(result.Duration), result.NextPageToken, result.Source, result.DefaultState})
 }

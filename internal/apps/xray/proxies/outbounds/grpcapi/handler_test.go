@@ -36,3 +36,17 @@ func TestMissingControlMessagesNeverReachService(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestMissingReplacementMessagesNeverReachService(t *testing.T) {
+	h := grpcapi.Handler{}
+	ctx := context.Background()
+	if _, err := h.PlanOutboundReplacement(ctx, nil); status.Code(err) != codes.InvalidArgument {
+		t.Fatal(err)
+	}
+	if _, err := h.ApplyOutboundReplacement(ctx, nil); status.Code(err) != codes.InvalidArgument {
+		t.Fatal(err)
+	}
+	if _, err := h.GetOutboundReplacement(ctx, nil); status.Code(err) != codes.InvalidArgument {
+		t.Fatal(err)
+	}
+}

@@ -27,3 +27,26 @@ func TestInvalidRequestsNeverReachService(t *testing.T) {
 		}
 	}
 }
+
+func TestReplacementRoutesRejectAmbiguousRequestsBeforeDispatch(t *testing.T) {
+	app := fiber.New()
+	httpapi.Handler{}.Register(app)
+	for _, test := range []struct{ path, body string }{
+		{"replacement-plans", `{}`},
+		{"replacement-plans", `{"tag":"a","configuration":"AQ==","default_policy":null,"connection_policy":"retain"}`},
+		{"replacement-plans", `{"tag":"a","configuration":"AQ==","sources":[],"default_policy":"preserve","connection_policy":"retain"}`},
+		{"replacements", `{"plan_id":null}`},
+		{"replacements", `{"plan_id":"short"}`},
+	} {
+		request := httptest.NewRequest("POST", "/v1/xray/proxies/instances/a/outbounds/"+test.path, strings.NewReader(test.body))
+		request.Header.Set("Content-Type", "application/json")
+		response, err := app.Test(request)
+		if err != nil {
+			t.Fatal(err)
+		}
+		response.Body.Close()
+		if response.StatusCode != 400 {
+			t.Fatal(response.StatusCode)
+		}
+	}
+}

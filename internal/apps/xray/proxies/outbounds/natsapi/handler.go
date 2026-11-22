@@ -14,9 +14,10 @@ import (
 )
 
 type Handler struct {
-	Service *services.Service
-	Sources *services.Sources
-	Timeout time.Duration
+	Service      *services.Service
+	Sources      *services.Sources
+	Replacements *services.Replacements
+	Timeout      time.Duration
 }
 
 func (h Handler) request(ctx context.Context, data []byte, headers nats.Header) (context.Context, context.CancelFunc, string, error) {
@@ -46,12 +47,16 @@ func (h Handler) requestContext(ctx context.Context, headers nats.Header) (conte
 }
 
 func (h Handler) Records(ctx context.Context, data []byte, headers nats.Header) []byte {
-	ctx, cancel, id, err := h.request(ctx, data, headers)
+	id, paging, err := jsonwire.DecodePage(data)
+	if err != nil {
+		return failure(err)
+	}
+	ctx, cancel, err := h.requestContext(ctx, headers)
 	if err != nil {
 		return failure(err)
 	}
 	defer cancel()
-	result, err := h.Service.Records(ctx, id)
+	result, err := h.Service.List(ctx, id, paging)
 	if err != nil {
 		return failure(err)
 	}
@@ -70,6 +75,14 @@ func errorCode(err error) string {
 		code = "canceled"
 	case errors.Is(err, domain.ErrInvalidArgument):
 		code = "invalid_argument"
+	case errors.Is(err, domain.ErrContinuation):
+		code = "continuation_expired"
+	case errors.Is(err, domain.ErrPlanExpired):
+		code = "plan_expired"
+	case errors.Is(err, domain.ErrStalePlan):
+		code = "stale_plan"
+	case errors.Is(err, domain.ErrOutboundNotFound):
+		code = "outbound_not_found"
 	case errors.Is(err, domain.ErrNotFound):
 		code = "not_found"
 	case errors.Is(err, domain.ErrUnsupported), errors.Is(err, domain.ErrNotRunning):

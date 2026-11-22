@@ -19,6 +19,9 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
+	OutboundsService_PlanOutboundReplacement_FullMethodName  = "/papilio.xray.proxies.outbounds.v1.OutboundsService/PlanOutboundReplacement"
+	OutboundsService_ApplyOutboundReplacement_FullMethodName = "/papilio.xray.proxies.outbounds.v1.OutboundsService/ApplyOutboundReplacement"
+	OutboundsService_GetOutboundReplacement_FullMethodName   = "/papilio.xray.proxies.outbounds.v1.OutboundsService/GetOutboundReplacement"
 	OutboundsService_AddOutbound_FullMethodName              = "/papilio.xray.proxies.outbounds.v1.OutboundsService/AddOutbound"
 	OutboundsService_AddOutboundFromSources_FullMethodName   = "/papilio.xray.proxies.outbounds.v1.OutboundsService/AddOutboundFromSources"
 	OutboundsService_RemoveOutbound_FullMethodName           = "/papilio.xray.proxies.outbounds.v1.OutboundsService/RemoveOutbound"
@@ -30,12 +33,16 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type OutboundsServiceClient interface {
+	PlanOutboundReplacement(ctx context.Context, in *PlanOutboundReplacementRequest, opts ...grpc.CallOption) (*OutboundReplacementPlan, error)
+	ApplyOutboundReplacement(ctx context.Context, in *OutboundReplacementRequest, opts ...grpc.CallOption) (*OutboundReplacementResult, error)
+	GetOutboundReplacement(ctx context.Context, in *OutboundReplacementRequest, opts ...grpc.CallOption) (*OutboundReplacementResult, error)
 	AddOutbound(ctx context.Context, in *AddOutboundRequest, opts ...grpc.CallOption) (*OutboundOperation, error)
 	AddOutboundFromSources(ctx context.Context, in *AddOutboundFromSourcesRequest, opts ...grpc.CallOption) (*OutboundOperation, error)
 	// Membership removal only; existing connections/resources are not closed.
 	RemoveOutbound(ctx context.Context, in *RemoveOutboundRequest, opts ...grpc.CallOption) (*OutboundOperation, error)
 	GetOutboundControlStatus(ctx context.Context, in *GetOutboundControlStatusRequest, opts ...grpc.CallOption) (*OutboundControlStatus, error)
-	// One bounded native ListOutbounds RPC; internal API outbound is omitted by Xray.
+	// First page uses one bounded native RPC; continuation reuses that observation.
+	// The internal API outbound is omitted by Xray.
 	ListOutbounds(ctx context.Context, in *ListOutboundsRequest, opts ...grpc.CallOption) (*OutboundConfigurations, error)
 }
 
@@ -45,6 +52,36 @@ type outboundsServiceClient struct {
 
 func NewOutboundsServiceClient(cc grpc.ClientConnInterface) OutboundsServiceClient {
 	return &outboundsServiceClient{cc}
+}
+
+func (c *outboundsServiceClient) PlanOutboundReplacement(ctx context.Context, in *PlanOutboundReplacementRequest, opts ...grpc.CallOption) (*OutboundReplacementPlan, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OutboundReplacementPlan)
+	err := c.cc.Invoke(ctx, OutboundsService_PlanOutboundReplacement_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *outboundsServiceClient) ApplyOutboundReplacement(ctx context.Context, in *OutboundReplacementRequest, opts ...grpc.CallOption) (*OutboundReplacementResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OutboundReplacementResult)
+	err := c.cc.Invoke(ctx, OutboundsService_ApplyOutboundReplacement_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *outboundsServiceClient) GetOutboundReplacement(ctx context.Context, in *OutboundReplacementRequest, opts ...grpc.CallOption) (*OutboundReplacementResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OutboundReplacementResult)
+	err := c.cc.Invoke(ctx, OutboundsService_GetOutboundReplacement_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *outboundsServiceClient) AddOutbound(ctx context.Context, in *AddOutboundRequest, opts ...grpc.CallOption) (*OutboundOperation, error) {
@@ -101,12 +138,16 @@ func (c *outboundsServiceClient) ListOutbounds(ctx context.Context, in *ListOutb
 // All implementations must embed UnimplementedOutboundsServiceServer
 // for forward compatibility.
 type OutboundsServiceServer interface {
+	PlanOutboundReplacement(context.Context, *PlanOutboundReplacementRequest) (*OutboundReplacementPlan, error)
+	ApplyOutboundReplacement(context.Context, *OutboundReplacementRequest) (*OutboundReplacementResult, error)
+	GetOutboundReplacement(context.Context, *OutboundReplacementRequest) (*OutboundReplacementResult, error)
 	AddOutbound(context.Context, *AddOutboundRequest) (*OutboundOperation, error)
 	AddOutboundFromSources(context.Context, *AddOutboundFromSourcesRequest) (*OutboundOperation, error)
 	// Membership removal only; existing connections/resources are not closed.
 	RemoveOutbound(context.Context, *RemoveOutboundRequest) (*OutboundOperation, error)
 	GetOutboundControlStatus(context.Context, *GetOutboundControlStatusRequest) (*OutboundControlStatus, error)
-	// One bounded native ListOutbounds RPC; internal API outbound is omitted by Xray.
+	// First page uses one bounded native RPC; continuation reuses that observation.
+	// The internal API outbound is omitted by Xray.
 	ListOutbounds(context.Context, *ListOutboundsRequest) (*OutboundConfigurations, error)
 	mustEmbedUnimplementedOutboundsServiceServer()
 }
@@ -118,6 +159,15 @@ type OutboundsServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedOutboundsServiceServer struct{}
 
+func (UnimplementedOutboundsServiceServer) PlanOutboundReplacement(context.Context, *PlanOutboundReplacementRequest) (*OutboundReplacementPlan, error) {
+	return nil, status.Error(codes.Unimplemented, "method PlanOutboundReplacement not implemented")
+}
+func (UnimplementedOutboundsServiceServer) ApplyOutboundReplacement(context.Context, *OutboundReplacementRequest) (*OutboundReplacementResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method ApplyOutboundReplacement not implemented")
+}
+func (UnimplementedOutboundsServiceServer) GetOutboundReplacement(context.Context, *OutboundReplacementRequest) (*OutboundReplacementResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetOutboundReplacement not implemented")
+}
 func (UnimplementedOutboundsServiceServer) AddOutbound(context.Context, *AddOutboundRequest) (*OutboundOperation, error) {
 	return nil, status.Error(codes.Unimplemented, "method AddOutbound not implemented")
 }
@@ -152,6 +202,60 @@ func RegisterOutboundsServiceServer(s grpc.ServiceRegistrar, srv OutboundsServic
 		t.testEmbeddedByValue()
 	}
 	s.RegisterService(&OutboundsService_ServiceDesc, srv)
+}
+
+func _OutboundsService_PlanOutboundReplacement_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PlanOutboundReplacementRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(OutboundsServiceServer).PlanOutboundReplacement(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: OutboundsService_PlanOutboundReplacement_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(OutboundsServiceServer).PlanOutboundReplacement(ctx, req.(*PlanOutboundReplacementRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _OutboundsService_ApplyOutboundReplacement_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OutboundReplacementRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(OutboundsServiceServer).ApplyOutboundReplacement(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: OutboundsService_ApplyOutboundReplacement_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(OutboundsServiceServer).ApplyOutboundReplacement(ctx, req.(*OutboundReplacementRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _OutboundsService_GetOutboundReplacement_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OutboundReplacementRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(OutboundsServiceServer).GetOutboundReplacement(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: OutboundsService_GetOutboundReplacement_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(OutboundsServiceServer).GetOutboundReplacement(ctx, req.(*OutboundReplacementRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _OutboundsService_AddOutbound_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -251,6 +355,18 @@ var OutboundsService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "papilio.xray.proxies.outbounds.v1.OutboundsService",
 	HandlerType: (*OutboundsServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "PlanOutboundReplacement",
+			Handler:    _OutboundsService_PlanOutboundReplacement_Handler,
+		},
+		{
+			MethodName: "ApplyOutboundReplacement",
+			Handler:    _OutboundsService_ApplyOutboundReplacement_Handler,
+		},
+		{
+			MethodName: "GetOutboundReplacement",
+			Handler:    _OutboundsService_GetOutboundReplacement_Handler,
+		},
 		{
 			MethodName: "AddOutbound",
 			Handler:    _OutboundsService_AddOutbound_Handler,

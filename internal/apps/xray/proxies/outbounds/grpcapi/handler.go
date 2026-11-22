@@ -17,9 +17,10 @@ import (
 
 type Handler struct {
 	v1.UnimplementedOutboundsServiceServer
-	Service *services.Service
-	Sources *services.Sources
-	Timeout time.Duration
+	Service      *services.Service
+	Sources      *services.Sources
+	Replacements *services.Replacements
+	Timeout      time.Duration
 }
 
 func (h Handler) Register(registrar grpc.ServiceRegistrar) {
@@ -31,7 +32,7 @@ func (h Handler) ListOutbounds(ctx context.Context, request *v1.ListOutboundsReq
 	}
 	ctx, cancel := context.WithTimeout(ctx, h.Timeout)
 	defer cancel()
-	result, err := h.Service.Records(ctx, request.InstanceId)
+	result, err := h.Service.List(ctx, request.InstanceId, domain.PageRequest{PageSize: request.PageSize, PageToken: request.PageToken})
 	if err != nil {
 		return nil, failure(err)
 	}
@@ -39,7 +40,7 @@ func (h Handler) ListOutbounds(ctx context.Context, request *v1.ListOutboundsReq
 	for i, item := range result.Outbounds {
 		records[i] = &v1.OutboundConfiguration{Tag: item.Tag, Configuration: item.Configuration}
 	}
-	return &v1.OutboundConfigurations{InstanceId: result.InstanceID, Generation: result.Generation, Outbounds: records, ObservedAt: timestamppb.New(result.ObservedAt), DurationNs: int64(result.Duration)}, nil
+	return &v1.OutboundConfigurations{InstanceId: result.InstanceID, Generation: result.Generation, Outbounds: records, ObservedAt: timestamppb.New(result.ObservedAt), DurationNs: int64(result.Duration), NextPageToken: result.NextPageToken, Source: result.Source, DefaultState: result.DefaultState}, nil
 }
 func failure(err error) error {
 	code, message := codes.Unavailable, "unavailable"
@@ -50,6 +51,14 @@ func failure(err error) error {
 		code, message = codes.Canceled, "canceled"
 	case errors.Is(err, domain.ErrInvalidArgument):
 		code, message = codes.InvalidArgument, "invalid_argument"
+	case errors.Is(err, domain.ErrPlanExpired):
+		code, message = codes.FailedPrecondition, "plan_expired"
+	case errors.Is(err, domain.ErrStalePlan):
+		code, message = codes.Aborted, "stale_plan"
+	case errors.Is(err, domain.ErrContinuation):
+		code, message = codes.FailedPrecondition, "continuation_expired"
+	case errors.Is(err, domain.ErrOutboundNotFound):
+		code, message = codes.NotFound, "outbound_not_found"
 	case errors.Is(err, domain.ErrNotFound):
 		code, message = codes.NotFound, "not_found"
 	case errors.Is(err, domain.ErrUnsupported), errors.Is(err, domain.ErrNotRunning):

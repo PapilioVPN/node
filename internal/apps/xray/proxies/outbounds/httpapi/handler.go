@@ -13,9 +13,10 @@ import (
 )
 
 type Handler struct {
-	Service *services.Service
-	Sources *services.Sources
-	Timeout time.Duration
+	Service      *services.Service
+	Sources      *services.Sources
+	Replacements *services.Replacements
+	Timeout      time.Duration
 }
 
 func (h Handler) Register(router fiber.Router) {
@@ -23,15 +24,19 @@ func (h Handler) Register(router fiber.Router) {
 	router.Post("/v1/xray/proxies/instances/:id/outbounds", h.Add)
 	router.Delete("/v1/xray/proxies/instances/:id/outbounds", h.Remove)
 	router.Get("/v1/xray/proxies/instances/:id/outbounds/control-status", h.Status)
+	router.Post("/v1/xray/proxies/instances/:id/outbounds/replacement-plans", h.PlanReplacement)
+	router.Post("/v1/xray/proxies/instances/:id/outbounds/replacements", h.ApplyReplacement)
+	router.Get("/v1/xray/proxies/instances/:id/outbounds/replacements/:plan", h.ReplacementResult)
 }
 func (h Handler) Records(request fiber.Ctx) error {
 	request.Set(fiber.HeaderCacheControl, "no-store")
-	if len(request.Body()) != 0 || len(request.Request().URI().QueryString()) != 0 {
-		return failure(request, domain.ErrInvalidArgument)
+	paging, err := pageRequest(request)
+	if err != nil {
+		return failure(request, err)
 	}
 	ctx, cancel := context.WithTimeout(request.Context(), h.Timeout)
 	defer cancel()
-	result, err := h.Service.Records(ctx, request.Params("id"))
+	result, err := h.Service.List(ctx, request.Params("id"), paging)
 	if err != nil {
 		return failure(request, err)
 	}
@@ -51,6 +56,14 @@ func errorStatus(err error) (string, int) {
 		code = "canceled"
 	case errors.Is(err, domain.ErrInvalidArgument):
 		code, status = "invalid_argument", fiber.StatusBadRequest
+	case errors.Is(err, domain.ErrContinuation):
+		code, status = "continuation_expired", fiber.StatusConflict
+	case errors.Is(err, domain.ErrPlanExpired):
+		code, status = "plan_expired", fiber.StatusConflict
+	case errors.Is(err, domain.ErrStalePlan):
+		code, status = "stale_plan", fiber.StatusConflict
+	case errors.Is(err, domain.ErrOutboundNotFound):
+		code, status = "outbound_not_found", fiber.StatusNotFound
 	case errors.Is(err, domain.ErrNotFound):
 		code, status = "not_found", fiber.StatusNotFound
 	case errors.Is(err, domain.ErrUnsupported), errors.Is(err, domain.ErrNotRunning):

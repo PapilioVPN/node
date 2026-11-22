@@ -25,6 +25,8 @@ const (
 type ListOutboundsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	InstanceId    string                 `protobuf:"bytes,1,opt,name=instance_id,json=instanceId,proto3" json:"instance_id,omitempty"`
+	PageSize      uint32                 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"` // Default/max 50; native unary response is still bounded separately.
+	PageToken     string                 `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -62,6 +64,20 @@ func (*ListOutboundsRequest) Descriptor() ([]byte, []int) {
 func (x *ListOutboundsRequest) GetInstanceId() string {
 	if x != nil {
 		return x.InstanceId
+	}
+	return ""
+}
+
+func (x *ListOutboundsRequest) GetPageSize() uint32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *ListOutboundsRequest) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
 	}
 	return ""
 }
@@ -128,6 +144,9 @@ type OutboundConfigurations struct {
 	Outbounds     []*OutboundConfiguration `protobuf:"bytes,3,rep,name=outbounds,proto3" json:"outbounds,omitempty"`
 	ObservedAt    *timestamppb.Timestamp   `protobuf:"bytes,4,opt,name=observed_at,json=observedAt,proto3" json:"observed_at,omitempty"`
 	DurationNs    int64                    `protobuf:"varint,5,opt,name=duration_ns,json=durationNs,proto3" json:"duration_ns,omitempty"`
+	NextPageToken string                   `protobuf:"bytes,6,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
+	Source        string                   `protobuf:"bytes,7,opt,name=source,proto3" json:"source,omitempty"`
+	DefaultState  string                   `protobuf:"bytes,8,opt,name=default_state,json=defaultState,proto3" json:"default_state,omitempty"` // unobservable; list order does not identify the default.
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -197,17 +216,41 @@ func (x *OutboundConfigurations) GetDurationNs() int64 {
 	return 0
 }
 
+func (x *OutboundConfigurations) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
+}
+
+func (x *OutboundConfigurations) GetSource() string {
+	if x != nil {
+		return x.Source
+	}
+	return ""
+}
+
+func (x *OutboundConfigurations) GetDefaultState() string {
+	if x != nil {
+		return x.DefaultState
+	}
+	return ""
+}
+
 var File_internal_apps_xray_proxies_outbounds_grpcapi_proto_v1_outbounds_proto protoreflect.FileDescriptor
 
 const file_internal_apps_xray_proxies_outbounds_grpcapi_proto_v1_outbounds_proto_rawDesc = "" +
 	"\n" +
-	"Einternal/apps/xray/proxies/outbounds/grpcapi/proto/v1/outbounds.proto\x12!papilio.xray.proxies.outbounds.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1aCinternal/apps/xray/proxies/outbounds/grpcapi/proto/v1/control.proto\"7\n" +
+	"Einternal/apps/xray/proxies/outbounds/grpcapi/proto/v1/outbounds.proto\x12!papilio.xray.proxies.outbounds.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1aCinternal/apps/xray/proxies/outbounds/grpcapi/proto/v1/control.proto\"s\n" +
 	"\x14ListOutboundsRequest\x12\x1f\n" +
 	"\vinstance_id\x18\x01 \x01(\tR\n" +
-	"instanceId\"O\n" +
+	"instanceId\x12\x1b\n" +
+	"\tpage_size\x18\x02 \x01(\rR\bpageSize\x12\x1d\n" +
+	"\n" +
+	"page_token\x18\x03 \x01(\tR\tpageToken\"O\n" +
 	"\x15OutboundConfiguration\x12\x10\n" +
 	"\x03tag\x18\x01 \x01(\tR\x03tag\x12$\n" +
-	"\rconfiguration\x18\x02 \x01(\fR\rconfiguration\"\x8f\x02\n" +
+	"\rconfiguration\x18\x02 \x01(\fR\rconfiguration\"\xf4\x02\n" +
 	"\x16OutboundConfigurations\x12\x1f\n" +
 	"\vinstance_id\x18\x01 \x01(\tR\n" +
 	"instanceId\x12\x1e\n" +
@@ -218,8 +261,14 @@ const file_internal_apps_xray_proxies_outbounds_grpcapi_proto_v1_outbounds_proto
 	"\vobserved_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
 	"observedAt\x12\x1f\n" +
 	"\vduration_ns\x18\x05 \x01(\x03R\n" +
-	"durationNs2\xc5\x05\n" +
-	"\x10OutboundsService\x12z\n" +
+	"durationNs\x12&\n" +
+	"\x0fnext_page_token\x18\x06 \x01(\tR\rnextPageToken\x12\x16\n" +
+	"\x06source\x18\a \x01(\tR\x06source\x12#\n" +
+	"\rdefault_state\x18\b \x01(\tR\fdefaultState2\x92\t\n" +
+	"\x10OutboundsService\x12\x98\x01\n" +
+	"\x17PlanOutboundReplacement\x12A.papilio.xray.proxies.outbounds.v1.PlanOutboundReplacementRequest\x1a:.papilio.xray.proxies.outbounds.v1.OutboundReplacementPlan\x12\x97\x01\n" +
+	"\x18ApplyOutboundReplacement\x12=.papilio.xray.proxies.outbounds.v1.OutboundReplacementRequest\x1a<.papilio.xray.proxies.outbounds.v1.OutboundReplacementResult\x12\x95\x01\n" +
+	"\x16GetOutboundReplacement\x12=.papilio.xray.proxies.outbounds.v1.OutboundReplacementRequest\x1a<.papilio.xray.proxies.outbounds.v1.OutboundReplacementResult\x12z\n" +
 	"\vAddOutbound\x125.papilio.xray.proxies.outbounds.v1.AddOutboundRequest\x1a4.papilio.xray.proxies.outbounds.v1.OutboundOperation\x12\x90\x01\n" +
 	"\x16AddOutboundFromSources\x12@.papilio.xray.proxies.outbounds.v1.AddOutboundFromSourcesRequest\x1a4.papilio.xray.proxies.outbounds.v1.OutboundOperation\x12\x80\x01\n" +
 	"\x0eRemoveOutbound\x128.papilio.xray.proxies.outbounds.v1.RemoveOutboundRequest\x1a4.papilio.xray.proxies.outbounds.v1.OutboundOperation\x12\x98\x01\n" +
@@ -244,31 +293,41 @@ var file_internal_apps_xray_proxies_outbounds_grpcapi_proto_v1_outbounds_proto_g
 	(*OutboundConfiguration)(nil),           // 1: papilio.xray.proxies.outbounds.v1.OutboundConfiguration
 	(*OutboundConfigurations)(nil),          // 2: papilio.xray.proxies.outbounds.v1.OutboundConfigurations
 	(*timestamppb.Timestamp)(nil),           // 3: google.protobuf.Timestamp
-	(*AddOutboundRequest)(nil),              // 4: papilio.xray.proxies.outbounds.v1.AddOutboundRequest
-	(*AddOutboundFromSourcesRequest)(nil),   // 5: papilio.xray.proxies.outbounds.v1.AddOutboundFromSourcesRequest
-	(*RemoveOutboundRequest)(nil),           // 6: papilio.xray.proxies.outbounds.v1.RemoveOutboundRequest
-	(*GetOutboundControlStatusRequest)(nil), // 7: papilio.xray.proxies.outbounds.v1.GetOutboundControlStatusRequest
-	(*OutboundOperation)(nil),               // 8: papilio.xray.proxies.outbounds.v1.OutboundOperation
-	(*OutboundControlStatus)(nil),           // 9: papilio.xray.proxies.outbounds.v1.OutboundControlStatus
+	(*PlanOutboundReplacementRequest)(nil),  // 4: papilio.xray.proxies.outbounds.v1.PlanOutboundReplacementRequest
+	(*OutboundReplacementRequest)(nil),      // 5: papilio.xray.proxies.outbounds.v1.OutboundReplacementRequest
+	(*AddOutboundRequest)(nil),              // 6: papilio.xray.proxies.outbounds.v1.AddOutboundRequest
+	(*AddOutboundFromSourcesRequest)(nil),   // 7: papilio.xray.proxies.outbounds.v1.AddOutboundFromSourcesRequest
+	(*RemoveOutboundRequest)(nil),           // 8: papilio.xray.proxies.outbounds.v1.RemoveOutboundRequest
+	(*GetOutboundControlStatusRequest)(nil), // 9: papilio.xray.proxies.outbounds.v1.GetOutboundControlStatusRequest
+	(*OutboundReplacementPlan)(nil),         // 10: papilio.xray.proxies.outbounds.v1.OutboundReplacementPlan
+	(*OutboundReplacementResult)(nil),       // 11: papilio.xray.proxies.outbounds.v1.OutboundReplacementResult
+	(*OutboundOperation)(nil),               // 12: papilio.xray.proxies.outbounds.v1.OutboundOperation
+	(*OutboundControlStatus)(nil),           // 13: papilio.xray.proxies.outbounds.v1.OutboundControlStatus
 }
 var file_internal_apps_xray_proxies_outbounds_grpcapi_proto_v1_outbounds_proto_depIdxs = []int32{
-	1, // 0: papilio.xray.proxies.outbounds.v1.OutboundConfigurations.outbounds:type_name -> papilio.xray.proxies.outbounds.v1.OutboundConfiguration
-	3, // 1: papilio.xray.proxies.outbounds.v1.OutboundConfigurations.observed_at:type_name -> google.protobuf.Timestamp
-	4, // 2: papilio.xray.proxies.outbounds.v1.OutboundsService.AddOutbound:input_type -> papilio.xray.proxies.outbounds.v1.AddOutboundRequest
-	5, // 3: papilio.xray.proxies.outbounds.v1.OutboundsService.AddOutboundFromSources:input_type -> papilio.xray.proxies.outbounds.v1.AddOutboundFromSourcesRequest
-	6, // 4: papilio.xray.proxies.outbounds.v1.OutboundsService.RemoveOutbound:input_type -> papilio.xray.proxies.outbounds.v1.RemoveOutboundRequest
-	7, // 5: papilio.xray.proxies.outbounds.v1.OutboundsService.GetOutboundControlStatus:input_type -> papilio.xray.proxies.outbounds.v1.GetOutboundControlStatusRequest
-	0, // 6: papilio.xray.proxies.outbounds.v1.OutboundsService.ListOutbounds:input_type -> papilio.xray.proxies.outbounds.v1.ListOutboundsRequest
-	8, // 7: papilio.xray.proxies.outbounds.v1.OutboundsService.AddOutbound:output_type -> papilio.xray.proxies.outbounds.v1.OutboundOperation
-	8, // 8: papilio.xray.proxies.outbounds.v1.OutboundsService.AddOutboundFromSources:output_type -> papilio.xray.proxies.outbounds.v1.OutboundOperation
-	8, // 9: papilio.xray.proxies.outbounds.v1.OutboundsService.RemoveOutbound:output_type -> papilio.xray.proxies.outbounds.v1.OutboundOperation
-	9, // 10: papilio.xray.proxies.outbounds.v1.OutboundsService.GetOutboundControlStatus:output_type -> papilio.xray.proxies.outbounds.v1.OutboundControlStatus
-	2, // 11: papilio.xray.proxies.outbounds.v1.OutboundsService.ListOutbounds:output_type -> papilio.xray.proxies.outbounds.v1.OutboundConfigurations
-	7, // [7:12] is the sub-list for method output_type
-	2, // [2:7] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	1,  // 0: papilio.xray.proxies.outbounds.v1.OutboundConfigurations.outbounds:type_name -> papilio.xray.proxies.outbounds.v1.OutboundConfiguration
+	3,  // 1: papilio.xray.proxies.outbounds.v1.OutboundConfigurations.observed_at:type_name -> google.protobuf.Timestamp
+	4,  // 2: papilio.xray.proxies.outbounds.v1.OutboundsService.PlanOutboundReplacement:input_type -> papilio.xray.proxies.outbounds.v1.PlanOutboundReplacementRequest
+	5,  // 3: papilio.xray.proxies.outbounds.v1.OutboundsService.ApplyOutboundReplacement:input_type -> papilio.xray.proxies.outbounds.v1.OutboundReplacementRequest
+	5,  // 4: papilio.xray.proxies.outbounds.v1.OutboundsService.GetOutboundReplacement:input_type -> papilio.xray.proxies.outbounds.v1.OutboundReplacementRequest
+	6,  // 5: papilio.xray.proxies.outbounds.v1.OutboundsService.AddOutbound:input_type -> papilio.xray.proxies.outbounds.v1.AddOutboundRequest
+	7,  // 6: papilio.xray.proxies.outbounds.v1.OutboundsService.AddOutboundFromSources:input_type -> papilio.xray.proxies.outbounds.v1.AddOutboundFromSourcesRequest
+	8,  // 7: papilio.xray.proxies.outbounds.v1.OutboundsService.RemoveOutbound:input_type -> papilio.xray.proxies.outbounds.v1.RemoveOutboundRequest
+	9,  // 8: papilio.xray.proxies.outbounds.v1.OutboundsService.GetOutboundControlStatus:input_type -> papilio.xray.proxies.outbounds.v1.GetOutboundControlStatusRequest
+	0,  // 9: papilio.xray.proxies.outbounds.v1.OutboundsService.ListOutbounds:input_type -> papilio.xray.proxies.outbounds.v1.ListOutboundsRequest
+	10, // 10: papilio.xray.proxies.outbounds.v1.OutboundsService.PlanOutboundReplacement:output_type -> papilio.xray.proxies.outbounds.v1.OutboundReplacementPlan
+	11, // 11: papilio.xray.proxies.outbounds.v1.OutboundsService.ApplyOutboundReplacement:output_type -> papilio.xray.proxies.outbounds.v1.OutboundReplacementResult
+	11, // 12: papilio.xray.proxies.outbounds.v1.OutboundsService.GetOutboundReplacement:output_type -> papilio.xray.proxies.outbounds.v1.OutboundReplacementResult
+	12, // 13: papilio.xray.proxies.outbounds.v1.OutboundsService.AddOutbound:output_type -> papilio.xray.proxies.outbounds.v1.OutboundOperation
+	12, // 14: papilio.xray.proxies.outbounds.v1.OutboundsService.AddOutboundFromSources:output_type -> papilio.xray.proxies.outbounds.v1.OutboundOperation
+	12, // 15: papilio.xray.proxies.outbounds.v1.OutboundsService.RemoveOutbound:output_type -> papilio.xray.proxies.outbounds.v1.OutboundOperation
+	13, // 16: papilio.xray.proxies.outbounds.v1.OutboundsService.GetOutboundControlStatus:output_type -> papilio.xray.proxies.outbounds.v1.OutboundControlStatus
+	2,  // 17: papilio.xray.proxies.outbounds.v1.OutboundsService.ListOutbounds:output_type -> papilio.xray.proxies.outbounds.v1.OutboundConfigurations
+	10, // [10:18] is the sub-list for method output_type
+	2,  // [2:10] is the sub-list for method input_type
+	2,  // [2:2] is the sub-list for extension type_name
+	2,  // [2:2] is the sub-list for extension extendee
+	0,  // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_internal_apps_xray_proxies_outbounds_grpcapi_proto_v1_outbounds_proto_init() }
