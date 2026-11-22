@@ -16,33 +16,39 @@ import (
 )
 
 func Module(requests settings.Requests) fx.Option {
-	return fx.Module("xray-outbounds", fx.Supply(requests, fx.Private), fx.Provide(compose, composeSources, composeReplacements, fx.Private), fx.Invoke(register), fx.Provide(subscribe))
+	return fx.Module("xray-outbounds", fx.Supply(requests, fx.Private), fx.Provide(compose, fx.Private), fx.Invoke(register), fx.Provide(subscribe))
 }
 
 type inputs struct {
 	fx.In
 	Bindings []rpc.Binding `group:"xray-native-api"`
 	Status   services.StatusReader
+	Compiler configuration.Compiler
 }
 
-func compose(in inputs) (*services.Service, error) {
+func compose(in inputs) (*services.Service, *services.Sources, *services.Replacements, error) {
 	bindings := make([]services.Binding, 0, len(in.Bindings))
+	factories := make(map[string]configuration.Factory, len(in.Bindings))
 	for _, resource := range in.Bindings {
 		binding := services.Binding{ID: resource.ID}
 		if resource.Client != nil {
-			binding.Client = api.New(resource.Client)
+			client := api.New(resource.Client)
+			binding.Client = client
+			factories[resource.ID] = client
 		}
 		bindings = append(bindings, binding)
 	}
-	return services.New(bindings, in.Status)
-}
-
-func composeSources(service *services.Service, compiler configuration.Compiler) (*services.Sources, error) {
-	return services.NewSources(service, configuration.Preparer{Compiler: compiler})
-}
-
-func composeReplacements(service *services.Service, compiler configuration.Compiler) (*services.Replacements, error) {
-	return services.NewReplacements(service, configuration.Inspector{}, configuration.Preparer{Compiler: compiler})
+	service, err := services.New(bindings, in.Status)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	preparer := configuration.Preparer{Compiler: in.Compiler, Factories: factories}
+	sources, err := services.NewSources(service, preparer)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	replacements, err := services.NewReplacements(service, configuration.Inspector{}, preparer)
+	return service, sources, replacements, err
 }
 
 type adapters struct {

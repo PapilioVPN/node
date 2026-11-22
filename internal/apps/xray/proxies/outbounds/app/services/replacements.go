@@ -17,6 +17,9 @@ import (
 type CandidateInspector interface {
 	Inspect(context.Context, []byte) (domain.Candidate, error)
 }
+type ReplacementPreparer interface {
+	PrepareReplacement(context.Context, string, string, []configs.Source) ([]byte, domain.Candidate, error)
+}
 type replacementPlan struct {
 	plan    domain.ReplacementPlan
 	expires time.Time
@@ -31,12 +34,12 @@ type replacementPlan struct {
 type Replacements struct {
 	service   *Service
 	inspector CandidateInspector
-	preparer  SourcePreparer
+	preparer  ReplacementPreparer
 	mu        sync.Mutex
 	plans     map[string]*replacementPlan
 }
 
-func NewReplacements(service *Service, inspector CandidateInspector, preparer SourcePreparer) (*Replacements, error) {
+func NewReplacements(service *Service, inspector CandidateInspector, preparer ReplacementPreparer) (*Replacements, error) {
 	if service == nil || inspector == nil {
 		return nil, domain.ErrInvalidArgument
 	}
@@ -65,12 +68,19 @@ func (r *Replacements) Plan(ctx context.Context, id string, request domain.Repla
 	if err := validators.Replacement(request); err != nil {
 		return domain.ReplacementPlan{}, err
 	}
+	return r.plan(ctx, id, request, func() (domain.Candidate, error) {
+		return r.inspector.Inspect(ctx, request.Configuration)
+	})
+}
+
+// plan admits the validated request before inspecting or reading native state.
+func (r *Replacements) plan(ctx context.Context, id string, request domain.ReplacementRequest, inspect func() (domain.Candidate, error)) (domain.ReplacementPlan, error) {
 	selected, generation, release, err := r.service.beginRead(ctx, id)
 	if err != nil {
 		return domain.ReplacementPlan{}, err
 	}
 	defer release()
-	candidate, err := r.inspector.Inspect(ctx, request.Configuration)
+	candidate, err := inspect()
 	if err != nil {
 		return domain.ReplacementPlan{}, err
 	}
@@ -368,9 +378,9 @@ func (r *Replacements) PlanSources(ctx context.Context, id, tag string, sources 
 	if r.preparer == nil {
 		return domain.ReplacementPlan{}, domain.ErrUnsupported
 	}
-	content, err := r.preparer.Prepare(ctx, id, tag, sources)
+	content, candidate, err := r.preparer.PrepareReplacement(ctx, id, tag, sources)
 	if err != nil {
 		return domain.ReplacementPlan{}, err
 	}
-	return r.Plan(ctx, id, domain.ReplacementRequest{Tag: tag, Configuration: content, DefaultPolicy: defaultPolicy, ConnectionPolicy: connections})
+	return r.plan(ctx, id, domain.ReplacementRequest{Tag: tag, Configuration: content, DefaultPolicy: defaultPolicy, ConnectionPolicy: connections}, func() (domain.Candidate, error) { return candidate, nil })
 }

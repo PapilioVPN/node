@@ -15,11 +15,39 @@ import (
 type Compiler interface {
 	Compile(context.Context, string, []configs.Source) (configs.Compilation, error)
 }
-type Preparer struct{ Compiler Compiler }
+type Factory interface {
+	PrepareNative(*core.OutboundHandlerConfig) (domain.Addition, error)
+}
+type Preparer struct {
+	Compiler  Compiler
+	Factories map[string]Factory
+}
 
 // Prepare selects exactly one matching tag. Other handlers, features and source
 // environment settings are not applied to the running execution.
-func (p Preparer) Prepare(ctx context.Context, id, tag string, sources []configs.Source) ([]byte, error) {
+func (p Preparer) Prepare(ctx context.Context, id, tag string, sources []configs.Source) (domain.Addition, error) {
+	selected, err := p.selectNative(ctx, id, tag, sources)
+	if err != nil {
+		return nil, err
+	}
+	factory := p.Factories[id]
+	if factory == nil {
+		return nil, domain.ErrUnsupported
+	}
+	return factory.PrepareNative(selected)
+}
+
+// PrepareReplacement encodes only the retained review artifact. Inspection uses
+// the compiler's decoded object rather than decoding that artifact again.
+func (p Preparer) PrepareReplacement(ctx context.Context, id, tag string, sources []configs.Source) ([]byte, domain.Candidate, error) {
+	selected, err := p.selectNative(ctx, id, tag, sources)
+	if err != nil {
+		return nil, domain.Candidate{}, err
+	}
+	return inspectNative(ctx, selected)
+}
+
+func (p Preparer) selectNative(ctx context.Context, id, tag string, sources []configs.Source) (*core.OutboundHandlerConfig, error) {
 	compiled, err := p.Compiler.Compile(ctx, id, sources)
 	if err != nil {
 		return nil, compileError(err)
@@ -49,12 +77,9 @@ func (p Preparer) Prepare(ctx context.Context, id, tag string, sources []configs
 	if proto.Size(selected) > domain.MaxConfigurationBytes {
 		return nil, domain.ErrCapacity
 	}
-	content, err := proto.Marshal(selected)
-	if err != nil {
-		return nil, err
-	}
-	return content, ctx.Err()
+	return selected, ctx.Err()
 }
+
 func compileError(err error) error {
 	switch {
 	case errors.Is(err, configs.ErrCapacity), errors.Is(err, configs.ErrTooLarge):

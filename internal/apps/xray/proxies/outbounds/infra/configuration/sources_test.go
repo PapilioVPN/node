@@ -24,17 +24,17 @@ func TestPreparationSelectsOneHandlerInOneCompilation(t *testing.T) {
 	target.ProtoReflect().SetUnknown([]byte{0xa0, 0x06, 7})
 	content, _ := proto.Marshal(&core.Config{Outbound: []*core.OutboundHandlerConfig{{Tag: "excluded"}, target}})
 	calls := 0
-	p := configuration.Preparer{Compiler: compiler(func(_ context.Context, id string, sources []configs.Source) (configs.Compilation, error) {
+	var actual *core.OutboundHandlerConfig
+	p := configuration.Preparer{Factories: map[string]configuration.Factory{"a": nativeFactory(func(c *core.OutboundHandlerConfig) (domain.Addition, error) { actual = c; return nil, nil })}, Compiler: compiler(func(_ context.Context, id string, sources []configs.Source) (configs.Compilation, error) {
 		calls++
 		if id != "a" || len(sources) != 2 || sources[1].Name != "tail.json" {
 			t.Fatal(id, sources)
 		}
 		return configs.Compilation{Content: content}, nil
 	})}
-	result, err := p.Prepare(context.Background(), "a", "selected", []configs.Source{{Name: "first.json"}, {Name: "tail.json"}})
-	var actual core.OutboundHandlerConfig
-	if err != nil || proto.Unmarshal(result, &actual) != nil || !proto.Equal(target, &actual) || calls != 1 {
-		t.Fatal(&actual, err, calls)
+	_, err := p.Prepare(context.Background(), "a", "selected", []configs.Source{{Name: "first.json"}, {Name: "tail.json"}})
+	if err != nil || !proto.Equal(target, actual) || calls != 1 {
+		t.Fatal(actual, err, calls)
 	}
 }
 func TestPreparationRejectsAmbiguityAndCompilerFailuresWithoutOutput(t *testing.T) {
@@ -63,6 +63,32 @@ func TestPreparationRejectsAmbiguityAndCompilerFailuresWithoutOutput(t *testing.
 	})}
 	result, err := p.Prepare(context.Background(), "i", "a", nil)
 	if !errors.Is(err, domain.ErrCapacity) || result != nil {
-		t.Fatal(len(result), err)
+		t.Fatal(result, err)
+	}
+}
+
+type nativeFactory func(*core.OutboundHandlerConfig) (domain.Addition, error)
+
+func (f nativeFactory) PrepareNative(c *core.OutboundHandlerConfig) (domain.Addition, error) {
+	return f(c)
+}
+
+func TestSourceReplacementArtifactMatchesInspectedNativeObject(t *testing.T) {
+	target := &core.OutboundHandlerConfig{Tag: "selected", ProxySettings: &serial.TypedMessage{Type: "opaque", Value: []byte{1, 2, 3}}}
+	target.ProtoReflect().SetUnknown([]byte{0xa0, 0x06, 7})
+	content, _ := proto.Marshal(&core.Config{Outbound: []*core.OutboundHandlerConfig{target}})
+	calls := 0
+	p := configuration.Preparer{Compiler: compiler(func(context.Context, string, []configs.Source) (configs.Compilation, error) {
+		calls++
+		return configs.Compilation{Content: content}, nil
+	})}
+	artifact, candidate, err := p.PrepareReplacement(context.Background(), "a", "selected", nil)
+	var actual core.OutboundHandlerConfig
+	if err != nil || proto.Unmarshal(artifact, &actual) != nil || !proto.Equal(target, &actual) || calls != 1 {
+		t.Fatal(candidate, err, calls)
+	}
+	inspected, err := (configuration.Inspector{}).Inspect(context.Background(), artifact)
+	if err != nil || inspected != candidate {
+		t.Fatal(inspected, candidate, err)
 	}
 }

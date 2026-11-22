@@ -20,26 +20,28 @@ func (Inspector) Inspect(ctx context.Context, content []byte) (domain.Candidate,
 	if err := ctx.Err(); err != nil {
 		return domain.Candidate{}, err
 	}
-	if err := validators.Configuration(content); err != nil {
-		return domain.Candidate{}, err
-	}
 	var config core.OutboundHandlerConfig
 	if err := proto.Unmarshal(content, &config); err != nil {
 		return domain.Candidate{}, errors.Join(domain.ErrInvalidArgument, err)
 	}
+	_, candidate, err := inspectNative(ctx, &config)
+	return candidate, err
+}
+
+func inspectNative(ctx context.Context, config *core.OutboundHandlerConfig) ([]byte, domain.Candidate, error) {
 	if config.ProxySettings == nil || config.ProxySettings.Type == "" || (config.SenderSettings != nil && config.SenderSettings.Type == "") {
-		return domain.Candidate{}, domain.ErrInvalidArgument
+		return nil, domain.Candidate{}, domain.ErrInvalidArgument
 	}
 	if err := validators.Tag(config.Tag); err != nil {
-		return domain.Candidate{}, err
+		return nil, domain.Candidate{}, err
 	}
 	if config.Expire != 0 || config.Comment != "" {
-		return domain.Candidate{}, domain.ErrUnsupported
+		return nil, domain.Candidate{}, domain.ErrUnsupported
 	}
-	canonical, err := (proto.MarshalOptions{Deterministic: true}).Marshal(&config)
+	canonical, err := (proto.MarshalOptions{Deterministic: true}).Marshal(config)
 	if err != nil {
-		return domain.Candidate{}, err
+		return nil, domain.Candidate{}, err
 	}
 	digest := sha256.Sum256(canonical)
-	return domain.Candidate{Tag: config.Tag, Fingerprint: hex.EncodeToString(digest[:])}, ctx.Err()
+	return canonical, domain.Candidate{Tag: config.Tag, Fingerprint: hex.EncodeToString(digest[:])}, ctx.Err()
 }

@@ -2,6 +2,7 @@ package api_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 
@@ -59,5 +60,32 @@ func TestNativeCollectionUsesOneBoundedCall(t *testing.T) {
 				t.Fatal(&configuration, err)
 			}
 		})
+	}
+}
+
+func TestPreparedHandlerDefersSubmissionAndPreservesNativeObject(t *testing.T) {
+	calls := 0
+	config := &core.OutboundHandlerConfig{Tag: "prepared", ProxySettings: &serial.TypedMessage{Type: "proxy"}}
+	config.ProtoReflect().SetUnknown([]byte{0xa0, 0x06, 7})
+	client := api.New(connection{func(method string, input, _ any, _ []grpc.CallOption) error {
+		calls++
+		request := input.(*handlers.AddOutboundRequest)
+		if method != "/xray.app.proxyman.command.HandlerService/AddOutbound" || request.Outbound != config || len(request.Outbound.ProtoReflect().GetUnknown()) == 0 {
+			t.Fatal("prepared object changed before SDK submission", method, request)
+		}
+		return nil
+	}})
+	prepared, err := client.PrepareNative(config)
+	if err != nil || calls != 0 {
+		t.Fatal("preparation submitted native work", err, calls)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	if result, err := prepared.Add(ctx); !errors.Is(err, context.Canceled) || result.Effect != domain.NotApplied || calls != 0 {
+		t.Fatal("canceled prepared handler submitted", result, err, calls)
+	}
+	result, err := prepared.Add(context.Background())
+	if err != nil || !result.Acknowledged || result.Tag != config.Tag || calls != 1 {
+		t.Fatal(result, err, calls)
 	}
 }

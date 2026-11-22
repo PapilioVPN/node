@@ -10,9 +10,9 @@ import (
 	configs "github.com/PapilioVPN/node/internal/apps/xray/runtime/configs/domain"
 )
 
-type preparer func(context.Context, string, string, []configs.Source) ([]byte, error)
+type preparer func(context.Context, string, string, []configs.Source) (domain.Addition, error)
 
-func (p preparer) Prepare(ctx context.Context, id, tag string, sources []configs.Source) ([]byte, error) {
+func (p preparer) Prepare(ctx context.Context, id, tag string, sources []configs.Source) (domain.Addition, error) {
 	return p(ctx, id, tag, sources)
 }
 func TestSourcePreparationCannotSubmitAfterFailureOrExecutionReplacement(t *testing.T) {
@@ -27,7 +27,7 @@ func TestSourcePreparationCannotSubmitAfterFailureOrExecutionReplacement(t *test
 				return domain.NativeResult{Tag: "a", Effect: domain.Completed, Acknowledged: true}, nil
 			}}, e)
 			prepares := 0
-			s, err := services.NewSources(service, preparer(func(context.Context, string, string, []configs.Source) ([]byte, error) {
+			s, err := services.NewSources(service, preparer(func(context.Context, string, string, []configs.Source) (domain.Addition, error) {
 				prepares++
 				switch mode {
 				case "rejected":
@@ -37,7 +37,10 @@ func TestSourcePreparationCannotSubmitAfterFailureOrExecutionReplacement(t *test
 				case "canceled":
 					cancel()
 				}
-				return []byte{1}, nil
+				return additionFunc(func(ctx context.Context) (domain.NativeResult, error) {
+					calls++
+					return domain.NativeResult{Tag: "a", Effect: domain.Completed, Acknowledged: true}, nil
+				}), nil
 			}))
 			if err != nil {
 				t.Fatal(err)
@@ -61,3 +64,7 @@ func TestSourcePreparationCannotSubmitAfterFailureOrExecutionReplacement(t *test
 		})
 	}
 }
+
+type additionFunc func(context.Context) (domain.NativeResult, error)
+
+func (f additionFunc) Add(ctx context.Context) (domain.NativeResult, error) { return f(ctx) }

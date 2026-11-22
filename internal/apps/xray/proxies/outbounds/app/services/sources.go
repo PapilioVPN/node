@@ -10,7 +10,7 @@ import (
 )
 
 type SourcePreparer interface {
-	Prepare(context.Context, string, string, []configs.Source) ([]byte, error)
+	Prepare(context.Context, string, string, []configs.Source) (domain.Addition, error)
 }
 
 // Sources coordinates preparation and live addition through the same mutation
@@ -31,7 +31,7 @@ func (s *Sources) Add(ctx context.Context, id, tag string, sources []configs.Sou
 		return domain.Operation{InstanceID: id, Kind: "add", Tag: tag, Effect: domain.NotApplied}, err
 	}
 	return s.service.mutate(ctx, id, "add", tag, func(client Client, generation uint64) (domain.NativeResult, error) {
-		content, err := s.preparer.Prepare(ctx, id, tag, sources)
+		prepared, err := s.preparer.Prepare(ctx, id, tag, sources)
 		if err != nil {
 			return domain.NativeResult{Tag: tag, Effect: domain.NotApplied}, err
 		}
@@ -45,6 +45,9 @@ func (s *Sources) Add(ctx context.Context, id, tag string, sources []configs.Sou
 		if state.Execution.Generation != generation || state.Execution.State != instances.Running {
 			return domain.NativeResult{Tag: tag, Effect: domain.NotApplied}, domain.ErrExecutionChanged
 		}
-		return client.Add(ctx, content)
+		if prepared == nil {
+			return domain.NativeResult{Tag: tag, Effect: domain.NotApplied}, domain.ErrInvalidArgument
+		}
+		return prepared.Add(ctx)
 	})
 }
