@@ -72,6 +72,13 @@ func (s *Service) acquire(ctx context.Context, id string) (*syncEntry, func(), e
 	if !policies.Identifier(id) {
 		return nil, nil, domain.ErrInvalid
 	}
+	return s.acquireValidated(ctx, id)
+}
+
+func (s *Service) acquireValidated(ctx context.Context, id string) (*syncEntry, func(), error) {
+	if err := ctx.Err(); err != nil {
+		return nil, nil, err
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	e := s.entries[id]
@@ -152,7 +159,7 @@ func (s *Service) Preview(ctx context.Context, r domain.Request) (domain.Preview
 	if err := policies.Validate(ctx, r); err != nil {
 		return domain.Preview{}, err
 	}
-	e, release, err := s.acquire(ctx, r.InstanceID)
+	e, release, err := s.acquireValidated(ctx, r.InstanceID)
 	if err != nil {
 		return domain.Preview{}, err
 	}

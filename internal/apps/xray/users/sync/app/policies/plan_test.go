@@ -67,7 +67,7 @@ func TestFullEmptyAndExcluded(t *testing.T) {
 		t.Fatalf("clear: %+v %v", p.Preview, err)
 	}
 	r.Sets = append(r.Sets, accounts.InboundUserSet{InboundTag: "excluded", Accounts: [][]byte{}})
-	if _, err = policies.Build(context.Background(), r, snapshot(t, vless), codec.Codec{}); !errors.Is(err, domain.ErrInvalid) {
+	if err = policies.Validate(context.Background(), r); !errors.Is(err, domain.ErrInvalid) {
 		t.Fatalf("excluded: %v", err)
 	}
 	r = request(domain.Full)

@@ -75,7 +75,7 @@ func (o Observer) Snapshot(ctx context.Context, id string, tags []string) (domai
 					if count > domain.MaxUsers || size > domain.MaxBytes {
 						return domain.Snapshot{}, domain.ErrCapacity
 					}
-					member, err := (Codec{}).Decode(user.Configuration)
+					member, err := (Codec{}).Observe(user)
 					if err != nil {
 						return domain.Snapshot{}, err
 					}

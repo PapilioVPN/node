@@ -8,6 +8,7 @@ import (
 	"github.com/PapilioVPN/node/internal/apps/xray/users/sync/domain"
 )
 
+// Decoder borrows immutable input owned by the request or observation.
 type Decoder interface {
 	Decode([]byte) (domain.Member, error)
 }
@@ -42,8 +43,10 @@ func Identity(email, matching string) (string, error) {
 	}
 }
 
+// Build plans an owned request whose envelope was accepted by Validate at the
+// common service boundary. Native identity and compatibility remain checked here.
 func Build(ctx context.Context, r domain.Request, snapshot domain.Snapshot, decoder Decoder) (domain.Plan, error) {
-	if err := Validate(ctx, r); err != nil {
+	if err := ctx.Err(); err != nil {
 		return domain.Plan{}, err
 	}
 	if r.Expected != snapshot.Revision {
