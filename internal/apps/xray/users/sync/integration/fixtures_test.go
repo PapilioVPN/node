@@ -87,6 +87,7 @@ type fixture struct {
 	calls                                           *calls
 	instances                                       *instanceservices.Service
 	address, target                                 string
+	excluded                                        string
 	accounts                                        *accountservices.Service
 	native                                          string
 	store                                           *configstate.Store
@@ -114,14 +115,17 @@ func newFixture(t *testing.T) *fixture {
 	}
 	target := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { _, _ = io.WriteString(w, "sync-ok") }))
 	t.Cleanup(target.Close)
-	apiListener, accountListener := listen(t), listen(t)
+	apiListener, accountListener, excludedListener := listen(t), listen(t), listen(t)
+	defer apiListener.Close()
+	defer accountListener.Close()
+	defer excludedListener.Close()
 	apiAddress, accountAddress := apiListener.Addr().String(), accountListener.Addr().String()
 	_, targetPort, _ := net.SplitHostPort(strings.TrimPrefix(target.URL, "http://"))
 	baseline := map[string]any{
 		"log":       map[string]any{"loglevel": "none"},
 		"api":       map[string]any{"tag": "api", "listen": apiAddress, "services": []string{"StatsService", "HandlerService"}},
 		"stats":     map[string]any{},
-		"inbounds":  []any{map[string]any{"tag": "selected", "listen": "127.0.0.1", "port": accountListener.Addr().(*net.TCPAddr).Port, "protocol": "vless", "settings": map[string]any{"decryption": "none", "clients": []any{}}}},
+		"inbounds":  []any{map[string]any{"tag": "selected", "listen": "127.0.0.1", "port": accountListener.Addr().(*net.TCPAddr).Port, "protocol": "vless", "settings": map[string]any{"decryption": "none", "clients": []any{}}}, map[string]any{"tag": "excluded", "listen": "127.0.0.1", "port": excludedListener.Addr().(*net.TCPAddr).Port, "protocol": "vless", "settings": map[string]any{"decryption": "none", "clients": []any{map[string]any{"email": "excluded", "id": "00000000-0000-4000-8000-000000004096"}}}}},
 		"outbounds": []any{map[string]any{"protocol": "freedom", "settings": map[string]any{"finalRules": []any{map[string]any{"action": "allow", "network": "tcp", "ip": []string{"127.0.0.1/32"}, "port": targetPort}}}}},
 	}
 	source, err := json.Marshal(baseline)
@@ -167,6 +171,7 @@ func newFixture(t *testing.T) *fixture {
 	})
 	_ = apiListener.Close()
 	_ = accountListener.Close()
+	_ = excludedListener.Close()
 	ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
 	defer cancel()
 	if _, err := instances.Start(ctx, "one"); err != nil {
@@ -200,7 +205,7 @@ func newFixture(t *testing.T) *fixture {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return &fixture{service: service, calls: counter, instances: instances, address: accountAddress, target: strings.TrimPrefix(target.URL, "http://"), accounts: accounts, native: apiAddress, store: store, stateDirectory: stateDirectory, workDirectory: workDirectory, binary: binary, baseline: path, selection: selection}
+	return &fixture{service: service, calls: counter, instances: instances, address: accountAddress, target: strings.TrimPrefix(target.URL, "http://"), accounts: accounts, native: apiAddress, store: store, stateDirectory: stateDirectory, workDirectory: workDirectory, binary: binary, baseline: path, selection: selection, excluded: excludedListener.Addr().String()}
 }
 func nativeUser(i int) []byte {
 	account, _ := proto.Marshal(&vless.Account{Id: fmt.Sprintf("00000000-0000-4000-8000-%012d", i+1)})
