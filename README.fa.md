@@ -68,13 +68,14 @@ test -f "$config_dir/config.yml" ||
 docker logs papilio-node
 ```
 
-برای توقف اجرای نمونه از `docker stop --time 130 papilio-node` استفاده کن.
+برای توقف اجرای نمونه از `docker stop --time 150 papilio-node` استفاده کن.
 
 اسکریپت اجرا پوشهٔ تنظیمات را فقط‌خواندنی mount می‌کند. برای Xray،
 `instances` را طبق [تنظیمات نمونه](deploy/config.example.yml) تعریف کن و فایل
 اجرایی و کانفیگ انتخاب‌شده را فقط‌خواندنی mount کن. برای هر نمونه یک پوشهٔ
 کاری خصوصی و قابل‌نوشتن و در صورت پیکربندی، یک مسیر ماندگار خصوصی برای
-وضعیت آن تعیین کن. برای دیدن اطلاعات میزبان از داخل Docker، namespaceها و
+وضعیت آن تعیین کن. مالک پوشهٔ وضعیت باید کاربر اجرای Node و سطح دسترسی آن
+باید `0700` باشد. برای دیدن اطلاعات میزبان از داخل Docker، namespaceها و
 mountهای صریح توضیح‌داده‌شده در نمونه را به‌کار ببر.
 
 <a name="capabilities"></a>
@@ -89,8 +90,8 @@ mountهای صریح توضیح‌داده‌شده در نمونه را به‌
 | [نمونه‌های Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/runtime/instances) | شروع، توقف و راه‌اندازی مجدد نمونه‌های تعریف‌شده، خواندن وضعیت و بررسی آمادگی با API بومی Xray. |
 | [تنظیمات Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/runtime/configs) | اعتبارسنجی و کامپایل سورس‌ها، مشاهدهٔ نسخهٔ مطلوب و اعمال‌شده، جایگزینی و اعمال کانفیگ. |
 | [ورودی‌های Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/proxies/inbounds) | فهرست handlerها و tagها، خلاصه و سازگاری ورودی‌ها، افزودن از دادهٔ کامپایل‌شده یا سورس، حذف با tag و بازبینی و اجرای طرح جایگزینی. |
-| [خروجی‌های Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/proxies/outbounds) | فهرست handlerها، افزودن از دادهٔ کامپایل‌شده یا سورس و حذف با tag. |
-| [حساب‌های Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/users/accounts) | خواندن و شمارش حساب‌های موتور، افزودن و حذف تکی یا گروهی با سقف مشخص و آماده‌سازی اعضا در کانفیگ کامپایل‌شده. |
+| [خروجی‌های Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/proxies/outbounds) | فهرست صفحه‌بندی‌شدهٔ handlerها، افزودن از دادهٔ کامپایل‌شده یا سورس و حذف با tag. بازبینی طرح جایگزینی، اعمال تغییر زندهٔ پشتیبانی‌شده و خواندن نتیجه. تغییرهای نیازمند راه‌اندازی مجدد از API تنظیمات اعمال می‌شوند. |
+| [حساب‌های Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/users/accounts) | شمارش و جست‌وجوی حساب‌های موتور، فهرست صفحه‌بندی‌شدهٔ مشخصات بدون دادهٔ محرمانه، خروجی صریح رکوردهای بومی و بررسی سازگاری ورودی. افزودن و حذف تکی یا گروهی با سقف مشخص و آماده‌سازی اعضا در کانفیگ کامپایل‌شده. |
 | [حضور آنلاین در Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/users/online) | مشاهدهٔ شمارش، کاربران و رکوردهای آنلاین و IPهای هر کاربر. |
 | [مسیریابی Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/network/routing) | فهرست‌کردن، افزودن و حذف قوانین زنده، آزمایش انتخاب مسیر، خواندن وضعیت balancer و تعیین مقصد آن. |
 | [آمار Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/runtime/statistics) | خواندن آمار اجرایی بومی موتور. |

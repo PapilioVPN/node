@@ -64,12 +64,13 @@ The sample enables all three transports. For HTTP-only use, remove
 docker logs papilio-node
 ```
 
-Stop this example with `docker stop --time 130 papilio-node`.
+Stop this example with `docker stop --time 150 papilio-node`.
 
 The runner mounts the configuration directory read-only. For Xray, add
 `instances` in [the example settings](deploy/config.example.yml) and mount
 the selected binary and configuration read-only. Give each instance its own
-private writable work directory and, if configured, durable state directory.
+private writable work directory and, if configured, a durable state directory
+owned by the Node user with mode `0700`.
 For host observations in Docker, use the explicit namespaces and mounts
 described in the example settings.
 
@@ -83,8 +84,8 @@ described in the example settings.
 | [Xray instances](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/runtime/instances) | Start, stop and restart configured instances, read status and check native readiness. |
 | [Xray configuration](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/runtime/configs) | Validate and compile sources, inspect desired and applied revisions, and replace or apply configuration. |
 | [Xray inbounds](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/proxies/inbounds) | List handlers and tags, inspect summaries and compatibility, add from compiled data or sources, remove by tag, and review and execute replacement plans. |
-| [Xray outbounds](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/proxies/outbounds) | List handlers, add from compiled data or sources, and remove by tag. |
-| [Xray accounts](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/users/accounts) | Read and count live accounts, add or remove one at a time or in bounded batches, and prepare account membership in compiled configuration. |
+| [Xray outbounds](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/proxies/outbounds) | Read paginated handler snapshots, add from compiled data or sources, and remove by tag. Review replacement plans, apply supported live changes and retrieve their outcomes. Changes that need a restart use the configuration API. |
+| [Xray accounts](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/users/accounts) | Count and look up live accounts, page through credential-free metadata, explicitly export native account records, and check inbound compatibility. Add or remove accounts individually or in bounded batches, and prepare membership in compiled configuration. |
 | [Xray presence](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/users/online) | Read online counts, users, records and individual users’ IP addresses. |
 | [Xray routing](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/network/routing) | List, add and remove live rules, test route selection, inspect balancers and override their target. |
 | [Xray statistics](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/runtime/statistics) | Read native runtime statistics. |

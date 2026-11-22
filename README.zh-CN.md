@@ -62,11 +62,11 @@ test -f "$config_dir/config.yml" ||
 docker logs papilio-node
 ```
 
-使用 `docker stop --time 130 papilio-node` 停止示例容器。
+使用 `docker stop --time 150 papilio-node` 停止示例容器。
 
 启动脚本以只读方式挂载配置目录。要运行 Xray，请参照[示例配置](deploy/config.example.yml)
 添加 `instances`，并以只读方式挂载所选的可执行文件和配置。每个实例应拥有独立的
-私有可写工作目录，并可按需配置独立的私有持久化状态目录。要在 Docker 中采集宿主机
+私有可写工作目录，并可按需配置独立的私有持久化状态目录。状态目录应归 Node 运行用户所有，权限为 `0700`。要在 Docker 中采集宿主机
 信息，请使用示例中明确列出的命名空间和挂载参数。
 
 <a name="capabilities"></a>
@@ -79,8 +79,8 @@ docker logs papilio-node
 | [Xray 实例](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/runtime/instances) | 启动、停止和重启已配置的实例，查看状态并通过 Xray 原生 API 检查就绪情况。 |
 | [Xray 配置](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/runtime/configs) | 验证和编译配置源，查看期望和已应用的修订版本，以及替换和应用配置。 |
 | [Xray 入站](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/proxies/inbounds) | 列出处理器和标签，查看摘要及兼容性，从编译数据或配置源添加，按标签删除，以及审查并执行替换计划。 |
-| [Xray 出站](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/proxies/outbounds) | 列出处理器，从编译数据或配置源添加，以及按标签删除。 |
-| [Xray 账户](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/users/accounts) | 读取和统计运行中实例的账户，支持单个或限量批量增删，并为编译后的配置准备账户成员列表。 |
+| [Xray 出站](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/proxies/outbounds) | 分页读取处理器快照，从编译数据或配置源添加，以及按标签删除。审查替换计划，应用支持的在线变更并查看结果。需要重启的变更通过配置 API 应用。 |
+| [Xray 账户](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/users/accounts) | 统计和查找运行中的账户，分页查看不含凭据的元数据，显式导出原生账户记录，并检查入站兼容性。支持单个或限量批量增删，并为编译后的配置准备账户成员列表。 |
 | [Xray 在线状态](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/users/online) | 查看在线人数、用户、记录以及单个用户的 IP 地址。 |
 | [Xray 路由](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/network/routing) | 列出、添加和删除运行中的路由规则，测试路由选择，查看负载均衡器状态并覆盖其目标。 |
 | [Xray 统计](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/runtime/statistics) | 读取引擎的原生运行统计。 |

@@ -1,5 +1,5 @@
 startup_timeout: 10s
-shutdown_timeout: 120s
+shutdown_timeout: 140s
 # Management API: only provision trusted controller certificates and broker ACLs.
 # For actual host identity in Docker, pass --uts=host to run.sh.
 # Interface observations use the current network namespace; choose --network=host for host scope.
@@ -78,7 +78,7 @@ communications:
 #       configuration: /etc/xray/config.json
 #       # Existing private writable scratch directory; required for candidate checks.
 #       work_directory: /var/lib/node/xray/edge-a/work
-#       # Optional existing private durable directory for source updates and recovery.
+#       # Optional existing durable directory for recovery, owned by the Node user with mode 0700.
 #       state_directory: /var/lib/node/xray/edge-a/state
 #       api:
 #         network: tcp
