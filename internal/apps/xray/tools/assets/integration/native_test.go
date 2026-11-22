@@ -49,6 +49,10 @@ func TestNativeStageActivateRollbackAndCorruptInput(t *testing.T) {
 		t.Fatal(result, err)
 	}
 	f.traffic(t)
+	// Explicit rollback also repairs a committed release whose execution stopped.
+	if err := f.runtime.Stop(context.Background()); err != nil {
+		t.Fatal(err)
+	}
 	result, err = f.service.Rollback(context.Background(), "one", f.activation(t, ""))
 	if err != nil || result.Outcome != "completed" || result.State.Active != old.State.Active || result.State.Previous != next.ID {
 		t.Fatal(result, err)

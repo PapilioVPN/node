@@ -59,11 +59,12 @@ func (r *repository) Finish(_ context.Context, _ uint64, success bool) (domain.S
 }
 
 type runtime struct {
-	repo       *repository
-	checks     int
-	startError error
-	stopError  error
-	cancel     context.CancelFunc
+	repo         *repository
+	checks       int
+	unreadyFirst bool
+	startError   error
+	stopError    error
+	cancel       context.CancelFunc
 }
 
 func (r *runtime) Start(ctx context.Context) error {
@@ -86,7 +87,13 @@ func (r *runtime) Stop(ctx context.Context) error {
 	r.stopError = nil
 	return err
 }
-func (r *runtime) Check(context.Context) (bool, error) { r.checks++; return true, nil }
+func (r *runtime) Check(context.Context) (bool, error) {
+	r.checks++
+	if r.unreadyFirst && r.checks == 1 {
+		return false, domain.ErrRejected
+	}
+	return true, nil
+}
 
 type lifecycle struct {
 	session  Session
@@ -221,5 +228,15 @@ func TestActivationRequiresReservation(t *testing.T) {
 	_, err := s.Activate(context.Background(), "a", request())
 	if !errors.Is(err, domain.ErrUnsupported) || len(r.calls) != 0 {
 		t.Fatal(err)
+	}
+}
+
+func TestRollbackCanRecoverAnUnreadyCommittedRelease(t *testing.T) {
+	s, r, run, _ := fixture(t)
+	r.state.Previous = newID
+	run.unreadyFirst = true
+	got, err := s.Rollback(context.Background(), "a", request())
+	if err != nil || got.Outcome != "completed" || got.State.Active != newID || !got.Ready {
+		t.Fatal(got, err)
 	}
 }

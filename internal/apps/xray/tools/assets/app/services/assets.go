@@ -175,9 +175,11 @@ func (s *Service) activate(ctx context.Context, id string, q domain.Activation, 
 	if _, err = r.Release(ctx, q.ReleaseID); err != nil {
 		return result, err
 	}
-	ready, err := session.Check(ctx)
-	if err != nil || !ready {
-		return result, errors.Join(domain.ErrRejected, err)
+	if !previous {
+		ready, err := session.Check(ctx)
+		if err != nil || !ready {
+			return result, errors.Join(domain.ErrRejected, err)
+		}
 	}
 	state, err := r.Begin(ctx, q.ExpectedRevision, q.ReleaseID)
 	result.State = state
