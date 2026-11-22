@@ -147,7 +147,7 @@ func containerAddresses(t *testing.T, name string, since ...string) map[string]s
 	for {
 		addresses := map[string]string{}
 		validated, compiled, applied := false, false, false
-		args := []string{"logs", "--tail", "200"}
+		args := []string{"logs"}
 		if len(since) != 0 {
 			args = append(args, "--since", since[0])
 		}

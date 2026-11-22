@@ -119,7 +119,7 @@ func containerAddresses(t *testing.T, name string) map[string]string {
 	for {
 		addresses := map[string]string{}
 		subscribed, reopening := false, false
-		for line := range strings.SplitSeq(docker(t, "logs", "--tail", "200", name), "\n") {
+		for line := range strings.SplitSeq(docker(t, "logs", name), "\n") {
 			var event struct {
 				Message string `json:"msg"`
 				Address string `json:"address"`
