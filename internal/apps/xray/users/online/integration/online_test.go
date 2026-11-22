@@ -62,6 +62,11 @@ func TestNativePresenceIPsAndTransportParity(t *testing.T) {
 			assertCount(t, f, "b", 1)
 			b.Close()
 			eventuallyCount(t, f, "b", 0)
+			for _, operation := range []string{"users", "records"} {
+				if r := f.page(t, "a", operation, "", "", 0); r.Error != "" || r.Page.Total != 0 {
+					t.Fatal("expired maps in collection", r)
+				}
+			}
 			// A disabled native policy can carry traffic and still has no online map.
 			disabled := tunnel(t, f.disabled["a"], "127.0.0.2", "disabled@example.test", target)
 			disabled.Close()
@@ -71,6 +76,9 @@ func TestNativePresenceIPsAndTransportParity(t *testing.T) {
 				t.Fatal("invented native policy evidence", r, missing)
 			}
 			if r := f.read(t, "not-configured", email, false); r.Error != "facility_not_configured" {
+				t.Fatal(r)
+			}
+			if r := f.read(t, "unsupported", email, false); r.Error != "facility_unsupported" {
 				t.Fatal(r)
 			}
 			f.stop(t, "a")

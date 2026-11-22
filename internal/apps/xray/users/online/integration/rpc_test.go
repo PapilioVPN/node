@@ -82,3 +82,35 @@ func TestControlledRPCDeadlineAndChannelCloseJoinNativeWait(t *testing.T) {
 		})
 	}
 }
+
+func TestControlledBulkRPCBoundsCallsAndNoPartialSuccess(t *testing.T) {
+	connection, server, peer := newControlledRPC(t)
+	reader := api.New(connection)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	if rows, err := reader.Names(ctx); err != nil || len(rows) != 1 || peer.allUsers.Load() != 1 {
+		t.Fatal(rows, err)
+	}
+	if rows, err := reader.Records(ctx); err != nil || len(rows) != 1 || peer.allUsers.Load() != 2 || peer.records.Load() != 1 {
+		t.Fatal(rows, err)
+	}
+	peer.bulkNamesBytes.Store(domain.MaxNativeBytes + 1)
+	if rows, err := reader.Names(ctx); !errors.Is(err, domain.ErrCapacity) || len(rows) != 0 {
+		t.Fatal(rows, err)
+	}
+	peer.bulkNamesBytes.Store(0)
+	peer.bulkIPsBytes.Store(domain.MaxNativeBytes + 1)
+	if rows, err := reader.Records(ctx); !errors.Is(err, domain.ErrCapacity) || len(rows) != 0 {
+		t.Fatal(rows, err)
+	}
+	peer.mu.Lock()
+	peers := len(peer.peers)
+	peer.mu.Unlock()
+	if peers != 1 || peer.counts.Load() != 0 || peer.lists.Load() != 0 {
+		t.Fatal("bulk used per-user RPCs or channels", peers)
+	}
+	server.Stop()
+	if rows, err := reader.Names(ctx); !errors.Is(err, domain.ErrUnavailable) || len(rows) != 0 {
+		t.Fatal(rows, err)
+	}
+}

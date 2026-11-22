@@ -21,6 +21,7 @@ import (
 	"testing"
 	"time"
 
+	instances "github.com/PapilioVPN/node/internal/apps/xray/runtime/instances/domain"
 	instancesv1 "github.com/PapilioVPN/node/internal/apps/xray/runtime/instances/grpcapi/proto/v1"
 	"github.com/PapilioVPN/node/internal/apps/xray/runtime/instances/infra/rpc"
 	"github.com/PapilioVPN/node/internal/apps/xray/users/online/domain"
@@ -36,6 +37,7 @@ import (
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 )
 
 const email = "shared@example.test"
@@ -67,6 +69,7 @@ type fixture struct {
 	nats              *nats.Conn
 	sources           map[string][]byte
 	paths             map[string]string
+	native            map[string]*rpc.Client
 }
 type response struct {
 	Observation struct {
@@ -86,6 +89,9 @@ type response struct {
 }
 
 func newFixture(t *testing.T, pki testutil.PKI, broker, transport string) *fixture {
+	return newRuntimeFixture(t, pki, broker, transport, startInProcess)
+}
+func newRuntimeFixture(t *testing.T, pki testutil.PKI, broker, transport string, start func(*testing.T, settings.Config, *listenerLog)) *fixture {
 	t.Helper()
 	binary := os.Getenv("XRAY_TEST_BINARY")
 	if binary == "" {
@@ -100,7 +106,7 @@ func newFixture(t *testing.T, pki testutil.PKI, broker, transport string) *fixtu
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { os.RemoveAll(dir) })
-	f := &fixture{transport: transport, proxies: map[string]string{}, disabled: map[string]string{}, sources: map[string][]byte{}, paths: map[string]string{}}
+	f := &fixture{transport: transport, proxies: map[string]string{}, disabled: map[string]string{}, sources: map[string][]byte{}, paths: map[string]string{}, native: map[string]*rpc.Client{}}
 	config := settings.Config{StartupTimeout: 5 * time.Second, ShutdownTimeout: 8 * time.Second}
 	config.Communications.Requests.Timeout = 2 * time.Second
 	for _, id := range []string{"a", "b"} {
@@ -118,7 +124,14 @@ func newFixture(t *testing.T, pki testutil.PKI, broker, transport string) *fixtu
 		f.proxies[id] = proxyListener.Addr().String()
 		f.disabled[id] = disabledListener.Addr().String()
 		inbound := func(tag, account string, port int, level int) any {
-			return map[string]any{"tag": tag, "listen": "127.0.0.1", "port": port, "protocol": "http", "settings": map[string]any{"userLevel": level, "accounts": []any{map[string]any{"user": account, "pass": "fixture"}}}}
+			accounts := []any{map[string]any{"user": account, "pass": "fixture"}}
+			if tag == "tracked" {
+				accounts = append(accounts, map[string]any{"user": "special>>>identity@example.test", "pass": "fixture"})
+				for i := range 51 {
+					accounts = append(accounts, map[string]any{"user": fmt.Sprintf("online-%03d@example.test", i), "pass": "fixture"})
+				}
+			}
+			return map[string]any{"tag": tag, "listen": "127.0.0.1", "port": port, "protocol": "http", "settings": map[string]any{"userLevel": level, "accounts": accounts}}
 		}
 		data, err := json.Marshal(map[string]any{
 			"log": map[string]any{"loglevel": "none"}, "api": map[string]any{"tag": "api", "listen": nativeListen, "services": []string{"StatsService"}}, "stats": map[string]any{},
@@ -145,6 +158,26 @@ func newFixture(t *testing.T, pki testutil.PKI, broker, transport string) *fixtu
 		disabledListener.Close()
 	}
 
+	unsupportedListener := listen(t)
+	unsupportedAddress := unsupportedListener.Addr().String()
+	unsupportedListener.Close()
+	unsupportedPath := filepath.Join(dir, "unsupported.json")
+	unsupportedData, err := json.Marshal(map[string]any{
+		"log":       map[string]any{"loglevel": "none"},
+		"api":       map[string]any{"tag": "api", "listen": unsupportedAddress, "services": []string{"HandlerService"}},
+		"outbounds": []any{map[string]any{"protocol": "blackhole"}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(unsupportedPath, unsupportedData, 0600); err != nil {
+		t.Fatal(err)
+	}
+	config.Instances = append(config.Instances, settings.Instance{
+		ID: "unsupported", Engine: "xray", StopTimeout: time.Second,
+		Xray: &settings.Xray{Binary: binary, Configuration: unsupportedPath, API: &settings.XrayAPI{Network: "tcp", Address: unsupportedAddress}},
+	})
+
 	withoutAPI := filepath.Join(dir, "not-configured.json")
 	if err := os.WriteFile(withoutAPI, []byte(`{"outbounds":[{"protocol":"blackhole"}]}`), 0600); err != nil {
 		t.Fatal(err)
@@ -166,19 +199,7 @@ func newFixture(t *testing.T, pki testutil.PKI, broker, transport string) *fixtu
 		t.Fatal(err)
 	}
 	log := &listenerLog{Handler: slog.NewTextHandler(io.Discard, nil), addresses: map[string]string{}}
-	app := bootstrap.New(config, slog.New(log))
-	ctx, cancel := context.WithTimeout(context.Background(), config.StartupTimeout)
-	defer cancel()
-	if err := app.Start(ctx); err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() {
-		ctx, cancel := context.WithTimeout(context.Background(), config.ShutdownTimeout)
-		defer cancel()
-		if err := app.Stop(ctx); err != nil {
-			t.Error(err)
-		}
-	})
+	start(t, config, log)
 	for _, instance := range config.Instances[:2] {
 		api := instance.Xray.API
 		client, err := rpc.New(rpc.Config{Network: api.Network, Address: api.Address})
@@ -187,6 +208,21 @@ func newFixture(t *testing.T, pki testutil.PKI, broker, transport string) *fixtu
 		}
 		t.Cleanup(func() { client.Close() })
 		awaitNative(t, client)
+		f.native[instance.ID] = client
+	}
+	unsupportedCtx, unsupportedCancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer unsupportedCancel()
+	for {
+		conn, err := (&net.Dialer{}).DialContext(unsupportedCtx, "tcp", unsupportedAddress)
+		if err == nil {
+			conn.Close()
+			break
+		}
+		select {
+		case <-unsupportedCtx.Done():
+			t.Fatal("unsupported API did not start", err)
+		case <-time.After(10 * time.Millisecond):
+		}
 	}
 	tlsConfig, err := mtls.Client(pki.Client)
 	if err != nil {
@@ -468,10 +504,12 @@ func echoTarget(t *testing.T) string {
 // verifies channel receive limits and cancellation separately from traffic proof.
 type controlledStats struct {
 	stats.UnimplementedStatsServiceServer
-	counts, lists   atomic.Int32
-	mu              sync.Mutex
-	peers           map[string]bool
-	entered, exited chan struct{}
+	counts, lists                atomic.Int32
+	allUsers, records            atomic.Int32
+	bulkNamesBytes, bulkIPsBytes atomic.Int64
+	mu                           sync.Mutex
+	peers                        map[string]bool
+	entered, exited              chan struct{}
 }
 
 func (s *controlledStats) record(ctx context.Context) {
@@ -523,4 +561,222 @@ func newControlledRPC(t *testing.T) (*rpc.Client, *grpc.Server, *controlledStats
 	}
 	t.Cleanup(func() { client.Close() })
 	return client, server, peer
+}
+
+func startInProcess(t *testing.T, config settings.Config, log *listenerLog) {
+	t.Helper()
+	app := bootstrap.New(config, slog.New(log))
+	ctx, cancel := context.WithTimeout(context.Background(), config.StartupTimeout)
+	defer cancel()
+	if err := app.Start(ctx); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		ctx, cancel := context.WithTimeout(context.Background(), config.ShutdownTimeout)
+		defer cancel()
+		if err := app.Stop(ctx); err != nil {
+			t.Error(err)
+		}
+	})
+}
+
+func (s *controlledStats) GetAllOnlineUsers(ctx context.Context, _ *stats.GetAllOnlineUsersRequest) (*stats.GetAllOnlineUsersResponse, error) {
+	s.allUsers.Add(1)
+	s.record(ctx)
+	name := "user>>>a>>>online"
+	if n := s.bulkNamesBytes.Load(); n > 0 {
+		name = strings.Repeat("x", int(n))
+	}
+	return &stats.GetAllOnlineUsersResponse{Users: []string{name}}, nil
+}
+func (s *controlledStats) GetUsersStats(ctx context.Context, r *stats.GetUsersStatsRequest) (*stats.GetUsersStatsResponse, error) {
+	if r.IncludeTraffic || r.Reset_ {
+		panic("unexpected traffic effects")
+	}
+	s.records.Add(1)
+	s.record(ctx)
+	ip := "native"
+	if n := s.bulkIPsBytes.Load(); n > 0 {
+		ip = strings.Repeat("x", int(n))
+	}
+	return &stats.GetUsersStatsResponse{Users: []*stats.UserStat{{Email: "a", Ips: []*stats.OnlineIPEntry{{Ip: ip, LastSeen: -1}}}}}, nil
+}
+
+type collectionResponse struct {
+	response
+	Page struct {
+		ID      string    `json:"observation_id"`
+		Next    string    `json:"next_page_token"`
+		Expires time.Time `json:"expires_at"`
+		Served  time.Time `json:"served_at"`
+		Fresh   bool      `json:"fresh"`
+		Total   int       `json:"total"`
+	} `json:"page"`
+	Records []struct {
+		Email    string `json:"email"`
+		IP       string `json:"ip"`
+		LastSeen int64  `json:"last_seen_unix_seconds,string"`
+	} `json:"records"`
+}
+
+func (f *fixture) page(t *testing.T, id, operation, account, token string, size int) collectionResponse {
+	t.Helper()
+	var result collectionResponse
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	switch f.transport {
+	case "http":
+		query := url.Values{"page_size": []string{fmt.Sprint(size)}}
+		if token != "" {
+			query.Set("page_token", token)
+		}
+		if operation == "ips" {
+			query.Set("email", account)
+		}
+		reply, err := f.http.Get(f.address + "/v1/xray/users/instances/" + id + "/online/" + operation + "?" + query.Encode())
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer reply.Body.Close()
+		if reply.Header.Get("Cache-Control") != "no-store" {
+			t.Fatal("cacheable collection")
+		}
+		if err := json.NewDecoder(reply.Body).Decode(&result); err != nil {
+			t.Fatal(err)
+		}
+	case "nats":
+		suffix := "xray.users.online.v1.list"
+		if operation == "records" {
+			suffix = "xray.users.online.records.v1.list"
+		}
+		if operation == "ips" {
+			suffix = "xray.users.online.ips.v1.list"
+		}
+		input := map[string]any{"instance_id": id, "page_size": size, "page_token": token}
+		if operation == "ips" {
+			input["email"] = account
+		}
+		data, _ := json.Marshal(input)
+		reply, err := f.nats.RequestWithContext(ctx, "fixture.online."+suffix, data)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := json.Unmarshal(reply.Data, &result); err != nil {
+			t.Fatal(err)
+		}
+	case "grpc":
+		client := onlinev1.NewOnlineServiceClient(f.grpc)
+		var observation *onlinev1.OnlineObservation
+		var paging *onlinev1.OnlinePaging
+		if operation == "ips" {
+			reply, err := client.ListUserOnlineIPs(ctx, &onlinev1.ListUserOnlineIPsRequest{InstanceId: id, Email: account, PageSize: uint32(size), PageToken: token})
+			if err != nil {
+				return collectionResponse{response: response{Error: grpcMessage(err)}}
+			}
+			observation = reply.Observation
+			paging = reply.Page
+			for _, row := range reply.Ips {
+				result.IPs = append(result.IPs, struct {
+					IP       string `json:"ip"`
+					LastSeen int64  `json:"last_seen_unix_seconds,string"`
+				}{row.Ip, row.LastSeenUnixSeconds})
+			}
+		} else {
+			var reply *onlinev1.OnlinePage
+			var err error
+			if operation == "users" {
+				reply, err = client.ListOnlineUsers(ctx, &onlinev1.ListOnlineUsersRequest{InstanceId: id, PageSize: uint32(size), PageToken: token})
+			} else {
+				reply, err = client.ListOnlineRecords(ctx, &onlinev1.ListOnlineRecordsRequest{InstanceId: id, PageSize: uint32(size), PageToken: token})
+			}
+			if err != nil {
+				return collectionResponse{response: response{Error: grpcMessage(err)}}
+			}
+			observation = reply.Observation
+			paging = reply.Page
+			for _, row := range reply.Records {
+				ip := ""
+				var seen int64
+				if row.Ip != nil {
+					ip = row.Ip.Ip
+					seen = row.Ip.LastSeenUnixSeconds
+				}
+				result.Records = append(result.Records, struct {
+					Email    string `json:"email"`
+					IP       string `json:"ip"`
+					LastSeen int64  `json:"last_seen_unix_seconds,string"`
+				}{row.Email, ip, seen})
+			}
+		}
+		result.Observation.InstanceID = observation.InstanceId
+		result.Observation.Email = observation.Email
+		result.Observation.Generation = fmt.Sprint(observation.Generation)
+		result.Observation.Source = observation.Source
+		result.Observation.ObservedAt = observation.ObservedAt.AsTime()
+		result.Page.ID = paging.ObservationId
+		result.Page.Next = paging.NextPageToken
+		result.Page.Expires = paging.ExpiresAt.AsTime()
+		result.Page.Served = paging.ServedAt.AsTime()
+		result.Page.Fresh = paging.Fresh
+		result.Page.Total = int(paging.Total)
+	}
+	return result
+}
+func (f *fixture) restart(t *testing.T, id string) {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	switch f.transport {
+	case "http":
+		r, err := http.NewRequestWithContext(ctx, "POST", f.address+"/v1/core/engines/instances/"+id+"/executions", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		reply, err := f.http.Do(r)
+		if err != nil {
+			t.Fatal(err)
+		}
+		reply.Body.Close()
+		if reply.StatusCode != 200 {
+			t.Fatal(reply.Status)
+		}
+	case "grpc":
+		_, err := instancesv1.NewInstancesServiceClient(f.grpc).RestartInstance(ctx, &instancesv1.RestartInstanceRequest{InstanceId: id})
+		if err != nil {
+			t.Fatal(err)
+		}
+	case "nats":
+		reply, err := f.nats.RequestWithContext(ctx, "fixture.online.core.engines.instances.v1.restart", []byte(`{"instance_id":"`+id+`"}`))
+		if err != nil {
+			t.Fatal(err)
+		}
+		var r struct{ Error string }
+		if err := json.Unmarshal(reply.Data, &r); err != nil || r.Error != "" {
+			t.Fatal(string(reply.Data), err)
+		}
+	}
+	awaitNative(t, f.native[id])
+}
+
+// measuredConnection counts actual SDK invocations and native response protobuf
+// bytes against real Xray. It owns no channel or production instrumentation.
+type measuredConnection struct {
+	grpc.ClientConnInterface
+	calls map[string]int
+	bytes map[string]int
+}
+
+func (c *measuredConnection) Invoke(ctx context.Context, method string, input, output any, options ...grpc.CallOption) error {
+	c.calls[method]++
+	err := c.ClientConnInterface.Invoke(ctx, method, input, output, options...)
+	if err == nil {
+		c.bytes[method] += proto.Size(output.(proto.Message))
+	}
+	return err
+}
+
+type nativeRunning struct{}
+
+func (nativeRunning) Status(context.Context, string) (instances.Status, error) {
+	return instances.Status{Execution: instances.Execution{State: instances.Running, Generation: 1}}, nil
 }
