@@ -10,6 +10,7 @@ import (
 
 	accounts "github.com/PapilioVPN/node/internal/apps/xray/users/accounts/domain"
 	"github.com/PapilioVPN/node/internal/apps/xray/users/sync/domain"
+	codec "github.com/PapilioVPN/node/internal/apps/xray/users/sync/infra/accounts"
 )
 
 func TestApplyReplayReadbackAndUnchanged(t *testing.T) {
@@ -163,5 +164,58 @@ func TestConcurrentAdmissionStatusAndJoin(t *testing.T) {
 	close(c.unblock)
 	if err := <-done; err != nil {
 		t.Fatal(err)
+	}
+}
+
+type blockingObservation struct {
+	Observer
+	entered chan struct{}
+	release chan struct{}
+}
+
+func (b blockingObservation) Snapshot(ctx context.Context, id string, tags []string) (domain.Snapshot, error) {
+	if len(tags) != 0 {
+		b.entered <- struct{}{}
+		select {
+		case <-ctx.Done():
+			return domain.Snapshot{}, ctx.Err()
+		case <-b.release:
+		}
+	}
+	return b.Observer.Snapshot(ctx, id, tags)
+}
+func TestPendingReviewsAreGloballyBoundedBeforeReads(t *testing.T) {
+	_, c := newControlled(t)
+	observer := blockingObservation{Observer: c, entered: make(chan struct{}, 8), release: make(chan struct{})}
+	ids := []string{"one", "two", "three", "four", "five", "six", "seven", "eight", "nine"}
+	s, err := New(ids, observer, c, c, codec.Codec{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	done := make(chan error, 8)
+	for _, id := range ids[:8] {
+		go func(id string) {
+			revision, _ := s.Revision(ctx, id)
+			_, err := s.Preview(ctx, domain.Request{InstanceID: id, OperationID: "pending", Expected: revision, Mode: domain.Delta, Selection: []string{"selected"}})
+			done <- err
+		}(id)
+	}
+	for range 8 {
+		<-observer.entered
+	}
+	revision, _ := s.Revision(ctx, "nine")
+	if _, err := s.Preview(ctx, domain.Request{InstanceID: "nine", OperationID: "ninth", Expected: revision, Mode: domain.Delta, Selection: []string{"selected"}}); !errors.Is(err, domain.ErrCapacity) {
+		t.Fatal(err)
+	}
+	cancel()
+	for range 8 {
+		if err := <-done; !errors.Is(err, context.Canceled) {
+			t.Fatal(err)
+		}
+	}
+	if s.pending != 0 || s.retained != 0 {
+		t.Fatalf("pending=%d retained=%d", s.pending, s.retained)
 	}
 }

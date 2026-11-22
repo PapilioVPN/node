@@ -101,15 +101,19 @@ type Difference struct {
 	Unchanged  int
 }
 type Preview struct {
-	PlanID      string
-	InstanceID  string
-	OperationID string
-	Revision    Revision
-	Mode        Mode
-	ApplyMode   string
-	Reason      string
-	Differences []Difference
-	ExpiresAt   time.Time
+	PlanID            string
+	ConfigOperationID string
+	InstanceID        string
+	OperationID       string
+	Revision          Revision
+	Mode              Mode
+	ApplyMode         string
+	Reason            string
+	// ObservationBasis makes native projection limits explicit. In particular,
+	// VLESS's email-indexed native list can omit anonymous credentials.
+	ObservationBasis string
+	Differences      []Difference
+	ExpiresAt        time.Time
 }
 
 // Plan stays inside the application. Credentials and comparison fingerprints
@@ -133,16 +137,17 @@ type StepResult struct {
 	Code string
 }
 type Receipt struct {
-	InstanceID       string
-	OperationID      string
-	Revision         Revision
-	Effect           accounts.Effect
-	InFlight         bool
-	Durable          bool
-	Ready            bool
-	RequiresRecovery bool
-	CompletedAt      time.Time
-	Steps            []StepResult
+	InstanceID        string
+	OperationID       string
+	ConfigOperationID string
+	Revision          Revision
+	Effect            accounts.Effect
+	InFlight          bool
+	Durable           bool
+	Ready             bool
+	RequiresRecovery  bool
+	CompletedAt       time.Time
+	Steps             []StepResult
 }
 type ReceiptPage struct {
 	Receipt    Receipt

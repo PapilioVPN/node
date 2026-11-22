@@ -68,6 +68,7 @@ func Build(ctx context.Context, r domain.Request, snapshot domain.Snapshot, deco
 		removals[item.InboundTag] = append(removals[item.InboundTag], item.Email)
 	}
 	p := domain.Plan{Request: r, Snapshot: snapshot, Preview: domain.Preview{InstanceID: r.InstanceID, OperationID: r.OperationID, Revision: snapshot.Revision, Mode: r.Mode, ApplyMode: "live", Reason: "ordered_non_atomic_accounts"}}
+	p.Preview.ObservationBasis = "native_manager_readback"
 	if r.Mode == domain.Full {
 		p.Preview.ApplyMode, p.Preview.Reason = "replace_execution", "durable_configuration_membership"
 	}
@@ -82,9 +83,23 @@ func Build(ctx context.Context, r domain.Request, snapshot domain.Snapshot, deco
 		if r.Mode == domain.Delta && !in.Live {
 			return domain.Plan{}, domain.ErrUnsupported
 		}
+		if r.Mode == domain.Full {
+			difference, steps, err := full(ctx, in, sets[tag], decoder)
+			if err != nil {
+				return domain.Plan{}, err
+			}
+			p.Preview.Differences = append(p.Preview.Differences, difference)
+			p.Steps = append(p.Steps, steps...)
+			continue
+		}
 		old := make(map[string][]domain.Member, len(in.Users))
 		order := make([]string, 0, len(in.Users))
 		for _, u := range in.Users {
+			// Anonymous native credentials cannot be selected by this named
+			// delta, but do not prevent reconciliation of unrelated names.
+			if u.Email == "" {
+				continue
+			}
 			key, err := Identity(u.Email, in.EmailMatching)
 			if err != nil {
 				return domain.Plan{}, err

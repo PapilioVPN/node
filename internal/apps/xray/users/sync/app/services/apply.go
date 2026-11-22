@@ -41,7 +41,7 @@ func (s *Service) Apply(ctx context.Context, id, planID string, expected domain.
 	if current.Revision != expected || !policies.SameObservation(p.Snapshot, current) {
 		return domain.ReceiptPage{}, domain.ErrStale
 	}
-	r := domain.Receipt{InstanceID: id, OperationID: p.Request.OperationID, Revision: expected, Effect: accounts.NotApplied, InFlight: true}
+	r := domain.Receipt{InstanceID: id, OperationID: p.Request.OperationID, ConfigOperationID: p.Preview.ConfigOperationID, Revision: expected, Effect: accounts.NotApplied, InFlight: true}
 	if p.Request.Mode == domain.Delta {
 		for _, step := range p.Steps {
 			r.Steps = append(r.Steps, domain.StepResult{InboundTag: step.InboundTag, Email: step.Email, Action: step.Action, Effect: accounts.NotApplied, Code: "not_attempted"})
@@ -206,7 +206,13 @@ func (s *Service) Refresh(ctx context.Context, id, operation string) (domain.Rec
 	valid := e.receipt != nil && e.receipt.OperationID == operation
 	s.mu.Unlock()
 	if !valid {
-		return domain.ReceiptPage{}, domain.ErrNotFound
+		result, err := s.configs.MembershipStatus(ctx, id, operation)
+		if err != nil {
+			return domain.ReceiptPage{}, err
+		}
+		r := domain.Receipt{InstanceID: id, OperationID: operation, ConfigOperationID: operation, Revision: domain.Revision{Epoch: s.epoch}}
+		applyFullResult(&r, result, nil)
+		return domain.ReceiptPage{Receipt: r}, nil
 	}
 	if e.plan.Request.Mode == domain.Full {
 		result, err := s.configs.MembershipStatus(ctx, id, e.full.Token)
@@ -240,7 +246,10 @@ func (s *Service) Recover(ctx context.Context, id, operation string, expectedCon
 	valid := e.receipt != nil && e.receipt.OperationID == operation && e.plan.Request.Mode == domain.Full
 	s.mu.Unlock()
 	if !valid {
-		return domain.ReceiptPage{}, domain.ErrNotFound
+		result, err := s.configs.RecoverMembership(ctx, id, operation, expectedConfig)
+		r := domain.Receipt{InstanceID: id, OperationID: operation, ConfigOperationID: operation, Revision: domain.Revision{Epoch: s.epoch}}
+		applyFullResult(&r, result, err)
+		return domain.ReceiptPage{Receipt: r}, err
 	}
 	result, err := s.configs.RecoverMembership(ctx, id, e.full.Token, expectedConfig)
 	s.mu.Lock()

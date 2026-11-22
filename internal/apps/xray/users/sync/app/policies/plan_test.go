@@ -95,3 +95,19 @@ func TestStaleAliasesAndLossyWireGuard(t *testing.T) {
 		t.Fatalf("WG replacement: %+v %v", p.Steps, err)
 	}
 }
+
+func TestFullPreservesAnonymousAndNativeDuplicateMembership(t *testing.T) {
+	wg := "xray.proxy.wireguard.PeerConfig"
+	r := request(domain.Full, raw("same", "first-key", wg), raw("same", "second-key", wg), raw("", "anonymous-key", wg))
+	s := snapshot(t, wg)
+	s.Inbounds[0].EmailMatching = "exact"
+	p, err := policies.Build(context.Background(), r, s, codec.Codec{})
+	if err != nil || p.Preview.Differences[0].Added != 3 || len(p.Request.Sets[0].Accounts) != 3 {
+		t.Fatal(p.Preview, err)
+	}
+	r = request(domain.Delta, raw("named", "credential", vless))
+	s = snapshot(t, vless, raw("", "unselectable", vless))
+	if _, err := policies.Build(context.Background(), r, s, codec.Codec{}); err != nil {
+		t.Fatalf("unselected anonymous account blocks named delta: %v", err)
+	}
+}

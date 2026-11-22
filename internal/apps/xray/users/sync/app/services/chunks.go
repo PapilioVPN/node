@@ -48,6 +48,7 @@ type Transfers struct {
 	entries  map[string]*transfer
 	reserved int
 	now      func() time.Time
+	closed   bool
 }
 
 func NewTransfers() *Transfers { return &Transfers{entries: make(map[string]*transfer), now: time.Now} }
@@ -60,13 +61,16 @@ func (s *Transfers) expire() {
 	}
 }
 func transferReservation(r domain.Request, count, size int) int {
-	result := size + count*128 + maxChunks*40 + len(r.InstanceID) + len(r.OperationID) + 256
+	result := size + count*128 + maxChunks*40 + len(r.InstanceID) + len(r.OperationID) + len(r.Expected.Epoch) + 256
 	for _, tag := range r.Selection {
 		result += len(tag)*2 + 64
 	}
 	return result
 }
 func (s *Transfers) Begin(ctx context.Context, r domain.Request, items, size int) (TransferStatus, error) {
+	if len(r.Selection) > domain.MaxInbounds {
+		return TransferStatus{}, domain.ErrCapacity
+	}
 	if len(r.Sets) != 0 || len(r.Removals) != 0 || items < 0 || size < 0 {
 		return TransferStatus{}, domain.ErrInvalid
 	}
@@ -84,6 +88,9 @@ func (s *Transfers) Begin(ctx context.Context, r domain.Request, items, size int
 	digest := policies.Digest(r)
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if s.closed {
+		return TransferStatus{}, domain.ErrUnsupported
+	}
 	s.expire()
 	for _, entry := range s.entries {
 		if entry.request.InstanceID == r.InstanceID && entry.request.OperationID == r.OperationID {
@@ -224,4 +231,10 @@ func (s *Transfers) Discard(ctx context.Context, instance, id string) error {
 	delete(s.entries, id)
 	return nil
 }
-func (s *Transfers) Close() { s.mu.Lock(); defer s.mu.Unlock(); clear(s.entries); s.reserved = 0 }
+func (s *Transfers) Close() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.closed = true
+	clear(s.entries)
+	s.reserved = 0
+}

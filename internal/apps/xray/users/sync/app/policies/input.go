@@ -22,6 +22,9 @@ func Validate(ctx context.Context, r domain.Request) error {
 	if !Identifier(r.InstanceID) || !Identifier(r.OperationID) || len(r.OperationID) > 128 || r.Mode != domain.Delta && r.Mode != domain.Full || len(r.Selection) == 0 {
 		return domain.ErrInvalid
 	}
+	if len(r.Expected.Epoch) > 128 || r.Expected.Epoch != "" && !Identifier(r.Expected.Epoch) {
+		return domain.ErrInvalid
+	}
 	if len(r.Selection) > domain.MaxInbounds {
 		return domain.ErrCapacity
 	}

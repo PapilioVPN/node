@@ -45,6 +45,7 @@ type Service struct {
 	configs         ports.ConfigsV1
 	decoder         policies.Decoder
 	retained, bytes int
+	pending         int
 	now             func() time.Time
 }
 
@@ -91,7 +92,13 @@ func (s *Service) Revision(ctx context.Context, id string) (domain.Revision, err
 	return snapshot.Revision, nil
 }
 func planBytes(p domain.Plan) int {
-	n := 1024
+	n := 1024 + len(p.Request.InstanceID) + len(p.Request.OperationID) + len(p.Request.Expected.Epoch)
+	for _, tag := range p.Request.Selection {
+		n += len(tag) + 32
+	}
+	for _, r := range p.Request.Removals {
+		n += len(r.InboundTag) + len(r.Email) + 64
+	}
 	for _, set := range p.Request.Sets {
 		n += len(set.InboundTag) + 64
 		for _, raw := range set.Accounts {
@@ -144,6 +151,18 @@ func (s *Service) Preview(ctx context.Context, r domain.Request) (domain.Preview
 	if r.Expected.Epoch != s.epoch || r.Expected.Control != e.control || e.control == math.MaxUint64 {
 		return domain.Preview{}, domain.ErrStale
 	}
+	s.mu.Lock()
+	occupied := s.retained + s.pending
+	if e.plan != nil {
+		occupied--
+	}
+	if occupied >= domain.MaxTransfers {
+		s.mu.Unlock()
+		return domain.Preview{}, domain.ErrCapacity
+	}
+	s.pending++
+	s.mu.Unlock()
+	defer func() { s.mu.Lock(); s.pending--; s.mu.Unlock() }()
 	r = policies.Own(r)
 	snapshot, err := s.observer.Snapshot(ctx, r.InstanceID, r.Selection)
 	if err != nil {
@@ -164,6 +183,7 @@ func (s *Service) Preview(ctx context.Context, r domain.Request) (domain.Preview
 			return domain.Preview{}, domain.ErrUnsupported
 		}
 		p.Preview.ApplyMode, p.Preview.Reason = full.Mode, full.Reason
+		p.Preview.ConfigOperationID = full.Token
 	}
 	p.Preview.PlanID, p.Preview.ExpiresAt = rand.Text(), s.now().UTC().Add(domain.Lifetime)
 	if err := ctx.Err(); err != nil {
@@ -190,11 +210,25 @@ func (s *Service) Status(ctx context.Context, id, operation string, offset int) 
 		return domain.ReceiptPage{}, err
 	}
 	s.mu.Lock()
-	defer s.mu.Unlock()
 	e := s.entries[id]
-	if e == nil || e.receipt == nil || e.receipt.OperationID != operation {
+	if e == nil {
+		s.mu.Unlock()
 		return domain.ReceiptPage{}, domain.ErrNotFound
 	}
+	if e.receipt == nil || e.receipt.OperationID != operation {
+		s.mu.Unlock()
+		if offset != 0 {
+			return domain.ReceiptPage{}, domain.ErrInvalid
+		}
+		result, err := s.configs.MembershipStatus(ctx, id, operation)
+		if err != nil {
+			return domain.ReceiptPage{}, err
+		}
+		r := domain.Receipt{InstanceID: id, OperationID: operation, ConfigOperationID: operation, Revision: domain.Revision{Epoch: s.epoch}}
+		applyFullResult(&r, result, nil)
+		return domain.ReceiptPage{Receipt: r}, nil
+	}
+	defer s.mu.Unlock()
 	r := *e.receipt
 	if offset < 0 || offset > len(r.Steps) {
 		return domain.ReceiptPage{}, domain.ErrInvalid

@@ -120,4 +120,8 @@ func TestChunkBoundsAndGlobalAdmission(t *testing.T) {
 	if _, err := s.Finish(cancelled, "one", st.ID); !errors.Is(err, context.Canceled) {
 		t.Fatalf("cancellation: %v", err)
 	}
+	s.Close()
+	if _, err := s.Begin(ctx, transferRequest(), 0, 0); !errors.Is(err, domain.ErrUnsupported) {
+		t.Fatalf("closed transfer receiver: %v", err)
+	}
 }
