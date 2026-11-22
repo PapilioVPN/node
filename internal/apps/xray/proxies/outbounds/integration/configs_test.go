@@ -27,7 +27,7 @@ func TestRestartPlanUsesExistingConfigsWithDefaultAndConnectionEffects(t *testin
 			f := newFixture(t, pki, broker, transport)
 			address := configureProbe(t, f, false)
 			f.config.Instances[0].Xray.WorkDirectory = t.TempDir()
-			f.config.Instances[0].Xray.StateDirectory = t.TempDir()
+			f.config.Instances[0].Xray.StateDirectory = testutil.NewPrivateDirectory(t)
 			f.config.Communications.Requests.Timeout = 2 * time.Second
 			if f.config.Communications.HTTP != nil {
 				f.config.Communications.HTTP.WriteTimeout = 3 * time.Second

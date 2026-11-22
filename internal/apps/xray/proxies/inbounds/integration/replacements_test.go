@@ -25,7 +25,7 @@ func TestNativeReplacementContinuityFailureAndConfigFallbackOverAllTransports(t 
 			relayAddress, relay := replacementRelay(t, f.native)
 			f.config.Instances[0].Xray.API.Address = relayAddress
 			f.config.Instances[0].Xray.WorkDirectory = t.TempDir()
-			f.config.Instances[0].Xray.StateDirectory = t.TempDir()
+			f.config.Instances[0].Xray.StateDirectory = testutil.NewPrivateDirectory(t)
 			f.config.Communications.Requests.Timeout = 3 * time.Second
 			if f.config.Communications.HTTP != nil {
 				f.config.Communications.HTTP.WriteTimeout = 4 * time.Second

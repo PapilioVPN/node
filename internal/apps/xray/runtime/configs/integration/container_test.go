@@ -33,7 +33,7 @@ func TestPackagedConfigurationValidation(t *testing.T) {
 	pki := testutil.NewPKI(t)
 	broker := brokerFixture(t, pki)
 	f := nodeFixture(t, pki, broker, "all")
-	f.config.Instances[0].Xray.StateDirectory = t.TempDir()
+	f.config.Instances[0].Xray.StateDirectory = testutil.NewPrivateDirectory(t)
 	config := f.config
 	config.Instances = append([]settings.Instance(nil), f.config.Instances...)
 	x := *f.config.Instances[0].Xray

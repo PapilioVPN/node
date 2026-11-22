@@ -19,7 +19,7 @@ func TestDesiredSourcesApplyConflictReapplyAndNodeRecovery(t *testing.T) {
 	for _, transport := range []string{"http", "grpc", "nats"} {
 		t.Run(transport, func(t *testing.T) {
 			f := nodeFixture(t, pki, broker, transport)
-			f.config.Instances[0].Xray.StateDirectory = t.TempDir()
+			f.config.Instances[0].Xray.StateDirectory = testutil.NewPrivateDirectory(t)
 			client := startNode(t, f)
 			awaitTraffic(t, f)
 			assertExecutionRevision(t, client, transport, "", "1")
@@ -58,7 +58,8 @@ func TestDesiredSourcesApplyConflictReapplyAndNodeRecovery(t *testing.T) {
 			assertWorkEmpty(t, f)
 			recovered := startNode(t, f)
 			awaitTraffic(t, f)
-			assertExecutionRevision(t, recovered, transport, "1", "1")
+			// A clean stop replaces the child on startup and advances its durable generation.
+			assertExecutionRevision(t, recovered, transport, "1", "4")
 			desired := stateCall(t, recovered, transport, "get", 0, nil)
 			assertDesired(t, desired, sources, "1")
 			// After a real Node restart, execution must again use the persisted sources.
@@ -69,7 +70,7 @@ func TestDesiredSourcesApplyConflictReapplyAndNodeRecovery(t *testing.T) {
 			}
 			native["outbounds"] = []any{map[string]any{"protocol": "blackhole"}}
 			blocked, _ := json.Marshal(native)
-			exerciseStateReplacement(t, recovered, transport, []domain.Source{{Name: "blocked.json", Content: blocked}}, 1, "2", "2")
+			exerciseStateReplacement(t, recovered, transport, []domain.Source{{Name: "blocked.json", Content: blocked}}, 1, "2", "5")
 			if err := traffic(f.proxy, f.target.URL); err == nil {
 				t.Fatal("new configuration did not affect actual traffic")
 			}
@@ -77,7 +78,7 @@ func TestDesiredSourcesApplyConflictReapplyAndNodeRecovery(t *testing.T) {
 			assertWorkEmpty(t, f)
 			again := startNode(t, f)
 			awaitProxy(t, f)
-			assertExecutionRevision(t, again, transport, "2", "1")
+			assertExecutionRevision(t, again, transport, "2", "6")
 			if traffic(f.proxy, f.target.URL) == nil {
 				t.Fatal("blackhole desired source was not restored after Node restart")
 			}
@@ -87,7 +88,7 @@ func TestDesiredSourcesApplyConflictReapplyAndNodeRecovery(t *testing.T) {
 			}
 			// Applying freedom after recovery requires stopping the restored blackhole
 			// child first; its generation demonstrates one restored owned execution.
-			exerciseStateReplacement(t, again, transport, sources, 2, "3", "2")
+			exerciseStateReplacement(t, again, transport, sources, 2, "3", "7")
 			awaitTraffic(t, f)
 			again.stop()
 			assertWorkEmpty(t, f)
@@ -138,7 +139,7 @@ func TestApplyRetainsDesiredRevisionAfterRealSpawnFailure(t *testing.T) {
 				t.Fatal(err)
 			}
 			f.config.Instances[0].Xray.Binary = link
-			f.config.Instances[0].Xray.StateDirectory = t.TempDir()
+			f.config.Instances[0].Xray.StateDirectory = testutil.NewPrivateDirectory(t)
 			client := startNode(t, f)
 			awaitTraffic(t, f)
 			sources := []domain.Source{{Name: "base.json", Content: f.original}}
