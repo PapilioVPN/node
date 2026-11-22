@@ -4,6 +4,7 @@ package services
 import (
 	"context"
 	"errors"
+	"sync"
 	"time"
 
 	"github.com/PapilioVPN/node/internal/apps/xray/observability/traffic/app/validators"
@@ -15,21 +16,33 @@ import (
 type Reader interface {
 	Read(context.Context, domain.Selection) (int64, error)
 }
+type Lister interface {
+	List(context.Context, domain.Scope) ([]domain.Counter, error)
+}
 type StatusReader interface {
 	Status(context.Context, string) (instances.Status, error)
 }
 type Binding struct {
-	ID     string
-	Reader Reader
+	ID       string
+	Reader   Reader
+	Lister   Lister
+	Resetter Resetter
 }
 type entry struct {
-	reader Reader
-	slots  chan struct{}
+	reader   Reader
+	lister   Lister
+	resetter Resetter
+	control  *control
+	slots    chan struct{}
 }
 type Service struct {
-	entries map[string]entry
-	status  StatusReader
-	slots   chan struct{}
+	entries     map[string]entry
+	status      StatusReader
+	slots       chan struct{}
+	snapshotsMu sync.Mutex
+	snapshots   map[string]snapshot
+	writes      chan struct{}
+	epoch       string
 }
 
 // New admits 32 concurrent traffic reads globally and eight per instance,
@@ -38,7 +51,7 @@ func New(bindings []Binding, status StatusReader) (*Service, error) {
 	if status == nil {
 		return nil, domain.ErrInvalidArgument
 	}
-	s := &Service{entries: make(map[string]entry, len(bindings)), status: status, slots: make(chan struct{}, 32)}
+	s := &Service{entries: make(map[string]entry, len(bindings)), status: status, slots: make(chan struct{}, 32), snapshots: make(map[string]snapshot), writes: make(chan struct{}, 8), epoch: randomToken()}
 	for _, b := range bindings {
 		if instancevalidators.ID(b.ID) != nil {
 			return nil, domain.ErrInvalidArgument
@@ -46,7 +59,7 @@ func New(bindings []Binding, status StatusReader) (*Service, error) {
 		if _, exists := s.entries[b.ID]; exists {
 			return nil, domain.ErrInvalidArgument
 		}
-		s.entries[b.ID] = entry{reader: b.Reader, slots: make(chan struct{}, 8)}
+		s.entries[b.ID] = entry{reader: b.Reader, lister: b.Lister, resetter: b.Resetter, control: &control{}, slots: make(chan struct{}, 8)}
 	}
 	return s, nil
 }

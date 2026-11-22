@@ -33,24 +33,28 @@ func (r Reader) Read(ctx context.Context, selection domain.Selection) (int64, er
 	name := string(selection.Scope) + ">>>" + selection.Name + ">>>traffic>>>" + string(selection.Direction)
 	result, err := r.client.GetStats(ctx, &stats.GetStatsRequest{Name: name, Reset_: false})
 	if err != nil {
-		switch {
-		case errors.Is(err, rpc.ErrClosed):
-			err = errors.Join(domain.ErrClosed, err)
-		case status.Code(err) == codes.NotFound:
-			err = errors.Join(domain.ErrCounterNotFound, err)
-		case status.Code(err) == codes.Unimplemented:
-			err = errors.Join(domain.ErrUnsupported, err)
-		case status.Code(err) == codes.ResourceExhausted:
-			err = errors.Join(domain.ErrCapacity, err)
-		case status.Code(err) == codes.Canceled:
-			err = errors.Join(context.Canceled, err)
-		case status.Code(err) == codes.DeadlineExceeded:
-			err = errors.Join(context.DeadlineExceeded, err)
-		}
-		return 0, errors.Join(err, ctx.Err())
+		return 0, nativeError(ctx, err)
 	}
 	if result == nil || result.Stat == nil || result.Stat.Name != name {
 		return 0, domain.ErrUnavailable
 	}
 	return result.Stat.Value, nil
+}
+
+func nativeError(ctx context.Context, err error) error {
+	switch {
+	case errors.Is(err, rpc.ErrClosed):
+		err = errors.Join(domain.ErrClosed, err)
+	case status.Code(err) == codes.NotFound:
+		err = errors.Join(domain.ErrCounterNotFound, err)
+	case status.Code(err) == codes.Unimplemented:
+		err = errors.Join(domain.ErrUnsupported, err)
+	case status.Code(err) == codes.ResourceExhausted:
+		err = errors.Join(domain.ErrCapacity, err)
+	case status.Code(err) == codes.Canceled:
+		err = errors.Join(context.Canceled, err)
+	case status.Code(err) == codes.DeadlineExceeded:
+		err = errors.Join(context.DeadlineExceeded, err)
+	}
+	return errors.Join(err, ctx.Err())
 }
