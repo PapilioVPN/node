@@ -68,7 +68,7 @@ test -f "$config_dir/config.yml" ||
 docker logs papilio-node
 ```
 
-برای توقف اجرای نمونه از `docker stop --time 120 papilio-node` استفاده کن.
+برای توقف اجرای نمونه از `docker stop --time 130 papilio-node` استفاده کن.
 
 اسکریپت اجرا پوشهٔ تنظیمات را فقط‌خواندنی mount می‌کند. برای Xray،
 `instances` را طبق [تنظیمات نمونه](deploy/config.example.yml) تعریف کن و فایل
@@ -85,18 +85,19 @@ mountهای صریح توضیح‌داده‌شده در نمونه را به‌
 
 | بخش | عملیات قابل استفاده |
 | --- | --- |
-| [سیستم و Node](internal/apps/system) | هویت میزبان، زمان کارکرد، بار، CPU، حافظه و swap، پردازش‌ها، نشست‌ها و سوابق ورود، حسگرها، فایل‌سیستم و ورودی‌وخروجی دیسک، شمارنده‌های رابط شبکه و عیب‌یابی پردازش و منابع Node. |
-| [نمونه‌های Xray](internal/apps/xray/runtime/instances) | شروع، توقف و راه‌اندازی مجدد نمونه‌های تعریف‌شده، خواندن وضعیت و بررسی آمادگی با API بومی Xray. |
-| [تنظیمات Xray](internal/apps/xray/runtime/configs) | اعتبارسنجی و کامپایل سورس‌ها، مشاهدهٔ نسخهٔ مطلوب و اعمال‌شده، جایگزینی و اعمال کانفیگ. |
-| [ورودی‌های Xray](internal/apps/xray/proxies/inbounds) | فهرست handlerها و tagها، خلاصه و سازگاری ورودی‌ها، افزودن از دادهٔ کامپایل‌شده یا سورس، حذف با tag و بازبینی و اجرای طرح جایگزینی. |
-| [خروجی‌های Xray](internal/apps/xray/proxies/outbounds) | فهرست handlerها، افزودن از دادهٔ کامپایل‌شده یا سورس و حذف با tag. |
-| [حساب‌های Xray](internal/apps/xray/users/accounts) | خواندن و شمارش حساب‌های موتور، افزودن و حذف تکی یا گروهی با سقف مشخص و آماده‌سازی اعضا در کانفیگ کامپایل‌شده. |
-| [حضور آنلاین در Xray](internal/apps/xray/users/online) | مشاهدهٔ شمارش، کاربران و رکوردهای آنلاین و IPهای هر کاربر. |
-| [مسیریابی Xray](internal/apps/xray/network/routing) | فهرست‌کردن، افزودن و حذف قوانین زنده، آزمایش انتخاب مسیر، خواندن وضعیت balancer و تعیین مقصد آن. |
-| [آمار Xray](internal/apps/xray/runtime/statistics) | خواندن آمار اجرایی بومی موتور. |
-| [ترافیک Xray](internal/apps/xray/observability/traffic) | خواندن و بازنشانی شمارنده‌های تکی، جفت ارسال و دریافت و مجموعهٔ شمارنده‌های انتخاب‌شده. |
-| [سلامت خروجی‌های Xray](internal/apps/xray/observability/outboundhealth) | فهرست نتایج قابل مشاهدهٔ سلامت و بررسی یک خروجی با tag. |
-| [Loggerهای Xray](internal/apps/xray/observability/loggers) | بازکردن مجدد loggerهای Xray و مشاهدهٔ نتیجهٔ عملیات. |
+| [سیستم و Node](https://github.com/PapilioVPN/node/tree/main/internal/apps/system) | هویت میزبان، زمان کارکرد، بار، CPU، حافظه و swap، پردازش‌ها، نشست‌ها و سوابق ورود، حسگرها، فایل‌سیستم و ورودی‌وخروجی دیسک، شمارنده‌های رابط شبکه و عیب‌یابی پردازش و منابع Node. |
+| [نمونه‌های Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/runtime/instances) | شروع، توقف و راه‌اندازی مجدد نمونه‌های تعریف‌شده، خواندن وضعیت و بررسی آمادگی با API بومی Xray. |
+| [تنظیمات Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/runtime/configs) | اعتبارسنجی و کامپایل سورس‌ها، مشاهدهٔ نسخهٔ مطلوب و اعمال‌شده، جایگزینی و اعمال کانفیگ. |
+| [ورودی‌های Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/proxies/inbounds) | فهرست handlerها و tagها، خلاصه و سازگاری ورودی‌ها، افزودن از دادهٔ کامپایل‌شده یا سورس، حذف با tag و بازبینی و اجرای طرح جایگزینی. |
+| [خروجی‌های Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/proxies/outbounds) | فهرست handlerها، افزودن از دادهٔ کامپایل‌شده یا سورس و حذف با tag. |
+| [حساب‌های Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/users/accounts) | خواندن و شمارش حساب‌های موتور، افزودن و حذف تکی یا گروهی با سقف مشخص و آماده‌سازی اعضا در کانفیگ کامپایل‌شده. |
+| [حضور آنلاین در Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/users/online) | مشاهدهٔ شمارش، کاربران و رکوردهای آنلاین و IPهای هر کاربر. |
+| [مسیریابی Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/network/routing) | فهرست‌کردن، افزودن و حذف قوانین زنده، آزمایش انتخاب مسیر، خواندن وضعیت balancer و تعیین مقصد آن. |
+| [آمار Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/runtime/statistics) | خواندن آمار اجرایی بومی موتور. |
+| [ترافیک Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/observability/traffic) | خواندن و بازنشانی شمارنده‌های تکی، جفت ارسال و دریافت و مجموعهٔ شمارنده‌های انتخاب‌شده. |
+| [سلامت خروجی‌های Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/observability/outboundhealth) | فهرست نتایج قابل مشاهدهٔ سلامت و بررسی یک خروجی با tag. |
+| [Loggerهای Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/observability/loggers) | بازکردن مجدد loggerهای Xray و مشاهدهٔ نتیجهٔ عملیات. |
+| [ابزارهای کلید و گواهی Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/tools/credentials) | تولید UUID، کلیدهای X25519 و WireGuard، مواد کلید ML-DSA-65 و ML-KEM-768، جفت رمزنگاری VLESS، گواهی TLS و مجموعه‌کلید ECH. محاسبهٔ هش گواهی TLS. مواد خصوصی فقط در همان پاسخ برمی‌گردند. |
 
 عملیات زنده روی نمونهٔ در حال اجرا اثر می‌گذارد. عملیات کانفیگ تعیین
 می‌کند Xray با چه تنظیماتی شروع شود. سوابق کاربران محصول و سیاست‌هایشان
@@ -132,7 +133,7 @@ curl --fail --show-error --silent \
 
 ## توسعه
 
-برای ساخت از نسخهٔ Go ثبت‌شده در [go.mod](go.mod) استفاده کن. برای اجرای
+برای ساخت از نسخهٔ Go ثبت‌شده در [go.mod](https://github.com/PapilioVPN/node/blob/main/go.mod) استفاده کن. برای اجرای
 برنامهٔ ساخته‌شده، مسیر تنظیمات را با `-config /path/to/config.yml` بده.
 
 ```bash
@@ -148,7 +149,7 @@ xray_test_binary="$(sh scripts/ci/prepare-xray.sh)" &&
   XRAY_TEST_BINARY="$xray_test_binary" go test -race -tags=integration ./...
 ```
 
-[Checks](.github/workflows/check.yml) کد و بستهٔ اجرایی را بررسی می‌کند.
+[Checks](https://github.com/PapilioVPN/node/actions/workflows/check.yml) کد و بستهٔ اجرایی را بررسی می‌کند.
 هنگام ادغام هر قابلیت، پس از اتصال و بررسی عملیات عمومی آن، ردیف مربوط
 را در هر چهار README به‌روز کن.
 

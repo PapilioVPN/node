@@ -64,7 +64,7 @@ The sample enables all three transports. For HTTP-only use, remove
 docker logs papilio-node
 ```
 
-Stop this example with `docker stop --time 120 papilio-node`.
+Stop this example with `docker stop --time 130 papilio-node`.
 
 The runner mounts the configuration directory read-only. For Xray, add
 `instances` in [the example settings](deploy/config.example.yml) and mount
@@ -79,18 +79,19 @@ described in the example settings.
 
 | Area | Available operations |
 | --- | --- |
-| [System and Node](internal/apps/system) | Host identity, uptime, load, CPU, memory and swap, processes, sessions and login records, sensors, filesystem and device I/O, interface counters, and Node process and resource diagnostics. |
-| [Xray instances](internal/apps/xray/runtime/instances) | Start, stop and restart configured instances, read status and check native readiness. |
-| [Xray configuration](internal/apps/xray/runtime/configs) | Validate and compile sources, inspect desired and applied revisions, and replace or apply configuration. |
-| [Xray inbounds](internal/apps/xray/proxies/inbounds) | List handlers and tags, inspect summaries and compatibility, add from compiled data or sources, remove by tag, and review and execute replacement plans. |
-| [Xray outbounds](internal/apps/xray/proxies/outbounds) | List handlers, add from compiled data or sources, and remove by tag. |
-| [Xray accounts](internal/apps/xray/users/accounts) | Read and count live accounts, add or remove one at a time or in bounded batches, and prepare account membership in compiled configuration. |
-| [Xray presence](internal/apps/xray/users/online) | Read online counts, users, records and individual users’ IP addresses. |
-| [Xray routing](internal/apps/xray/network/routing) | List, add and remove live rules, test route selection, inspect balancers and override their target. |
-| [Xray statistics](internal/apps/xray/runtime/statistics) | Read native runtime statistics. |
-| [Xray traffic](internal/apps/xray/observability/traffic) | Read and reset individual counters, upload/download pairs and selected groups of counters. |
-| [Xray outbound health](internal/apps/xray/observability/outboundhealth) | List observable outbound health results and inspect individual outbounds by tag. |
-| [Xray loggers](internal/apps/xray/observability/loggers) | Reopen Xray loggers and inspect the outcome. |
+| [System and Node](https://github.com/PapilioVPN/node/tree/main/internal/apps/system) | Host identity, uptime, load, CPU, memory and swap, processes, sessions and login records, sensors, filesystem and device I/O, interface counters, and Node process and resource diagnostics. |
+| [Xray instances](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/runtime/instances) | Start, stop and restart configured instances, read status and check native readiness. |
+| [Xray configuration](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/runtime/configs) | Validate and compile sources, inspect desired and applied revisions, and replace or apply configuration. |
+| [Xray inbounds](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/proxies/inbounds) | List handlers and tags, inspect summaries and compatibility, add from compiled data or sources, remove by tag, and review and execute replacement plans. |
+| [Xray outbounds](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/proxies/outbounds) | List handlers, add from compiled data or sources, and remove by tag. |
+| [Xray accounts](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/users/accounts) | Read and count live accounts, add or remove one at a time or in bounded batches, and prepare account membership in compiled configuration. |
+| [Xray presence](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/users/online) | Read online counts, users, records and individual users’ IP addresses. |
+| [Xray routing](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/network/routing) | List, add and remove live rules, test route selection, inspect balancers and override their target. |
+| [Xray statistics](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/runtime/statistics) | Read native runtime statistics. |
+| [Xray traffic](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/observability/traffic) | Read and reset individual counters, upload/download pairs and selected groups of counters. |
+| [Xray outbound health](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/observability/outboundhealth) | List observable outbound health results and inspect individual outbounds by tag. |
+| [Xray loggers](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/observability/loggers) | Reopen Xray loggers and inspect the outcome. |
+| [Xray credential tools](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/tools/credentials) | Generate UUIDs, X25519/WireGuard and ML-DSA-65/ML-KEM-768 key material, VLESS encryption pairs, TLS certificates and ECH key sets. Hash TLS certificates. Private artifacts are returned only in the current response. |
 
 Live operations act on the running instance. Configuration operations manage
 what Xray starts with. Keep application user records and policies in the
@@ -123,7 +124,7 @@ curl --fail --show-error --silent \
 
 ## Development
 
-Build with the Go version declared in [go.mod](go.mod). Pass
+Build with the Go version declared in [go.mod](https://github.com/PapilioVPN/node/blob/main/go.mod). Pass
 `-config /path/to/config.yml` when running the resulting binary.
 
 ```bash
@@ -139,6 +140,6 @@ xray_test_binary="$(sh scripts/ci/prepare-xray.sh)" &&
   XRAY_TEST_BINARY="$xray_test_binary" go test -race -tags=integration ./...
 ```
 
-[Checks](.github/workflows/check.yml) runs source and packaging verification.
+[Checks](https://github.com/PapilioVPN/node/actions/workflows/check.yml) runs source and packaging verification.
 When merging a capability, update the relevant row in all four READMEs after
 its public operations have been wired and verified.

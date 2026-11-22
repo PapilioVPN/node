@@ -42,8 +42,15 @@ func TestDistributionInstallsAndRuns(t *testing.T) {
 	bundle := filepath.Join(extracted, "node")
 	distributionCommand(t, bundle, "sha256sum", "--check", "--strict", "checksums.sha256")
 	// The archive is an explicit runtime allowlist, not a source checkout export.
-	allowed := map[string]bool{"image.tar": true, "image.ref": true, "revision": true, "checksums.sha256": true,
-		"install.sh": true, "run.sh": true, "scripts/install/install.sh": true, "scripts/run/run.sh": true, "deploy/config.example.yml": true}
+	allowed := map[string]bool{
+		"image.tar": true, "image.ref": true, "revision": true, "checksums.sha256": true,
+		"install.sh": true, "run.sh": true, "scripts/install/install.sh": true,
+		"scripts/run/run.sh": true, "deploy/config.example.yml": true,
+		"README.md": true, "README.fa.md": true, "README.ru.md": true, "README.zh-CN.md": true,
+		"assets/banner.png": true, "assets/banner-light.png": true,
+		"assets/flags/gb.svg": true, "assets/flags/ir-lion-and-sun.svg": true,
+		"assets/flags/ru.svg": true, "assets/flags/cn.svg": true, "assets/flags/NOTICE.md": true,
+	}
 	if err := filepath.WalkDir(bundle, func(path string, entry os.DirEntry, err error) error {
 		if err != nil {
 			return err
