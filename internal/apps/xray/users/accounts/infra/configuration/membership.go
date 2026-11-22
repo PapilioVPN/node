@@ -14,7 +14,7 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-const MaxPreparedUsers = 65536
+const MaxPreparedUsers = domain.MaxConfigurationUsers
 
 // ReplaceUsers builds one owned native config without I/O or live effects. It
 // scans inbounds once and replaces only selected account fields. Input/output
@@ -27,37 +27,11 @@ func ReplaceUsers(ctx context.Context, content []byte, sets []domain.InboundUser
 	if len(content) > configs.MaxCompiledBytes {
 		return nil, domain.ErrCapacity
 	}
-	if len(sets) == 0 {
-		return nil, domain.ErrInvalidArgument
-	}
-	if len(sets) > MaxPreparedUsers {
-		return nil, domain.ErrCapacity
+	if err := validators.UserSets(ctx, sets); err != nil {
+		return nil, err
 	}
 	byTag := make(map[string]domain.InboundUserSet, len(sets))
-	remaining, count := configs.MaxCompiledBytes, 0
 	for _, set := range sets {
-		if err := ctx.Err(); err != nil {
-			return nil, err
-		}
-		if validators.Selector(set.InboundTag) != nil {
-			return nil, domain.ErrInvalidArgument
-		}
-		if _, exists := byTag[set.InboundTag]; exists {
-			return nil, domain.ErrInvalidArgument
-		}
-		count += len(set.Accounts)
-		if count > MaxPreparedUsers {
-			return nil, domain.ErrCapacity
-		}
-		for _, raw := range set.Accounts {
-			if err := validators.Configuration(raw); err != nil {
-				return nil, err
-			}
-			if len(raw) > remaining {
-				return nil, domain.ErrCapacity
-			}
-			remaining -= len(raw)
-		}
 		byTag[set.InboundTag] = set
 	}
 	var candidate core.Config

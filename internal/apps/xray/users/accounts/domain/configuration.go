@@ -1,5 +1,7 @@
 package domain
 
+const MaxConfigurationUsers = 65536
+
 // InboundUserSet replaces the complete native account collection of one exact
 // inbound. Empty Accounts clears it; other inbounds and settings are retained.
 // Accounts are native protocol.User protobuf, not product-user records.
