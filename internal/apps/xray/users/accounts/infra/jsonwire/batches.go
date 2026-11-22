@@ -6,6 +6,8 @@ import (
 	"errors"
 	"io"
 
+	configs "github.com/PapilioVPN/node/internal/apps/xray/runtime/configs/domain"
+	sourcewire "github.com/PapilioVPN/node/internal/apps/xray/runtime/configs/infra/jsonwire"
 	"github.com/PapilioVPN/node/internal/apps/xray/users/accounts/domain"
 )
 
@@ -13,6 +15,8 @@ type AdditionsRequest struct {
 	Parallelism int
 	InstanceID  *string
 	Items       []domain.Addition
+	Selections  []domain.SourceSelection
+	Sources     []configs.Source
 }
 type RemovalsRequest struct {
 	Parallelism int
@@ -21,13 +25,20 @@ type RemovalsRequest struct {
 }
 
 func DecodeAdditions(data []byte) (result AdditionsRequest, err error) {
-	id, items, parallelism, err := decodeBatch(data)
+	id, items, parallelism, err := decodeBatch(data, &result)
 	if err != nil {
 		return result, err
 	}
 	result.InstanceID = id
 	result.Parallelism = parallelism
 	for _, item := range items {
+		if len(result.Sources) != 0 {
+			if item.InstanceID != nil || item.InboundTag == nil || item.Email == nil || item.HasSources || item.HasConfiguration {
+				return AdditionsRequest{}, domain.ErrInvalidArgument
+			}
+			result.Selections = append(result.Selections, domain.SourceSelection{InboundTag: *item.InboundTag, Email: *item.Email})
+			continue
+		}
 		if item.InstanceID != nil || item.InboundTag == nil || item.Email != nil || item.HasSources || !item.HasConfiguration {
 			return AdditionsRequest{}, domain.ErrInvalidArgument
 		}
@@ -36,7 +47,7 @@ func DecodeAdditions(data []byte) (result AdditionsRequest, err error) {
 	return result, nil
 }
 func DecodeRemovals(data []byte) (result RemovalsRequest, err error) {
-	id, items, parallelism, err := decodeBatch(data)
+	id, items, parallelism, err := decodeBatch(data, nil)
 	if err != nil {
 		return result, err
 	}
@@ -51,7 +62,7 @@ func DecodeRemovals(data []byte) (result RemovalsRequest, err error) {
 	return result, nil
 }
 
-func decodeBatch(data []byte) (id *string, items []ControlRequest, parallelism int, err error) {
+func decodeBatch(data []byte, addition *AdditionsRequest) (id *string, items []ControlRequest, parallelism int, err error) {
 	if len(data) > 8<<20 {
 		return nil, nil, 0, domain.ErrCapacity
 	}
@@ -68,6 +79,17 @@ func decodeBatch(data []byte) (id *string, items []ControlRequest, parallelism i
 		}
 		seen[name] = true
 		switch name {
+		case "sources":
+			if addition == nil {
+				return nil, nil, 0, domain.ErrInvalidArgument
+			}
+			addition.Sources, err = sourcewire.DecodeSources(decoder)
+			if errors.Is(err, configs.ErrTooLarge) {
+				return nil, nil, 0, domain.ErrCapacity
+			}
+			if err != nil || len(addition.Sources) == 0 {
+				return nil, nil, 0, domain.ErrInvalidArgument
+			}
 		case "instance_id":
 			if err := decoder.Decode(&id); err != nil || id == nil {
 				return nil, nil, 0, domain.ErrInvalidArgument

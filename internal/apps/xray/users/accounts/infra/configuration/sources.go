@@ -8,7 +8,6 @@ import (
 
 	configs "github.com/PapilioVPN/node/internal/apps/xray/runtime/configs/domain"
 	"github.com/PapilioVPN/node/internal/apps/xray/users/accounts/domain"
-	"github.com/xtls/xray-core/common/protocol"
 	"github.com/xtls/xray-core/core"
 	"google.golang.org/protobuf/encoding/protowire"
 	"google.golang.org/protobuf/proto"
@@ -78,65 +77,12 @@ func userLayout(name string) (field protowire.Number, account string, clientFiel
 	}
 }
 func selectUser(ctx context.Context, name string, content []byte, email string) ([]byte, error) {
-	field, account, clientField := userLayout(name)
-	if field == 0 {
-		return nil, domain.ErrUnsupported
+	requested := map[string]domain.SourceAccount{email: {Err: domain.ErrInvalidArgument}}
+	if err := selectUsers(ctx, name, content, requested); err != nil {
+		return nil, err
 	}
-	var selected []byte
-	var isClient bool
-	for len(content) > 0 {
-		if err := ctx.Err(); err != nil {
-			return nil, err
-		}
-		number, kind, n := protowire.ConsumeTag(content)
-		if n < 0 {
-			return nil, domain.ErrInvalidArgument
-		}
-		content = content[n:]
-		size := protowire.ConsumeFieldValue(number, kind, content)
-		if size < 0 {
-			return nil, domain.ErrInvalidArgument
-		}
-		if number == clientField && kind == protowire.VarintType {
-			value, _ := protowire.ConsumeVarint(content[:size])
-			isClient = value != 0
-		}
-		if number == field {
-			if kind != protowire.BytesType {
-				return nil, domain.ErrInvalidArgument
-			}
-			raw, n := protowire.ConsumeBytes(content[:size])
-			if n < 0 {
-				return nil, domain.ErrInvalidArgument
-			}
-			var user protocol.User
-			if err := proto.Unmarshal(raw, &user); err != nil {
-				return nil, errors.Join(domain.ErrInvalidArgument, err)
-			}
-			if user.Email == email {
-				if selected != nil {
-					return nil, domain.ErrInvalidArgument
-				}
-				if len(raw) > domain.MaxAccountBytes {
-					return nil, domain.ErrCapacity
-				}
-				if user.Account == nil || user.Account.Type != account {
-					return nil, domain.ErrInvalidArgument
-				}
-				selected = raw
-			}
-		}
-		content = content[size:]
-	}
-	if isClient {
-		return nil, domain.ErrUnsupported
-	}
-	if selected == nil {
-		return nil, domain.ErrInvalidArgument
-	}
-	// Return owned native bytes, preserving unknown fields without a lossy
-	// reconstruction of the protocol-specific account or source settings.
-	return bytes.Clone(selected), ctx.Err()
+	selected := requested[email]
+	return bytes.Clone(selected.Configuration), selected.Err
 }
 func compileError(err error) error {
 	switch {

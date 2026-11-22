@@ -23,6 +23,10 @@ func (h Handler) AddMany(request fiber.Ctx) error {
 	}
 	ctx, cancel := context.WithTimeout(request.Context(), h.Timeout)
 	defer cancel()
+	if len(input.Sources) != 0 {
+		result, err := h.Sources.AddMany(ctx, request.Params("id"), input.Selections, input.Sources, input.Parallelism)
+		return batchResult(request, result, err)
+	}
 	result, err := h.Service.AddMany(ctx, request.Params("id"), input.Items, input.Parallelism)
 	return batchResult(request, result, err)
 }

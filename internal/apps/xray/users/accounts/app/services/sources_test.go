@@ -13,6 +13,10 @@ import (
 
 type preparer func(context.Context, string, string, string, []configs.Source) ([]byte, error)
 
+func (p preparer) PrepareMany(context.Context, string, []domain.SourceSelection, []configs.Source) ([]domain.SourceAccount, error) {
+	return nil, domain.ErrUnsupported
+}
+
 func (p preparer) Prepare(ctx context.Context, id, tag, email string, sources []configs.Source) ([]byte, error) {
 	return p(ctx, id, tag, email, sources)
 }

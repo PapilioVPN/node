@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	configs "github.com/PapilioVPN/node/internal/apps/xray/runtime/configs/domain"
 	"github.com/PapilioVPN/node/internal/apps/xray/users/accounts/domain"
 	v1 "github.com/PapilioVPN/node/internal/apps/xray/users/accounts/grpcapi/proto/v1"
 	"google.golang.org/grpc/status"
@@ -16,9 +17,32 @@ func (h Handler) AddAccounts(ctx context.Context, request *v1.AddAccountsRequest
 	if len(request.Items) > domain.MaxBatchItems {
 		return nil, failure(domain.ErrCapacity)
 	}
+	if len(request.Sources) != 0 {
+		if len(request.Sources) > configs.MaxSources {
+			return nil, failure(domain.ErrCapacity)
+		}
+		sources := make([]configs.Source, len(request.Sources))
+		for i, source := range request.Sources {
+			if source == nil {
+				return nil, failure(domain.ErrInvalidArgument)
+			}
+			sources[i] = configs.Source{Name: source.Name, Content: source.Content}
+		}
+		selections := make([]domain.SourceSelection, len(request.Items))
+		for i, item := range request.Items {
+			if item == nil || item.Email == nil || len(item.Configuration) != 0 {
+				return nil, failure(domain.ErrInvalidArgument)
+			}
+			selections[i] = domain.SourceSelection{InboundTag: item.InboundTag, Email: *item.Email}
+		}
+		ctx, cancel := context.WithTimeout(ctx, h.Timeout)
+		defer cancel()
+		result, err := h.Sources.AddMany(ctx, request.InstanceId, selections, sources, int(request.Parallelism))
+		return batchResult(result, err)
+	}
 	items := make([]domain.Addition, len(request.Items))
 	for i, item := range request.Items {
-		if item == nil {
+		if item == nil || item.Email != nil {
 			return nil, failure(domain.ErrInvalidArgument)
 		}
 		items[i] = domain.Addition{InboundTag: item.InboundTag, Configuration: item.Configuration}

@@ -21,6 +21,10 @@ func (h Handler) AddMany(ctx context.Context, data []byte, headers nats.Header) 
 		return failure(err)
 	}
 	defer cancel()
+	if len(input.Sources) != 0 {
+		result, err := h.Sources.AddMany(ctx, *input.InstanceID, input.Selections, input.Sources, input.Parallelism)
+		return batchResult(result, err)
+	}
 	result, err := h.Service.AddMany(ctx, *input.InstanceID, input.Items, input.Parallelism)
 	return batchResult(result, err)
 }

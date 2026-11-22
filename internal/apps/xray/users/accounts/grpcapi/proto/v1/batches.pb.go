@@ -26,6 +26,10 @@ type AccountAddition struct {
 	InboundTag string                 `protobuf:"bytes,1,opt,name=inbound_tag,json=inboundTag,proto3" json:"inbound_tag,omitempty"`
 	// Native protocol.User; its account type must match the actual inbound.
 	Configuration []byte `protobuf:"bytes,2,opt,name=configuration,proto3" json:"configuration,omitempty"`
+	// With request sources, select this exact source email on inbound_tag.
+	// Explicit empty selects one unambiguous anonymous account. Configuration
+	// must be empty; the live inbound must match the source account family.
+	Email         *string `protobuf:"bytes,3,opt,name=email,proto3,oneof" json:"email,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -72,6 +76,13 @@ func (x *AccountAddition) GetConfiguration() []byte {
 		return x.Configuration
 	}
 	return nil
+}
+
+func (x *AccountAddition) GetEmail() string {
+	if x != nil && x.Email != nil {
+		return *x.Email
+	}
+	return ""
 }
 
 type AccountRemoval struct {
@@ -133,7 +144,10 @@ type AddAccountsRequest struct {
 	Items      []*AccountAddition     `protobuf:"bytes,2,rep,name=items,proto3" json:"items,omitempty"`
 	// Zero selects four; supported range 1..4. One preserves execution order.
 	// Parallel execution is for independent items, including on one inbound.
-	Parallelism   uint32 `protobuf:"varint,3,opt,name=parallelism,proto3" json:"parallelism,omitempty"`
+	Parallelism uint32 `protobuf:"varint,3,opt,name=parallelism,proto3" json:"parallelism,omitempty"`
+	// Compile this whole ordered collection once before live batch execution.
+	// Sources and native configuration items are mutually exclusive.
+	Sources       []*AccountSource `protobuf:"bytes,4,rep,name=sources,proto3" json:"sources,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -187,6 +201,13 @@ func (x *AddAccountsRequest) GetParallelism() uint32 {
 		return x.Parallelism
 	}
 	return 0
+}
+
+func (x *AddAccountsRequest) GetSources() []*AccountSource {
+	if x != nil {
+		return x.Sources
+	}
+	return nil
 }
 
 type RemoveAccountsRequest struct {
@@ -387,21 +408,24 @@ var File_internal_apps_xray_users_accounts_grpcapi_proto_v1_batches_proto protor
 
 const file_internal_apps_xray_users_accounts_grpcapi_proto_v1_batches_proto_rawDesc = "" +
 	"\n" +
-	"@internal/apps/xray/users/accounts/grpcapi/proto/v1/batches.proto\x12\x1epapilio.xray.users.accounts.v1\x1a@internal/apps/xray/users/accounts/grpcapi/proto/v1/control.proto\"X\n" +
+	"@internal/apps/xray/users/accounts/grpcapi/proto/v1/batches.proto\x12\x1epapilio.xray.users.accounts.v1\x1a@internal/apps/xray/users/accounts/grpcapi/proto/v1/control.proto\x1a@internal/apps/xray/users/accounts/grpcapi/proto/v1/sources.proto\"}\n" +
 	"\x0fAccountAddition\x12\x1f\n" +
 	"\vinbound_tag\x18\x01 \x01(\tR\n" +
 	"inboundTag\x12$\n" +
-	"\rconfiguration\x18\x02 \x01(\fR\rconfiguration\"V\n" +
+	"\rconfiguration\x18\x02 \x01(\fR\rconfiguration\x12\x19\n" +
+	"\x05email\x18\x03 \x01(\tH\x00R\x05email\x88\x01\x01B\b\n" +
+	"\x06_email\"V\n" +
 	"\x0eAccountRemoval\x12\x1f\n" +
 	"\vinbound_tag\x18\x01 \x01(\tR\n" +
 	"inboundTag\x12\x19\n" +
 	"\x05email\x18\x02 \x01(\tH\x00R\x05email\x88\x01\x01B\b\n" +
-	"\x06_email\"\x9e\x01\n" +
+	"\x06_email\"\xe7\x01\n" +
 	"\x12AddAccountsRequest\x12\x1f\n" +
 	"\vinstance_id\x18\x01 \x01(\tR\n" +
 	"instanceId\x12E\n" +
 	"\x05items\x18\x02 \x03(\v2/.papilio.xray.users.accounts.v1.AccountAdditionR\x05items\x12 \n" +
-	"\vparallelism\x18\x03 \x01(\rR\vparallelism\"\xa0\x01\n" +
+	"\vparallelism\x18\x03 \x01(\rR\vparallelism\x12G\n" +
+	"\asources\x18\x04 \x03(\v2-.papilio.xray.users.accounts.v1.AccountSourceR\asources\"\xa0\x01\n" +
 	"\x15RemoveAccountsRequest\x12\x1f\n" +
 	"\vinstance_id\x18\x01 \x01(\tR\n" +
 	"instanceId\x12D\n" +
@@ -437,19 +461,21 @@ var file_internal_apps_xray_users_accounts_grpcapi_proto_v1_batches_proto_goType
 	(*RemoveAccountsRequest)(nil), // 3: papilio.xray.users.accounts.v1.RemoveAccountsRequest
 	(*AccountBatchItem)(nil),      // 4: papilio.xray.users.accounts.v1.AccountBatchItem
 	(*AccountBatch)(nil),          // 5: papilio.xray.users.accounts.v1.AccountBatch
-	(*AccountOperation)(nil),      // 6: papilio.xray.users.accounts.v1.AccountOperation
+	(*AccountSource)(nil),         // 6: papilio.xray.users.accounts.v1.AccountSource
+	(*AccountOperation)(nil),      // 7: papilio.xray.users.accounts.v1.AccountOperation
 }
 var file_internal_apps_xray_users_accounts_grpcapi_proto_v1_batches_proto_depIdxs = []int32{
 	0, // 0: papilio.xray.users.accounts.v1.AddAccountsRequest.items:type_name -> papilio.xray.users.accounts.v1.AccountAddition
-	1, // 1: papilio.xray.users.accounts.v1.RemoveAccountsRequest.items:type_name -> papilio.xray.users.accounts.v1.AccountRemoval
-	6, // 2: papilio.xray.users.accounts.v1.AccountBatchItem.operation:type_name -> papilio.xray.users.accounts.v1.AccountOperation
-	6, // 3: papilio.xray.users.accounts.v1.AccountBatch.operation:type_name -> papilio.xray.users.accounts.v1.AccountOperation
-	4, // 4: papilio.xray.users.accounts.v1.AccountBatch.items:type_name -> papilio.xray.users.accounts.v1.AccountBatchItem
-	5, // [5:5] is the sub-list for method output_type
-	5, // [5:5] is the sub-list for method input_type
-	5, // [5:5] is the sub-list for extension type_name
-	5, // [5:5] is the sub-list for extension extendee
-	0, // [0:5] is the sub-list for field type_name
+	6, // 1: papilio.xray.users.accounts.v1.AddAccountsRequest.sources:type_name -> papilio.xray.users.accounts.v1.AccountSource
+	1, // 2: papilio.xray.users.accounts.v1.RemoveAccountsRequest.items:type_name -> papilio.xray.users.accounts.v1.AccountRemoval
+	7, // 3: papilio.xray.users.accounts.v1.AccountBatchItem.operation:type_name -> papilio.xray.users.accounts.v1.AccountOperation
+	7, // 4: papilio.xray.users.accounts.v1.AccountBatch.operation:type_name -> papilio.xray.users.accounts.v1.AccountOperation
+	4, // 5: papilio.xray.users.accounts.v1.AccountBatch.items:type_name -> papilio.xray.users.accounts.v1.AccountBatchItem
+	6, // [6:6] is the sub-list for method output_type
+	6, // [6:6] is the sub-list for method input_type
+	6, // [6:6] is the sub-list for extension type_name
+	6, // [6:6] is the sub-list for extension extendee
+	0, // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_internal_apps_xray_users_accounts_grpcapi_proto_v1_batches_proto_init() }
@@ -458,6 +484,8 @@ func file_internal_apps_xray_users_accounts_grpcapi_proto_v1_batches_proto_init(
 		return
 	}
 	file_internal_apps_xray_users_accounts_grpcapi_proto_v1_control_proto_init()
+	file_internal_apps_xray_users_accounts_grpcapi_proto_v1_sources_proto_init()
+	file_internal_apps_xray_users_accounts_grpcapi_proto_v1_batches_proto_msgTypes[0].OneofWrappers = []any{}
 	file_internal_apps_xray_users_accounts_grpcapi_proto_v1_batches_proto_msgTypes[1].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

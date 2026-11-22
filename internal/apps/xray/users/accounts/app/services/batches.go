@@ -19,7 +19,7 @@ func (s *Service) AddMany(ctx context.Context, id string, items []domain.Additio
 	for i, item := range items {
 		ops[i] = domain.Operation{InstanceID: id, InboundTag: item.InboundTag, Kind: "add", Effect: domain.NotApplied}
 	}
-	return s.batch(ctx, id, "add_batch", ops, parallelism, func(c Client, i int) (domain.NativeResult, error) {
+	return s.batch(ctx, id, "add_batch", ops, parallelism, nil, func(c Client, i int) (domain.NativeResult, error) {
 		return c.Add(ctx, items[i].InboundTag, items[i].Configuration)
 	})
 }
@@ -32,12 +32,12 @@ func (s *Service) RemoveMany(ctx context.Context, id string, items []domain.Remo
 	for i, item := range items {
 		ops[i] = domain.Operation{InstanceID: id, InboundTag: item.InboundTag, Email: item.Email, Kind: "remove", Effect: domain.NotApplied}
 	}
-	return s.batch(ctx, id, "remove_batch", ops, parallelism, func(c Client, i int) (domain.NativeResult, error) {
+	return s.batch(ctx, id, "remove_batch", ops, parallelism, nil, func(c Client, i int) (domain.NativeResult, error) {
 		return c.Remove(ctx, items[i].InboundTag, items[i].Email)
 	})
 }
 
-func (s *Service) batch(ctx context.Context, id, kind string, operations []domain.Operation, parallelism int, invoke func(Client, int) (domain.NativeResult, error)) (result domain.Batch, err error) {
+func (s *Service) batch(ctx context.Context, id, kind string, operations []domain.Operation, parallelism int, prepare func([]domain.ItemResult) error, invoke func(Client, int) (domain.NativeResult, error)) (result domain.Batch, err error) {
 	result.Operation = domain.Operation{InstanceID: id, Kind: kind, Effect: domain.NotApplied}
 	result.Items = make([]domain.ItemResult, len(operations))
 	for i, operation := range operations {
@@ -60,6 +60,14 @@ func (s *Service) batch(ctx context.Context, id, kind string, operations []domai
 		return result, err
 	}
 	defer reservation.finish(&result.Operation)
+	if prepare != nil {
+		if err := prepare(result.Items); err != nil {
+			for i := range result.Items {
+				result.Items[i].Err = err
+			}
+			return result, err
+		}
+	}
 	var stopped atomic.Bool
 	var running errgroup.Group
 	running.SetLimit(parallel)
@@ -72,6 +80,10 @@ func (s *Service) batch(ctx context.Context, id, kind string, operations []domai
 				return nil
 			}
 			item := &result.Items[position]
+			if !errors.Is(item.Err, domain.ErrNotAttempted) {
+				stopped.Store(true)
+				return nil
+			}
 			// Local observations add no native preflight RPC. Check execution
 			// before each submission, not just the beginning of a long batch.
 			if cause := s.observeMutation(ctx, &item.Operation, ctx.Err()); cause != nil {

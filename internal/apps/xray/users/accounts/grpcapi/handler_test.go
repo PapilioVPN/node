@@ -8,6 +8,7 @@ import (
 	v1 "github.com/PapilioVPN/node/internal/apps/xray/users/accounts/grpcapi/proto/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 )
 
 func TestMissingMessageNeverReachesService(t *testing.T) {
@@ -48,7 +49,13 @@ func TestMissingSourceInputsNeverReachService(t *testing.T) {
 
 func TestInvalidBatchMessagesNeverReachService(t *testing.T) {
 	h := grpcapi.Handler{}
-	for _, request := range []*v1.AddAccountsRequest{nil, {Parallelism: 5}, {Items: []*v1.AccountAddition{nil}}} {
+	for _, request := range []*v1.AddAccountsRequest{
+		nil, {Parallelism: 5}, {Items: []*v1.AccountAddition{nil}},
+		{Items: []*v1.AccountAddition{{InboundTag: "members", Email: proto.String("")}}},
+		{Sources: []*v1.AccountSource{nil}},
+		{Sources: []*v1.AccountSource{{Name: "a.json"}}, Items: []*v1.AccountAddition{{InboundTag: "members"}}},
+		{Sources: []*v1.AccountSource{{Name: "a.json"}}, Items: []*v1.AccountAddition{{InboundTag: "members", Email: proto.String("x"), Configuration: []byte{1}}}},
+	} {
 		if _, err := h.AddAccounts(context.Background(), request); status.Code(err) != codes.InvalidArgument {
 			t.Fatal(err)
 		}
