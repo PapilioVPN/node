@@ -75,6 +75,7 @@ func TestPackagedOutboundReadback(t *testing.T) {
 		t.Fatal(err)
 	}
 	name := "node-outbounds-" + hex.EncodeToString(random[:])
+	f.resources.release()
 	docker(t, "run", "--detach", "--pull=never", "--name", name, "--network=host", "--cap-drop=ALL", "--read-only", "--user", strconv.Itoa(os.Getuid())+":"+strconv.Itoa(os.Getgid()),
 		"--mount", "type=bind,src="+directory+",dst=/etc/node,readonly",
 		"--mount", "type=bind,src="+workDirectory+",dst=/work",
@@ -133,7 +134,7 @@ func containerAddresses(t *testing.T, name string) map[string]string {
 			if event.Message == "HTTP listening" || event.Message == "gRPC listening" {
 				addresses[event.Message] = event.Address
 			}
-			if event.Message == "Xray outbound configurations NATS subscribed" {
+			if event.Message == "started" {
 				subscribed = true
 			}
 		}
@@ -158,6 +159,20 @@ func exercisePackagedControl(t *testing.T, c clients, transport, address, target
 	result, code := nativeMutation(t, c, transport, "add", "", content)
 	if code != "" || !result.Acknowledged || result.Effect != "completed" {
 		t.Fatal(result, code)
+	}
+	requireTraffic(t, traffic, target, true)
+	plan := planReplacement(t, c, transport, "managed", candidate(t, "managed", "blackhole"), "may_change", "retain")
+	if plan.Mode != "live_remove_add" || plan.DefaultState != "unobservable" {
+		t.Fatal(plan)
+	}
+	replaced := applyReplacement(t, c, transport, plan.ID)
+	if replaced.Outcome != "completed" || len(replaced.Steps) != 2 || !replaced.Steps[0].Acknowledged || !replaced.Steps[1].Acknowledged {
+		t.Fatal(replaced)
+	}
+	requireTraffic(t, traffic, target, false)
+	restore := planReplacement(t, c, transport, "managed", content, "may_change", "retain")
+	if restored := applyReplacement(t, c, transport, restore.ID); restored.Outcome != "completed" {
+		t.Fatal(restored)
 	}
 	requireTraffic(t, traffic, target, true)
 	result, code = nativeMutation(t, c, transport, "remove", "managed", nil)

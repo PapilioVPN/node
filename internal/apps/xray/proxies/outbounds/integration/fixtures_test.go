@@ -51,10 +51,20 @@ type clients struct {
 	grpc    *grpc.ClientConn
 	nats    *nats.Conn
 }
+type fixtureResources struct{ listeners []net.Listener }
+
+func (r *fixtureResources) release() {
+	for _, listener := range r.listeners {
+		listener.Close()
+	}
+	r.listeners = nil
+}
+
 type fixture struct {
-	config settings.Config
-	pki    testutil.PKI
-	native string
+	resources *fixtureResources
+	config    settings.Config
+	pki       testutil.PKI
+	native    string
 }
 
 func newFixture(t *testing.T, pki testutil.PKI, broker, transport string) fixture {
@@ -71,14 +81,15 @@ func newFixture(t *testing.T, pki testutil.PKI, broker, transport string) fixtur
 	if err != nil {
 		t.Fatal(err)
 	}
+	resources := &fixtureResources{listeners: []net.Listener{listener}}
+	t.Cleanup(resources.release)
 	native := listener.Addr().String()
 	source := filepath.Join(t.TempDir(), "config.json")
 	data, _ := json.Marshal(map[string]any{"log": map[string]any{"loglevel": "none"}, "api": map[string]any{"tag": "api", "listen": native, "services": []string{"StatsService", "HandlerService"}}, "stats": map[string]any{}, "outbounds": []any{map[string]any{"tag": "baseline", "protocol": "blackhole"}}})
 	if err := os.WriteFile(source, data, 0600); err != nil {
 		t.Fatal(err)
 	}
-	listener.Close()
-	config := settings.Config{StartupTimeout: 4 * time.Second, ShutdownTimeout: 6 * time.Second, Instances: []settings.Instance{{ID: "edge-a", Engine: "xray", StopTimeout: time.Second, Xray: &settings.Xray{Binary: binary, Configuration: source, API: &settings.XrayAPI{Network: "tcp", Address: native}}}}}
+	config := settings.Config{StartupTimeout: 4 * time.Second, ShutdownTimeout: 12 * time.Second, Instances: []settings.Instance{{ID: "edge-a", Engine: "xray", StopTimeout: time.Second, Xray: &settings.Xray{Binary: binary, Configuration: source, API: &settings.XrayAPI{Network: "tcp", Address: native}}}}}
 	config.Communications.Requests.Timeout = 500 * time.Millisecond
 	if transport == "http" || transport == "all" {
 		config.Communications.HTTP = &settings.HTTP{Address: "127.0.0.1:0", TLS: pki.Server, ReadTimeout: time.Second, WriteTimeout: 2 * time.Second, IdleTimeout: time.Second, ShutdownTimeout: time.Second, BodyLimit: 8192, Concurrency: 16}
@@ -88,12 +99,28 @@ func newFixture(t *testing.T, pki testutil.PKI, broker, transport string) fixtur
 	}
 	if transport == "nats" || transport == "all" {
 		config.Communications.NATS = &settings.NATS{Servers: []string{broker}, TLS: pki.Client, TLSHandshakeFirst: true, ConnectTimeout: time.Second, ShutdownTimeout: time.Second, WriteTimeout: time.Second, ReconnectWait: time.Second, MaxReconnects: 0, ReconnectBufferSize: -1, PingInterval: time.Second, MaxPingsOutstanding: 2}
-		config.Communications.Requests.NATS = &settings.NATSRequests{SubjectPrefix: "fixture.outbounds", PendingMessages: 8, PendingBytes: 8192, ShutdownTimeout: 10 * time.Millisecond}
+		config.Communications.Requests.NATS = &settings.NATSRequests{SubjectPrefix: "fixture.outbounds", PendingMessages: 8, PendingBytes: 8192, ShutdownTimeout: 50 * time.Millisecond}
+	}
+	// Reserve fixed management addresses before releasing pending child binds.
+	for _, transport := range []string{"http", "grpc"} {
+		if (transport == "http" && config.Communications.HTTP == nil) || (transport == "grpc" && config.Communications.GRPC == nil) {
+			continue
+		}
+		management, err := net.Listen("tcp", "127.0.0.1:0")
+		if err != nil {
+			t.Fatal(err)
+		}
+		resources.listeners = append(resources.listeners, management)
+		if transport == "http" {
+			config.Communications.HTTP.Address = management.Addr().String()
+		} else {
+			config.Communications.GRPC.Address = management.Addr().String()
+		}
 	}
 	if err := config.Validate(); err != nil {
 		t.Fatal(err)
 	}
-	return fixture{config, pki, native}
+	return fixture{config: config, pki: pki, native: native, resources: resources}
 }
 func startNode(t *testing.T, f fixture) clients {
 	t.Helper()
@@ -101,6 +128,7 @@ func startNode(t *testing.T, f fixture) clients {
 	app := bootstrap.New(f.config, slog.New(log))
 	ctx, cancel := context.WithTimeout(context.Background(), f.config.StartupTimeout)
 	defer cancel()
+	f.resources.release()
 	if err := app.Start(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -181,7 +209,7 @@ func configureProbe(t *testing.T, f fixture, route bool) string {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer reserved.Close()
+	f.resources.listeners = append(f.resources.listeners, reserved)
 	address := reserved.Addr().String()
 	port := reserved.Addr().(*net.TCPAddr).Port
 	path := f.config.Instances[0].Xray.Configuration

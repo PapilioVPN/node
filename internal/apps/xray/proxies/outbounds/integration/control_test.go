@@ -82,38 +82,55 @@ func requireTraffic(t *testing.T, client *http.Client, target string, want bool)
 	}
 }
 func TestRemovingDefaultDoesNotPromoteAnotherExistingOutbound(t *testing.T) {
-	target := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { io.WriteString(w, "outbound-traffic") }))
-	defer target.Close()
-	f := newFixture(t, testutil.NewPKI(t), "", "http")
-	address := configureProbe(t, f, false)
-	c := startNode(t, f)
-	awaitNative(t, f.native)
-	proxy, _ := url.Parse("http://" + address)
-	tr := &http.Transport{Proxy: http.ProxyURL(proxy), DisableKeepAlives: true}
-	defer tr.CloseIdleConnections()
-	traffic := &http.Client{Transport: tr, Timeout: time.Second}
-	requireTraffic(t, traffic, target.URL, true)
-	result, code := nativeMutation(t, c, "http", "remove", "baseline", nil)
-	if code != "" || !result.Acknowledged {
-		t.Fatal(result, code)
+	pki := testutil.NewPKI(t)
+	broker := brokerFixture(t, pki)
+	for _, transport := range []string{"http", "grpc", "nats"} {
+		t.Run(transport, func(t *testing.T) {
+			target := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { io.WriteString(w, "outbound-traffic") }))
+			defer target.Close()
+			f := newFixture(t, pki, broker, transport)
+			address := configureProbe(t, f, false)
+			c := startNode(t, f)
+			awaitNative(t, f.native)
+			proxy, _ := url.Parse("http://" + address)
+			tr := &http.Transport{Proxy: http.ProxyURL(proxy), DisableKeepAlives: true}
+			defer tr.CloseIdleConnections()
+			traffic := &http.Client{Transport: tr, Timeout: time.Second}
+			requireTraffic(t, traffic, target.URL, true)
+			result, code := nativeMutation(t, c, transport, "remove", "baseline", nil)
+			if code != "" || !result.Acknowledged {
+				t.Fatal(result, code)
+			}
+			observation := readOutbounds(t, c, transport)
+			if len(observation.Outbounds) != 1 || observation.Outbounds[0].Tag != "backup" {
+				t.Fatal(observation)
+			}
+			requireTraffic(t, traffic, target.URL, false)
+			// Equal observed settings must not issue a duplicate Add that would silently
+			// choose this handler as a missing default.
+			plan := planReplacement(t, c, transport, "backup", observation.Outbounds[0].Configuration, "preserve", "retain")
+			if plan.Mode != "unchanged" {
+				t.Fatal(plan)
+			}
+			unchanged := applyReplacement(t, c, transport, plan.ID)
+			if unchanged.Outcome != "unchanged" {
+				t.Fatal(unchanged)
+			}
+			requireTraffic(t, traffic, target.URL, false)
+			// Native AddHandler selects a missing default before checking duplicate tags.
+			// A terminal failure can therefore change routing even without registration.
+			duplicate, _ := proto.Marshal(&core.OutboundHandlerConfig{Tag: "backup", ProxySettings: serial.ToTypedMessage(&freedom.Config{})})
+			result, code = nativeMutation(t, c, transport, "add", "", duplicate)
+			if code != "unavailable" || result.Effect != "unknown" || result.Acknowledged {
+				t.Fatal(result, code)
+			}
+			requireTraffic(t, traffic, target.URL, true)
+			content, _ := proto.Marshal(&core.OutboundHandlerConfig{Tag: "new-default", ProxySettings: serial.ToTypedMessage(&freedom.Config{})})
+			result, code = nativeMutation(t, c, transport, "add", "", content)
+			if code != "" || !result.Acknowledged {
+				t.Fatal(result, code)
+			}
+			requireTraffic(t, traffic, target.URL, true)
+		})
 	}
-	observation := readOutbounds(t, c, "http")
-	if len(observation.Outbounds) != 1 || observation.Outbounds[0].Tag != "backup" {
-		t.Fatal(observation)
-	}
-	requireTraffic(t, traffic, target.URL, false)
-	// Native AddHandler selects a missing default before checking duplicate tags.
-	// A terminal failure can therefore change routing even without registration.
-	duplicate, _ := proto.Marshal(&core.OutboundHandlerConfig{Tag: "backup", ProxySettings: serial.ToTypedMessage(&freedom.Config{})})
-	result, code = nativeMutation(t, c, "http", "add", "", duplicate)
-	if code != "unavailable" || result.Effect != "unknown" || result.Acknowledged {
-		t.Fatal(result, code)
-	}
-	requireTraffic(t, traffic, target.URL, true)
-	content, _ := proto.Marshal(&core.OutboundHandlerConfig{Tag: "new-default", ProxySettings: serial.ToTypedMessage(&freedom.Config{})})
-	result, code = nativeMutation(t, c, "http", "add", "", content)
-	if code != "" || !result.Acknowledged {
-		t.Fatal(result, code)
-	}
-	requireTraffic(t, traffic, target.URL, true)
 }
