@@ -92,6 +92,7 @@ described in the example settings.
 | [Xray traffic](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/observability/traffic) | Read and reset individual counters, upload/download pairs and selected groups of counters. |
 | [Xray outbound health](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/observability/outboundhealth) | List observable outbound health results and inspect individual outbounds by tag. |
 | [Xray loggers](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/observability/loggers) | Reopen Xray loggers and inspect the outcome. |
+| [Xray console logs](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/observability/logs) | Read sanitized recent console records and follow them with a resumable cursor. Responses describe gaps, execution changes and capture limits. |
 | [Xray credential tools](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/tools/credentials) | Generate UUIDs, X25519/WireGuard and ML-DSA-65/ML-KEM-768 key material, VLESS encryption pairs, TLS certificates and ECH key sets. Hash TLS certificates. Private artifacts are returned only in the current response. |
 
 Live operations act on the running instance. Configuration operations manage

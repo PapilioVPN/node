@@ -93,6 +93,7 @@ docker logs papilio-node
 | [Трафик Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/observability/traffic) | Чтение и сброс отдельных счётчиков, пар приёма и передачи и выбранных групп счётчиков. |
 | [Состояние исходящих обработчиков Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/observability/outboundhealth) | Списки доступных результатов проверок и поиск результатов по тегу обработчика. |
 | [Журналы Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/observability/loggers) | Повторное открытие журналов Xray с просмотром результата операции. |
+| [Консольные журналы Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/observability/logs) | Чтение последних консольных записей с удалением секретов и продолжение по курсору. Ответ сообщает о пропусках, смене процесса и пределах захвата. |
 | [Ключи и сертификаты Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/tools/credentials) | Генерация UUID, ключевого материала X25519/WireGuard и ML-DSA-65/ML-KEM-768, пар шифрования VLESS, сертификатов TLS и наборов ключей ECH. Вычисление хешей сертификатов TLS. Закрытые данные доступны только в текущем ответе. |
 
 Операции в реальном времени действуют на запущенный экземпляр. Операции

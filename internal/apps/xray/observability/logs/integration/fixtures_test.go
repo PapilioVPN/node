@@ -20,7 +20,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PapilioVPN/node/internal/apps/xray/observability/logs"
 	logsv1 "github.com/PapilioVPN/node/internal/apps/xray/observability/logs/grpcapi/proto/v1"
 	"github.com/PapilioVPN/node/internal/apps/xray/observability/logs/infra/jsonwire"
 	output "github.com/PapilioVPN/node/internal/apps/xray/runtime/instances/domain"
@@ -152,9 +151,8 @@ func startNode(t *testing.T, f fixture) *node {
 	t.Helper()
 	n := &node{calls: &atomic.Int64{}}
 	logger := &listenerLog{Handler: slog.NewTextHandler(io.Discard, nil), addresses: map[string]string{}}
-	// Shared observability composition is reserved for the integration owner. This
-	// adds the actual Logs module to normal bootstrap, using its real output group.
-	n.app = bootstrap.New(f.config, slog.New(logger), logs.Module(f.config.Communications.Requests), fx.Decorate(func(in outputInputs) outputResults {
+	// Observe output reads through the same instances binding as ordinary startup.
+	n.app = bootstrap.New(f.config, slog.New(logger), fx.Decorate(func(in outputInputs) outputResults {
 		result := outputResults{}
 		for _, b := range in.Sources {
 			result.Sources = append(result.Sources, output.OutputBinding{ID: b.ID, Source: observedSource{b.Source, n.calls}})

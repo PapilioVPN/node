@@ -98,6 +98,7 @@ mountهای صریح توضیح‌داده‌شده در نمونه را به‌
 | [ترافیک Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/observability/traffic) | خواندن و بازنشانی شمارنده‌های تکی، جفت ارسال و دریافت و مجموعهٔ شمارنده‌های انتخاب‌شده. |
 | [سلامت خروجی‌های Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/observability/outboundhealth) | فهرست نتایج قابل مشاهدهٔ سلامت و بررسی یک خروجی با tag. |
 | [Loggerهای Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/observability/loggers) | بازکردن مجدد loggerهای Xray و مشاهدهٔ نتیجهٔ عملیات. |
+| [لاگ کنسول Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/observability/logs) | خواندن لاگ‌های اخیر کنسول با حذف دادهٔ حساس و ادامهٔ دریافت از موقعیت ثبت‌شده. پاسخ، شکاف‌ها، تغییر اجرای موتور و سقف ثبت لاگ را گزارش می‌کند. |
 | [ابزارهای کلید و گواهی Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/tools/credentials) | تولید UUID، کلیدهای X25519 و WireGuard، مواد کلید ML-DSA-65 و ML-KEM-768، جفت رمزنگاری VLESS، گواهی TLS و مجموعه‌کلید ECH. محاسبهٔ هش گواهی TLS. مواد خصوصی فقط در همان پاسخ برمی‌گردند. |
 
 عملیات زنده روی نمونهٔ در حال اجرا اثر می‌گذارد. عملیات کانفیگ تعیین

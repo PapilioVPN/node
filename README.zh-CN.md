@@ -87,6 +87,7 @@ docker logs papilio-node
 | [Xray 流量](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/observability/traffic) | 读取和重置单项计数器、收发计数对及选定的计数器组。 |
 | [Xray 出站健康](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/observability/outboundhealth) | 列出可观测的出站健康结果，也可按出站标签查询。 |
 | [Xray 日志记录器](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/observability/loggers) | 重新打开 Xray 日志记录器并查看操作结果。 |
+| [Xray 控制台日志](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/observability/logs) | 读取脱敏后的近期控制台记录，并通过游标继续获取。响应会报告缺口、执行实例变更和采集上限。 |
 | [Xray 凭据工具](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/tools/credentials) | 生成 UUID、X25519/WireGuard 和 ML-DSA-65/ML-KEM-768 密钥材料、VLESS 加密对、TLS 证书和 ECH 密钥集，并计算 TLS 证书哈希。私密材料仅在当前响应中返回。 |
 
 在线操作作用于运行中的实例，配置操作决定 Xray 启动时使用的设置。
