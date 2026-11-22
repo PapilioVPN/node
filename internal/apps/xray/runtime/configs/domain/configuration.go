@@ -21,6 +21,7 @@ var (
 	ErrPlanExpired       = errors.New("configuration plan expired or superseded")
 	ErrStalePlan         = errors.New("configuration plan is stale")
 	ErrReadiness         = errors.New("configuration execution readiness not established")
+	ErrExecutionFailed   = errors.New("configuration execution is no longer running")
 )
 
 // MaxCandidateBytes bounds one supported candidate, independently of possibly

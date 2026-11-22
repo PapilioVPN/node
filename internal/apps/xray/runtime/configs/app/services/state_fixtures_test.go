@@ -51,6 +51,12 @@ type restartFunc func(context.Context, string) (instances.Control, error)
 func (f restartFunc) Restart(ctx context.Context, id string) (instances.Control, error) {
 	return f(ctx, id)
 }
+func (restartFunc) Status(context.Context, string) (instances.Status, error) {
+	panic("legacy changes must not acquire planned status")
+}
+func (restartFunc) Check(context.Context, string) (instances.Readiness, error) {
+	panic("legacy changes must not acquire planned readiness")
+}
 func stateFixture(t *testing.T, r *repositoryFixture, checker sourceCheckFunc, restart restartFunc) *StateService {
 	t.Helper()
 	s, err := NewState([]StateBinding{{ID: "a", Repository: r}, {ID: "b", Repository: r}, {ID: "c", Repository: r}, {ID: "disabled"}}, checker, restart)

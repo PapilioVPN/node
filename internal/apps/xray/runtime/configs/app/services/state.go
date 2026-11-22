@@ -18,9 +18,10 @@ type Repository interface {
 type SourceChecker interface {
 	CheckSources(context.Context, string, []domain.Source) (domain.Validation, error)
 }
-type Restarter interface {
-	Restart(context.Context, string) (instancedomain.Control, error)
-}
+
+// Restarter preserves the existing composition name. Reviewed changes also need
+// the same owner's local status and explicit readiness operations.
+type Restarter = Runtime
 type StateBinding struct {
 	ID         string
 	Repository Repository

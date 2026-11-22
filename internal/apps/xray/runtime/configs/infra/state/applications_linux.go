@@ -58,6 +58,7 @@ func (s *Store) WriteReviewed(ctx context.Context, expected uint64, sources []do
 	application.Revision = next.Metadata.Revision
 	application.PreviousRevision = expected
 	application.CandidateSHA256 = next.Metadata.SHA256
+	application.Persistence = domain.Persistence{Metadata: next.Metadata, Published: true}
 	row := document(s.id, next)
 	row.Schema = 2
 	prior := document(s.id, previous)
@@ -110,6 +111,14 @@ func (s *Store) ReadApplication(ctx context.Context) (domain.StoredApplication, 
 	}
 	application.ReceiptDurable = s.metadata.Durable && !s.uncertain && s.metadata.Revision == desired.Metadata.Revision
 	s.mu.RUnlock()
+	if application.Revision == desired.Metadata.Revision {
+		application.Persistence.Durable = application.ReceiptDurable
+		application.Persistence.Metadata.Durable = application.ReceiptDurable
+	}
+	if recovery := application.Recovery; recovery != nil && recovery.Revision == desired.Metadata.Revision {
+		recovery.Persistence.Durable = application.ReceiptDurable
+		recovery.Persistence.Metadata.Durable = application.ReceiptDurable
+	}
 	return domain.StoredApplication{Application: application, Previous: previous}, nil
 }
 
@@ -175,6 +184,7 @@ func (s *Store) WriteRecovery(ctx context.Context, expected uint64, applicationI
 	}
 	next := domain.DesiredMetadata{Revision: expected + 1, SHA256: previous.Metadata.SHA256, SourceCount: len(previous.Sources), UpdatedAt: time.Now().UTC()}
 	application.Recovery = &domain.Recovery{ID: recoveryID, ExpectedRevision: expected, Revision: next.Revision, Outcome: "in_progress", EngineEffect: "not_attempted", Readiness: "not_checked", StartedAt: time.Now().UTC()}
+	application.Recovery.Persistence = domain.Persistence{Metadata: next, Published: true}
 	row.Revision, row.SHA256, row.UpdatedAt, row.Sources = next.Revision, next.SHA256, next.UpdatedAt, row.Previous.Sources
 	row.Application = &application
 	data, err := json.Marshal(row)

@@ -81,6 +81,14 @@ func readDocument(root *os.Root, id string) (record, domain.Desired, error) {
 	if row.Application != nil && (!validIdentity(row.Application.ID) || row.Application.InstanceID != id) {
 		return record{}, domain.Desired{}, domain.ErrInvalidArgument
 	}
+	if a := row.Application; a != nil {
+		if a.Revision == 0 || a.ExpectedRevision != a.Revision-1 || (a.Recovery == nil && a.Revision != row.Revision) {
+			return record{}, domain.Desired{}, domain.ErrInvalidArgument
+		}
+		if r := a.Recovery; r != nil && (!validIdentity(r.ID) || r.ExpectedRevision != a.Revision || r.Revision == 0 || r.ExpectedRevision != r.Revision-1 || r.Revision != row.Revision) {
+			return record{}, domain.Desired{}, domain.ErrInvalidArgument
+		}
+	}
 	desired, err := decodeSources(row)
 	if err != nil {
 		return record{}, domain.Desired{}, err
