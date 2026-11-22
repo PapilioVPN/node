@@ -22,6 +22,7 @@ go test -run="^$" -fuzz="^FuzzActivity$" -fuzztime=10s -parallel=2 ./internal/ap
 go test -run="^$" -fuzz="^FuzzLoginRecords$" -fuzztime=10s -parallel=2 ./internal/apps/system/host/sessions/infra/utmp
 go test -run="^$" -fuzz="^FuzzPowerSupply$" -fuzztime=10s -parallel=2 ./internal/apps/system/host/sensors/infra/sys
 go test -run="^$" -fuzz="^FuzzCompilationEnvelope$" -fuzztime=10s -parallel=2 ./internal/apps/xray/runtime/configs/infra/jsonwire
+go test -run="^$" -fuzz="^FuzzSelection$" -fuzztime=10s -parallel=2 ./internal/apps/xray/users/accounts/infra/jsonwire
 go test -run="^$" -fuzz="^FuzzStateEnvelope$" -fuzztime=10s -parallel=2 ./internal/apps/xray/runtime/configs/infra/jsonwire
 govulncheck ./...
 mkdir -p dist
@@ -81,3 +82,6 @@ go test -race -tags=integration,distribution ./internal/apps/xray/proxies/inboun
 
 go test -race -tags=integration,distribution ./internal/apps/xray/proxies/outbounds/integration \
     -run="^TestPackagedOutboundReadback$" -count=1 -args -image="papilio-node-build:$revision"
+
+go test -race -tags=integration,distribution ./internal/apps/xray/users/accounts/integration \
+    -run="^TestPackagedAccountReads$" -count=1 -args -image="papilio-node-build:$revision"

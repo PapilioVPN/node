@@ -1,0 +1,42 @@
+syntax = "proto3";
+package papilio.xray.users.accounts.v1;
+option go_package = "github.com/PapilioVPN/node/internal/apps/xray/users/accounts/grpcapi/proto/v1;accountsv1";
+import "google/protobuf/timestamp.proto";
+service AccountsService {
+  // Native count only; does not fetch the user collection.
+  rpc GetAccountCount(GetAccountCountRequest) returns (AccountCount);
+  // Native exact lookup. Absence is a missing user, not a fabricated empty account.
+  rpc GetAccount(GetAccountRequest) returns (AccountObservation);
+}
+message GetAccountCountRequest {
+  string instance_id = 1;
+  string inbound_tag = 2;
+}
+message GetAccountRequest {
+  string instance_id = 1;
+  string inbound_tag = 2;
+  string email = 3;
+}
+message Observation {
+  string instance_id = 1;
+  string inbound_tag = 2;
+  uint64 generation = 3;
+  google.protobuf.Timestamp observed_at = 4;
+  int64 duration_ns = 5;
+}
+message AccountCount {
+  Observation observation = 1;
+  int64 count = 2;
+}
+message Account {
+  string email = 1;
+  uint32 level = 2;
+  // Native protocol.User protobuf, potentially containing credentials. Runtime
+  // readback is distinct from desired state and may omit original settings.
+  bytes configuration = 3;
+}
+message AccountObservation {
+  Observation observation = 1;
+  string requested_email = 2;
+  Account user = 3;
+}

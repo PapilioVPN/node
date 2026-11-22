@@ -1,5 +1,5 @@
 startup_timeout: 10s
-shutdown_timeout: 75s
+shutdown_timeout: 80s
 # Management API: only provision trusted controller certificates and broker ACLs.
 # For actual host identity in Docker, pass --uts=host to run.sh.
 # Interface observations use the current network namespace; choose --network=host for host scope.
