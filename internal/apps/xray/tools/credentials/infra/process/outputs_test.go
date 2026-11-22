@@ -21,6 +21,7 @@ func TestRejectUnexpectedOutputWithoutReturningMaterial(t *testing.T) {
 	}
 }
 func FuzzECHKeyFraming(f *testing.F) {
+	f.Add(validECHKeys())
 	f.Add([]byte{})
 	f.Add([]byte{0, 32, 1})
 	f.Fuzz(func(t *testing.T, data []byte) {
@@ -29,4 +30,16 @@ func FuzzECHKeyFraming(f *testing.F) {
 		}
 		echLists(data)
 	})
+}
+
+func TestECHFramingPreservesPublicNameAndRejectsKeyMismatch(t *testing.T) {
+	raw := validECHKeys()
+	parsed, err := echLists(raw)
+	if err != nil || len(parsed) != 1 || parsed[0].name != "example.test" {
+		t.Fatal("valid ECH fixture did not preserve name")
+	}
+	raw[3] ^= 1
+	if _, err := echLists(raw); err == nil {
+		t.Fatal("mismatched private key accepted")
+	}
 }

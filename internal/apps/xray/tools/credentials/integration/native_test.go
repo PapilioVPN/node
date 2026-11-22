@@ -3,6 +3,7 @@
 package integration_test
 
 import (
+	"bytes"
 	"context"
 	"crypto"
 	"crypto/mldsa"
@@ -12,6 +13,8 @@ import (
 	"encoding/base64"
 	"encoding/binary"
 	"encoding/pem"
+	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -187,4 +190,70 @@ func TestNativeECHArtifactsCarryEncryptedTLS(t *testing.T) {
 		t.Fatal("native multi-key restore failed", err)
 	}
 	echHandshake(t, certificate, restored)
+}
+
+func TestNativeMaximumAdmittedInputsAndCertificateChain(t *testing.T) {
+	s := nativeService(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if _, err := s.UUID(ctx, "a", domain.UUIDInput{Name: ptr(strings.Repeat("x", 30))}); err != nil {
+		t.Fatal("native UUID maximum", err)
+	}
+	rawKey := make([]byte, 32)
+	for i := range rawKey {
+		rawKey[i] = 255
+	}
+	for _, encoding := range []domain.Encoding{domain.RawURL, domain.Standard} {
+		encoder := base64.RawURLEncoding
+		if encoding == domain.Standard {
+			encoder = base64.StdEncoding
+		}
+		input := encoder.EncodeToString(rawKey)
+		result, err := s.X25519(ctx, "a", domain.X25519Input{PrivateKey: &input, Encoding: encoding})
+		if err != nil || result.PrivateKey == input {
+			t.Fatal("native clamping of supplied key", err)
+		}
+	}
+	domains := make([]string, domain.MaxDomains)
+	label := strings.Repeat("a", 63)
+	longDomain := label + "." + label + "." + label + "." + strings.Repeat("a", 61)
+	for i := range domains {
+		domains[i] = longDomain
+	}
+	cert, err := s.Certificate(ctx, "a", domain.CertificateInput{Domains: domains, CommonName: ptr(strings.Repeat("x", 1024)), Organization: ptr(strings.Repeat("y", 1024)), Authority: true, ValidFor: ptr(domain.MaxValidity)})
+	if err != nil {
+		t.Fatal("native certificate maximum", err)
+	}
+	_ = cert
+	// The long-SAN certificate exceeds the total byte budget when repeated too
+	// often; use a small real native certificate for the maximum chain count.
+	small, err := s.Certificate(ctx, "a", domain.CertificateInput{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	chain := []byte(strings.Repeat(small.CertificatePEM, domain.MaxCertificates))
+	hashes, err := s.CertificateHashes(ctx, "a", domain.CertificateHashInput{Certificate: chain})
+	if err != nil || len(hashes.Hashes) != domain.MaxCertificates {
+		t.Fatal("native maximum chain", err)
+	}
+	for i, row := range hashes.Hashes {
+		if row.Index != i || row.SHA256 != hashes.Hashes[0].SHA256 {
+			t.Fatal("native chain order or digest")
+		}
+	}
+	ech, err := s.ECH(ctx, "a", domain.ECHInput{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	keySet := echBytes(t, ech.ServerKeys, ech.Format)
+	maximum := base64.StdEncoding.EncodeToString(bytes.Repeat(keySet, domain.MaxECHKeys))
+	restored, err := s.ECH(ctx, "a", domain.ECHInput{ServerKeys: &maximum})
+	if err != nil || len(restored.ConfigLists) != domain.MaxECHKeys {
+		t.Fatal("native maximum ECH restoration", err)
+	}
+	excess := base64.StdEncoding.EncodeToString(bytes.Repeat(keySet, domain.MaxECHKeys+1))
+	if _, err := s.ECH(ctx, "a", domain.ECHInput{ServerKeys: &excess}); !errors.Is(err, domain.ErrInvalidArgument) {
+		t.Fatal("ECH key-count bound")
+	}
+
 }

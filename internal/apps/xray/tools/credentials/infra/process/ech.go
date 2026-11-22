@@ -29,11 +29,16 @@ func vector16(data *[]byte) ([]byte, bool) {
 	return value, true
 }
 
+type echList struct {
+	data []byte
+	name string
+}
+
 // echLists validates the pinned native key-set framing and X25519 association.
 // It preserves each original config as its own standard ECHConfigList. The
 // pinned CLI concatenates individual lists for a multi-key restore.
-func echLists(keys []byte) ([][]byte, error) {
-	var lists [][]byte
+func echLists(keys []byte) ([]echList, error) {
+	var lists []echList
 	for len(keys) > 0 {
 		private, ok := vector16(&keys)
 		if !ok || len(private) != 32 {
@@ -76,6 +81,7 @@ func echLists(keys []byte) ([][]byte, error) {
 		if nameLength > len(body) || !validators.DNS(string(body[:nameLength]), false) {
 			return nil, domain.ErrInvalidOutput
 		}
+		publicName := string(body[:nameLength])
 		body = body[nameLength:]
 		extensions, ok := vector16(&body)
 		if !ok || len(body) != 0 {
@@ -94,7 +100,7 @@ func echLists(keys []byte) ([][]byte, error) {
 		list := make([]byte, 2+len(config))
 		binary.BigEndian.PutUint16(list, uint16(len(config)))
 		copy(list[2:], config)
-		lists = append(lists, list)
+		lists = append(lists, echList{data: list, name: publicName})
 		if len(lists) > domain.MaxECHKeys {
 			return nil, domain.ErrInvalidOutput
 		}
@@ -162,7 +168,11 @@ func (r *Runner) ECH(ctx context.Context, input domain.ECHInput) (domain.ECHResu
 	if err != nil {
 		return domain.ECHResult{}, err
 	}
-	if !equal(bytes.Join(lists, nil), configs) || (input.ServerKeys != nil && !equal(restored, keys)) {
+	concatenated := make([]byte, 0, len(configs))
+	for _, list := range lists {
+		concatenated = append(concatenated, list.data...)
+	}
+	if !equal(concatenated, configs) || (input.ServerKeys != nil && !equal(restored, keys)) {
 		return domain.ECHResult{}, domain.ErrInvalidOutput
 	}
 	if input.ServerKeys == nil {
@@ -170,8 +180,8 @@ func (r *Runner) ECH(ctx context.Context, input domain.ECHInput) (domain.ECHResu
 		if input.ServerName != nil {
 			expected = *input.ServerName
 		}
-		// Native config carries this bounded public name verbatim.
-		if !bytes.Contains(configs, []byte(expected)) {
+		// Compare the parsed public-name field, not an arbitrary byte substring.
+		if len(lists) != 1 || lists[0].name != expected {
 			return domain.ECHResult{}, domain.ErrInvalidOutput
 		}
 	}
@@ -179,12 +189,12 @@ func (r *Runner) ECH(ctx context.Context, input domain.ECHInput) (domain.ECHResu
 	if input.Format == domain.PEM {
 		result.ServerKeys = string(pem.EncodeToMemory(&pem.Block{Type: "ECH KEYS", Bytes: keys}))
 		for i, list := range lists {
-			result.ConfigLists[i] = string(pem.EncodeToMemory(&pem.Block{Type: "ECH CONFIGS", Bytes: list}))
+			result.ConfigLists[i] = string(pem.EncodeToMemory(&pem.Block{Type: "ECH CONFIGS", Bytes: list.data}))
 		}
 	} else {
 		result.ServerKeys = base64.StdEncoding.EncodeToString(keys)
 		for i, list := range lists {
-			result.ConfigLists[i] = base64.StdEncoding.EncodeToString(list)
+			result.ConfigLists[i] = base64.StdEncoding.EncodeToString(list.data)
 		}
 	}
 	return result, nil

@@ -71,7 +71,10 @@ func (r *Runner) Certificate(ctx context.Context, input domain.CertificateInput)
 	if err != nil || len(pair.Certificate) != 1 {
 		return domain.CertificateResult{}, domain.ErrInvalidOutput
 	}
-	cert, err := x509.ParseCertificate(pair.Certificate[0])
+	cert := pair.Leaf
+	if cert == nil {
+		cert, err = x509.ParseCertificate(pair.Certificate[0])
+	}
 	if err != nil {
 		return domain.CertificateResult{}, domain.ErrInvalidOutput
 	}

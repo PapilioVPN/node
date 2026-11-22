@@ -8,6 +8,7 @@ import (
 	"crypto/mldsa"
 	"crypto/mlkem"
 	"crypto/sha1"
+	"crypto/subtle"
 	"encoding/base64"
 	"encoding/hex"
 	"strings"
@@ -148,16 +149,8 @@ func (r *Runner) curve(ctx context.Context, input *string, kind domain.Encoding,
 	}
 	return domain.CurveResult{PrivateKey: values[0], PublicKey: values[1], Hash32: values[2], Encoding: kind}, nil
 }
-func equal(a, b []byte) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	var diff byte
-	for i := range a {
-		diff |= a[i] ^ b[i]
-	}
-	return diff == 0
-}
+func equal(a, b []byte) bool { return subtle.ConstantTimeCompare(a, b) == 1 }
+
 func seedArgs(command string, input domain.SeedInput) []string {
 	args := []string{command}
 	if input.Seed != nil {
