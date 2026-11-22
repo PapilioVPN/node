@@ -102,6 +102,12 @@ func (s *Service) applyLive(ctx context.Context, p *domain.Plan, receipt *domain
 		}
 		s.mu.Lock()
 		receipt.Effect = accounts.Unknown
+		// Accounts reports exact per-index attempts only after joining the
+		// batch. Until then this submitted group is pending, not known unsent.
+		for i := start; i < end; i++ {
+			receipt.Steps[i].Effect = accounts.Unknown
+			receipt.Steps[i].Code = "pending"
+		}
 		s.mu.Unlock()
 		var batch accounts.Batch
 		if p.Steps[start].Action == domain.Remove {

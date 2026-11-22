@@ -157,7 +157,7 @@ func TestConcurrentAdmissionStatusAndJoin(t *testing.T) {
 	go func() { _, err := s.Apply(ctx, "one", p.PlanID, p.Revision); done <- err }()
 	<-c.entered
 	status, err := s.Status(ctx, "one", "operation", 0)
-	if err != nil || !status.Receipt.InFlight {
+	if err != nil || !status.Receipt.InFlight || status.Receipt.Steps[0].Effect != accounts.Unknown || status.Receipt.Steps[0].Code != "pending" {
 		t.Fatal(status, err)
 	}
 	if _, err = s.Apply(ctx, "one", p.PlanID, p.Revision); !errors.Is(err, domain.ErrCapacity) {
