@@ -11,7 +11,7 @@ import (
 	"github.com/PapilioVPN/node/internal/apps/xray/proxies/inbounds/domain"
 )
 
-type inspector struct{}
+type inspector struct{ err error }
 
 func (inspector) Describe(b []byte) (domain.Summary, error) {
 	return domain.Summary{Tag: "a", Protocol: "http"}, nil
@@ -160,5 +160,26 @@ func TestReplacementPartialAndUnknownEffectsFenceExecutionAndRetainSteps(t *test
 				t.Fatal(err)
 			}
 		})
+	}
+}
+
+func (i inspector) Candidate(b []byte) (domain.Summary, string, error) {
+	if i.err != nil {
+		return domain.Summary{}, "", i.err
+	}
+	s, err := i.Describe(b)
+	if err != nil {
+		return s, "", err
+	}
+	h, err := i.Fingerprint(b)
+	return s, h, err
+}
+
+func TestReplacementStructuralRejectionDoesNotReadOrMutateEngine(t *testing.T) {
+	s, _, native, _ := replacementService(t)
+	catalog := services.NewCatalog(s, inspector{err: domain.ErrInvalidArgument})
+	_, err := catalog.Plan(context.Background(), "edge-a", domain.ReplacementInput{Tag: "a", Configuration: []byte("foreign account"), AllowInterruption: true})
+	if !errors.Is(err, domain.ErrInvalidArgument) || len(native.calls) != 0 {
+		t.Fatal("invalid candidate reached native engine", native.calls, err)
 	}
 }

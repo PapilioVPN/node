@@ -63,13 +63,12 @@ func (c *Catalog) Plan(ctx context.Context, id string, input domain.ReplacementI
 	if err := validators.Configuration(input.Configuration); err != nil {
 		return domain.ReplacementPlan{}, err
 	}
-	candidate, err := c.inspector.Describe(input.Configuration)
-	if err != nil || candidate.Tag != input.Tag {
-		return domain.ReplacementPlan{}, domain.ErrInvalidArgument
-	}
-	candidateHash, err := c.inspector.Fingerprint(input.Configuration)
+	candidate, candidateHash, err := c.inspector.Candidate(input.Configuration)
 	if err != nil {
 		return domain.ReplacementPlan{}, err
+	}
+	if candidate.Tag != input.Tag {
+		return domain.ReplacementPlan{}, domain.ErrInvalidArgument
 	}
 	selected, generation, release, err := c.service.beginRead(ctx, id)
 	if err != nil {

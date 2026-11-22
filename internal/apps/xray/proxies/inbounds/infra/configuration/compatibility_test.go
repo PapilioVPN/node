@@ -2,8 +2,10 @@ package configuration_test
 
 import (
 	"github.com/PapilioVPN/node/internal/apps/xray/proxies/inbounds/infra/configuration"
+	"github.com/xtls/xray-core/common/protocol"
 	"github.com/xtls/xray-core/common/serial"
 	"github.com/xtls/xray-core/core"
+	"google.golang.org/protobuf/encoding/protowire"
 	"google.golang.org/protobuf/proto"
 	"testing"
 )
@@ -52,5 +54,18 @@ func FuzzNativeCompatibility(f *testing.F) {
 			t.Skip()
 		}
 		_, _ = (configuration.Inspector{}).Describe(data)
+		_, _, _ = (configuration.Inspector{}).Candidate(data)
 	})
+}
+
+func TestReplacementCandidateRejectsCrossFamilyAccountsBeforeRemoval(t *testing.T) {
+	// Native managers can assert a concrete account type. Envelope framing alone
+	// must never approve a destructive replacement with a foreign account payload.
+	user, _ := proto.Marshal(&protocol.User{Account: &serial.TypedMessage{Type: "xray.proxy.trojan.Account"}})
+	value := protowire.AppendTag(nil, 1, protowire.BytesType)
+	value = protowire.AppendBytes(value, user)
+	content, _ := proto.Marshal(&core.InboundHandlerConfig{Tag: "a", ReceiverSettings: &serial.TypedMessage{Type: "xray.app.proxyman.ReceiverConfig"}, ProxySettings: &serial.TypedMessage{Type: "xray.proxy.vless.inbound.Config", Value: value}})
+	if _, _, err := (configuration.Inspector{}).Candidate(content); err == nil {
+		t.Fatal("foreign account approved for VLESS replacement")
+	}
 }

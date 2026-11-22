@@ -161,6 +161,7 @@ func (s *Service) TagPage(ctx context.Context, id string, input domain.PageReque
 // Inspector belongs to the consuming capability; native protobuf interpretation
 // stays in its concrete adapter, rather than application or Accounts code.
 type Inspector interface {
+	Candidate([]byte) (domain.Summary, string, error)
 	Describe([]byte) (domain.Summary, error)
 	Fingerprint([]byte) (string, error)
 }
