@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+package papilio.xray.observability.traffic.v1;
+option go_package = "github.com/PapilioVPN/node/internal/apps/xray/observability/traffic/grpcapi/proto/v1;trafficv1";
+
+import "google/protobuf/timestamp.proto";
+
+service TrafficService {
+  rpc GetTrafficCounter(GetTrafficCounterRequest) returns (TrafficCounter);
+}
+
+enum Scope {
+  SCOPE_UNSPECIFIED = 0;
+  SCOPE_USER = 1;
+  SCOPE_INBOUND = 2;
+  SCOPE_OUTBOUND = 3;
+}
+enum Direction {
+  DIRECTION_UNSPECIFIED = 0;
+  DIRECTION_UPLINK = 1;
+  DIRECTION_DOWNLINK = 2;
+}
+message GetTrafficCounterRequest {
+  string instance_id = 1;
+  Scope scope = 2;
+  string name = 3;
+  Direction direction = 4;
+}
+// Missing counters return NotFound; zero bytes is a present native observation.
+// Counter resets can occur independently of the locally observed generation.
+message TrafficCounter {
+  string instance_id = 1;
+  uint64 generation = 2;
+  Scope scope = 3;
+  string name = 4;
+  Direction direction = 5;
+  int64 bytes = 6;
+  string source = 7;
+  google.protobuf.Timestamp observed_at = 8;
+  int64 duration_ns = 9;
+}
