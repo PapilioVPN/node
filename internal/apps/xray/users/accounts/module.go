@@ -31,7 +31,9 @@ func compose(in inputs) (*services.Service, error) {
 	for _, resource := range in.Bindings {
 		binding := services.Binding{ID: resource.ID}
 		if resource.Client != nil {
-			binding.Client = api.New(resource.Client)
+			client := api.New(resource.Client)
+			binding.Client = client
+			binding.Reader = client
 		}
 		bindings = append(bindings, binding)
 	}

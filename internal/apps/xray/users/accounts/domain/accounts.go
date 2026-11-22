@@ -7,6 +7,7 @@ import (
 )
 
 var (
+	ErrStale            = errors.New("account observation expired or superseded")
 	ErrUncertain        = errors.New("replace the uncertain account execution")
 	ErrInvalidResponse  = errors.New("invalid native account response")
 	ErrInvalidArgument  = errors.New("invalid account selection")

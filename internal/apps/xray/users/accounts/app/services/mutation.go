@@ -71,6 +71,7 @@ func (s *Service) reserveMutation(ctx context.Context, id string, permits int) (
 		return m, domain.ErrCapacity
 	}
 	m.selected.mutating = true
+	m.selected.epoch++
 	m.started = time.Now()
 	return m, nil
 }

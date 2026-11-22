@@ -20,14 +20,22 @@ type Client interface {
 	Add(context.Context, string, []byte) (domain.NativeResult, error)
 	Remove(context.Context, string, string) (domain.NativeResult, error)
 }
+type CollectionReader interface {
+	Records(context.Context, string) (domain.NativeRecords, error)
+	Metadata(context.Context, string) (domain.NativeMetadata, error)
+	GetMetadata(context.Context, string, string) (*domain.Metadata, error)
+}
 type StatusReader interface {
 	Status(context.Context, string) (instances.Status, error)
 }
 type Binding struct {
+	Reader CollectionReader
 	ID     string
 	Client Client
 }
 type entry struct {
+	reader              CollectionReader
+	epoch               uint64
 	client              Client
 	mu                  sync.Mutex
 	readers             int
@@ -36,6 +44,7 @@ type entry struct {
 	last                *domain.Operation
 }
 type Service struct {
+	pages            observationStore
 	entries          map[string]*entry
 	status           StatusReader
 	reads, mutations chan struct{}
@@ -54,7 +63,7 @@ func New(bindings []Binding, status StatusReader) (*Service, error) {
 		if _, ok := s.entries[b.ID]; ok {
 			return nil, domain.ErrInvalidArgument
 		}
-		s.entries[b.ID] = &entry{client: b.Client}
+		s.entries[b.ID] = &entry{client: b.Client, reader: b.Reader}
 	}
 	return s, nil
 }
