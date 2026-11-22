@@ -22,11 +22,20 @@ func (e *execution) Status(ctx context.Context, id string) (instances.Status, er
 func (e *execution) replace() { e.mu.Lock(); defer e.mu.Unlock(); e.generation++ }
 
 type client struct {
-	count func(context.Context, string) (int64, error)
-	get   func(context.Context, string, string) (*domain.Record, error)
+	count  func(context.Context, string) (int64, error)
+	get    func(context.Context, string, string) (*domain.Record, error)
+	add    func(context.Context, string, []byte) (domain.NativeResult, error)
+	remove func(context.Context, string, string) (domain.NativeResult, error)
 }
 
 func (c client) Count(ctx context.Context, tag string) (int64, error) { return c.count(ctx, tag) }
 func (c client) Get(ctx context.Context, tag, email string) (*domain.Record, error) {
 	return c.get(ctx, tag, email)
+}
+
+func (c client) Add(ctx context.Context, tag string, content []byte) (domain.NativeResult, error) {
+	return c.add(ctx, tag, content)
+}
+func (c client) Remove(ctx context.Context, tag, email string) (domain.NativeResult, error) {
+	return c.remove(ctx, tag, email)
 }

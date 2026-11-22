@@ -1,9 +1,10 @@
-// Package services coordinates focused account reads with bounded native work.
+// Package services coordinates live account observations and control with bounded native work.
 package services
 
 import (
 	"context"
 	"errors"
+	"sync"
 	"time"
 
 	instancevalidators "github.com/PapilioVPN/node/internal/apps/xray/runtime/instances/app/validators"
@@ -12,10 +13,12 @@ import (
 	"github.com/PapilioVPN/node/internal/apps/xray/users/accounts/domain"
 )
 
-// Client uses native count and exact lookup facilities, never a collection scan.
+// Client uses focused native operations, never a preflight collection scan.
 type Client interface {
 	Count(context.Context, string) (int64, error)
 	Get(context.Context, string, string) (*domain.Record, error)
+	Add(context.Context, string, []byte) (domain.NativeResult, error)
+	Remove(context.Context, string, string) (domain.NativeResult, error)
 }
 type StatusReader interface {
 	Status(context.Context, string) (instances.Status, error)
@@ -25,13 +28,17 @@ type Binding struct {
 	Client Client
 }
 type entry struct {
-	client Client
-	reads  chan struct{}
+	client              Client
+	mu                  sync.Mutex
+	readers             int
+	mutating            bool
+	uncertainGeneration uint64
+	last                *domain.Operation
 }
 type Service struct {
-	entries map[string]entry
-	status  StatusReader
-	reads   chan struct{}
+	entries          map[string]*entry
+	status           StatusReader
+	reads, mutations chan struct{}
 }
 
 // New admits up to 32 reads globally and eight per instance without queueing.
@@ -39,7 +46,7 @@ func New(bindings []Binding, status StatusReader) (*Service, error) {
 	if status == nil {
 		return nil, domain.ErrInvalidArgument
 	}
-	s := &Service{entries: make(map[string]entry, len(bindings)), status: status, reads: make(chan struct{}, 32)}
+	s := &Service{entries: make(map[string]*entry, len(bindings)), status: status, reads: make(chan struct{}, 32), mutations: make(chan struct{}, 8)}
 	for _, b := range bindings {
 		if instancevalidators.ID(b.ID) != nil {
 			return nil, domain.ErrInvalidArgument
@@ -47,7 +54,7 @@ func New(bindings []Binding, status StatusReader) (*Service, error) {
 		if _, ok := s.entries[b.ID]; ok {
 			return nil, domain.ErrInvalidArgument
 		}
-		s.entries[b.ID] = entry{b.Client, make(chan struct{}, 8)}
+		s.entries[b.ID] = &entry{client: b.Client}
 	}
 	return s, nil
 }
@@ -67,26 +74,34 @@ func (s *Service) begin(ctx context.Context, id, tag string) (Client, domain.Obs
 		return nil, observation, nil, domain.ErrUnsupported
 	}
 	select {
-	case selected.reads <- struct{}{}:
-	default:
-		return nil, observation, nil, domain.ErrCapacity
-	}
-	select {
 	case s.reads <- struct{}{}:
 	default:
-		<-selected.reads
 		return nil, observation, nil, domain.ErrCapacity
 	}
-	release := func() { <-selected.reads; <-s.reads }
+	releaseGlobal := func() { <-s.reads }
 	state, err := s.status.Status(ctx, id)
 	if err != nil {
-		release()
+		releaseGlobal()
 		return nil, observation, nil, err
 	}
 	if state.Execution.State != instances.Running {
-		release()
+		releaseGlobal()
 		return nil, observation, nil, domain.ErrNotRunning
 	}
+	selected.mu.Lock()
+	if selected.uncertainGeneration != 0 && selected.uncertainGeneration == state.Execution.Generation {
+		selected.mu.Unlock()
+		releaseGlobal()
+		return nil, observation, nil, domain.ErrUncertain
+	}
+	if selected.mutating || selected.readers >= 8 {
+		selected.mu.Unlock()
+		releaseGlobal()
+		return nil, observation, nil, domain.ErrCapacity
+	}
+	selected.readers++
+	selected.mu.Unlock()
+	release := func() { selected.mu.Lock(); selected.readers--; selected.mu.Unlock(); releaseGlobal() }
 	observation = domain.Observation{InstanceID: id, InboundTag: tag, Generation: state.Execution.Generation}
 	return selected.client, observation, release, nil
 }

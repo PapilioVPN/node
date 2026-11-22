@@ -7,12 +7,13 @@ import (
 )
 
 var (
+	ErrUncertain        = errors.New("replace the uncertain account execution")
 	ErrInvalidResponse  = errors.New("invalid native account response")
 	ErrInvalidArgument  = errors.New("invalid account selection")
 	ErrNotFound         = errors.New("instance not found")
 	ErrUnsupported      = errors.New("account API not configured or implemented")
 	ErrNotRunning       = errors.New("instance not running")
-	ErrCapacity         = errors.New("account read capacity exceeded")
+	ErrCapacity         = errors.New("account operation capacity exceeded")
 	ErrExecutionChanged = errors.New("execution changed during account observation")
 )
 
