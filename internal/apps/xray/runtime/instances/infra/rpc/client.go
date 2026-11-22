@@ -9,8 +9,10 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/backoff"
 	"google.golang.org/grpc/credentials/insecure"
 )
 
@@ -62,8 +64,13 @@ func (c *Client) channel() (*grpc.ClientConn, error) {
 	}
 	if c.connection == nil {
 		config := c.config
+		// The local listener can briefly disappear while its execution is replaced.
+		// Give the first connection attempt after that gap a short native backoff.
+		reconnect := backoff.DefaultConfig
+		reconnect.BaseDelay = 100 * time.Millisecond
 		connection, err := grpc.NewClient("passthrough:///"+config.Address,
 			grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithDisableRetry(),
+			grpc.WithConnectParams(grpc.ConnectParams{Backoff: reconnect, MinConnectTimeout: time.Second}),
 			grpc.WithContextDialer(func(ctx context.Context, _ string) (net.Conn, error) {
 				return (&net.Dialer{}).DialContext(ctx, config.Network, config.Address)
 			}),

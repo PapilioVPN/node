@@ -18,6 +18,7 @@ import (
 	"github.com/PapilioVPN/node/internal/bootstrap"
 	"github.com/PapilioVPN/node/internal/settings"
 	"github.com/PapilioVPN/node/internal/testutil"
+	proxyman "github.com/xtls/xray-core/app/proxyman/command"
 	"github.com/xtls/xray-core/app/stats/command"
 )
 
@@ -128,5 +129,39 @@ func TestSyncFromNormalStartup(t *testing.T) {
 				t.Fatalf("unexpected application: %v", result)
 			}
 		})
+	}
+	t.Run("full", func(t *testing.T) {
+		operator := connect(t, "grpc", pki, broker, log)
+		verifyFullSync(t, operator, proxyman.NewHandlerServiceClient(conn))
+	})
+}
+
+func verifyFullSync(t *testing.T, operator *operator, engine proxyman.HandlerServiceClient) {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	defer cancel()
+	member := true
+	request := &v1.SyncRequest{
+		InstanceId: "one", OperationId: "startup-full", Expected: operator.revision(t), Mode: v1.Mode_FULL,
+		Selection: []string{"selected"}, Sets: []*v1.UserSet{{InboundTag: "selected", Accounts: [][]byte{nativeUser(3)}, MembershipPresent: &member}},
+	}
+	plan, err := operator.grpc.PreviewSync(ctx, request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if plan.ConfigOperationId == "" || len(plan.Differences) != 1 || plan.Differences[0].Added != 1 || plan.Differences[0].Removed != 3 {
+		t.Fatalf("unexpected full preview: %v", plan)
+	}
+	result, err := operator.grpc.ApplySync(ctx, &v1.ApplyRequest{InstanceId: "one", PlanId: plan.PlanId, Expected: plan.Revision})
+	if err != nil || result.GetEffect() != "completed" || !result.GetDurable() || !result.GetReady() || result.GetError() != "" {
+		t.Fatalf("full application = %v, %v", result, err)
+	}
+	durable, err := operator.grpc.GetSyncStatus(ctx, &v1.StatusRequest{InstanceId: "one", OperationId: plan.ConfigOperationId})
+	if err != nil || !durable.GetDurable() || durable.GetConfigOperationId() != plan.ConfigOperationId {
+		t.Fatalf("durable Configs result = %v, %v", durable, err)
+	}
+	users, err := engine.GetInboundUsers(ctx, &proxyman.GetInboundUserRequest{Tag: "selected"})
+	if err != nil || len(users.GetUsers()) != 1 || users.GetUsers()[0].GetEmail() != "member-3" {
+		t.Fatalf("unexpected native membership count = %d, error = %v", len(users.GetUsers()), err)
 	}
 }
