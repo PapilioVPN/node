@@ -52,8 +52,10 @@
 // A new plan supersedes the old evidence. Results are volatile across Node death.
 //
 // Preserve-default or terminate-connections plans route to configs_restart and
-// cannot be applied by the live endpoint. The controller reviews complete,
-// original, ordered sources and uses the existing Configs ReplaceConfiguration
+// cannot be applied by the live endpoint. This fallback terminates all old
+// execution connections/resources, including when retain was requested. The
+// controller reviews complete, original, ordered sources and uses the existing
+// Configs ReplaceConfiguration
 // with its required expected_revision (or ApplyConfiguration for the current
 // desired revision). That path owns validation, durable publication and restart;
 // its execution acknowledgement is spawning, not readiness. Explicit source order

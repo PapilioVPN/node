@@ -107,6 +107,8 @@ func (r *Replacements) Plan(ctx context.Context, id string, request domain.Repla
 	}
 	if plan.Mode == "configs_restart" {
 		plan.NextAction = "replace_ordered_sources_with_configs"
+		plan.ExistingConnectionsRetained = false
+		plan.NativeResourcesMayRemain = false
 	}
 	r.mu.Lock()
 	defer r.mu.Unlock()

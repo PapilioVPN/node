@@ -102,6 +102,9 @@ func TestPlanModesAreReadOnlyAndDefaultStaysUnobservable(t *testing.T) {
 			if err != nil || p.Mode != test.want || p.DefaultState != "unobservable" || len(n.calls) != 1 {
 				t.Fatal(p, err, n.calls)
 			}
+			if p.Mode == "configs_restart" && (p.ExistingConnectionsRetained || p.NativeResourcesMayRemain) {
+				t.Fatal("restart plan must disclose connection and resource termination", p)
+			}
 			result, err := r.Apply(context.Background(), "a", p.ID)
 			if test.want == "configs_restart" {
 				if !errors.Is(err, domain.ErrRestartRequired) || result.Outcome != "not_applied" || len(n.calls) != 1 {
