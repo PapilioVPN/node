@@ -26,6 +26,12 @@ func (e *execution) next() { e.mu.Lock(); defer e.mu.Unlock(); e.generation++ }
 
 type client func(context.Context) ([]domain.Record, error)
 
+func (c client) Add(context.Context, []byte) (domain.NativeResult, error) {
+	panic("unexpected native addition")
+}
+func (c client) Remove(context.Context, string) (domain.NativeResult, error) {
+	panic("unexpected native removal")
+}
 func (c client) Records(ctx context.Context) ([]domain.Record, error) { return c(ctx) }
 func TestReadFencesExecutionChangesAndRetainsNativeRecords(t *testing.T) {
 	for _, replace := range []bool{false, true} {
