@@ -220,3 +220,30 @@ func TestAdmissionIsBoundedAndReleased(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestGlobalAdmissionAcrossInstances(t *testing.T) {
+	reader := blockingSource{make(chan struct{}, domain.MaxConcurrentReads)}
+	bindings := make([]services.Binding, 9)
+	for i := range bindings {
+		bindings[i] = services.Binding{ID: string(rune('a' + i)), Reader: reader}
+	}
+	s, err := services.New(bindings)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	var wg sync.WaitGroup
+	for i := range domain.MaxConcurrentReads {
+		wg.Add(1)
+		go func() { defer wg.Done(); s.Tail(ctx, bindings[i/domain.MaxInstanceReads].ID, domain.TailRequest{}) }()
+	}
+	for range domain.MaxConcurrentReads {
+		<-reader.entered
+	}
+	if _, err := s.Tail(context.Background(), bindings[8].ID, domain.TailRequest{}); !errors.Is(err, domain.ErrCapacity) {
+		t.Fatal(err)
+	}
+	cancel()
+	wg.Wait()
+}
