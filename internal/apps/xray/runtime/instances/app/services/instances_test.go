@@ -95,7 +95,7 @@ func TestCompetingMutationRejectedWhileStatusRemainsReadable(t *testing.T) {
 }
 func TestLifecycleOrderAndClosedAdmission(t *testing.T) {
 	var events []string
-	s, _ := New([]Binding{{"a", "xray", &runtimeFixture{id: "a", events: &events}}, {"b", "xray", &runtimeFixture{id: "b", events: &events}}})
+	s, _ := New([]Binding{{ID: "a", Engine: "xray", Runtime: &runtimeFixture{id: "a", events: &events}}, {ID: "b", Engine: "xray", Runtime: &runtimeFixture{id: "b", events: &events}}})
 	if err := s.StartAll(context.Background()); err != nil {
 		t.Fatal(err)
 	}

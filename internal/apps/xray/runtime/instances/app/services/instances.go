@@ -4,6 +4,8 @@ package services
 import (
 	"context"
 	"errors"
+	"sort"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -23,20 +25,27 @@ type Runtime interface {
 }
 
 type Binding struct {
-	ID      string
-	Engine  string
-	Runtime Runtime
+	Retainer Retainer
+	Leases   LeaseStore
+	ID       string
+	Engine   string
+	Runtime  Runtime
 }
 type instance struct {
-	binding  Binding
-	mutation chan struct{}
+	binding       Binding
+	mutation      chan struct{}
+	lease         *domain.LeaseRecord
+	leaseDisabled bool
 }
 type Service struct {
-	entries  map[string]*instance
-	ordered  []*instance
-	closed   atomic.Bool
-	lifetime context.Context
-	cancel   context.CancelFunc
+	inventory    []*instance
+	leaseOnce    sync.Once
+	leaseWorkers sync.WaitGroup
+	entries      map[string]*instance
+	ordered      []*instance
+	closed       atomic.Bool
+	lifetime     context.Context
+	cancel       context.CancelFunc
 }
 
 func New(bindings []Binding) (*Service, error) {
@@ -51,6 +60,8 @@ func New(bindings []Binding) (*Service, error) {
 		s.entries[binding.ID] = entry
 		s.ordered = append(s.ordered, entry)
 	}
+	s.inventory = append([]*instance(nil), s.ordered...)
+	sort.Slice(s.inventory, func(i, j int) bool { return s.inventory[i].binding.ID < s.inventory[j].binding.ID })
 	return s, nil
 }
 
@@ -89,6 +100,9 @@ func (s *Service) Restart(ctx context.Context, id string) (domain.Control, error
 }
 
 func (s *Service) control(ctx context.Context, id string, stop, restart bool) (domain.Control, error) {
+	return s.controlExpected(ctx, id, stop, restart, "")
+}
+func (s *Service) controlExpected(ctx context.Context, id string, stop, restart bool, expected string) (domain.Control, error) {
 	result := domain.Control{Effect: domain.NotApplied}
 	entry, err := s.selectInstance(ctx, id)
 	if err != nil {
@@ -107,6 +121,9 @@ func (s *Service) control(ctx context.Context, id string, stop, restart bool) (d
 	defer func() { <-entry.mutation }()
 	if s.closed.Load() {
 		return result, domain.ErrClosed
+	}
+	if expected != "" && entry.binding.Runtime.Observe().ExecutionID != expected {
+		return result, domain.ErrConflict
 	}
 	operation, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -188,6 +205,7 @@ func (s *Service) StartAll(ctx context.Context) error {
 func (s *Service) Close(ctx context.Context) error {
 	s.closed.Store(true)
 	s.cancel()
+	s.leaseWorkers.Wait()
 	var result error
 	for i := len(s.ordered) - 1; i >= 0; i-- {
 		entry := s.ordered[i]

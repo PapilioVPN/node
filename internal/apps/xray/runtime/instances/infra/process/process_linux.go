@@ -259,6 +259,7 @@ func (p *Process) Start(ctx context.Context) (startErr error) {
 	old := p.lastOutput
 	p.lastOutput = run
 	p.current = run
+	p.retain = false
 	p.snapshot = domain.Execution{State: domain.Running, Generation: record.Generation, StartedAt: &record.StartedAt, ConfigurationRevision: record.Revision, ExecutionID: executionID, IdentityVerified: true}
 	p.mu.Unlock()
 	if old != nil && old.output != nil {

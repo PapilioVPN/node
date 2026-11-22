@@ -26,7 +26,7 @@ func (p *Process) SetRetention(ctx context.Context, id string, preserve bool) er
 	if p.closed {
 		return domain.ErrClosed
 	}
-	if id == "" || p.snapshot.ExecutionID != id {
+	if len(id) != 32 || p.snapshot.ExecutionID != id || p.snapshot.State != domain.Running {
 		return domain.ErrConflict
 	}
 	p.retain = preserve
