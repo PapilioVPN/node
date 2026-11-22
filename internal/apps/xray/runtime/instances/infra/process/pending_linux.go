@@ -81,12 +81,11 @@ func (p *Process) recoverPending(ctx context.Context, r executionRecord) (execut
 			return r, readErr
 		}
 	}
-	r.Pending = false
 	if found == 0 {
-		if err := p.forget(ctx, r); err != nil {
-			return r, err
-		}
-		return p.records.value, nil
+		// No marker is not proof that fork never happened: a child may still be
+		// before exec. Preserve the intent and source; never risk a second run.
+		return r, domain.ErrRecoveryRequired
 	}
+	r.Pending = false
 	return r, p.records.write(r)
 }

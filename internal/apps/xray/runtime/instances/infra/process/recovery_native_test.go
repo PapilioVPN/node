@@ -160,3 +160,54 @@ func TestConsoleCapacityAndRetentionDoNotFollowReplacement(t *testing.T) {
 		t.Fatal("replacement retained", err)
 	}
 }
+
+func TestConsoleRemainsLiveWhileStopping(t *testing.T) {
+	p := fixtureProcess(t, "ignore")
+	p.config.StopTimeout = 200 * time.Millisecond
+	if err := p.Start(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	waitFor(t, func() bool { _, err := os.Stat(p.config.Configuration + ".ready"); return err == nil })
+	stopped := make(chan error, 1)
+	go func() { stopped <- p.Stop(context.Background()) }()
+	waitFor(t, func() bool { return p.Observe().State == domain.Stopping })
+	page, err := p.ReadOutput(context.Background(), domain.OutputRequest{})
+	if err != nil || page.Exited {
+		t.Fatal("stopping was reported as exited", page.Exited, err)
+	}
+	if err := <-stopped; err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestUnresolvedForkIntentFailsClosed(t *testing.T) {
+	p := fixtureProcess(t, "normal")
+	p.config.ID = "pending"
+	p.config.RecoveryDirectory = t.TempDir()
+	os.Chmod(p.config.RecoveryDirectory, 0700)
+	if err := p.Start(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if err := p.Stop(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	r := p.records.value
+	r.Pending = true
+	if err := p.records.write(r); err != nil {
+		t.Fatal(err)
+	}
+	if err := p.Close(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	q, err := New(p.config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer q.Close(context.Background())
+	if err := q.Start(context.Background()); !errors.Is(err, domain.ErrRecoveryRequired) {
+		t.Fatal("unproved intent spawned another execution", err)
+	}
+	if q.Observe().State != domain.Stopped || !q.records.value.Pending {
+		t.Fatal("unresolved evidence was discarded")
+	}
+}

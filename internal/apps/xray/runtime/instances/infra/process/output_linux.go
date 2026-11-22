@@ -61,6 +61,7 @@ func (p *Process) ReadOutput(ctx context.Context, request domain.OutputRequest) 
 	p.mu.Lock()
 	run := p.lastOutput
 	snapshot := p.snapshot
+	exited := run != nil && run.exited
 	p.mu.Unlock()
 	if run == nil || run.output == nil {
 		return domain.OutputPage{}, domain.ErrUnsupported
@@ -70,7 +71,9 @@ func (p *Process) ReadOutput(ctx context.Context, request domain.OutputRequest) 
 	}
 	var position uint64
 	var err error
-	if run.adopted {
+	if run.adopted && exited {
+		position = run.finalOutput
+	} else if run.adopted {
 		position, err = outputPosition(run.pid)
 		if err == nil {
 			run.position.Store(min(position, domain.MaxOutputBytes))
@@ -81,7 +84,7 @@ func (p *Process) ReadOutput(ctx context.Context, request domain.OutputRequest) 
 		position = uint64(max(0, pos))
 	}
 	if err != nil {
-		if snapshot.State == domain.Running {
+		if !exited {
 			return domain.OutputPage{}, err
 		}
 		position = run.finalOutput
@@ -103,7 +106,7 @@ func (p *Process) ReadOutput(ctx context.Context, request domain.OutputRequest) 
 	if err := ctx.Err(); err != nil {
 		return domain.OutputPage{}, err
 	}
-	return domain.OutputPage{ExecutionID: snapshot.ExecutionID, Generation: snapshot.Generation, Offset: request.Offset, NextOffset: request.Offset + uint64(n), Data: data[:n], CapacityReached: position == domain.MaxOutputBytes, PositionUncertain: run.adopted && snapshot.State != domain.Running, Reattached: run.adopted, Exited: snapshot.State != domain.Running, ObservedAt: time.Now().UTC()}, nil
+	return domain.OutputPage{ExecutionID: snapshot.ExecutionID, Generation: snapshot.Generation, Offset: request.Offset, NextOffset: request.Offset + uint64(n), Data: data[:n], CapacityReached: position == domain.MaxOutputBytes, PositionUncertain: run.adopted && exited, Reattached: run.adopted, Exited: exited, ObservedAt: time.Now().UTC()}, nil
 }
 
 func closeOutput(f *os.File) error {
