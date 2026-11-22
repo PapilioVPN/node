@@ -109,6 +109,7 @@ func TestPackagedConfigurationValidation(t *testing.T) {
 	docker(t, "start", name)
 	restored := connect(t, pki.Client, f.config, containerAddresses(t, name, since))
 	awaitProxy(t, f)
+	assertExecutionRevision(t, restored, "grpc", "4", "6")
 	if traffic(f.proxy, f.target.URL) == nil {
 		t.Fatal("packaged Node restart lost desired source")
 	}
@@ -116,7 +117,7 @@ func TestPackagedConfigurationValidation(t *testing.T) {
 	if metadata.Error != "" || metadata.Metadata.Revision != "4" {
 		t.Fatal("packaged desired metadata did not recover")
 	}
-	exerciseStateReplacement(t, restored, "nats", sources, 4, "5", "2")
+	exerciseStateReplacement(t, restored, "nats", sources, 4, "5", "7")
 	awaitTraffic(t, f)
 	docker(t, "stop", "--time", "12", name)
 	if strings.TrimSpace(docker(t, "inspect", "--format", "{{.State.ExitCode}}", name)) != "0" {
