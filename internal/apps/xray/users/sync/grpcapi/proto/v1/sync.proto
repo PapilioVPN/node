@@ -1,0 +1,88 @@
+syntax = "proto3";
+package papilio.xray.users.sync.v1;
+option go_package = "github.com/PapilioVPN/node/internal/apps/xray/users/sync/grpcapi/proto/v1;syncv1";
+
+service SyncService {
+  rpc GetSyncRevision(InstanceRequest) returns (Revision);
+  rpc PreviewSync(SyncRequest) returns (Preview);
+  rpc ApplySync(ApplyRequest) returns (Result);
+  rpc GetSyncStatus(StatusRequest) returns (Result);
+  rpc RefreshSync(OperationRequest) returns (Result);
+  rpc RecoverSync(RecoveryRequest) returns (Result);
+  rpc BeginSyncTransfer(BeginRequest) returns (Transfer);
+  rpc AppendSyncChunk(ChunkRequest) returns (Transfer);
+  rpc PreviewSyncTransfer(TransferRequest) returns (Preview);
+  rpc DiscardSyncTransfer(TransferRequest) returns (Empty);
+}
+message Empty {}
+message InstanceRequest { string instance_id = 1; }
+message Revision { string epoch = 1; uint64 control = 2; uint64 config = 3; uint64 generation = 4; }
+enum Mode { MODE_UNSPECIFIED = 0; DELTA = 1; FULL = 2; }
+message UserSet { string inbound_tag = 1; repeated bytes accounts = 2; optional bool membership_present = 3; }
+message Removal { string inbound_tag = 1; string email = 2; }
+message Addition { string inbound_tag = 1; bytes configuration = 2; }
+message SyncRequest {
+  string instance_id = 1;
+  string operation_id = 2;
+  Revision expected = 3;
+  Mode mode = 4;
+  repeated string selection = 5;
+  repeated UserSet sets = 6;
+  repeated Removal removals = 7;
+}
+message ApplyRequest { string instance_id = 1; string plan_id = 2; Revision expected = 3; }
+message OperationRequest { string instance_id = 1; string operation_id = 2; }
+message StatusRequest { string instance_id = 1; string operation_id = 2; uint32 offset = 3; }
+message RecoveryRequest { string instance_id = 1; string operation_id = 2; optional uint64 expected_config = 3; }
+message Difference { string inbound_tag = 1; uint32 added = 2; uint32 removed = 3; uint32 replaced = 4; uint32 unchanged = 5; }
+message Preview {
+  string plan_id = 1;
+  string instance_id = 2;
+  string operation_id = 3;
+  Revision revision = 4;
+  Mode mode = 5;
+  string apply_mode = 6;
+  string reason = 7;
+  repeated Difference differences = 8;
+  string expires_at = 9;
+  string config_operation_id = 10;
+  string observation_basis = 11;
+}
+message Step {
+  string inbound_tag = 1;
+  string email = 2;
+  string action = 3;
+  bool attempted = 4;
+  string effect = 5;
+  bool acknowledged = 6;
+  bool requires_restart = 7;
+  string error = 8;
+}
+// Once an operation is formed, operational errors travel in Result.error and
+// precise receipt fields. An OK transport envelope does not establish success.
+message Result {
+  string instance_id = 1;
+  string operation_id = 2;
+  Revision revision = 3;
+  string effect = 4;
+  bool in_flight = 5;
+  bool durable = 6;
+  bool ready = 7;
+  bool requires_recovery = 8;
+  string completed_at = 9;
+  repeated Step steps = 10;
+  uint32 next_offset = 11;
+  string error = 12;
+  string config_operation_id = 13;
+}
+message BeginRequest { SyncRequest request = 1; uint32 items = 2; uint32 bytes = 3; }
+message TransferRequest { string instance_id = 1; string transfer_id = 2; }
+message ChunkRequest {
+  string instance_id = 1;
+  string transfer_id = 2;
+  uint32 sequence = 3;
+  repeated Addition additions = 4;
+  repeated Removal removals = 5;
+  bool final = 6;
+}
+message Transfer { string id = 1; string instance_id = 2; uint32 next_sequence = 3; bool final = 4; string expires_at = 5; }

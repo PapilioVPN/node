@@ -20,6 +20,8 @@ import (
 	inboundservices "github.com/PapilioVPN/node/internal/apps/xray/proxies/inbounds/app/services"
 	inboundapi "github.com/PapilioVPN/node/internal/apps/xray/proxies/inbounds/infra/api"
 	inboundconfiguration "github.com/PapilioVPN/node/internal/apps/xray/proxies/inbounds/infra/configuration"
+	configprocess "github.com/PapilioVPN/node/internal/apps/xray/runtime/configs/infra/process"
+	configstate "github.com/PapilioVPN/node/internal/apps/xray/runtime/configs/infra/state"
 	instanceservices "github.com/PapilioVPN/node/internal/apps/xray/runtime/instances/app/services"
 	instanceprocess "github.com/PapilioVPN/node/internal/apps/xray/runtime/instances/infra/process"
 	"github.com/PapilioVPN/node/internal/apps/xray/runtime/instances/infra/rpc"
@@ -57,15 +59,20 @@ func (revisionOnly) RecoverMembership(context.Context, string, string, uint64) (
 
 type calls struct {
 	grpc.ClientConnInterface
-	mu      sync.Mutex
-	methods map[string]int
+	mu       sync.Mutex
+	methods  map[string]int
+	mutation grpc.ClientConnInterface
 }
 
 func (c *calls) Invoke(ctx context.Context, method string, args, reply any, opts ...grpc.CallOption) error {
 	c.mu.Lock()
 	c.methods[method[strings.LastIndex(method, "/")+1:]]++
+	connection := c.ClientConnInterface
+	if strings.HasSuffix(method, "/AlterInbound") && c.mutation != nil {
+		connection = c.mutation
+	}
 	c.mu.Unlock()
-	return c.ClientConnInterface.Invoke(ctx, method, args, reply, opts...)
+	return connection.Invoke(ctx, method, args, reply, opts...)
 }
 func (c *calls) take() map[string]int {
 	c.mu.Lock()
@@ -76,11 +83,15 @@ func (c *calls) take() map[string]int {
 }
 
 type fixture struct {
-	service         *services.Service
-	calls           *calls
-	instances       *instanceservices.Service
-	address, target string
-	accounts        *accountservices.Service
+	service                                         *services.Service
+	calls                                           *calls
+	instances                                       *instanceservices.Service
+	address, target                                 string
+	accounts                                        *accountservices.Service
+	native                                          string
+	store                                           *configstate.Store
+	stateDirectory, workDirectory, binary, baseline string
+	selection                                       accountservices.InboundReader
 }
 
 func listen(t *testing.T) net.Listener {
@@ -121,12 +132,25 @@ func newFixture(t *testing.T) *fixture {
 	if err := os.WriteFile(path, source, 0600); err != nil {
 		t.Fatal(err)
 	}
+	stateDirectory, workDirectory := t.TempDir(), t.TempDir()
+	store, err := configstate.New(stateDirectory, "one")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := store.Open(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if err := store.Close(context.Background()); err != nil {
+			t.Error(err)
+		}
+	})
 	connection, err := rpc.New(rpc.Config{Network: "tcp", Address: apiAddress})
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = connection.Close() })
-	runtime, err := instanceprocess.New(instanceprocess.Config{ID: "one", Binary: binary, Configuration: path, StopTimeout: time.Second, API: connection})
+	runtime, err := instanceprocess.New(instanceprocess.Config{ID: "one", Binary: binary, Configuration: path, StopTimeout: time.Second, API: connection, Source: configprocess.Resolver{Reader: store, WorkDirectory: workDirectory}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -176,7 +200,7 @@ func newFixture(t *testing.T) *fixture {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return &fixture{service: service, calls: counter, instances: instances, address: accountAddress, target: strings.TrimPrefix(target.URL, "http://"), accounts: accounts}
+	return &fixture{service: service, calls: counter, instances: instances, address: accountAddress, target: strings.TrimPrefix(target.URL, "http://"), accounts: accounts, native: apiAddress, store: store, stateDirectory: stateDirectory, workDirectory: workDirectory, binary: binary, baseline: path, selection: selection}
 }
 func nativeUser(i int) []byte {
 	account, _ := proto.Marshal(&vless.Account{Id: fmt.Sprintf("00000000-0000-4000-8000-%012d", i+1)})
