@@ -8,7 +8,6 @@ import (
 	"math"
 	"time"
 
-	"github.com/PapilioVPN/node/internal/apps/xray/runtime/configs/app/validators"
 	"github.com/PapilioVPN/node/internal/apps/xray/runtime/configs/domain"
 )
 
@@ -24,12 +23,6 @@ func document(id string, desired domain.Desired) record {
 // identity together. Every new acceptance advances the revision, including a
 // native no-op; replay of that identity does not publish another revision.
 func (s *Store) WriteReviewed(ctx context.Context, expected uint64, sources []domain.Source, previous domain.Desired, application domain.Application) (domain.Persistence, error) {
-	if err := validators.Sources(sources); err != nil {
-		return domain.Persistence{}, err
-	}
-	if err := validators.Sources(previous.Sources); err != nil {
-		return domain.Persistence{}, err
-	}
 	if !validIdentity(application.ID) || application.InstanceID != s.id || previous.Metadata.Revision != expected {
 		return domain.Persistence{}, domain.ErrInvalidArgument
 	}
@@ -89,20 +82,18 @@ func (s *Store) ReadApplication(ctx context.Context) (domain.StoredApplication, 
 		return domain.StoredApplication{}, err
 	}
 	defer release()
-	row, desired, err := readDocument(root, s.id)
+	document, err := readDocument(root, s.id)
 	if err != nil {
 		return domain.StoredApplication{}, err
 	}
+	row, desired := document.row, document.desired
 	if row.Application == nil || row.Previous == nil {
 		return domain.StoredApplication{}, domain.ErrNoApplication
 	}
 	if err := ctx.Err(); err != nil {
 		return domain.StoredApplication{}, err
 	}
-	previous, err := decodeSources(*row.Previous)
-	if err != nil {
-		return domain.StoredApplication{}, err
-	}
+	previous := document.previous
 	application := *row.Application
 	s.mu.RLock()
 	if !s.uncertain && (s.metadata.Revision != desired.Metadata.Revision || s.metadata.SHA256 != desired.Metadata.SHA256) {
@@ -133,10 +124,11 @@ func (s *Store) SaveApplication(ctx context.Context, expected uint64, id string,
 		return err
 	}
 	defer release()
-	row, desired, err := readDocument(root, s.id)
+	document, err := readDocument(root, s.id)
 	if err != nil {
 		return err
 	}
+	row, desired := document.row, document.desired
 	if desired.Metadata.Revision != expected || row.Application == nil || row.Application.ID != id {
 		return domain.ErrConflict
 	}
@@ -161,10 +153,11 @@ func (s *Store) WriteRecovery(ctx context.Context, expected uint64, applicationI
 		return domain.StoredApplication{}, domain.Persistence{}, err
 	}
 	defer release()
-	row, current, err := readDocument(root, s.id)
+	document, err := readDocument(root, s.id)
 	if err != nil {
 		return domain.StoredApplication{}, domain.Persistence{}, err
 	}
+	row, current := document.row, document.desired
 	if current.Metadata.Revision != expected {
 		return domain.StoredApplication{}, domain.Persistence{}, domain.ErrConflict
 	}
@@ -172,10 +165,7 @@ func (s *Store) WriteRecovery(ctx context.Context, expected uint64, applicationI
 		return domain.StoredApplication{}, domain.Persistence{}, domain.ErrNoApplication
 	}
 	application := *row.Application
-	previous, err := decodeSources(*row.Previous)
-	if err != nil {
-		return domain.StoredApplication{}, domain.Persistence{}, err
-	}
+	previous := document.previous
 	if application.Recovery != nil {
 		return domain.StoredApplication{Application: application, Previous: previous}, domain.Persistence{}, domain.ErrConflict
 	}

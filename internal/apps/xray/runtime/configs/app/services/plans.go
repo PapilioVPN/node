@@ -24,12 +24,18 @@ type Runtime interface {
 	Status(context.Context, string) (instances.Status, error)
 	Check(context.Context, string) (instances.Readiness, error)
 }
+
+// SourceCompiler consumes source shape checked by the local workflow or its
+// repository; it still performs actual native conversion and error checking.
 type SourceCompiler interface {
 	Compile(context.Context, string, []domain.Source) (domain.Compilation, error)
 }
 type Comparison interface {
 	Compare(context.Context, []domain.Source, []domain.Source, []byte, []byte) (domain.Assessment, error)
 }
+
+// ReviewedRepository accepts the owned, validated sources retained by a plan.
+// Publication identities, CAS and durability are checked at persistence time.
 type ReviewedRepository interface {
 	Repository
 	WriteReviewed(context.Context, uint64, []domain.Source, domain.Desired, domain.Application) (domain.Persistence, error)

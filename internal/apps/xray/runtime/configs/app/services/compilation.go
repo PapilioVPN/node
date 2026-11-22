@@ -22,6 +22,23 @@ func (s *Service) Compile(ctx context.Context, id string, sources []domain.Sourc
 	if err := validators.Sources(sources); err != nil {
 		return domain.Compilation{}, err
 	}
+	return s.compile(ctx, id, sources)
+}
+
+// ValidatedCompiler is for local workflows that already checked source shape at
+// entry or loaded validated sources from their repository. Native compilation,
+// cancellation, instance selection and admission remain owned by this service.
+func (s *Service) ValidatedCompiler() SourceCompiler { return validatedCompiler{s} }
+
+type validatedCompiler struct{ service *Service }
+
+func (c validatedCompiler) Compile(ctx context.Context, id string, sources []domain.Source) (domain.Compilation, error) {
+	return c.service.compile(ctx, id, sources)
+}
+func (s *Service) compile(ctx context.Context, id string, sources []domain.Source) (domain.Compilation, error) {
+	if err := ctx.Err(); err != nil {
+		return domain.Compilation{}, err
+	}
 	binding, exists := s.bindings[id]
 	if !exists {
 		return domain.Compilation{}, domain.ErrNotFound

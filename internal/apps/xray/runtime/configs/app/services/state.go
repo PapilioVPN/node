@@ -9,6 +9,8 @@ import (
 	instancedomain "github.com/PapilioVPN/node/internal/apps/xray/runtime/instances/domain"
 )
 
+// Repository writes consume sources accepted by the common source checker.
+// Reads validate persisted documents, which are a new untrusted boundary.
 type Repository interface {
 	Metadata(context.Context) (domain.DesiredMetadata, error)
 	Read(context.Context) (domain.Desired, error)

@@ -259,3 +259,15 @@ func TestReviewedCandidateOwnsCallerBuffers(t *testing.T) {
 		t.Fatal("reviewed source borrowed transport memory")
 	}
 }
+
+func TestReviewRejectsInvalidSourceShapeBeforeCompilationOrPublication(t *testing.T) {
+	plans, store, runtime, compiler, live := setupReview(t)
+	for _, sources := range [][]domain.Source{nil, {{Name: "../outside.json", Content: []byte("{}")}}, {{Name: "same.json", Content: []byte("{}")}, {Name: "same.json", Content: []byte("{}")}}} {
+		if _, err := plans.Plan(context.Background(), "a", 1, sources); !errors.Is(err, domain.ErrInvalidArgument) {
+			t.Fatal(err)
+		}
+	}
+	if compiler.calls != 0 || store.writes != 0 || runtime.restarts != 0 || live.calls != 0 {
+		t.Fatal("invalid source entered the trusted pipeline", compiler.calls, store.writes, runtime.restarts, live.calls)
+	}
+}

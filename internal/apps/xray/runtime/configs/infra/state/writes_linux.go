@@ -11,15 +11,11 @@ import (
 	"os"
 	"time"
 
-	"github.com/PapilioVPN/node/internal/apps/xray/runtime/configs/app/validators"
 	"github.com/PapilioVPN/node/internal/apps/xray/runtime/configs/domain"
 	"golang.org/x/sys/unix"
 )
 
 func (s *Store) Write(ctx context.Context, expected uint64, sources []domain.Source) (result domain.Persistence, err error) {
-	if err := validators.Sources(sources); err != nil {
-		return result, err
-	}
 	root, release, err := s.acquire(ctx)
 	if err != nil {
 		return result, err

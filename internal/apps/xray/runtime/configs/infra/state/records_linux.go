@@ -31,78 +31,86 @@ type record struct {
 	Previous    *record             `json:"previous,omitempty"`
 }
 
+type documentRead struct {
+	row      record
+	desired  domain.Desired
+	previous domain.Desired
+}
+
 var sourceDigest = policies.SourceDigest
 
 func readRecord(root *os.Root, id string) (domain.Desired, error) {
-	_, desired, err := readDocument(root, id)
-	return desired, err
+	document, err := readDocument(root, id)
+	return document.desired, err
 }
 
-func readDocument(root *os.Root, id string) (record, domain.Desired, error) {
+func readDocument(root *os.Root, id string) (documentRead, error) {
 	file, err := root.OpenFile(recordName, os.O_RDONLY|unix.O_NOFOLLOW|unix.O_NONBLOCK, 0)
 	if errors.Is(err, os.ErrNotExist) {
-		return record{}, domain.Desired{}, nil
+		return documentRead{}, nil
 	}
 	if err != nil {
-		return record{}, domain.Desired{}, err
+		return documentRead{}, err
 	}
 	defer file.Close()
 	info, err := file.Stat()
 	if err != nil {
-		return record{}, domain.Desired{}, err
+		return documentRead{}, err
 	}
 	if !info.Mode().IsRegular() {
-		return record{}, domain.Desired{}, domain.ErrInvalidArgument
+		return documentRead{}, domain.ErrInvalidArgument
 	}
 	// Two original 1 MiB collections, base64 framing and one bounded receipt.
 	const maxRecordBytes = 4 << 20
 	data, err := io.ReadAll(io.LimitReader(file, maxRecordBytes+1))
 	if err != nil {
-		return record{}, domain.Desired{}, err
+		return documentRead{}, err
 	}
 	if len(data) > maxRecordBytes {
-		return record{}, domain.Desired{}, domain.ErrTooLarge
+		return documentRead{}, domain.ErrTooLarge
 	}
 	decoder := json.NewDecoder(bytes.NewReader(data))
 	decoder.DisallowUnknownFields()
 	var row record
 	if err := decoder.Decode(&row); err != nil {
-		return record{}, domain.Desired{}, err
+		return documentRead{}, err
 	}
 	if err := decoder.Decode(new(any)); !errors.Is(err, io.EOF) {
-		return record{}, domain.Desired{}, domain.ErrInvalidArgument
+		return documentRead{}, domain.ErrInvalidArgument
 	}
 	if (row.Schema != 1 && row.Schema != 2) || row.InstanceID != id || row.Revision == 0 || row.UpdatedAt.IsZero() {
-		return record{}, domain.Desired{}, domain.ErrInvalidArgument
+		return documentRead{}, domain.ErrInvalidArgument
 	}
 	if (row.Schema == 1 && (row.Application != nil || row.Previous != nil)) || (row.Schema == 2 && (row.Application == nil || row.Previous == nil)) {
-		return record{}, domain.Desired{}, domain.ErrInvalidArgument
+		return documentRead{}, domain.ErrInvalidArgument
 	}
 	if row.Application != nil && (!validIdentity(row.Application.ID) || row.Application.InstanceID != id) {
-		return record{}, domain.Desired{}, domain.ErrInvalidArgument
+		return documentRead{}, domain.ErrInvalidArgument
 	}
 	if a := row.Application; a != nil {
 		if a.Revision == 0 || a.ExpectedRevision != a.Revision-1 || (a.Recovery == nil && a.Revision != row.Revision) {
-			return record{}, domain.Desired{}, domain.ErrInvalidArgument
+			return documentRead{}, domain.ErrInvalidArgument
 		}
 		if r := a.Recovery; r != nil && (!validIdentity(r.ID) || r.ExpectedRevision != a.Revision || r.Revision == 0 || r.ExpectedRevision != r.Revision-1 || r.Revision != row.Revision) {
-			return record{}, domain.Desired{}, domain.ErrInvalidArgument
+			return documentRead{}, domain.ErrInvalidArgument
 		}
 	}
 	desired, err := decodeSources(row)
 	if err != nil {
-		return record{}, domain.Desired{}, err
+		return documentRead{}, err
 	}
+	var previousDesired domain.Desired
 	if row.Previous != nil {
 		previous := row.Previous
 		if row.Application == nil || previous.Schema != 1 || previous.InstanceID != id || previous.Revision >= row.Revision || previous.Application != nil || previous.Previous != nil {
-			return record{}, domain.Desired{}, domain.ErrInvalidArgument
+			return documentRead{}, domain.ErrInvalidArgument
 		}
-		if _, err := decodeSources(*previous); err != nil {
-			return record{}, domain.Desired{}, err
+		previousDesired, err = decodeSources(*previous)
+		if err != nil {
+			return documentRead{}, err
 		}
 	}
-	return row, desired, nil
+	return documentRead{row: row, desired: desired, previous: previousDesired}, nil
 }
 
 func decodeSources(row record) (domain.Desired, error) {

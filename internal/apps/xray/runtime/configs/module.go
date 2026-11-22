@@ -204,7 +204,7 @@ func composePlans(in plannedInputs) (*services.Plans, error) {
 		}
 		bindings = append(bindings, binding)
 	}
-	return services.NewPlans(in.State, in.Compiler, configuration.Inspector{}, in.Runtime, bindings)
+	return services.NewPlans(in.State, in.Compiler.ValidatedCompiler(), configuration.Inspector{}, in.Runtime, bindings)
 }
 func composeMemberships(plans *services.Plans) (*services.Memberships, error) {
 	return services.NewMemberships(plans, accountconfiguration.ReplaceUsers, configuration.Embeddable)
