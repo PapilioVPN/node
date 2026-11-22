@@ -19,6 +19,8 @@ type Handler struct {
 func (h Handler) Register(router fiber.Router) {
 	router.Get("/v1/xray/users/instances/:id/online", h.Count)
 	router.Get("/v1/xray/users/instances/:id/online/ips", h.IPs)
+	router.Get("/v1/xray/users/instances/:id/online/users", h.List)
+	router.Get("/v1/xray/users/instances/:id/online/records", h.Records)
 }
 func selection(request fiber.Ctx) (domain.Selection, error) {
 	if len(request.Body()) != 0 {
@@ -59,25 +61,9 @@ func (h Handler) Count(request fiber.Ctx) error {
 	request.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
 	return request.Send(data)
 }
-func (h Handler) IPs(request fiber.Ctx) error {
-	request.Set(fiber.HeaderCacheControl, "no-store")
-	s, err := selection(request)
-	if err != nil {
-		return failure(request, err)
-	}
-	ctx, cancel := context.WithTimeout(request.Context(), h.Timeout)
-	defer cancel()
-	result, err := h.Service.IPs(ctx, s)
-	if err != nil {
-		return failure(request, err)
-	}
-	data, err := jsonwire.EncodeIPs(result)
-	if err != nil {
-		return failure(request, err)
-	}
-	request.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSON)
-	return request.Send(data)
-}
+func (h Handler) IPs(request fiber.Ctx) error     { return h.page(request, h.Service.PageIPs, true) }
+func (h Handler) List(request fiber.Ctx) error    { return h.page(request, h.Service.List, false) }
+func (h Handler) Records(request fiber.Ctx) error { return h.page(request, h.Service.Records, false) }
 func failure(request fiber.Ctx, err error) error {
 	code := jsonwire.ErrorCode(err)
 	status := fiber.StatusServiceUnavailable
@@ -86,7 +72,7 @@ func failure(request fiber.Ctx, err error) error {
 		status = fiber.StatusBadRequest
 	case "not_found":
 		status = fiber.StatusNotFound
-	case "facility_not_configured", "facility_unsupported", "execution_changed":
+	case "facility_not_configured", "facility_unsupported", "execution_changed", "observation_expired", "native_identity_unsupported":
 		status = fiber.StatusConflict
 	case "resource_exhausted":
 		status = fiber.StatusTooManyRequests

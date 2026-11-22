@@ -21,6 +21,8 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	OnlineService_GetUserOnlineStats_FullMethodName = "/papilio.xray.users.online.v1.OnlineService/GetUserOnlineStats"
 	OnlineService_ListUserOnlineIPs_FullMethodName  = "/papilio.xray.users.online.v1.OnlineService/ListUserOnlineIPs"
+	OnlineService_ListOnlineUsers_FullMethodName    = "/papilio.xray.users.online.v1.OnlineService/ListOnlineUsers"
+	OnlineService_ListOnlineRecords_FullMethodName  = "/papilio.xray.users.online.v1.OnlineService/ListOnlineRecords"
 )
 
 // OnlineServiceClient is the client API for OnlineService service.
@@ -29,6 +31,8 @@ const (
 type OnlineServiceClient interface {
 	GetUserOnlineStats(ctx context.Context, in *GetUserOnlineStatsRequest, opts ...grpc.CallOption) (*UserOnlineStats, error)
 	ListUserOnlineIPs(ctx context.Context, in *ListUserOnlineIPsRequest, opts ...grpc.CallOption) (*UserOnlineIPs, error)
+	ListOnlineUsers(ctx context.Context, in *ListOnlineUsersRequest, opts ...grpc.CallOption) (*OnlinePage, error)
+	ListOnlineRecords(ctx context.Context, in *ListOnlineRecordsRequest, opts ...grpc.CallOption) (*OnlinePage, error)
 }
 
 type onlineServiceClient struct {
@@ -59,12 +63,34 @@ func (c *onlineServiceClient) ListUserOnlineIPs(ctx context.Context, in *ListUse
 	return out, nil
 }
 
+func (c *onlineServiceClient) ListOnlineUsers(ctx context.Context, in *ListOnlineUsersRequest, opts ...grpc.CallOption) (*OnlinePage, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OnlinePage)
+	err := c.cc.Invoke(ctx, OnlineService_ListOnlineUsers_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *onlineServiceClient) ListOnlineRecords(ctx context.Context, in *ListOnlineRecordsRequest, opts ...grpc.CallOption) (*OnlinePage, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OnlinePage)
+	err := c.cc.Invoke(ctx, OnlineService_ListOnlineRecords_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // OnlineServiceServer is the server API for OnlineService service.
 // All implementations must embed UnimplementedOnlineServiceServer
 // for forward compatibility.
 type OnlineServiceServer interface {
 	GetUserOnlineStats(context.Context, *GetUserOnlineStatsRequest) (*UserOnlineStats, error)
 	ListUserOnlineIPs(context.Context, *ListUserOnlineIPsRequest) (*UserOnlineIPs, error)
+	ListOnlineUsers(context.Context, *ListOnlineUsersRequest) (*OnlinePage, error)
+	ListOnlineRecords(context.Context, *ListOnlineRecordsRequest) (*OnlinePage, error)
 	mustEmbedUnimplementedOnlineServiceServer()
 }
 
@@ -80,6 +106,12 @@ func (UnimplementedOnlineServiceServer) GetUserOnlineStats(context.Context, *Get
 }
 func (UnimplementedOnlineServiceServer) ListUserOnlineIPs(context.Context, *ListUserOnlineIPsRequest) (*UserOnlineIPs, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListUserOnlineIPs not implemented")
+}
+func (UnimplementedOnlineServiceServer) ListOnlineUsers(context.Context, *ListOnlineUsersRequest) (*OnlinePage, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListOnlineUsers not implemented")
+}
+func (UnimplementedOnlineServiceServer) ListOnlineRecords(context.Context, *ListOnlineRecordsRequest) (*OnlinePage, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListOnlineRecords not implemented")
 }
 func (UnimplementedOnlineServiceServer) mustEmbedUnimplementedOnlineServiceServer() {}
 func (UnimplementedOnlineServiceServer) testEmbeddedByValue()                       {}
@@ -138,6 +170,42 @@ func _OnlineService_ListUserOnlineIPs_Handler(srv interface{}, ctx context.Conte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _OnlineService_ListOnlineUsers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListOnlineUsersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(OnlineServiceServer).ListOnlineUsers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: OnlineService_ListOnlineUsers_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(OnlineServiceServer).ListOnlineUsers(ctx, req.(*ListOnlineUsersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _OnlineService_ListOnlineRecords_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListOnlineRecordsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(OnlineServiceServer).ListOnlineRecords(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: OnlineService_ListOnlineRecords_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(OnlineServiceServer).ListOnlineRecords(ctx, req.(*ListOnlineRecordsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // OnlineService_ServiceDesc is the grpc.ServiceDesc for OnlineService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -152,6 +220,14 @@ var OnlineService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListUserOnlineIPs",
 			Handler:    _OnlineService_ListUserOnlineIPs_Handler,
+		},
+		{
+			MethodName: "ListOnlineUsers",
+			Handler:    _OnlineService_ListOnlineUsers_Handler,
+		},
+		{
+			MethodName: "ListOnlineRecords",
+			Handler:    _OnlineService_ListOnlineRecords_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

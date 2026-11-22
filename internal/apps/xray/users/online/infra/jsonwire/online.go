@@ -108,6 +108,10 @@ func ErrorCode(err error) string {
 		return "facility_not_configured"
 	case errors.Is(err, domain.ErrUnsupported):
 		return "facility_unsupported"
+	case errors.Is(err, domain.ErrObservationExpired):
+		return "observation_expired"
+	case errors.Is(err, domain.ErrIdentityUnsupported):
+		return "native_identity_unsupported"
 	case errors.Is(err, domain.ErrExecutionChanged):
 		return "execution_changed"
 	case errors.Is(err, domain.ErrNotRunning):

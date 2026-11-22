@@ -33,3 +33,29 @@ func (c *connection) Invoke(_ context.Context, method string, input, output any,
 func (*connection) NewStream(context.Context, *grpc.StreamDesc, string, ...grpc.CallOption) (grpc.ClientStream, error) {
 	panic("unexpected stream")
 }
+
+type bulkConnection struct {
+	calls   []string
+	names   *stats.GetAllOnlineUsersResponse
+	details *stats.GetUsersStatsResponse
+}
+
+func (c *bulkConnection) Invoke(_ context.Context, method string, input, output any, _ ...grpc.CallOption) error {
+	c.calls = append(c.calls, method)
+	switch method {
+	case stats.StatsService_GetAllOnlineUsers_FullMethodName:
+		proto.Merge(output.(proto.Message), c.names)
+	case stats.StatsService_GetUsersStats_FullMethodName:
+		r := input.(*stats.GetUsersStatsRequest)
+		if r.IncludeTraffic || r.Reset_ {
+			panic("presence must not read or reset traffic")
+		}
+		proto.Merge(output.(proto.Message), c.details)
+	default:
+		panic("unexpected per-user RPC")
+	}
+	return nil
+}
+func (*bulkConnection) NewStream(context.Context, *grpc.StreamDesc, string, ...grpc.CallOption) (grpc.ClientStream, error) {
+	panic("unexpected stream")
+}

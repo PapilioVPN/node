@@ -4,27 +4,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	instances "github.com/PapilioVPN/node/internal/apps/xray/runtime/instances/domain"
+	"strings"
 	"testing"
 	"time"
+
+	instances "github.com/PapilioVPN/node/internal/apps/xray/runtime/instances/domain"
 
 	"github.com/PapilioVPN/node/internal/apps/xray/users/online/domain"
 )
 
-type collectionReader struct {
-	calls int
-	size  int
-}
-
-func (r *collectionReader) Names(context.Context) ([]domain.Record, error) {
-	r.calls++
-	rows := make([]domain.Record, r.size)
-	for i := range rows {
-		rows[i].Email = fmt.Sprintf("email-%04d", i)
-	}
-	return rows, nil
-}
-func (r *collectionReader) Records(ctx context.Context) ([]domain.Record, error) { return r.Names(ctx) }
 func TestPagesRetainOneNativeObservation(t *testing.T) {
 	for _, size := range []int{0, 1, 50, 51, 1000} {
 		t.Run(fmt.Sprint(size), func(t *testing.T) {
@@ -161,5 +149,84 @@ func TestPagedExactIPsAndLegacyBound(t *testing.T) {
 	}
 	if _, err := s.IPs(context.Background(), req.Selection); !errors.Is(err, domain.ErrCapacity) {
 		t.Fatal(err)
+	}
+}
+
+func TestFirstPageBoundsCancellationAndGeneration(t *testing.T) {
+	for _, rows := range [][]domain.Record{make([]domain.Record, domain.MaxRecords+1), {{Email: strings.Repeat("x", domain.MaxObservationBytes+1)}}} {
+		r := collectionFunc(func(context.Context) ([]domain.Record, error) { return rows, nil })
+		s, _ := New([]Binding{{ID: "a", Reader: reader{}, Collection: r}}, statusFunc(running))
+		if p, err := s.List(context.Background(), domain.PageRequest{Selection: domain.Selection{InstanceID: "a"}}); !errors.Is(err, domain.ErrCapacity) || len(p.Records) != 0 || s.pages.pending != 0 || len(s.pages.observations) != 0 {
+			t.Fatal(p, err)
+		}
+	}
+	for _, changed := range []bool{false, true} {
+		ctx, cancel := context.WithCancel(context.Background())
+		calls := 0
+		r := collectionFunc(func(context.Context) ([]domain.Record, error) {
+			if !changed {
+				cancel()
+			}
+			return make([]domain.Record, 51), nil
+		})
+		s, _ := New([]Binding{{ID: "a", Reader: reader{}, Collection: r}}, statusFunc(func(ctx context.Context, id string) (instances.Status, error) {
+			status, _ := running(ctx, id)
+			calls++
+			if calls == 2 && changed {
+				status.Execution.Generation++
+			}
+			return status, nil
+		}))
+		p, err := s.List(ctx, domain.PageRequest{Selection: domain.Selection{InstanceID: "a"}})
+		want := context.Canceled
+		if changed {
+			want = domain.ErrExecutionChanged
+		}
+		if !errors.Is(err, want) || len(p.Records) != 0 || len(s.pages.observations) != 0 || s.pages.pending != 0 {
+			t.Fatal(p, err)
+		}
+		cancel()
+	}
+}
+func TestPendingObservationsBoundNativeWorkAndJoin(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	entered := make(chan struct{}, domain.MaxObservations)
+	r := collectionFunc(func(ctx context.Context) ([]domain.Record, error) {
+		entered <- struct{}{}
+		<-ctx.Done()
+		return nil, ctx.Err()
+	})
+	s, _ := New([]Binding{{ID: "a", Reader: reader{}, Collection: r}}, statusFunc(running))
+	done := make(chan error, domain.MaxObservations)
+	for range domain.MaxObservations {
+		go func() {
+			_, err := s.List(ctx, domain.PageRequest{Selection: domain.Selection{InstanceID: "a"}})
+			done <- err
+		}()
+	}
+	for range domain.MaxObservations {
+		select {
+		case <-entered:
+		case <-time.After(time.Second):
+			t.Fatal("native work did not enter")
+		}
+	}
+	if _, err := s.List(ctx, domain.PageRequest{Selection: domain.Selection{InstanceID: "a"}}); !errors.Is(err, domain.ErrCapacity) {
+		t.Fatal(err)
+	}
+	cancel()
+	for range domain.MaxObservations {
+		select {
+		case err := <-done:
+			if !errors.Is(err, context.Canceled) {
+				t.Fatal(err)
+			}
+		case <-time.After(time.Second):
+			t.Fatal("native work did not join")
+		}
+	}
+	if s.pages.pending != 0 || len(s.slots) != 0 || len(s.pages.observations) != 0 {
+		t.Fatal("leaked read capacity")
 	}
 }

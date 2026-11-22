@@ -102,8 +102,9 @@ func (s *Service) page(ctx context.Context, r domain.PageRequest, kind pageKind)
 			visitors, err = reader.IPs(ctx, r.Email)
 			state = visitors.State()
 			rows = make([]domain.Record, len(visitors.IPs))
+			email := strings.Clone(r.Email)
 			for i := range visitors.IPs {
-				rows[i] = domain.Record{Email: strings.Clone(r.Email), IP: &visitors.IPs[i]}
+				rows[i] = domain.Record{Email: email, IP: &visitors.IPs[i]}
 			}
 		}
 		return err
@@ -136,7 +137,7 @@ func (s *Service) page(ctx context.Context, r domain.PageRequest, kind pageKind)
 		source = "xray.stats.GetUsersStats"
 	}
 	if kind == ipsPage {
-		source = "xray.stats.GetStatsOnlineIpList"
+		source = domain.Source
 	}
 	p := domain.Page{Observation: o, Records: rows, State: state, Source: source, ObservationID: hex.EncodeToString(idBytes), ExpiresAt: o.ObservedAt.Add(domain.ObservationTTL), Total: len(rows)}
 	v := &retained{page: p, kind: kind, size: r.PageSize}

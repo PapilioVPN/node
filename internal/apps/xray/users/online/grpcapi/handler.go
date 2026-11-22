@@ -42,15 +42,15 @@ func (h Handler) ListUserOnlineIPs(ctx context.Context, r *onlinev1.ListUserOnli
 	}
 	ctx, cancel := context.WithTimeout(ctx, h.Timeout)
 	defer cancel()
-	result, err := h.Service.IPs(ctx, domain.Selection{InstanceID: r.InstanceId, Email: r.Email})
+	result, err := h.Service.PageIPs(ctx, domain.PageRequest{Selection: domain.Selection{InstanceID: r.InstanceId, Email: r.Email}, PageSize: int(r.PageSize), PageToken: r.PageToken})
 	if err != nil {
 		return nil, failure(err)
 	}
-	rows := make([]*onlinev1.OnlineIP, len(result.IPs))
-	for i, row := range result.IPs {
-		rows[i] = &onlinev1.OnlineIP{Ip: row.Address, LastSeenUnixSeconds: row.LastSeenUnixSeconds}
+	rows := make([]*onlinev1.OnlineIP, len(result.Records))
+	for i, row := range result.Records {
+		rows[i] = &onlinev1.OnlineIP{Ip: row.IP.Address, LastSeenUnixSeconds: row.IP.LastSeenUnixSeconds}
 	}
-	return &onlinev1.UserOnlineIPs{Observation: metadata(result.Observation), State: state(result.State()), Ips: rows}, nil
+	return &onlinev1.UserOnlineIPs{Observation: pageObservation(result), State: state(result.State), Ips: rows, Page: paging(result)}, nil
 }
 func metadata(o domain.Observation) *onlinev1.OnlineObservation {
 	return &onlinev1.OnlineObservation{InstanceId: o.InstanceID, Email: o.Email, Generation: o.Generation, Source: domain.Source, ObservedAt: timestamppb.New(o.ObservedAt), DurationNs: int64(o.Duration)}
@@ -73,9 +73,9 @@ func failure(err error) error {
 		code = codes.InvalidArgument
 	case "not_found":
 		code = codes.NotFound
-	case "facility_not_configured", "facility_unsupported":
+	case "facility_not_configured", "facility_unsupported", "native_identity_unsupported":
 		code = codes.FailedPrecondition
-	case "execution_changed":
+	case "execution_changed", "observation_expired":
 		code = codes.Aborted
 	case "resource_exhausted":
 		code = codes.ResourceExhausted

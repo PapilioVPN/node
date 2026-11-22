@@ -55,24 +55,13 @@ func (h Handler) Count(ctx context.Context, data []byte, headers nats.Header) []
 	return data
 }
 func (h Handler) IPs(ctx context.Context, data []byte, headers nats.Header) []byte {
-	s, err := jsonwire.DecodeSelection(data)
-	if err != nil {
-		return failure(err)
-	}
-	ctx, cancel, err := deadline(ctx, headers, h.Timeout)
-	if err != nil {
-		return failure(err)
-	}
-	defer cancel()
-	result, err := h.Service.IPs(ctx, s)
-	if err != nil {
-		return failure(err)
-	}
-	data, err = jsonwire.EncodeIPs(result)
-	if err != nil {
-		return failure(err)
-	}
-	return data
+	return h.page(ctx, data, headers, h.Service.PageIPs, true)
+}
+func (h Handler) List(ctx context.Context, data []byte, headers nats.Header) []byte {
+	return h.page(ctx, data, headers, h.Service.List, false)
+}
+func (h Handler) Records(ctx context.Context, data []byte, headers nats.Header) []byte {
+	return h.page(ctx, data, headers, h.Service.Records, false)
 }
 func failure(err error) []byte {
 	data, _ := json.Marshal(struct {

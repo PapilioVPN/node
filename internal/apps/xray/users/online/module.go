@@ -30,7 +30,9 @@ func compose(in inputs) (*services.Service, error) {
 	for _, resource := range in.Bindings {
 		binding := services.Binding{ID: resource.ID}
 		if resource.Client != nil {
-			binding.Reader = api.New(resource.Client)
+			reader := api.New(resource.Client)
+			binding.Reader = reader
+			binding.Collection = reader
 		}
 		bindings = append(bindings, binding)
 	}
@@ -58,5 +60,7 @@ func subscribe(in adapters) natsclient.Subscriptions {
 	return natsclient.Subscriptions{Endpoints: []natsclient.Subscription{
 		{Name: "Xray exact online status", SubjectSuffix: "xray.users.online.v1.get", Handle: h.Count},
 		{Name: "Xray exact online IPs", SubjectSuffix: "xray.users.online.ips.v1.list", Handle: h.IPs},
+		{Name: "Xray online users", SubjectSuffix: "xray.users.online.v1.list", Handle: h.List},
+		{Name: "Xray online records", SubjectSuffix: "xray.users.online.records.v1.list", Handle: h.Records},
 	}}
 }

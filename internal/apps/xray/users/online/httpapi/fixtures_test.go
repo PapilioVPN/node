@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"context"
+	"fmt"
 
 	instances "github.com/PapilioVPN/node/internal/apps/xray/runtime/instances/domain"
 	"github.com/PapilioVPN/node/internal/apps/xray/users/online/domain"
@@ -26,4 +27,20 @@ type statusReader struct{}
 
 func (statusReader) Status(context.Context, string) (instances.Status, error) {
 	return instances.Status{Execution: instances.Execution{State: instances.Running, Generation: 9}}, nil
+}
+
+func (r *reader) Names(context.Context) ([]domain.Record, error) {
+	r.calls++
+	rows := make([]domain.Record, 51)
+	for i := range rows {
+		rows[i].Email = fmt.Sprintf("email-%02d", i)
+	}
+	return rows, nil
+}
+func (r *reader) Records(ctx context.Context) ([]domain.Record, error) {
+	rows, err := r.Names(ctx)
+	for i := range rows {
+		rows[i].IP = &domain.IP{Address: "native", LastSeenUnixSeconds: -1}
+	}
+	return rows, err
 }

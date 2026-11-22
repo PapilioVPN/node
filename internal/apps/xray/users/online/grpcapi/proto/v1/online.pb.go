@@ -131,6 +131,8 @@ type ListUserOnlineIPsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	InstanceId    string                 `protobuf:"bytes,1,opt,name=instance_id,json=instanceId,proto3" json:"instance_id,omitempty"`
 	Email         string                 `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
+	PageSize      uint32                 `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	PageToken     string                 `protobuf:"bytes,4,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -175,6 +177,20 @@ func (x *ListUserOnlineIPsRequest) GetInstanceId() string {
 func (x *ListUserOnlineIPsRequest) GetEmail() string {
 	if x != nil {
 		return x.Email
+	}
+	return ""
+}
+
+func (x *ListUserOnlineIPsRequest) GetPageSize() uint32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *ListUserOnlineIPsRequest) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
 	}
 	return ""
 }
@@ -381,8 +397,9 @@ type UserOnlineIPs struct {
 	state       protoimpl.MessageState `protogen:"open.v1"`
 	Observation *OnlineObservation     `protobuf:"bytes,1,opt,name=observation,proto3" json:"observation,omitempty"`
 	State       OnlineState            `protobuf:"varint,2,opt,name=state,proto3,enum=papilio.xray.users.online.v1.OnlineState" json:"state,omitempty"`
-	// At most 50 records, complete or resource_exhausted, with no silent truncation.
-	Ips           []*OnlineIP `protobuf:"bytes,3,rep,name=ips,proto3" json:"ips,omitempty"`
+	// At most 50 records. Continue with page.next_page_token and the same scope/size.
+	Ips           []*OnlineIP   `protobuf:"bytes,3,rep,name=ips,proto3" json:"ips,omitempty"`
+	Page          *OnlinePaging `protobuf:"bytes,4,opt,name=page,proto3" json:"page,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -438,6 +455,336 @@ func (x *UserOnlineIPs) GetIps() []*OnlineIP {
 	return nil
 }
 
+func (x *UserOnlineIPs) GetPage() *OnlinePaging {
+	if x != nil {
+		return x.Page
+	}
+	return nil
+}
+
+// Size 0 selects 50; explicit sizes 1..50. Continuations perform no native RPC.
+type ListOnlineUsersRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	InstanceId    string                 `protobuf:"bytes,1,opt,name=instance_id,json=instanceId,proto3" json:"instance_id,omitempty"`
+	PageSize      uint32                 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	PageToken     string                 `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListOnlineUsersRequest) Reset() {
+	*x = ListOnlineUsersRequest{}
+	mi := &file_internal_apps_xray_users_online_grpcapi_proto_v1_online_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListOnlineUsersRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListOnlineUsersRequest) ProtoMessage() {}
+
+func (x *ListOnlineUsersRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_apps_xray_users_online_grpcapi_proto_v1_online_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListOnlineUsersRequest.ProtoReflect.Descriptor instead.
+func (*ListOnlineUsersRequest) Descriptor() ([]byte, []int) {
+	return file_internal_apps_xray_users_online_grpcapi_proto_v1_online_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *ListOnlineUsersRequest) GetInstanceId() string {
+	if x != nil {
+		return x.InstanceId
+	}
+	return ""
+}
+
+func (x *ListOnlineUsersRequest) GetPageSize() uint32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *ListOnlineUsersRequest) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
+	}
+	return ""
+}
+
+type ListOnlineRecordsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	InstanceId    string                 `protobuf:"bytes,1,opt,name=instance_id,json=instanceId,proto3" json:"instance_id,omitempty"`
+	PageSize      uint32                 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	PageToken     string                 `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListOnlineRecordsRequest) Reset() {
+	*x = ListOnlineRecordsRequest{}
+	mi := &file_internal_apps_xray_users_online_grpcapi_proto_v1_online_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListOnlineRecordsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListOnlineRecordsRequest) ProtoMessage() {}
+
+func (x *ListOnlineRecordsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_apps_xray_users_online_grpcapi_proto_v1_online_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListOnlineRecordsRequest.ProtoReflect.Descriptor instead.
+func (*ListOnlineRecordsRequest) Descriptor() ([]byte, []int) {
+	return file_internal_apps_xray_users_online_grpcapi_proto_v1_online_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *ListOnlineRecordsRequest) GetInstanceId() string {
+	if x != nil {
+		return x.InstanceId
+	}
+	return ""
+}
+
+func (x *ListOnlineRecordsRequest) GetPageSize() uint32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *ListOnlineRecordsRequest) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
+	}
+	return ""
+}
+
+// A retained non-atomic native observation, bound to instance, operation,
+// generation and page size. Expires after 30 seconds; Node restart loses tokens.
+// An engine execution change aborts continuation. Start again without a token.
+type OnlinePaging struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ObservationId string                 `protobuf:"bytes,1,opt,name=observation_id,json=observationId,proto3" json:"observation_id,omitempty"`
+	ExpiresAt     *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
+	ServedAt      *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=served_at,json=servedAt,proto3" json:"served_at,omitempty"`
+	// True only for the initial native observation, false for retained pages.
+	Fresh         bool   `protobuf:"varint,4,opt,name=fresh,proto3" json:"fresh,omitempty"`
+	Total         uint32 `protobuf:"varint,5,opt,name=total,proto3" json:"total,omitempty"`
+	NextPageToken string `protobuf:"bytes,6,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *OnlinePaging) Reset() {
+	*x = OnlinePaging{}
+	mi := &file_internal_apps_xray_users_online_grpcapi_proto_v1_online_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OnlinePaging) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OnlinePaging) ProtoMessage() {}
+
+func (x *OnlinePaging) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_apps_xray_users_online_grpcapi_proto_v1_online_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OnlinePaging.ProtoReflect.Descriptor instead.
+func (*OnlinePaging) Descriptor() ([]byte, []int) {
+	return file_internal_apps_xray_users_online_grpcapi_proto_v1_online_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *OnlinePaging) GetObservationId() string {
+	if x != nil {
+		return x.ObservationId
+	}
+	return ""
+}
+
+func (x *OnlinePaging) GetExpiresAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ExpiresAt
+	}
+	return nil
+}
+
+func (x *OnlinePaging) GetServedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ServedAt
+	}
+	return nil
+}
+
+func (x *OnlinePaging) GetFresh() bool {
+	if x != nil {
+		return x.Fresh
+	}
+	return false
+}
+
+func (x *OnlinePaging) GetTotal() uint32 {
+	if x != nil {
+		return x.Total
+	}
+	return 0
+}
+
+func (x *OnlinePaging) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
+}
+
+type OnlineRecord struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Email string                 `protobuf:"bytes,1,opt,name=email,proto3" json:"email,omitempty"`
+	// Present only for detailed records. Last-seen is native AddIP time.
+	Ip            *OnlineIP `protobuf:"bytes,2,opt,name=ip,proto3" json:"ip,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *OnlineRecord) Reset() {
+	*x = OnlineRecord{}
+	mi := &file_internal_apps_xray_users_online_grpcapi_proto_v1_online_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OnlineRecord) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OnlineRecord) ProtoMessage() {}
+
+func (x *OnlineRecord) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_apps_xray_users_online_grpcapi_proto_v1_online_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OnlineRecord.ProtoReflect.Descriptor instead.
+func (*OnlineRecord) Descriptor() ([]byte, []int) {
+	return file_internal_apps_xray_users_online_grpcapi_proto_v1_online_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *OnlineRecord) GetEmail() string {
+	if x != nil {
+		return x.Email
+	}
+	return ""
+}
+
+func (x *OnlineRecord) GetIp() *OnlineIP {
+	if x != nil {
+		return x.Ip
+	}
+	return nil
+}
+
+type OnlinePage struct {
+	state       protoimpl.MessageState `protogen:"open.v1"`
+	Observation *OnlineObservation     `protobuf:"bytes,1,opt,name=observation,proto3" json:"observation,omitempty"`
+	Page        *OnlinePaging          `protobuf:"bytes,2,opt,name=page,proto3" json:"page,omitempty"`
+	// Online users only. Details are flattened email/IP rows, at most 50 per page.
+	Records       []*OnlineRecord `protobuf:"bytes,3,rep,name=records,proto3" json:"records,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *OnlinePage) Reset() {
+	*x = OnlinePage{}
+	mi := &file_internal_apps_xray_users_online_grpcapi_proto_v1_online_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OnlinePage) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OnlinePage) ProtoMessage() {}
+
+func (x *OnlinePage) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_apps_xray_users_online_grpcapi_proto_v1_online_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OnlinePage.ProtoReflect.Descriptor instead.
+func (*OnlinePage) Descriptor() ([]byte, []int) {
+	return file_internal_apps_xray_users_online_grpcapi_proto_v1_online_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *OnlinePage) GetObservation() *OnlineObservation {
+	if x != nil {
+		return x.Observation
+	}
+	return nil
+}
+
+func (x *OnlinePage) GetPage() *OnlinePaging {
+	if x != nil {
+		return x.Page
+	}
+	return nil
+}
+
+func (x *OnlinePage) GetRecords() []*OnlineRecord {
+	if x != nil {
+		return x.Records
+	}
+	return nil
+}
+
 var File_internal_apps_xray_users_online_grpcapi_proto_v1_online_proto protoreflect.FileDescriptor
 
 const file_internal_apps_xray_users_online_grpcapi_proto_v1_online_proto_rawDesc = "" +
@@ -446,11 +793,14 @@ const file_internal_apps_xray_users_online_grpcapi_proto_v1_online_proto_rawDesc
 	"\x19GetUserOnlineStatsRequest\x12\x1f\n" +
 	"\vinstance_id\x18\x01 \x01(\tR\n" +
 	"instanceId\x12\x14\n" +
-	"\x05email\x18\x02 \x01(\tR\x05email\"Q\n" +
+	"\x05email\x18\x02 \x01(\tR\x05email\"\x8d\x01\n" +
 	"\x18ListUserOnlineIPsRequest\x12\x1f\n" +
 	"\vinstance_id\x18\x01 \x01(\tR\n" +
 	"instanceId\x12\x14\n" +
-	"\x05email\x18\x02 \x01(\tR\x05email\"\xe0\x01\n" +
+	"\x05email\x18\x02 \x01(\tR\x05email\x12\x1b\n" +
+	"\tpage_size\x18\x03 \x01(\rR\bpageSize\x12\x1d\n" +
+	"\n" +
+	"page_token\x18\x04 \x01(\tR\tpageToken\"\xe0\x01\n" +
 	"\x11OnlineObservation\x12\x1f\n" +
 	"\vinstance_id\x18\x01 \x01(\tR\n" +
 	"instanceId\x12\x14\n" +
@@ -470,19 +820,50 @@ const file_internal_apps_xray_users_online_grpcapi_proto_v1_online_proto_rawDesc
 	"\x06_count\"O\n" +
 	"\bOnlineIP\x12\x0e\n" +
 	"\x02ip\x18\x01 \x01(\tR\x02ip\x123\n" +
-	"\x16last_seen_unix_seconds\x18\x02 \x01(\x03R\x13lastSeenUnixSeconds\"\xdd\x01\n" +
+	"\x16last_seen_unix_seconds\x18\x02 \x01(\x03R\x13lastSeenUnixSeconds\"\x9d\x02\n" +
 	"\rUserOnlineIPs\x12Q\n" +
 	"\vobservation\x18\x01 \x01(\v2/.papilio.xray.users.online.v1.OnlineObservationR\vobservation\x12?\n" +
 	"\x05state\x18\x02 \x01(\x0e2).papilio.xray.users.online.v1.OnlineStateR\x05state\x128\n" +
-	"\x03ips\x18\x03 \x03(\v2&.papilio.xray.users.online.v1.OnlineIPR\x03ips*z\n" +
+	"\x03ips\x18\x03 \x03(\v2&.papilio.xray.users.online.v1.OnlineIPR\x03ips\x12>\n" +
+	"\x04page\x18\x04 \x01(\v2*.papilio.xray.users.online.v1.OnlinePagingR\x04page\"u\n" +
+	"\x16ListOnlineUsersRequest\x12\x1f\n" +
+	"\vinstance_id\x18\x01 \x01(\tR\n" +
+	"instanceId\x12\x1b\n" +
+	"\tpage_size\x18\x02 \x01(\rR\bpageSize\x12\x1d\n" +
+	"\n" +
+	"page_token\x18\x03 \x01(\tR\tpageToken\"w\n" +
+	"\x18ListOnlineRecordsRequest\x12\x1f\n" +
+	"\vinstance_id\x18\x01 \x01(\tR\n" +
+	"instanceId\x12\x1b\n" +
+	"\tpage_size\x18\x02 \x01(\rR\bpageSize\x12\x1d\n" +
+	"\n" +
+	"page_token\x18\x03 \x01(\tR\tpageToken\"\xfd\x01\n" +
+	"\fOnlinePaging\x12%\n" +
+	"\x0eobservation_id\x18\x01 \x01(\tR\robservationId\x129\n" +
+	"\n" +
+	"expires_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\x127\n" +
+	"\tserved_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\bservedAt\x12\x14\n" +
+	"\x05fresh\x18\x04 \x01(\bR\x05fresh\x12\x14\n" +
+	"\x05total\x18\x05 \x01(\rR\x05total\x12&\n" +
+	"\x0fnext_page_token\x18\x06 \x01(\tR\rnextPageToken\"\\\n" +
+	"\fOnlineRecord\x12\x14\n" +
+	"\x05email\x18\x01 \x01(\tR\x05email\x126\n" +
+	"\x02ip\x18\x02 \x01(\v2&.papilio.xray.users.online.v1.OnlineIPR\x02ip\"\xe5\x01\n" +
+	"\n" +
+	"OnlinePage\x12Q\n" +
+	"\vobservation\x18\x01 \x01(\v2/.papilio.xray.users.online.v1.OnlineObservationR\vobservation\x12>\n" +
+	"\x04page\x18\x02 \x01(\v2*.papilio.xray.users.online.v1.OnlinePagingR\x04page\x12D\n" +
+	"\arecords\x18\x03 \x03(\v2*.papilio.xray.users.online.v1.OnlineRecordR\arecords*z\n" +
 	"\vOnlineState\x12\x1c\n" +
 	"\x18ONLINE_STATE_UNSPECIFIED\x10\x00\x12\x17\n" +
 	"\x13ONLINE_STATE_ONLINE\x10\x01\x12\x18\n" +
 	"\x14ONLINE_STATE_OFFLINE\x10\x02\x12\x1a\n" +
-	"\x16ONLINE_STATE_UNTRACKED\x10\x032\x87\x02\n" +
+	"\x16ONLINE_STATE_UNTRACKED\x10\x032\xf1\x03\n" +
 	"\rOnlineService\x12|\n" +
 	"\x12GetUserOnlineStats\x127.papilio.xray.users.online.v1.GetUserOnlineStatsRequest\x1a-.papilio.xray.users.online.v1.UserOnlineStats\x12x\n" +
-	"\x11ListUserOnlineIPs\x126.papilio.xray.users.online.v1.ListUserOnlineIPsRequest\x1a+.papilio.xray.users.online.v1.UserOnlineIPsBVZTgithub.com/PapilioVPN/node/internal/apps/xray/users/online/grpcapi/proto/v1;onlinev1b\x06proto3"
+	"\x11ListUserOnlineIPs\x126.papilio.xray.users.online.v1.ListUserOnlineIPsRequest\x1a+.papilio.xray.users.online.v1.UserOnlineIPs\x12q\n" +
+	"\x0fListOnlineUsers\x124.papilio.xray.users.online.v1.ListOnlineUsersRequest\x1a(.papilio.xray.users.online.v1.OnlinePage\x12u\n" +
+	"\x11ListOnlineRecords\x126.papilio.xray.users.online.v1.ListOnlineRecordsRequest\x1a(.papilio.xray.users.online.v1.OnlinePageBVZTgithub.com/PapilioVPN/node/internal/apps/xray/users/online/grpcapi/proto/v1;onlinev1b\x06proto3"
 
 var (
 	file_internal_apps_xray_users_online_grpcapi_proto_v1_online_proto_rawDescOnce sync.Once
@@ -497,7 +878,7 @@ func file_internal_apps_xray_users_online_grpcapi_proto_v1_online_proto_rawDescG
 }
 
 var file_internal_apps_xray_users_online_grpcapi_proto_v1_online_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_internal_apps_xray_users_online_grpcapi_proto_v1_online_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_internal_apps_xray_users_online_grpcapi_proto_v1_online_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_internal_apps_xray_users_online_grpcapi_proto_v1_online_proto_goTypes = []any{
 	(OnlineState)(0),                  // 0: papilio.xray.users.online.v1.OnlineState
 	(*GetUserOnlineStatsRequest)(nil), // 1: papilio.xray.users.online.v1.GetUserOnlineStatsRequest
@@ -506,24 +887,40 @@ var file_internal_apps_xray_users_online_grpcapi_proto_v1_online_proto_goTypes =
 	(*UserOnlineStats)(nil),           // 4: papilio.xray.users.online.v1.UserOnlineStats
 	(*OnlineIP)(nil),                  // 5: papilio.xray.users.online.v1.OnlineIP
 	(*UserOnlineIPs)(nil),             // 6: papilio.xray.users.online.v1.UserOnlineIPs
-	(*timestamppb.Timestamp)(nil),     // 7: google.protobuf.Timestamp
+	(*ListOnlineUsersRequest)(nil),    // 7: papilio.xray.users.online.v1.ListOnlineUsersRequest
+	(*ListOnlineRecordsRequest)(nil),  // 8: papilio.xray.users.online.v1.ListOnlineRecordsRequest
+	(*OnlinePaging)(nil),              // 9: papilio.xray.users.online.v1.OnlinePaging
+	(*OnlineRecord)(nil),              // 10: papilio.xray.users.online.v1.OnlineRecord
+	(*OnlinePage)(nil),                // 11: papilio.xray.users.online.v1.OnlinePage
+	(*timestamppb.Timestamp)(nil),     // 12: google.protobuf.Timestamp
 }
 var file_internal_apps_xray_users_online_grpcapi_proto_v1_online_proto_depIdxs = []int32{
-	7, // 0: papilio.xray.users.online.v1.OnlineObservation.observed_at:type_name -> google.protobuf.Timestamp
-	3, // 1: papilio.xray.users.online.v1.UserOnlineStats.observation:type_name -> papilio.xray.users.online.v1.OnlineObservation
-	0, // 2: papilio.xray.users.online.v1.UserOnlineStats.state:type_name -> papilio.xray.users.online.v1.OnlineState
-	3, // 3: papilio.xray.users.online.v1.UserOnlineIPs.observation:type_name -> papilio.xray.users.online.v1.OnlineObservation
-	0, // 4: papilio.xray.users.online.v1.UserOnlineIPs.state:type_name -> papilio.xray.users.online.v1.OnlineState
-	5, // 5: papilio.xray.users.online.v1.UserOnlineIPs.ips:type_name -> papilio.xray.users.online.v1.OnlineIP
-	1, // 6: papilio.xray.users.online.v1.OnlineService.GetUserOnlineStats:input_type -> papilio.xray.users.online.v1.GetUserOnlineStatsRequest
-	2, // 7: papilio.xray.users.online.v1.OnlineService.ListUserOnlineIPs:input_type -> papilio.xray.users.online.v1.ListUserOnlineIPsRequest
-	4, // 8: papilio.xray.users.online.v1.OnlineService.GetUserOnlineStats:output_type -> papilio.xray.users.online.v1.UserOnlineStats
-	6, // 9: papilio.xray.users.online.v1.OnlineService.ListUserOnlineIPs:output_type -> papilio.xray.users.online.v1.UserOnlineIPs
-	8, // [8:10] is the sub-list for method output_type
-	6, // [6:8] is the sub-list for method input_type
-	6, // [6:6] is the sub-list for extension type_name
-	6, // [6:6] is the sub-list for extension extendee
-	0, // [0:6] is the sub-list for field type_name
+	12, // 0: papilio.xray.users.online.v1.OnlineObservation.observed_at:type_name -> google.protobuf.Timestamp
+	3,  // 1: papilio.xray.users.online.v1.UserOnlineStats.observation:type_name -> papilio.xray.users.online.v1.OnlineObservation
+	0,  // 2: papilio.xray.users.online.v1.UserOnlineStats.state:type_name -> papilio.xray.users.online.v1.OnlineState
+	3,  // 3: papilio.xray.users.online.v1.UserOnlineIPs.observation:type_name -> papilio.xray.users.online.v1.OnlineObservation
+	0,  // 4: papilio.xray.users.online.v1.UserOnlineIPs.state:type_name -> papilio.xray.users.online.v1.OnlineState
+	5,  // 5: papilio.xray.users.online.v1.UserOnlineIPs.ips:type_name -> papilio.xray.users.online.v1.OnlineIP
+	9,  // 6: papilio.xray.users.online.v1.UserOnlineIPs.page:type_name -> papilio.xray.users.online.v1.OnlinePaging
+	12, // 7: papilio.xray.users.online.v1.OnlinePaging.expires_at:type_name -> google.protobuf.Timestamp
+	12, // 8: papilio.xray.users.online.v1.OnlinePaging.served_at:type_name -> google.protobuf.Timestamp
+	5,  // 9: papilio.xray.users.online.v1.OnlineRecord.ip:type_name -> papilio.xray.users.online.v1.OnlineIP
+	3,  // 10: papilio.xray.users.online.v1.OnlinePage.observation:type_name -> papilio.xray.users.online.v1.OnlineObservation
+	9,  // 11: papilio.xray.users.online.v1.OnlinePage.page:type_name -> papilio.xray.users.online.v1.OnlinePaging
+	10, // 12: papilio.xray.users.online.v1.OnlinePage.records:type_name -> papilio.xray.users.online.v1.OnlineRecord
+	1,  // 13: papilio.xray.users.online.v1.OnlineService.GetUserOnlineStats:input_type -> papilio.xray.users.online.v1.GetUserOnlineStatsRequest
+	2,  // 14: papilio.xray.users.online.v1.OnlineService.ListUserOnlineIPs:input_type -> papilio.xray.users.online.v1.ListUserOnlineIPsRequest
+	7,  // 15: papilio.xray.users.online.v1.OnlineService.ListOnlineUsers:input_type -> papilio.xray.users.online.v1.ListOnlineUsersRequest
+	8,  // 16: papilio.xray.users.online.v1.OnlineService.ListOnlineRecords:input_type -> papilio.xray.users.online.v1.ListOnlineRecordsRequest
+	4,  // 17: papilio.xray.users.online.v1.OnlineService.GetUserOnlineStats:output_type -> papilio.xray.users.online.v1.UserOnlineStats
+	6,  // 18: papilio.xray.users.online.v1.OnlineService.ListUserOnlineIPs:output_type -> papilio.xray.users.online.v1.UserOnlineIPs
+	11, // 19: papilio.xray.users.online.v1.OnlineService.ListOnlineUsers:output_type -> papilio.xray.users.online.v1.OnlinePage
+	11, // 20: papilio.xray.users.online.v1.OnlineService.ListOnlineRecords:output_type -> papilio.xray.users.online.v1.OnlinePage
+	17, // [17:21] is the sub-list for method output_type
+	13, // [13:17] is the sub-list for method input_type
+	13, // [13:13] is the sub-list for extension type_name
+	13, // [13:13] is the sub-list for extension extendee
+	0,  // [0:13] is the sub-list for field type_name
 }
 
 func init() { file_internal_apps_xray_users_online_grpcapi_proto_v1_online_proto_init() }
@@ -538,7 +935,7 @@ func file_internal_apps_xray_users_online_grpcapi_proto_v1_online_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_internal_apps_xray_users_online_grpcapi_proto_v1_online_proto_rawDesc), len(file_internal_apps_xray_users_online_grpcapi_proto_v1_online_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   6,
+			NumMessages:   11,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
