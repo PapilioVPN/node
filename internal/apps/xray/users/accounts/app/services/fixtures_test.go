@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	instances "github.com/PapilioVPN/node/internal/apps/xray/runtime/instances/domain"
+	"github.com/PapilioVPN/node/internal/apps/xray/users/accounts/app/services"
 	"github.com/PapilioVPN/node/internal/apps/xray/users/accounts/domain"
 )
 
@@ -38,4 +39,29 @@ func (c client) Add(ctx context.Context, tag string, content []byte) (domain.Nat
 }
 func (c client) Remove(ctx context.Context, tag, email string) (domain.NativeResult, error) {
 	return c.remove(ctx, tag, email)
+}
+
+type inboundReader struct{ status services.StatusReader }
+
+func (r inboundReader) Get(ctx context.Context, id, tag string) (domain.Inbound, error) {
+	state, err := r.status.Status(ctx, id)
+	return domain.Inbound{Tag: tag, AccountType: "test.account", LiveAccounts: true, Generation: state.Execution.Generation}, err
+}
+func (r inboundReader) Select(ctx context.Context, id string, tags []string) ([]domain.Inbound, error) {
+	result := make([]domain.Inbound, len(tags))
+	for i, tag := range tags {
+		var err error
+		result[i], err = r.Get(ctx, id, tag)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return result, nil
+}
+
+type accountInspector struct{}
+
+func (accountInspector) AccountType([]byte) (string, error) { return "test.account", nil }
+func newService(bindings []services.Binding, status services.StatusReader) (*services.Service, error) {
+	return services.New(bindings, status, inboundReader{status}, accountInspector{})
 }

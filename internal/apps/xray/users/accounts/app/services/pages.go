@@ -16,7 +16,6 @@ const observationLifetime = 30 * time.Second
 
 type retainedObservation struct {
 	observation domain.Observation
-	epoch       uint64
 	export      bool
 	size        int
 	records     []domain.Record
@@ -62,9 +61,6 @@ func (s *Service) capture(ctx context.Context, id, tag string, r domain.PageRequ
 	}
 	defer release()
 	entry := s.entries[id]
-	entry.mu.Lock()
-	epoch := entry.epoch
-	entry.mu.Unlock()
 	if r.Cursor != "" {
 		token, index, ok := strings.Cut(r.Cursor, ":")
 		if !ok {
@@ -77,7 +73,7 @@ func (s *Service) capture(ctx context.Context, id, tag string, r domain.PageRequ
 		s.pages.mu.Lock()
 		snapshot := s.pages.snapshots[token]
 		s.pages.mu.Unlock()
-		if snapshot == nil || !time.Now().Before(snapshot.expires) || snapshot.observation.InstanceID != id || snapshot.observation.InboundTag != tag || snapshot.export != export || snapshot.size != size || snapshot.observation.Generation != obs.Generation || snapshot.epoch != epoch || offset >= snapshot.count() {
+		if snapshot == nil || !time.Now().Before(snapshot.expires) || snapshot.observation.InstanceID != id || snapshot.observation.InboundTag != tag || snapshot.export != export || snapshot.size != size || snapshot.observation.Generation != obs.Generation || offset >= snapshot.count() {
 			return nil, 0, domain.ErrStale
 		}
 		if err = s.finish(ctx, &obs, time.Now(), nil); err != nil {
@@ -105,7 +101,7 @@ func (s *Service) capture(ctx context.Context, id, tag string, r domain.PageRequ
 	s.pages.pending++
 	s.pages.mu.Unlock()
 	defer func() { s.pages.mu.Lock(); s.pages.pending--; s.pages.mu.Unlock() }()
-	snapshot := &retainedObservation{observation: obs, epoch: epoch, export: export, size: size}
+	snapshot := &retainedObservation{observation: obs, export: export, size: size}
 	started := time.Now()
 	if err := load(entry.reader, snapshot); err != nil {
 		return nil, 0, err

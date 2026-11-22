@@ -12,9 +12,12 @@ import (
 )
 
 type Selection struct {
-	InstanceID string
-	InboundTag string
-	Email      *string
+	PageSize    *uint32
+	Cursor      *string
+	AccountType *string
+	InstanceID  string
+	InboundTag  string
+	Email       *string
 }
 
 func DecodeSelection(data []byte) (selection Selection, err error) {
@@ -35,6 +38,21 @@ func DecodeSelection(data []byte) (selection Selection, err error) {
 		seen[name] = true
 		var value *string
 		switch name {
+		case "page_size":
+			if err := decoder.Decode(&selection.PageSize); err != nil || selection.PageSize == nil {
+				return selection, domain.ErrInvalidArgument
+			}
+			continue
+		case "cursor":
+			if err := decoder.Decode(&selection.Cursor); err != nil || selection.Cursor == nil {
+				return selection, domain.ErrInvalidArgument
+			}
+			continue
+		case "account_type":
+			if err := decoder.Decode(&selection.AccountType); err != nil || selection.AccountType == nil {
+				return selection, domain.ErrInvalidArgument
+			}
+			continue
 		case "instance_id", "inbound_tag", "email":
 			if err := decoder.Decode(&value); err != nil || value == nil {
 				return selection, domain.ErrInvalidArgument
@@ -95,4 +113,16 @@ func EncodeAccount(result domain.Account) ([]byte, error) {
 		RequestedEmail string      `json:"requested_email"`
 		User           *account    `json:"user"`
 	}{metadata(result.Observation), result.RequestedEmail, user})
+}
+
+func (s Selection) HasPage() bool { return s.PageSize != nil || s.Cursor != nil }
+func (s Selection) Page() domain.PageRequest {
+	r := domain.PageRequest{}
+	if s.PageSize != nil {
+		r.Size = *s.PageSize
+	}
+	if s.Cursor != nil {
+		r.Cursor = *s.Cursor
+	}
+	return r
 }

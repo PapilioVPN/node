@@ -39,7 +39,7 @@ func TestCollectionUsesOneBoundedNativeReadAndPreservesEveryUser(t *testing.T) {
 				if !bound {
 					t.Fatal("missing native frame bound")
 				}
-				*output.(*handlers.GetInboundUserResponse) = *response
+				output.(*handlers.GetInboundUserResponse).Users = response.Users
 				return nil
 			}})
 			summary, err := c.Metadata(context.Background(), "inbound")

@@ -39,7 +39,11 @@ func (s *Sources) AddMany(ctx context.Context, id string, items []domain.SourceS
 				results[i].Err = account.Err
 			}
 		}
-		return ctx.Err()
+		additions := make([]domain.Addition, len(items))
+		for i, item := range items {
+			additions[i] = domain.Addition{InboundTag: item.InboundTag, Configuration: prepared[i].Configuration}
+		}
+		return s.service.checkBatch(ctx, id, additions, results)
 	}, func(client Client, i int) (domain.NativeResult, error) {
 		return client.Add(ctx, items[i].InboundTag, prepared[i].Configuration)
 	})
@@ -80,6 +84,6 @@ func (s *Sources) Add(ctx context.Context, id, tag, email string, sources []conf
 		if state.Execution.State != instances.Running || state.Execution.Generation != generation {
 			return domain.NativeResult{Email: email, Effect: domain.NotApplied}, domain.ErrExecutionChanged
 		}
-		return client.Add(ctx, tag, content)
+		return s.service.checkedAdd(ctx, client, id, tag, generation, content)
 	})
 }

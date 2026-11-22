@@ -28,7 +28,8 @@ type AddAccountRequest struct {
 	InboundTag string                 `protobuf:"bytes,2,opt,name=inbound_tag,json=inboundTag,proto3" json:"inbound_tag,omitempty"`
 	// Native protocol.User protobuf. Its account type must match the actual inbound.
 	// Native managers assume a matching type; a mismatch may terminate the engine.
-	// This operation does not infer the inbound type or convert between protocols.
+	// Structural type compatibility is checked before dispatch; no conversion or
+	// atomic fence against external inbound replacement is implied.
 	Configuration []byte `protobuf:"bytes,3,opt,name=configuration,proto3" json:"configuration,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -203,6 +204,7 @@ type AccountOperation struct {
 	RequiresInstanceRestart bool                   `protobuf:"varint,8,opt,name=requires_instance_restart,json=requiresInstanceRestart,proto3" json:"requires_instance_restart,omitempty"`
 	ObservedAt              *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=observed_at,json=observedAt,proto3" json:"observed_at,omitempty"`
 	DurationNs              int64                  `protobuf:"varint,10,opt,name=duration_ns,json=durationNs,proto3" json:"duration_ns,omitempty"`
+	Guidance                *AccountGuidance       `protobuf:"bytes,11,opt,name=guidance,proto3" json:"guidance,omitempty"`
 	unknownFields           protoimpl.UnknownFields
 	sizeCache               protoimpl.SizeCache
 }
@@ -307,6 +309,13 @@ func (x *AccountOperation) GetDurationNs() int64 {
 	return 0
 }
 
+func (x *AccountOperation) GetGuidance() *AccountGuidance {
+	if x != nil {
+		return x.Guidance
+	}
+	return nil
+}
+
 type AccountControlStatus struct {
 	state                   protoimpl.MessageState `protogen:"open.v1"`
 	InstanceId              string                 `protobuf:"bytes,1,opt,name=instance_id,json=instanceId,proto3" json:"instance_id,omitempty"`
@@ -407,6 +416,82 @@ func (x *AccountControlStatus) GetObservedAt() *timestamppb.Timestamp {
 	return nil
 }
 
+type AccountGuidance struct {
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	Reason              string                 `protobuf:"bytes,1,opt,name=reason,proto3" json:"reason,omitempty"`
+	NextAction          string                 `protobuf:"bytes,2,opt,name=next_action,json=nextAction,proto3" json:"next_action,omitempty"`
+	Protocol            string                 `protobuf:"bytes,3,opt,name=protocol,proto3" json:"protocol,omitempty"`
+	ExpectedAccountType string                 `protobuf:"bytes,4,opt,name=expected_account_type,json=expectedAccountType,proto3" json:"expected_account_type,omitempty"`
+	ActualAccountType   string                 `protobuf:"bytes,5,opt,name=actual_account_type,json=actualAccountType,proto3" json:"actual_account_type,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *AccountGuidance) Reset() {
+	*x = AccountGuidance{}
+	mi := &file_internal_apps_xray_users_accounts_grpcapi_proto_v1_control_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AccountGuidance) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AccountGuidance) ProtoMessage() {}
+
+func (x *AccountGuidance) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_apps_xray_users_accounts_grpcapi_proto_v1_control_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AccountGuidance.ProtoReflect.Descriptor instead.
+func (*AccountGuidance) Descriptor() ([]byte, []int) {
+	return file_internal_apps_xray_users_accounts_grpcapi_proto_v1_control_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *AccountGuidance) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
+func (x *AccountGuidance) GetNextAction() string {
+	if x != nil {
+		return x.NextAction
+	}
+	return ""
+}
+
+func (x *AccountGuidance) GetProtocol() string {
+	if x != nil {
+		return x.Protocol
+	}
+	return ""
+}
+
+func (x *AccountGuidance) GetExpectedAccountType() string {
+	if x != nil {
+		return x.ExpectedAccountType
+	}
+	return ""
+}
+
+func (x *AccountGuidance) GetActualAccountType() string {
+	if x != nil {
+		return x.ActualAccountType
+	}
+	return ""
+}
+
 var File_internal_apps_xray_users_accounts_grpcapi_proto_v1_control_proto protoreflect.FileDescriptor
 
 const file_internal_apps_xray_users_accounts_grpcapi_proto_v1_control_proto_rawDesc = "" +
@@ -427,7 +512,7 @@ const file_internal_apps_xray_users_accounts_grpcapi_proto_v1_control_proto_rawD
 	"\x06_email\"A\n" +
 	"\x1eGetAccountControlStatusRequest\x12\x1f\n" +
 	"\vinstance_id\x18\x01 \x01(\tR\n" +
-	"instanceId\"\xf4\x02\n" +
+	"instanceId\"\xc1\x03\n" +
 	"\x10AccountOperation\x12\x1f\n" +
 	"\vinstance_id\x18\x01 \x01(\tR\n" +
 	"instanceId\x12\x1f\n" +
@@ -445,7 +530,8 @@ const file_internal_apps_xray_users_accounts_grpcapi_proto_v1_control_proto_rawD
 	"observedAt\x12\x1f\n" +
 	"\vduration_ns\x18\n" +
 	" \x01(\x03R\n" +
-	"durationNs\"\xa5\x03\n" +
+	"durationNs\x12K\n" +
+	"\bguidance\x18\v \x01(\v2/.papilio.xray.users.accounts.v1.AccountGuidanceR\bguidance\"\xa5\x03\n" +
 	"\x14AccountControlStatus\x12\x1f\n" +
 	"\vinstance_id\x18\x01 \x01(\tR\n" +
 	"instanceId\x12\x1e\n" +
@@ -458,7 +544,14 @@ const file_internal_apps_xray_users_accounts_grpcapi_proto_v1_control_proto_rawD
 	"\x19requires_instance_restart\x18\x06 \x01(\bR\x17requiresInstanceRestart\x12W\n" +
 	"\x0elast_operation\x18\a \x01(\v20.papilio.xray.users.accounts.v1.AccountOperationR\rlastOperation\x12;\n" +
 	"\vobserved_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"observedAtBZZXgithub.com/PapilioVPN/node/internal/apps/xray/users/accounts/grpcapi/proto/v1;accountsv1b\x06proto3"
+	"observedAt\"\xca\x01\n" +
+	"\x0fAccountGuidance\x12\x16\n" +
+	"\x06reason\x18\x01 \x01(\tR\x06reason\x12\x1f\n" +
+	"\vnext_action\x18\x02 \x01(\tR\n" +
+	"nextAction\x12\x1a\n" +
+	"\bprotocol\x18\x03 \x01(\tR\bprotocol\x122\n" +
+	"\x15expected_account_type\x18\x04 \x01(\tR\x13expectedAccountType\x12.\n" +
+	"\x13actual_account_type\x18\x05 \x01(\tR\x11actualAccountTypeBZZXgithub.com/PapilioVPN/node/internal/apps/xray/users/accounts/grpcapi/proto/v1;accountsv1b\x06proto3"
 
 var (
 	file_internal_apps_xray_users_accounts_grpcapi_proto_v1_control_proto_rawDescOnce sync.Once
@@ -472,24 +565,26 @@ func file_internal_apps_xray_users_accounts_grpcapi_proto_v1_control_proto_rawDe
 	return file_internal_apps_xray_users_accounts_grpcapi_proto_v1_control_proto_rawDescData
 }
 
-var file_internal_apps_xray_users_accounts_grpcapi_proto_v1_control_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_internal_apps_xray_users_accounts_grpcapi_proto_v1_control_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_internal_apps_xray_users_accounts_grpcapi_proto_v1_control_proto_goTypes = []any{
 	(*AddAccountRequest)(nil),              // 0: papilio.xray.users.accounts.v1.AddAccountRequest
 	(*RemoveAccountRequest)(nil),           // 1: papilio.xray.users.accounts.v1.RemoveAccountRequest
 	(*GetAccountControlStatusRequest)(nil), // 2: papilio.xray.users.accounts.v1.GetAccountControlStatusRequest
 	(*AccountOperation)(nil),               // 3: papilio.xray.users.accounts.v1.AccountOperation
 	(*AccountControlStatus)(nil),           // 4: papilio.xray.users.accounts.v1.AccountControlStatus
-	(*timestamppb.Timestamp)(nil),          // 5: google.protobuf.Timestamp
+	(*AccountGuidance)(nil),                // 5: papilio.xray.users.accounts.v1.AccountGuidance
+	(*timestamppb.Timestamp)(nil),          // 6: google.protobuf.Timestamp
 }
 var file_internal_apps_xray_users_accounts_grpcapi_proto_v1_control_proto_depIdxs = []int32{
-	5, // 0: papilio.xray.users.accounts.v1.AccountOperation.observed_at:type_name -> google.protobuf.Timestamp
-	3, // 1: papilio.xray.users.accounts.v1.AccountControlStatus.last_operation:type_name -> papilio.xray.users.accounts.v1.AccountOperation
-	5, // 2: papilio.xray.users.accounts.v1.AccountControlStatus.observed_at:type_name -> google.protobuf.Timestamp
-	3, // [3:3] is the sub-list for method output_type
-	3, // [3:3] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	6, // 0: papilio.xray.users.accounts.v1.AccountOperation.observed_at:type_name -> google.protobuf.Timestamp
+	5, // 1: papilio.xray.users.accounts.v1.AccountOperation.guidance:type_name -> papilio.xray.users.accounts.v1.AccountGuidance
+	3, // 2: papilio.xray.users.accounts.v1.AccountControlStatus.last_operation:type_name -> papilio.xray.users.accounts.v1.AccountOperation
+	6, // 3: papilio.xray.users.accounts.v1.AccountControlStatus.observed_at:type_name -> google.protobuf.Timestamp
+	4, // [4:4] is the sub-list for method output_type
+	4, // [4:4] is the sub-list for method input_type
+	4, // [4:4] is the sub-list for extension type_name
+	4, // [4:4] is the sub-list for extension extendee
+	0, // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_internal_apps_xray_users_accounts_grpcapi_proto_v1_control_proto_init() }
@@ -504,7 +599,7 @@ func file_internal_apps_xray_users_accounts_grpcapi_proto_v1_control_proto_init(
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_internal_apps_xray_users_accounts_grpcapi_proto_v1_control_proto_rawDesc), len(file_internal_apps_xray_users_accounts_grpcapi_proto_v1_control_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   5,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

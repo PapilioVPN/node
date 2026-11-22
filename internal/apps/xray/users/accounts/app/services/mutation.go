@@ -71,7 +71,6 @@ func (s *Service) reserveMutation(ctx context.Context, id string, permits int) (
 		return m, domain.ErrCapacity
 	}
 	m.selected.mutating = true
-	m.selected.epoch++
 	m.started = time.Now()
 	return m, nil
 }
@@ -84,7 +83,13 @@ func (m mutation) finish(operation *domain.Operation) {
 	if operation.RequiresInstanceRestart {
 		m.selected.uncertainGeneration = operation.Generation
 	}
-	copy := *operation
+	if operation.RequiresInstanceRestart {
+		if operation.Guidance == nil {
+			operation.Guidance = guidance(domain.ErrUncertain, operation.Effect)
+		}
+		operation.Guidance.NextAction = "replace_execution_before_replay"
+	}
+	copy := cloneOperation(*operation)
 	copy.InstanceID = strings.Clone(operation.InstanceID)
 	copy.InboundTag = strings.Clone(operation.InboundTag)
 	copy.Email = strings.Clone(operation.Email)
@@ -110,4 +115,12 @@ func (s *Service) observeMutation(ctx context.Context, operation *domain.Operati
 		return errors.Join(domain.ErrExecutionChanged, nativeErr)
 	}
 	return nativeErr
+}
+
+func cloneOperation(operation domain.Operation) domain.Operation {
+	if operation.Guidance != nil {
+		g := *operation.Guidance
+		operation.Guidance = &g
+	}
+	return operation
 }

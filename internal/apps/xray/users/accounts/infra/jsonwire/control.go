@@ -88,6 +88,7 @@ func decodeControlObject(decoder *json.Decoder) (request ControlRequest, err err
 }
 
 type operation struct {
+	Guidance                *Guidance     `json:"guidance,omitempty"`
 	InstanceID              string        `json:"instance_id"`
 	InboundTag              string        `json:"inbound_tag"`
 	Generation              uint64        `json:"generation,string"`
@@ -101,7 +102,7 @@ type operation struct {
 }
 
 func operationResult(result domain.Operation) operation {
-	response := operation{InstanceID: result.InstanceID, InboundTag: result.InboundTag, Generation: result.Generation, Kind: result.Kind, Email: result.Email, Effect: result.Effect, Acknowledged: result.Acknowledged, RequiresInstanceRestart: result.RequiresInstanceRestart, DurationNS: int64(result.Duration)}
+	response := operation{Guidance: guidanceResult(result.Guidance), InstanceID: result.InstanceID, InboundTag: result.InboundTag, Generation: result.Generation, Kind: result.Kind, Email: result.Email, Effect: result.Effect, Acknowledged: result.Acknowledged, RequiresInstanceRestart: result.RequiresInstanceRestart, DurationNS: int64(result.Duration)}
 	if !result.ObservedAt.IsZero() {
 		response.ObservedAt = &result.ObservedAt
 	}

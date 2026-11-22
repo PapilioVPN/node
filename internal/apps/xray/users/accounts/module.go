@@ -2,12 +2,14 @@
 package accounts
 
 import (
+	inboundservices "github.com/PapilioVPN/node/internal/apps/xray/proxies/inbounds/app/services"
 	"github.com/PapilioVPN/node/internal/apps/xray/runtime/instances/infra/rpc"
 	"github.com/PapilioVPN/node/internal/apps/xray/users/accounts/app/services"
 	"github.com/PapilioVPN/node/internal/apps/xray/users/accounts/grpcapi"
 	"github.com/PapilioVPN/node/internal/apps/xray/users/accounts/httpapi"
 	"github.com/PapilioVPN/node/internal/apps/xray/users/accounts/infra/api"
 	"github.com/PapilioVPN/node/internal/apps/xray/users/accounts/infra/configuration"
+	inboundreader "github.com/PapilioVPN/node/internal/apps/xray/users/accounts/infra/inbounds"
 	"github.com/PapilioVPN/node/internal/apps/xray/users/accounts/natsapi"
 	"github.com/PapilioVPN/node/internal/platform/natsclient"
 	"github.com/PapilioVPN/node/internal/settings"
@@ -22,6 +24,7 @@ func Module(requests settings.Requests) fx.Option {
 
 type inputs struct {
 	fx.In
+	Catalog  *inboundservices.Catalog
 	Bindings []rpc.Binding `group:"xray-native-api"`
 	Status   services.StatusReader
 }
@@ -37,7 +40,7 @@ func compose(in inputs) (*services.Service, error) {
 		}
 		bindings = append(bindings, binding)
 	}
-	return services.New(bindings, in.Status)
+	return services.New(bindings, in.Status, inboundreader.Reader{Source: in.Catalog}, api.Inspector{})
 }
 
 func composeSources(service *services.Service, compiler configuration.Compiler) (*services.Sources, error) {
@@ -69,6 +72,10 @@ func register(in adapters) {
 func subscribe(in adapters) natsclient.Subscriptions {
 	handler := natsapi.Handler{Configurations: in.Configurations, Service: in.Service, Sources: in.Sources, Timeout: in.Requests.Timeout}
 	return natsclient.Subscriptions{Endpoints: []natsclient.Subscription{
+		{Name: "Xray account metadata list", SubjectSuffix: "xray.users.accounts.metadata.v1.list", Handle: handler.ListMetadata},
+		{Name: "Xray observed account export", SubjectSuffix: "xray.users.accounts.exports.v1.list", Handle: handler.Export},
+		{Name: "Xray account metadata lookup", SubjectSuffix: "xray.users.accounts.metadata.v1.get", Handle: handler.GetMetadata},
+		{Name: "Xray account compatibility", SubjectSuffix: "xray.users.accounts.compatibility.v1.get", Handle: handler.Compatibility},
 		{Name: "Xray account configuration preparation", SubjectSuffix: "xray.users.accounts.configurations.v1.prepare", Handle: handler.PrepareConfiguration},
 		{Name: "Xray account batch addition", SubjectSuffix: "xray.users.accounts.batches.v1.add", Handle: handler.AddMany},
 		{Name: "Xray account batch removal", SubjectSuffix: "xray.users.accounts.batches.v1.remove", Handle: handler.RemoveMany},

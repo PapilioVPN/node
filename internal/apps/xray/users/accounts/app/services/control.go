@@ -13,13 +13,15 @@ func (s *Service) Add(ctx context.Context, id, tag string, content []byte) (doma
 	if err := validators.Configuration(content); err != nil {
 		return domain.Operation{InstanceID: id, InboundTag: tag, Kind: "add", Effect: domain.NotApplied}, err
 	}
-	return s.mutate(ctx, id, tag, "add", "", func(c Client, _ uint64) (domain.NativeResult, error) { return c.Add(ctx, tag, content) })
+	return s.mutate(ctx, id, tag, "add", "", func(c Client, generation uint64) (domain.NativeResult, error) {
+		return s.checkedAdd(ctx, c, id, tag, generation, content)
+	})
 }
 func (s *Service) Remove(ctx context.Context, id, tag, email string) (domain.Operation, error) {
 	if err := validators.Email(email); err != nil {
 		return domain.Operation{InstanceID: id, InboundTag: tag, Kind: "remove", Email: email, Effect: domain.NotApplied}, err
 	}
-	return s.mutate(ctx, id, tag, "remove", email, func(c Client, _ uint64) (domain.NativeResult, error) { return c.Remove(ctx, tag, email) })
+	return s.mutate(ctx, id, tag, "remove", email, func(c Client, generation uint64) (domain.NativeResult, error) { return c.Remove(ctx, tag, email) })
 }
 func (s *Service) mutate(ctx context.Context, id, tag, kind, email string, invoke func(Client, uint64) (domain.NativeResult, error)) (operation domain.Operation, err error) {
 	operation = domain.Operation{InstanceID: id, InboundTag: tag, Kind: kind, Email: email, Effect: domain.NotApplied}
@@ -44,10 +46,14 @@ func (s *Service) mutate(ctx context.Context, id, tag, kind, email string, invok
 	if kind == "add" {
 		operation.Email = result.Email
 	}
+	operation.Guidance = result.Guidance
 	operation.Effect = result.Effect
 	operation.Acknowledged = result.Acknowledged
 	operation.RequiresInstanceRestart = result.RequiresInstanceRestart
 	err = s.observeMutation(ctx, &operation, nativeErr)
+	if operation.Guidance == nil {
+		operation.Guidance = guidance(err, operation.Effect)
+	}
 	return operation, err
 }
 func (s *Service) Status(ctx context.Context, id string) (domain.ControlStatus, error) {
@@ -69,7 +75,7 @@ func (s *Service) Status(ctx context.Context, id string) (domain.ControlStatus, 
 	defer selected.mu.Unlock()
 	result := domain.ControlStatus{InstanceID: id, Generation: state.Execution.Generation, ExecutionState: string(state.Execution.State), APIConfigured: selected.client != nil, RequestInFlight: selected.mutating, RequiresInstanceRestart: selected.uncertainGeneration != 0 && selected.uncertainGeneration == state.Execution.Generation, ObservedAt: time.Now().UTC()}
 	if selected.last != nil {
-		copy := *selected.last
+		copy := cloneOperation(*selected.last)
 		result.LastOperation = &copy
 	}
 	return result, nil

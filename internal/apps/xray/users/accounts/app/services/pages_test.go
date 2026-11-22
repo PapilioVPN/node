@@ -39,7 +39,7 @@ func TestStablePagesDoNotRepeatNativeReadAndBindSelectionViewAndExecution(t *tes
 			for i := range reader.users {
 				reader.users[i] = domain.Metadata{Email: fmt.Sprint(i % 3), AccountType: "native.Account"}
 			}
-			s, _ := services.New([]services.Binding{{ID: "a", Client: client{}, Reader: reader}, {ID: "b", Client: client{}, Reader: reader}}, e)
+			s, _ := newService([]services.Binding{{ID: "a", Client: client{}, Reader: reader}, {ID: "b", Client: client{}, Reader: reader}}, e)
 			p, err := s.ListMetadata(context.Background(), "a", "tag", domain.PageRequest{})
 			if err != nil {
 				t.Fatal(err)
@@ -73,5 +73,25 @@ func TestStablePagesDoNotRepeatNativeReadAndBindSelectionViewAndExecution(t *tes
 				}
 			}
 		})
+	}
+}
+
+func TestCompletedLocalMembershipChangeDoesNotRefreshAnExistingObservation(t *testing.T) {
+	e := &execution{state: instances.Running, generation: 1}
+	reader := &collections{users: make([]domain.Metadata, 51)}
+	c := client{add: func(context.Context, string, []byte) (domain.NativeResult, error) {
+		return domain.NativeResult{Effect: domain.Completed, Acknowledged: true}, nil
+	}}
+	s, _ := newService([]services.Binding{{ID: "a", Client: c, Reader: reader}}, e)
+	page, err := s.ListMetadata(context.Background(), "a", "tag", domain.PageRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.Add(context.Background(), "a", "tag", []byte("new account")); err != nil {
+		t.Fatal(err)
+	}
+	next, err := s.ListMetadata(context.Background(), "a", "tag", domain.PageRequest{Cursor: page.NextCursor})
+	if err != nil || len(next.Users) != 1 || reader.calls != 1 || next.ObservedAt != page.ObservedAt {
+		t.Fatal("membership write invalidated immutable observation", next, err, reader.calls)
 	}
 }

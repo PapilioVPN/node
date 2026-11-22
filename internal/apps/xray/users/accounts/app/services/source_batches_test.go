@@ -51,7 +51,7 @@ func TestSourceBatchCompilesOnceAndInvokesNativeOncePerAttemptedAccount(t *testi
 				calls++
 				return nil
 			}})
-			service, _ := services.New([]services.Binding{{ID: "a", Client: c}}, &execution{generation: 1, state: instances.Running})
+			service, _ := newService([]services.Binding{{ID: "a", Client: c}}, &execution{generation: 1, state: instances.Running})
 			sources, _ := services.NewSources(service, configuration.Preparer{Compiler: compiler})
 			result, err := sources.AddMany(context.Background(), "a", items, []configs.Source{{Name: "base.json", Content: []byte("base")}, {Name: "tail.json", Content: []byte("tail")}}, 1)
 			if err != nil || compiles != 1 || calls != size || len(result.Items) != size || result.Operation.Effect != domain.Completed {
@@ -88,7 +88,7 @@ func TestSourceBatchReportsSelectionAndNativePartialErrors(t *testing.T) {
 				c.Inbound = append(c.Inbound, &core.InboundHandlerConfig{Tag: "bad", ProxySettings: &serial.TypedMessage{Type: proxyType, Value: protowire.AppendBytes(protowire.AppendTag(nil, 1, protowire.BytesType), user)}})
 				compiled, _ = proto.Marshal(&c)
 			}
-			service, _ := services.New([]services.Binding{{ID: "a", Client: client{add: func(context.Context, string, []byte) (domain.NativeResult, error) {
+			service, _ := newService([]services.Binding{{ID: "a", Client: client{add: func(context.Context, string, []byte) (domain.NativeResult, error) {
 				calls++
 				if mode == "native" && calls == 2 {
 					return domain.NativeResult{Effect: domain.Unknown, RequiresInstanceRestart: true}, domain.ErrUncertain
@@ -121,7 +121,7 @@ func TestSourceBatchPreparationFailureCancellationAndReplacement(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 			compiles, calls, parallelism := 0, 0, 1
-			service, _ := services.New([]services.Binding{{ID: "a", Client: client{add: func(context.Context, string, []byte) (domain.NativeResult, error) {
+			service, _ := newService([]services.Binding{{ID: "a", Client: client{add: func(context.Context, string, []byte) (domain.NativeResult, error) {
 				calls++
 				return domain.NativeResult{}, nil
 			}}}}, e)

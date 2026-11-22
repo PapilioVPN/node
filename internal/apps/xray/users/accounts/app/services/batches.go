@@ -19,7 +19,7 @@ func (s *Service) AddMany(ctx context.Context, id string, items []domain.Additio
 	for i, item := range items {
 		ops[i] = domain.Operation{InstanceID: id, InboundTag: item.InboundTag, Kind: "add", Effect: domain.NotApplied}
 	}
-	return s.batch(ctx, id, "add_batch", ops, parallelism, nil, func(c Client, i int) (domain.NativeResult, error) {
+	return s.batch(ctx, id, "add_batch", ops, parallelism, func(results []domain.ItemResult) error { return s.checkBatch(ctx, id, items, results) }, func(c Client, i int) (domain.NativeResult, error) {
 		return c.Add(ctx, items[i].InboundTag, items[i].Configuration)
 	})
 }
@@ -62,8 +62,12 @@ func (s *Service) batch(ctx context.Context, id, kind string, operations []domai
 	defer reservation.finish(&result.Operation)
 	if prepare != nil {
 		if err := prepare(result.Items); err != nil {
+			if errors.Is(err, domain.ErrUncertain) {
+				result.Operation.RequiresInstanceRestart = true
+			}
 			for i := range result.Items {
 				result.Items[i].Err = err
+				result.Items[i].Operation.Guidance = guidance(err, domain.NotApplied)
 			}
 			return result, err
 		}
@@ -97,6 +101,7 @@ func (s *Service) batch(ctx context.Context, id, kind string, operations []domai
 			if cause != nil {
 				stopped.Store(true)
 			}
+			item.Operation.Guidance = native.Guidance
 			item.Operation.Effect = native.Effect
 			item.Operation.Acknowledged = native.Acknowledged
 			item.Operation.RequiresInstanceRestart = native.RequiresInstanceRestart
@@ -115,7 +120,14 @@ func (s *Service) batch(ctx context.Context, id, kind string, operations []domai
 
 	_ = running.Wait() // Every started native call is joined, including on failure.
 	completed, unknown := 0, false
-	for _, item := range result.Items {
+	for i := range result.Items {
+		item := &result.Items[i]
+		if item.Err != nil && item.Operation.Guidance == nil {
+			item.Operation.Guidance = guidance(item.Err, item.Operation.Effect)
+		}
+		if item.Operation.RequiresInstanceRestart && item.Operation.Guidance != nil {
+			item.Operation.Guidance.NextAction = "replace_execution_before_replay"
+		}
 		if !errors.Is(item.Err, domain.ErrNotAttempted) {
 			err = errors.Join(err, item.Err)
 		}

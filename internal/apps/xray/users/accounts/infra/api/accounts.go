@@ -57,7 +57,7 @@ func (c Client) Get(ctx context.Context, tag, email string) (*domain.Record, err
 	return &record, ctx.Err()
 }
 func decode(user *protocol.User) (domain.Record, error) {
-	if user == nil || user.Account == nil {
+	if user == nil || user.Account == nil || user.Account.Type == "" {
 		return domain.Record{}, domain.ErrInvalidResponse
 	}
 	content, err := proto.Marshal(user)

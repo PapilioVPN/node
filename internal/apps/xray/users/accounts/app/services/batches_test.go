@@ -25,7 +25,7 @@ func TestBatchesPreserveSameInboundOrderWithoutPreflightReads(t *testing.T) {
 				calls++
 				return domain.NativeResult{Effect: domain.Completed, Acknowledged: true}, nil
 			}}
-			s, _ := services.New([]services.Binding{{ID: "a", Client: c}}, &execution{generation: 1, state: instances.Running})
+			s, _ := newService([]services.Binding{{ID: "a", Client: c}}, &execution{generation: 1, state: instances.Running})
 			items := make([]domain.Removal, size)
 			for i := range items {
 				items[i] = domain.Removal{InboundTag: "members", Email: fmt.Sprint(i)}
@@ -62,7 +62,7 @@ func TestBatchOverlapsSameInboundAccountsAndExcludesConflicts(t *testing.T) {
 			return domain.NativeResult{Effect: domain.Unknown}, ctx.Err()
 		}
 	}}
-	s, _ := services.New([]services.Binding{{ID: "a", Client: c}}, &execution{generation: 1, state: instances.Running})
+	s, _ := newService([]services.Binding{{ID: "a", Client: c}}, &execution{generation: 1, state: instances.Running})
 	var items []domain.Removal
 	for i := range 8 {
 		items = append(items, domain.Removal{InboundTag: "members", Email: fmt.Sprint(i)})
@@ -106,7 +106,7 @@ func TestBatchStopsNewWorkButReportsAndJoinsInFlightEffects(t *testing.T) {
 		<-finish
 		return domain.NativeResult{Effect: domain.Completed, Acknowledged: true}, nil
 	}}
-	s, _ := services.New([]services.Binding{{ID: "a", Client: c}}, &execution{generation: 1, state: instances.Running})
+	s, _ := newService([]services.Binding{{ID: "a", Client: c}}, &execution{generation: 1, state: instances.Running})
 	done := make(chan domain.Batch, 1)
 	go func() {
 		result, err := s.RemoveMany(ctx, "a", []domain.Removal{{InboundTag: "first"}, {InboundTag: "second"}}, 2)
@@ -143,7 +143,7 @@ func TestBatchGenerationChangeAndInvalidShapesSubmitNoFurtherEffects(t *testing.
 		e.replace()
 		return domain.NativeResult{Effect: domain.Completed, Acknowledged: true}, nil
 	}}
-	s, _ := services.New([]services.Binding{{ID: "a", Client: c}}, e)
+	s, _ := newService([]services.Binding{{ID: "a", Client: c}}, e)
 	for _, input := range [][]domain.Addition{nil, {{InboundTag: "a", Configuration: []byte{1}}, {InboundTag: "", Configuration: []byte{1}}}, make([]domain.Addition, domain.MaxBatchItems+1)} {
 		if _, err := s.AddMany(context.Background(), "a", input, 1); err == nil || calls != 0 {
 			t.Fatal(err, calls)
@@ -165,7 +165,7 @@ func TestBatchSharesEightGlobalNativeMutationSlots(t *testing.T) {
 		<-ctx.Done()
 		return domain.NativeResult{Effect: domain.Unknown, RequiresInstanceRestart: true}, ctx.Err()
 	}}
-	s, _ := services.New([]services.Binding{{ID: "a", Client: c}, {ID: "b", Client: c}, {ID: "c", Client: c}}, &execution{generation: 1, state: instances.Running})
+	s, _ := newService([]services.Binding{{ID: "a", Client: c}, {ID: "b", Client: c}, {ID: "c", Client: c}}, &execution{generation: 1, state: instances.Running})
 	items := []domain.Removal{{InboundTag: "a"}, {InboundTag: "b"}, {InboundTag: "c"}, {InboundTag: "d"}}
 	for _, id := range []string{"a", "b"} {
 		running.Go(func() { _, _ = s.RemoveMany(ctx, id, items, 0) })
@@ -193,7 +193,7 @@ func TestOrderedBatchReportsKnownPartialEffectsAndUnattemptedTail(t *testing.T) 
 		}
 		return domain.NativeResult{Email: "first", Effect: domain.Completed, Acknowledged: true}, nil
 	}}
-	s, _ := services.New([]services.Binding{{ID: "a", Client: c}}, &execution{generation: 1, state: instances.Running})
+	s, _ := newService([]services.Binding{{ID: "a", Client: c}}, &execution{generation: 1, state: instances.Running})
 	items := []domain.Addition{{InboundTag: "members", Configuration: []byte{1}}, {InboundTag: "members", Configuration: []byte{255}}, {InboundTag: "members", Configuration: []byte{2}}}
 	result, err := s.AddMany(context.Background(), "a", items, 1)
 	if !errors.Is(err, domain.ErrInvalidArgument) || calls != 2 || result.Operation.Effect != domain.Partial || result.Operation.Acknowledged || result.Items[0].Operation.Effect != domain.Completed || result.Items[1].Operation.Effect != domain.NotApplied || result.Items[2].Attempted || !errors.Is(result.Items[2].Err, domain.ErrNotAttempted) {
@@ -217,7 +217,7 @@ func TestBatchCancellationJoinsAllActiveNativeWork(t *testing.T) {
 		<-ctx.Done()
 		return domain.NativeResult{Effect: domain.Unknown, RequiresInstanceRestart: true}, ctx.Err()
 	}}
-	s, _ := services.New([]services.Binding{{ID: "a", Client: c}}, &execution{generation: 1, state: instances.Running})
+	s, _ := newService([]services.Binding{{ID: "a", Client: c}}, &execution{generation: 1, state: instances.Running})
 	done := make(chan error, 1)
 	go func() {
 		_, err := s.RemoveMany(ctx, "a", []domain.Removal{{InboundTag: "a"}, {InboundTag: "a"}, {InboundTag: "a"}, {InboundTag: "a"}, {InboundTag: "a"}}, 4)
@@ -246,7 +246,7 @@ func TestBatchByteAndParallelismBoundsRejectBeforeNativeWork(t *testing.T) {
 		calls++
 		return domain.NativeResult{}, nil
 	}}
-	s, _ := services.New([]services.Binding{{ID: "a", Client: c}}, &execution{generation: 1, state: instances.Running})
+	s, _ := newService([]services.Binding{{ID: "a", Client: c}}, &execution{generation: 1, state: instances.Running})
 	large := make([]byte, domain.MaxAccountBytes)
 	items := []domain.Addition{{InboundTag: "a", Configuration: large}, {InboundTag: "a", Configuration: large}, {InboundTag: "a", Configuration: large}, {InboundTag: "a", Configuration: large}, {InboundTag: "a", Configuration: []byte{1}}}
 	if _, err := s.AddMany(context.Background(), "a", items, 1); !errors.Is(err, domain.ErrCapacity) || calls != 0 {

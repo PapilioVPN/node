@@ -23,7 +23,7 @@ func TestLostAccountMutationFencesReadsAndWritesUntilReplacement(t *testing.T) {
 		},
 		count: func(context.Context, string) (int64, error) { calls++; return 2, nil },
 	}
-	s, err := services.New([]services.Binding{{ID: "a", Client: c}}, e)
+	s, err := newService([]services.Binding{{ID: "a", Client: c}}, e)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -61,7 +61,7 @@ func TestAccountMutationBlocksConflictsWithoutBlockingLocalStatus(t *testing.T) 
 		<-ctx.Done()
 		return domain.NativeResult{Effect: domain.Unknown, RequiresInstanceRestart: true}, ctx.Err()
 	}}
-	s, err := services.New([]services.Binding{{ID: "a", Client: c}}, &execution{generation: 1, state: instances.Running})
+	s, err := newService([]services.Binding{{ID: "a", Client: c}}, &execution{generation: 1, state: instances.Running})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -92,7 +92,7 @@ func TestAccountGenerationChangeDoesNotClaimCurrentApplication(t *testing.T) {
 		e.replace()
 		return domain.NativeResult{Effect: domain.Completed, Acknowledged: true}, nil
 	}}
-	s, err := services.New([]services.Binding{{ID: "a", Client: c}}, e)
+	s, err := newService([]services.Binding{{ID: "a", Client: c}}, e)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -116,7 +116,7 @@ func TestGlobalAccountMutationCapacityIsBounded(t *testing.T) {
 	for i := range 9 {
 		bindings = append(bindings, services.Binding{ID: fmt.Sprintf("instance-%d", i), Client: c})
 	}
-	s, err := services.New(bindings, &execution{generation: 1, state: instances.Running})
+	s, err := newService(bindings, &execution{generation: 1, state: instances.Running})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -149,7 +149,7 @@ func TestRetainedControlEvidenceOwnsRequestSelectors(t *testing.T) {
 	c := client{remove: func(context.Context, string, string) (domain.NativeResult, error) {
 		return domain.NativeResult{Effect: domain.Completed, Acknowledged: true}, nil
 	}}
-	s, err := services.New([]services.Binding{{ID: "instance-a", Client: c}}, &execution{generation: 1, state: instances.Running})
+	s, err := newService([]services.Binding{{ID: "instance-a", Client: c}}, &execution{generation: 1, state: instances.Running})
 	if err != nil {
 		t.Fatal(err)
 	}

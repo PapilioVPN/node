@@ -35,7 +35,6 @@ type Binding struct {
 }
 type entry struct {
 	reader              CollectionReader
-	epoch               uint64
 	client              Client
 	mu                  sync.Mutex
 	readers             int
@@ -44,6 +43,8 @@ type entry struct {
 	last                *domain.Operation
 }
 type Service struct {
+	inbounds         InboundReader
+	inspector        AccountInspector
 	pages            observationStore
 	entries          map[string]*entry
 	status           StatusReader
@@ -51,11 +52,11 @@ type Service struct {
 }
 
 // New admits up to 32 reads globally and eight per instance without queueing.
-func New(bindings []Binding, status StatusReader) (*Service, error) {
-	if status == nil {
+func New(bindings []Binding, status StatusReader, inbounds InboundReader, inspector AccountInspector) (*Service, error) {
+	if status == nil || inbounds == nil || inspector == nil {
 		return nil, domain.ErrInvalidArgument
 	}
-	s := &Service{entries: make(map[string]*entry, len(bindings)), status: status, reads: make(chan struct{}, 32), mutations: make(chan struct{}, 8)}
+	s := &Service{inbounds: inbounds, inspector: inspector, entries: make(map[string]*entry, len(bindings)), status: status, reads: make(chan struct{}, 32), mutations: make(chan struct{}, 8)}
 	for _, b := range bindings {
 		if instancevalidators.ID(b.ID) != nil {
 			return nil, domain.ErrInvalidArgument

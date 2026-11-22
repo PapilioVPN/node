@@ -42,7 +42,7 @@ func (h Handler) Count(ctx context.Context, data []byte, headers nats.Header) []
 	if err != nil {
 		return failure(err)
 	}
-	if input.Email != nil {
+	if input.Email != nil || input.HasPage() || input.AccountType != nil {
 		return failure(domain.ErrInvalidArgument)
 	}
 	ctx, cancel, err := h.requestContext(ctx, headers)
@@ -65,7 +65,7 @@ func (h Handler) Get(ctx context.Context, data []byte, headers nats.Header) []by
 	if err != nil {
 		return failure(err)
 	}
-	if input.Email == nil {
+	if input.Email == nil || input.HasPage() || input.AccountType != nil {
 		return failure(domain.ErrInvalidArgument)
 	}
 	ctx, cancel, err := h.requestContext(ctx, headers)
@@ -92,6 +92,14 @@ func errorCode(err error) string {
 		code = "canceled"
 	case errors.Is(err, domain.ErrNotAttempted):
 		code = "not_attempted"
+	case errors.Is(err, domain.ErrStale):
+		code = "stale_observation"
+	case errors.Is(err, domain.ErrIncompatible):
+		code = "incompatible_account"
+	case errors.Is(err, domain.ErrInboundMissing):
+		code = "inbound_not_found"
+	case errors.Is(err, domain.ErrInboundAmbiguous):
+		code = "ambiguous_inbound"
 	case errors.Is(err, domain.ErrInvalidArgument):
 		code = "invalid_argument"
 	case errors.Is(err, domain.ErrNotFound):

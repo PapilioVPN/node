@@ -64,6 +64,14 @@ func failure(err error) error {
 		code, message = codes.DeadlineExceeded, "deadline_exceeded"
 	case errors.Is(err, context.Canceled):
 		code, message = codes.Canceled, "canceled"
+	case errors.Is(err, domain.ErrStale):
+		code, message = codes.Aborted, "stale_observation"
+	case errors.Is(err, domain.ErrIncompatible):
+		code, message = codes.FailedPrecondition, "incompatible_account"
+	case errors.Is(err, domain.ErrInboundMissing):
+		code, message = codes.NotFound, "inbound_not_found"
+	case errors.Is(err, domain.ErrInboundAmbiguous):
+		code, message = codes.FailedPrecondition, "ambiguous_inbound"
 	case errors.Is(err, domain.ErrInvalidArgument):
 		code, message = codes.InvalidArgument, "invalid_argument"
 	case errors.Is(err, domain.ErrNotFound):

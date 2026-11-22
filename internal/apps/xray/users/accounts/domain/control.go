@@ -13,6 +13,7 @@ const (
 )
 
 type NativeResult struct {
+	Guidance                *Guidance
 	Email                   string
 	Effect                  Effect
 	Acknowledged            bool
@@ -23,6 +24,7 @@ type NativeResult struct {
 // replacement. Removal does not promise termination of established connections;
 // each native protocol owns its actual membership/session semantics.
 type Operation struct {
+	Guidance                *Guidance
 	InstanceID              string
 	InboundTag              string
 	Generation              uint64

@@ -20,6 +20,10 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
+	AccountsService_ListAccountMetadata_FullMethodName         = "/papilio.xray.users.accounts.v1.AccountsService/ListAccountMetadata"
+	AccountsService_ExportAccounts_FullMethodName              = "/papilio.xray.users.accounts.v1.AccountsService/ExportAccounts"
+	AccountsService_GetAccountMetadata_FullMethodName          = "/papilio.xray.users.accounts.v1.AccountsService/GetAccountMetadata"
+	AccountsService_CheckAccountCompatibility_FullMethodName   = "/papilio.xray.users.accounts.v1.AccountsService/CheckAccountCompatibility"
 	AccountsService_PrepareAccountConfiguration_FullMethodName = "/papilio.xray.users.accounts.v1.AccountsService/PrepareAccountConfiguration"
 	AccountsService_AddAccounts_FullMethodName                 = "/papilio.xray.users.accounts.v1.AccountsService/AddAccounts"
 	AccountsService_RemoveAccounts_FullMethodName              = "/papilio.xray.users.accounts.v1.AccountsService/RemoveAccounts"
@@ -35,6 +39,10 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type AccountsServiceClient interface {
+	ListAccountMetadata(ctx context.Context, in *ListAccountMetadataRequest, opts ...grpc.CallOption) (*AccountMetadataPage, error)
+	ExportAccounts(ctx context.Context, in *ExportAccountsRequest, opts ...grpc.CallOption) (*AccountExportPage, error)
+	GetAccountMetadata(ctx context.Context, in *GetAccountRequest, opts ...grpc.CallOption) (*AccountMetadataObservation, error)
+	CheckAccountCompatibility(ctx context.Context, in *CheckAccountCompatibilityRequest, opts ...grpc.CallOption) (*AccountCompatibility, error)
 	PrepareAccountConfiguration(ctx context.Context, in *PrepareAccountConfigurationRequest, opts ...grpc.CallOption) (*v1.CompiledConfiguration, error)
 	AddAccounts(ctx context.Context, in *AddAccountsRequest, opts ...grpc.CallOption) (*AccountBatch, error)
 	RemoveAccounts(ctx context.Context, in *RemoveAccountsRequest, opts ...grpc.CallOption) (*AccountBatch, error)
@@ -56,6 +64,46 @@ type accountsServiceClient struct {
 
 func NewAccountsServiceClient(cc grpc.ClientConnInterface) AccountsServiceClient {
 	return &accountsServiceClient{cc}
+}
+
+func (c *accountsServiceClient) ListAccountMetadata(ctx context.Context, in *ListAccountMetadataRequest, opts ...grpc.CallOption) (*AccountMetadataPage, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AccountMetadataPage)
+	err := c.cc.Invoke(ctx, AccountsService_ListAccountMetadata_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *accountsServiceClient) ExportAccounts(ctx context.Context, in *ExportAccountsRequest, opts ...grpc.CallOption) (*AccountExportPage, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AccountExportPage)
+	err := c.cc.Invoke(ctx, AccountsService_ExportAccounts_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *accountsServiceClient) GetAccountMetadata(ctx context.Context, in *GetAccountRequest, opts ...grpc.CallOption) (*AccountMetadataObservation, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AccountMetadataObservation)
+	err := c.cc.Invoke(ctx, AccountsService_GetAccountMetadata_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *accountsServiceClient) CheckAccountCompatibility(ctx context.Context, in *CheckAccountCompatibilityRequest, opts ...grpc.CallOption) (*AccountCompatibility, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AccountCompatibility)
+	err := c.cc.Invoke(ctx, AccountsService_CheckAccountCompatibility_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *accountsServiceClient) PrepareAccountConfiguration(ctx context.Context, in *PrepareAccountConfigurationRequest, opts ...grpc.CallOption) (*v1.CompiledConfiguration, error) {
@@ -152,6 +200,10 @@ func (c *accountsServiceClient) GetAccount(ctx context.Context, in *GetAccountRe
 // All implementations must embed UnimplementedAccountsServiceServer
 // for forward compatibility.
 type AccountsServiceServer interface {
+	ListAccountMetadata(context.Context, *ListAccountMetadataRequest) (*AccountMetadataPage, error)
+	ExportAccounts(context.Context, *ExportAccountsRequest) (*AccountExportPage, error)
+	GetAccountMetadata(context.Context, *GetAccountRequest) (*AccountMetadataObservation, error)
+	CheckAccountCompatibility(context.Context, *CheckAccountCompatibilityRequest) (*AccountCompatibility, error)
 	PrepareAccountConfiguration(context.Context, *PrepareAccountConfigurationRequest) (*v1.CompiledConfiguration, error)
 	AddAccounts(context.Context, *AddAccountsRequest) (*AccountBatch, error)
 	RemoveAccounts(context.Context, *RemoveAccountsRequest) (*AccountBatch, error)
@@ -175,6 +227,18 @@ type AccountsServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedAccountsServiceServer struct{}
 
+func (UnimplementedAccountsServiceServer) ListAccountMetadata(context.Context, *ListAccountMetadataRequest) (*AccountMetadataPage, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListAccountMetadata not implemented")
+}
+func (UnimplementedAccountsServiceServer) ExportAccounts(context.Context, *ExportAccountsRequest) (*AccountExportPage, error) {
+	return nil, status.Error(codes.Unimplemented, "method ExportAccounts not implemented")
+}
+func (UnimplementedAccountsServiceServer) GetAccountMetadata(context.Context, *GetAccountRequest) (*AccountMetadataObservation, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetAccountMetadata not implemented")
+}
+func (UnimplementedAccountsServiceServer) CheckAccountCompatibility(context.Context, *CheckAccountCompatibilityRequest) (*AccountCompatibility, error) {
+	return nil, status.Error(codes.Unimplemented, "method CheckAccountCompatibility not implemented")
+}
 func (UnimplementedAccountsServiceServer) PrepareAccountConfiguration(context.Context, *PrepareAccountConfigurationRequest) (*v1.CompiledConfiguration, error) {
 	return nil, status.Error(codes.Unimplemented, "method PrepareAccountConfiguration not implemented")
 }
@@ -221,6 +285,78 @@ func RegisterAccountsServiceServer(s grpc.ServiceRegistrar, srv AccountsServiceS
 		t.testEmbeddedByValue()
 	}
 	s.RegisterService(&AccountsService_ServiceDesc, srv)
+}
+
+func _AccountsService_ListAccountMetadata_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListAccountMetadataRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AccountsServiceServer).ListAccountMetadata(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AccountsService_ListAccountMetadata_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AccountsServiceServer).ListAccountMetadata(ctx, req.(*ListAccountMetadataRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AccountsService_ExportAccounts_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ExportAccountsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AccountsServiceServer).ExportAccounts(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AccountsService_ExportAccounts_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AccountsServiceServer).ExportAccounts(ctx, req.(*ExportAccountsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AccountsService_GetAccountMetadata_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetAccountRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AccountsServiceServer).GetAccountMetadata(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AccountsService_GetAccountMetadata_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AccountsServiceServer).GetAccountMetadata(ctx, req.(*GetAccountRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AccountsService_CheckAccountCompatibility_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CheckAccountCompatibilityRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AccountsServiceServer).CheckAccountCompatibility(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AccountsService_CheckAccountCompatibility_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AccountsServiceServer).CheckAccountCompatibility(ctx, req.(*CheckAccountCompatibilityRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _AccountsService_PrepareAccountConfiguration_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -392,6 +528,22 @@ var AccountsService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "papilio.xray.users.accounts.v1.AccountsService",
 	HandlerType: (*AccountsServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "ListAccountMetadata",
+			Handler:    _AccountsService_ListAccountMetadata_Handler,
+		},
+		{
+			MethodName: "ExportAccounts",
+			Handler:    _AccountsService_ExportAccounts_Handler,
+		},
+		{
+			MethodName: "GetAccountMetadata",
+			Handler:    _AccountsService_GetAccountMetadata_Handler,
+		},
+		{
+			MethodName: "CheckAccountCompatibility",
+			Handler:    _AccountsService_CheckAccountCompatibility_Handler,
+		},
 		{
 			MethodName: "PrepareAccountConfiguration",
 			Handler:    _AccountsService_PrepareAccountConfiguration_Handler,

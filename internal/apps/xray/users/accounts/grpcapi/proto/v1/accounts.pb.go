@@ -385,6 +385,640 @@ func (x *AccountObservation) GetUser() *Account {
 	return nil
 }
 
+// One full native read per retained observation, with no native cursor or limit.
+// Continuations bind instance, inbound, view and page size and expire after 30s.
+type ListAccountMetadataRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	InstanceId    string                 `protobuf:"bytes,1,opt,name=instance_id,json=instanceId,proto3" json:"instance_id,omitempty"`
+	InboundTag    string                 `protobuf:"bytes,2,opt,name=inbound_tag,json=inboundTag,proto3" json:"inbound_tag,omitempty"`
+	PageSize      uint32                 `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	Cursor        string                 `protobuf:"bytes,4,opt,name=cursor,proto3" json:"cursor,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListAccountMetadataRequest) Reset() {
+	*x = ListAccountMetadataRequest{}
+	mi := &file_internal_apps_xray_users_accounts_grpcapi_proto_v1_accounts_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListAccountMetadataRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListAccountMetadataRequest) ProtoMessage() {}
+
+func (x *ListAccountMetadataRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_apps_xray_users_accounts_grpcapi_proto_v1_accounts_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListAccountMetadataRequest.ProtoReflect.Descriptor instead.
+func (*ListAccountMetadataRequest) Descriptor() ([]byte, []int) {
+	return file_internal_apps_xray_users_accounts_grpcapi_proto_v1_accounts_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *ListAccountMetadataRequest) GetInstanceId() string {
+	if x != nil {
+		return x.InstanceId
+	}
+	return ""
+}
+
+func (x *ListAccountMetadataRequest) GetInboundTag() string {
+	if x != nil {
+		return x.InboundTag
+	}
+	return ""
+}
+
+func (x *ListAccountMetadataRequest) GetPageSize() uint32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *ListAccountMetadataRequest) GetCursor() string {
+	if x != nil {
+		return x.Cursor
+	}
+	return ""
+}
+
+type ExportAccountsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	InstanceId    string                 `protobuf:"bytes,1,opt,name=instance_id,json=instanceId,proto3" json:"instance_id,omitempty"`
+	InboundTag    string                 `protobuf:"bytes,2,opt,name=inbound_tag,json=inboundTag,proto3" json:"inbound_tag,omitempty"`
+	PageSize      uint32                 `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	Cursor        string                 `protobuf:"bytes,4,opt,name=cursor,proto3" json:"cursor,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ExportAccountsRequest) Reset() {
+	*x = ExportAccountsRequest{}
+	mi := &file_internal_apps_xray_users_accounts_grpcapi_proto_v1_accounts_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ExportAccountsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ExportAccountsRequest) ProtoMessage() {}
+
+func (x *ExportAccountsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_apps_xray_users_accounts_grpcapi_proto_v1_accounts_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ExportAccountsRequest.ProtoReflect.Descriptor instead.
+func (*ExportAccountsRequest) Descriptor() ([]byte, []int) {
+	return file_internal_apps_xray_users_accounts_grpcapi_proto_v1_accounts_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *ExportAccountsRequest) GetInstanceId() string {
+	if x != nil {
+		return x.InstanceId
+	}
+	return ""
+}
+
+func (x *ExportAccountsRequest) GetInboundTag() string {
+	if x != nil {
+		return x.InboundTag
+	}
+	return ""
+}
+
+func (x *ExportAccountsRequest) GetPageSize() uint32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *ExportAccountsRequest) GetCursor() string {
+	if x != nil {
+		return x.Cursor
+	}
+	return ""
+}
+
+type AccountMetadata struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Email         string                 `protobuf:"bytes,1,opt,name=email,proto3" json:"email,omitempty"`
+	Level         uint32                 `protobuf:"varint,2,opt,name=level,proto3" json:"level,omitempty"`
+	AccountType   string                 `protobuf:"bytes,3,opt,name=account_type,json=accountType,proto3" json:"account_type,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AccountMetadata) Reset() {
+	*x = AccountMetadata{}
+	mi := &file_internal_apps_xray_users_accounts_grpcapi_proto_v1_accounts_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AccountMetadata) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AccountMetadata) ProtoMessage() {}
+
+func (x *AccountMetadata) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_apps_xray_users_accounts_grpcapi_proto_v1_accounts_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AccountMetadata.ProtoReflect.Descriptor instead.
+func (*AccountMetadata) Descriptor() ([]byte, []int) {
+	return file_internal_apps_xray_users_accounts_grpcapi_proto_v1_accounts_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *AccountMetadata) GetEmail() string {
+	if x != nil {
+		return x.Email
+	}
+	return ""
+}
+
+func (x *AccountMetadata) GetLevel() uint32 {
+	if x != nil {
+		return x.Level
+	}
+	return 0
+}
+
+func (x *AccountMetadata) GetAccountType() string {
+	if x != nil {
+		return x.AccountType
+	}
+	return ""
+}
+
+type AccountMetadataObservation struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Observation    *Observation           `protobuf:"bytes,1,opt,name=observation,proto3" json:"observation,omitempty"`
+	RequestedEmail string                 `protobuf:"bytes,2,opt,name=requested_email,json=requestedEmail,proto3" json:"requested_email,omitempty"`
+	User           *AccountMetadata       `protobuf:"bytes,3,opt,name=user,proto3" json:"user,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *AccountMetadataObservation) Reset() {
+	*x = AccountMetadataObservation{}
+	mi := &file_internal_apps_xray_users_accounts_grpcapi_proto_v1_accounts_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AccountMetadataObservation) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AccountMetadataObservation) ProtoMessage() {}
+
+func (x *AccountMetadataObservation) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_apps_xray_users_accounts_grpcapi_proto_v1_accounts_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AccountMetadataObservation.ProtoReflect.Descriptor instead.
+func (*AccountMetadataObservation) Descriptor() ([]byte, []int) {
+	return file_internal_apps_xray_users_accounts_grpcapi_proto_v1_accounts_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *AccountMetadataObservation) GetObservation() *Observation {
+	if x != nil {
+		return x.Observation
+	}
+	return nil
+}
+
+func (x *AccountMetadataObservation) GetRequestedEmail() string {
+	if x != nil {
+		return x.RequestedEmail
+	}
+	return ""
+}
+
+func (x *AccountMetadataObservation) GetUser() *AccountMetadata {
+	if x != nil {
+		return x.User
+	}
+	return nil
+}
+
+type AccountReadCost struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Complete uncompressed native protobuf payload, including credentials fetched
+	// by the native API even when only metadata is returned. Not a heap ceiling.
+	NativePayloadBytes uint64 `protobuf:"varint,1,opt,name=native_payload_bytes,json=nativePayloadBytes,proto3" json:"native_payload_bytes,omitempty"`
+	NativeDurationNs   int64  `protobuf:"varint,2,opt,name=native_duration_ns,json=nativeDurationNs,proto3" json:"native_duration_ns,omitempty"`
+	NativeLimitBytes   uint64 `protobuf:"varint,3,opt,name=native_limit_bytes,json=nativeLimitBytes,proto3" json:"native_limit_bytes,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *AccountReadCost) Reset() {
+	*x = AccountReadCost{}
+	mi := &file_internal_apps_xray_users_accounts_grpcapi_proto_v1_accounts_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AccountReadCost) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AccountReadCost) ProtoMessage() {}
+
+func (x *AccountReadCost) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_apps_xray_users_accounts_grpcapi_proto_v1_accounts_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AccountReadCost.ProtoReflect.Descriptor instead.
+func (*AccountReadCost) Descriptor() ([]byte, []int) {
+	return file_internal_apps_xray_users_accounts_grpcapi_proto_v1_accounts_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *AccountReadCost) GetNativePayloadBytes() uint64 {
+	if x != nil {
+		return x.NativePayloadBytes
+	}
+	return 0
+}
+
+func (x *AccountReadCost) GetNativeDurationNs() int64 {
+	if x != nil {
+		return x.NativeDurationNs
+	}
+	return 0
+}
+
+func (x *AccountReadCost) GetNativeLimitBytes() uint64 {
+	if x != nil {
+		return x.NativeLimitBytes
+	}
+	return 0
+}
+
+type AccountMetadataPage struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Observation   *Observation           `protobuf:"bytes,1,opt,name=observation,proto3" json:"observation,omitempty"`
+	Users         []*AccountMetadata     `protobuf:"bytes,2,rep,name=users,proto3" json:"users,omitempty"`
+	NextCursor    string                 `protobuf:"bytes,3,opt,name=next_cursor,json=nextCursor,proto3" json:"next_cursor,omitempty"`
+	ExpiresAt     *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
+	ReadCost      *AccountReadCost       `protobuf:"bytes,5,opt,name=read_cost,json=readCost,proto3" json:"read_cost,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AccountMetadataPage) Reset() {
+	*x = AccountMetadataPage{}
+	mi := &file_internal_apps_xray_users_accounts_grpcapi_proto_v1_accounts_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AccountMetadataPage) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AccountMetadataPage) ProtoMessage() {}
+
+func (x *AccountMetadataPage) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_apps_xray_users_accounts_grpcapi_proto_v1_accounts_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AccountMetadataPage.ProtoReflect.Descriptor instead.
+func (*AccountMetadataPage) Descriptor() ([]byte, []int) {
+	return file_internal_apps_xray_users_accounts_grpcapi_proto_v1_accounts_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *AccountMetadataPage) GetObservation() *Observation {
+	if x != nil {
+		return x.Observation
+	}
+	return nil
+}
+
+func (x *AccountMetadataPage) GetUsers() []*AccountMetadata {
+	if x != nil {
+		return x.Users
+	}
+	return nil
+}
+
+func (x *AccountMetadataPage) GetNextCursor() string {
+	if x != nil {
+		return x.NextCursor
+	}
+	return ""
+}
+
+func (x *AccountMetadataPage) GetExpiresAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ExpiresAt
+	}
+	return nil
+}
+
+func (x *AccountMetadataPage) GetReadCost() *AccountReadCost {
+	if x != nil {
+		return x.ReadCost
+	}
+	return nil
+}
+
+// Explicit credential export: observed UserManager records, not original desired
+// configuration. Protocols can omit constructor fields or anonymous users.
+type AccountExportPage struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Observation   *Observation           `protobuf:"bytes,1,opt,name=observation,proto3" json:"observation,omitempty"`
+	Users         []*Account             `protobuf:"bytes,2,rep,name=users,proto3" json:"users,omitempty"`
+	NextCursor    string                 `protobuf:"bytes,3,opt,name=next_cursor,json=nextCursor,proto3" json:"next_cursor,omitempty"`
+	ExpiresAt     *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
+	ReadCost      *AccountReadCost       `protobuf:"bytes,5,opt,name=read_cost,json=readCost,proto3" json:"read_cost,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AccountExportPage) Reset() {
+	*x = AccountExportPage{}
+	mi := &file_internal_apps_xray_users_accounts_grpcapi_proto_v1_accounts_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AccountExportPage) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AccountExportPage) ProtoMessage() {}
+
+func (x *AccountExportPage) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_apps_xray_users_accounts_grpcapi_proto_v1_accounts_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AccountExportPage.ProtoReflect.Descriptor instead.
+func (*AccountExportPage) Descriptor() ([]byte, []int) {
+	return file_internal_apps_xray_users_accounts_grpcapi_proto_v1_accounts_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *AccountExportPage) GetObservation() *Observation {
+	if x != nil {
+		return x.Observation
+	}
+	return nil
+}
+
+func (x *AccountExportPage) GetUsers() []*Account {
+	if x != nil {
+		return x.Users
+	}
+	return nil
+}
+
+func (x *AccountExportPage) GetNextCursor() string {
+	if x != nil {
+		return x.NextCursor
+	}
+	return ""
+}
+
+func (x *AccountExportPage) GetExpiresAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ExpiresAt
+	}
+	return nil
+}
+
+func (x *AccountExportPage) GetReadCost() *AccountReadCost {
+	if x != nil {
+		return x.ReadCost
+	}
+	return nil
+}
+
+type CheckAccountCompatibilityRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	InstanceId    string                 `protobuf:"bytes,1,opt,name=instance_id,json=instanceId,proto3" json:"instance_id,omitempty"`
+	InboundTag    string                 `protobuf:"bytes,2,opt,name=inbound_tag,json=inboundTag,proto3" json:"inbound_tag,omitempty"`
+	AccountType   *string                `protobuf:"bytes,3,opt,name=account_type,json=accountType,proto3,oneof" json:"account_type,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CheckAccountCompatibilityRequest) Reset() {
+	*x = CheckAccountCompatibilityRequest{}
+	mi := &file_internal_apps_xray_users_accounts_grpcapi_proto_v1_accounts_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CheckAccountCompatibilityRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CheckAccountCompatibilityRequest) ProtoMessage() {}
+
+func (x *CheckAccountCompatibilityRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_apps_xray_users_accounts_grpcapi_proto_v1_accounts_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CheckAccountCompatibilityRequest.ProtoReflect.Descriptor instead.
+func (*CheckAccountCompatibilityRequest) Descriptor() ([]byte, []int) {
+	return file_internal_apps_xray_users_accounts_grpcapi_proto_v1_accounts_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *CheckAccountCompatibilityRequest) GetInstanceId() string {
+	if x != nil {
+		return x.InstanceId
+	}
+	return ""
+}
+
+func (x *CheckAccountCompatibilityRequest) GetInboundTag() string {
+	if x != nil {
+		return x.InboundTag
+	}
+	return ""
+}
+
+func (x *CheckAccountCompatibilityRequest) GetAccountType() string {
+	if x != nil && x.AccountType != nil {
+		return *x.AccountType
+	}
+	return ""
+}
+
+type AccountCompatibility struct {
+	state                protoimpl.MessageState `protogen:"open.v1"`
+	Observation          *Observation           `protobuf:"bytes,1,opt,name=observation,proto3" json:"observation,omitempty"`
+	Protocol             string                 `protobuf:"bytes,2,opt,name=protocol,proto3" json:"protocol,omitempty"`
+	ExpectedAccountType  string                 `protobuf:"bytes,3,opt,name=expected_account_type,json=expectedAccountType,proto3" json:"expected_account_type,omitempty"`
+	LiveAccounts         bool                   `protobuf:"varint,4,opt,name=live_accounts,json=liveAccounts,proto3" json:"live_accounts,omitempty"`
+	EmailMatching        string                 `protobuf:"bytes,5,opt,name=email_matching,json=emailMatching,proto3" json:"email_matching,omitempty"`
+	RequestedAccountType *string                `protobuf:"bytes,6,opt,name=requested_account_type,json=requestedAccountType,proto3,oneof" json:"requested_account_type,omitempty"`
+	Compatible           *bool                  `protobuf:"varint,7,opt,name=compatible,proto3,oneof" json:"compatible,omitempty"`
+	Guidance             *AccountGuidance       `protobuf:"bytes,8,opt,name=guidance,proto3" json:"guidance,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
+}
+
+func (x *AccountCompatibility) Reset() {
+	*x = AccountCompatibility{}
+	mi := &file_internal_apps_xray_users_accounts_grpcapi_proto_v1_accounts_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AccountCompatibility) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AccountCompatibility) ProtoMessage() {}
+
+func (x *AccountCompatibility) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_apps_xray_users_accounts_grpcapi_proto_v1_accounts_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AccountCompatibility.ProtoReflect.Descriptor instead.
+func (*AccountCompatibility) Descriptor() ([]byte, []int) {
+	return file_internal_apps_xray_users_accounts_grpcapi_proto_v1_accounts_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *AccountCompatibility) GetObservation() *Observation {
+	if x != nil {
+		return x.Observation
+	}
+	return nil
+}
+
+func (x *AccountCompatibility) GetProtocol() string {
+	if x != nil {
+		return x.Protocol
+	}
+	return ""
+}
+
+func (x *AccountCompatibility) GetExpectedAccountType() string {
+	if x != nil {
+		return x.ExpectedAccountType
+	}
+	return ""
+}
+
+func (x *AccountCompatibility) GetLiveAccounts() bool {
+	if x != nil {
+		return x.LiveAccounts
+	}
+	return false
+}
+
+func (x *AccountCompatibility) GetEmailMatching() string {
+	if x != nil {
+		return x.EmailMatching
+	}
+	return ""
+}
+
+func (x *AccountCompatibility) GetRequestedAccountType() string {
+	if x != nil && x.RequestedAccountType != nil {
+		return *x.RequestedAccountType
+	}
+	return ""
+}
+
+func (x *AccountCompatibility) GetCompatible() bool {
+	if x != nil && x.Compatible != nil {
+		return *x.Compatible
+	}
+	return false
+}
+
+func (x *AccountCompatibility) GetGuidance() *AccountGuidance {
+	if x != nil {
+		return x.Guidance
+	}
+	return nil
+}
+
 var File_internal_apps_xray_users_accounts_grpcapi_proto_v1_accounts_proto protoreflect.FileDescriptor
 
 const file_internal_apps_xray_users_accounts_grpcapi_proto_v1_accounts_proto_rawDesc = "" +
@@ -423,8 +1057,74 @@ const file_internal_apps_xray_users_accounts_grpcapi_proto_v1_accounts_proto_raw
 	"\x12AccountObservation\x12M\n" +
 	"\vobservation\x18\x01 \x01(\v2+.papilio.xray.users.accounts.v1.ObservationR\vobservation\x12'\n" +
 	"\x0frequested_email\x18\x02 \x01(\tR\x0erequestedEmail\x12;\n" +
-	"\x04user\x18\x03 \x01(\v2'.papilio.xray.users.accounts.v1.AccountR\x04user2\x8b\t\n" +
-	"\x0fAccountsService\x12\x99\x01\n" +
+	"\x04user\x18\x03 \x01(\v2'.papilio.xray.users.accounts.v1.AccountR\x04user\"\x93\x01\n" +
+	"\x1aListAccountMetadataRequest\x12\x1f\n" +
+	"\vinstance_id\x18\x01 \x01(\tR\n" +
+	"instanceId\x12\x1f\n" +
+	"\vinbound_tag\x18\x02 \x01(\tR\n" +
+	"inboundTag\x12\x1b\n" +
+	"\tpage_size\x18\x03 \x01(\rR\bpageSize\x12\x16\n" +
+	"\x06cursor\x18\x04 \x01(\tR\x06cursor\"\x8e\x01\n" +
+	"\x15ExportAccountsRequest\x12\x1f\n" +
+	"\vinstance_id\x18\x01 \x01(\tR\n" +
+	"instanceId\x12\x1f\n" +
+	"\vinbound_tag\x18\x02 \x01(\tR\n" +
+	"inboundTag\x12\x1b\n" +
+	"\tpage_size\x18\x03 \x01(\rR\bpageSize\x12\x16\n" +
+	"\x06cursor\x18\x04 \x01(\tR\x06cursor\"`\n" +
+	"\x0fAccountMetadata\x12\x14\n" +
+	"\x05email\x18\x01 \x01(\tR\x05email\x12\x14\n" +
+	"\x05level\x18\x02 \x01(\rR\x05level\x12!\n" +
+	"\faccount_type\x18\x03 \x01(\tR\vaccountType\"\xd9\x01\n" +
+	"\x1aAccountMetadataObservation\x12M\n" +
+	"\vobservation\x18\x01 \x01(\v2+.papilio.xray.users.accounts.v1.ObservationR\vobservation\x12'\n" +
+	"\x0frequested_email\x18\x02 \x01(\tR\x0erequestedEmail\x12C\n" +
+	"\x04user\x18\x03 \x01(\v2/.papilio.xray.users.accounts.v1.AccountMetadataR\x04user\"\x9f\x01\n" +
+	"\x0fAccountReadCost\x120\n" +
+	"\x14native_payload_bytes\x18\x01 \x01(\x04R\x12nativePayloadBytes\x12,\n" +
+	"\x12native_duration_ns\x18\x02 \x01(\x03R\x10nativeDurationNs\x12,\n" +
+	"\x12native_limit_bytes\x18\x03 \x01(\x04R\x10nativeLimitBytes\"\xd5\x02\n" +
+	"\x13AccountMetadataPage\x12M\n" +
+	"\vobservation\x18\x01 \x01(\v2+.papilio.xray.users.accounts.v1.ObservationR\vobservation\x12E\n" +
+	"\x05users\x18\x02 \x03(\v2/.papilio.xray.users.accounts.v1.AccountMetadataR\x05users\x12\x1f\n" +
+	"\vnext_cursor\x18\x03 \x01(\tR\n" +
+	"nextCursor\x129\n" +
+	"\n" +
+	"expires_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\x12L\n" +
+	"\tread_cost\x18\x05 \x01(\v2/.papilio.xray.users.accounts.v1.AccountReadCostR\breadCost\"\xcb\x02\n" +
+	"\x11AccountExportPage\x12M\n" +
+	"\vobservation\x18\x01 \x01(\v2+.papilio.xray.users.accounts.v1.ObservationR\vobservation\x12=\n" +
+	"\x05users\x18\x02 \x03(\v2'.papilio.xray.users.accounts.v1.AccountR\x05users\x12\x1f\n" +
+	"\vnext_cursor\x18\x03 \x01(\tR\n" +
+	"nextCursor\x129\n" +
+	"\n" +
+	"expires_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\x12L\n" +
+	"\tread_cost\x18\x05 \x01(\v2/.papilio.xray.users.accounts.v1.AccountReadCostR\breadCost\"\x9d\x01\n" +
+	" CheckAccountCompatibilityRequest\x12\x1f\n" +
+	"\vinstance_id\x18\x01 \x01(\tR\n" +
+	"instanceId\x12\x1f\n" +
+	"\vinbound_tag\x18\x02 \x01(\tR\n" +
+	"inboundTag\x12&\n" +
+	"\faccount_type\x18\x03 \x01(\tH\x00R\vaccountType\x88\x01\x01B\x0f\n" +
+	"\r_account_type\"\xd8\x03\n" +
+	"\x14AccountCompatibility\x12M\n" +
+	"\vobservation\x18\x01 \x01(\v2+.papilio.xray.users.accounts.v1.ObservationR\vobservation\x12\x1a\n" +
+	"\bprotocol\x18\x02 \x01(\tR\bprotocol\x122\n" +
+	"\x15expected_account_type\x18\x03 \x01(\tR\x13expectedAccountType\x12#\n" +
+	"\rlive_accounts\x18\x04 \x01(\bR\fliveAccounts\x12%\n" +
+	"\x0eemail_matching\x18\x05 \x01(\tR\remailMatching\x129\n" +
+	"\x16requested_account_type\x18\x06 \x01(\tH\x00R\x14requestedAccountType\x88\x01\x01\x12#\n" +
+	"\n" +
+	"compatible\x18\a \x01(\bH\x01R\n" +
+	"compatible\x88\x01\x01\x12K\n" +
+	"\bguidance\x18\b \x01(\v2/.papilio.xray.users.accounts.v1.AccountGuidanceR\bguidanceB\x19\n" +
+	"\x17_requested_account_typeB\r\n" +
+	"\v_compatible2\xac\r\n" +
+	"\x0fAccountsService\x12\x86\x01\n" +
+	"\x13ListAccountMetadata\x12:.papilio.xray.users.accounts.v1.ListAccountMetadataRequest\x1a3.papilio.xray.users.accounts.v1.AccountMetadataPage\x12z\n" +
+	"\x0eExportAccounts\x125.papilio.xray.users.accounts.v1.ExportAccountsRequest\x1a1.papilio.xray.users.accounts.v1.AccountExportPage\x12\x83\x01\n" +
+	"\x12GetAccountMetadata\x121.papilio.xray.users.accounts.v1.GetAccountRequest\x1a:.papilio.xray.users.accounts.v1.AccountMetadataObservation\x12\x93\x01\n" +
+	"\x19CheckAccountCompatibility\x12@.papilio.xray.users.accounts.v1.CheckAccountCompatibilityRequest\x1a4.papilio.xray.users.accounts.v1.AccountCompatibility\x12\x99\x01\n" +
 	"\x1bPrepareAccountConfiguration\x12B.papilio.xray.users.accounts.v1.PrepareAccountConfigurationRequest\x1a6.papilio.xray.runtime.configs.v1.CompiledConfiguration\x12o\n" +
 	"\vAddAccounts\x122.papilio.xray.users.accounts.v1.AddAccountsRequest\x1a,.papilio.xray.users.accounts.v1.AccountBatch\x12u\n" +
 	"\x0eRemoveAccounts\x125.papilio.xray.users.accounts.v1.RemoveAccountsRequest\x1a,.papilio.xray.users.accounts.v1.AccountBatch\x12\x87\x01\n" +
@@ -449,7 +1149,7 @@ func file_internal_apps_xray_users_accounts_grpcapi_proto_v1_accounts_proto_rawD
 	return file_internal_apps_xray_users_accounts_grpcapi_proto_v1_accounts_proto_rawDescData
 }
 
-var file_internal_apps_xray_users_accounts_grpcapi_proto_v1_accounts_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_internal_apps_xray_users_accounts_grpcapi_proto_v1_accounts_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
 var file_internal_apps_xray_users_accounts_grpcapi_proto_v1_accounts_proto_goTypes = []any{
 	(*GetAccountCountRequest)(nil),             // 0: papilio.xray.users.accounts.v1.GetAccountCountRequest
 	(*GetAccountRequest)(nil),                  // 1: papilio.xray.users.accounts.v1.GetAccountRequest
@@ -457,47 +1157,77 @@ var file_internal_apps_xray_users_accounts_grpcapi_proto_v1_accounts_proto_goTyp
 	(*AccountCount)(nil),                       // 3: papilio.xray.users.accounts.v1.AccountCount
 	(*Account)(nil),                            // 4: papilio.xray.users.accounts.v1.Account
 	(*AccountObservation)(nil),                 // 5: papilio.xray.users.accounts.v1.AccountObservation
-	(*timestamppb.Timestamp)(nil),              // 6: google.protobuf.Timestamp
-	(*PrepareAccountConfigurationRequest)(nil), // 7: papilio.xray.users.accounts.v1.PrepareAccountConfigurationRequest
-	(*AddAccountsRequest)(nil),                 // 8: papilio.xray.users.accounts.v1.AddAccountsRequest
-	(*RemoveAccountsRequest)(nil),              // 9: papilio.xray.users.accounts.v1.RemoveAccountsRequest
-	(*AddAccountFromSourcesRequest)(nil),       // 10: papilio.xray.users.accounts.v1.AddAccountFromSourcesRequest
-	(*AddAccountRequest)(nil),                  // 11: papilio.xray.users.accounts.v1.AddAccountRequest
-	(*RemoveAccountRequest)(nil),               // 12: papilio.xray.users.accounts.v1.RemoveAccountRequest
-	(*GetAccountControlStatusRequest)(nil),     // 13: papilio.xray.users.accounts.v1.GetAccountControlStatusRequest
-	(*v1.CompiledConfiguration)(nil),           // 14: papilio.xray.runtime.configs.v1.CompiledConfiguration
-	(*AccountBatch)(nil),                       // 15: papilio.xray.users.accounts.v1.AccountBatch
-	(*AccountOperation)(nil),                   // 16: papilio.xray.users.accounts.v1.AccountOperation
-	(*AccountControlStatus)(nil),               // 17: papilio.xray.users.accounts.v1.AccountControlStatus
+	(*ListAccountMetadataRequest)(nil),         // 6: papilio.xray.users.accounts.v1.ListAccountMetadataRequest
+	(*ExportAccountsRequest)(nil),              // 7: papilio.xray.users.accounts.v1.ExportAccountsRequest
+	(*AccountMetadata)(nil),                    // 8: papilio.xray.users.accounts.v1.AccountMetadata
+	(*AccountMetadataObservation)(nil),         // 9: papilio.xray.users.accounts.v1.AccountMetadataObservation
+	(*AccountReadCost)(nil),                    // 10: papilio.xray.users.accounts.v1.AccountReadCost
+	(*AccountMetadataPage)(nil),                // 11: papilio.xray.users.accounts.v1.AccountMetadataPage
+	(*AccountExportPage)(nil),                  // 12: papilio.xray.users.accounts.v1.AccountExportPage
+	(*CheckAccountCompatibilityRequest)(nil),   // 13: papilio.xray.users.accounts.v1.CheckAccountCompatibilityRequest
+	(*AccountCompatibility)(nil),               // 14: papilio.xray.users.accounts.v1.AccountCompatibility
+	(*timestamppb.Timestamp)(nil),              // 15: google.protobuf.Timestamp
+	(*AccountGuidance)(nil),                    // 16: papilio.xray.users.accounts.v1.AccountGuidance
+	(*PrepareAccountConfigurationRequest)(nil), // 17: papilio.xray.users.accounts.v1.PrepareAccountConfigurationRequest
+	(*AddAccountsRequest)(nil),                 // 18: papilio.xray.users.accounts.v1.AddAccountsRequest
+	(*RemoveAccountsRequest)(nil),              // 19: papilio.xray.users.accounts.v1.RemoveAccountsRequest
+	(*AddAccountFromSourcesRequest)(nil),       // 20: papilio.xray.users.accounts.v1.AddAccountFromSourcesRequest
+	(*AddAccountRequest)(nil),                  // 21: papilio.xray.users.accounts.v1.AddAccountRequest
+	(*RemoveAccountRequest)(nil),               // 22: papilio.xray.users.accounts.v1.RemoveAccountRequest
+	(*GetAccountControlStatusRequest)(nil),     // 23: papilio.xray.users.accounts.v1.GetAccountControlStatusRequest
+	(*v1.CompiledConfiguration)(nil),           // 24: papilio.xray.runtime.configs.v1.CompiledConfiguration
+	(*AccountBatch)(nil),                       // 25: papilio.xray.users.accounts.v1.AccountBatch
+	(*AccountOperation)(nil),                   // 26: papilio.xray.users.accounts.v1.AccountOperation
+	(*AccountControlStatus)(nil),               // 27: papilio.xray.users.accounts.v1.AccountControlStatus
 }
 var file_internal_apps_xray_users_accounts_grpcapi_proto_v1_accounts_proto_depIdxs = []int32{
-	6,  // 0: papilio.xray.users.accounts.v1.Observation.observed_at:type_name -> google.protobuf.Timestamp
+	15, // 0: papilio.xray.users.accounts.v1.Observation.observed_at:type_name -> google.protobuf.Timestamp
 	2,  // 1: papilio.xray.users.accounts.v1.AccountCount.observation:type_name -> papilio.xray.users.accounts.v1.Observation
 	2,  // 2: papilio.xray.users.accounts.v1.AccountObservation.observation:type_name -> papilio.xray.users.accounts.v1.Observation
 	4,  // 3: papilio.xray.users.accounts.v1.AccountObservation.user:type_name -> papilio.xray.users.accounts.v1.Account
-	7,  // 4: papilio.xray.users.accounts.v1.AccountsService.PrepareAccountConfiguration:input_type -> papilio.xray.users.accounts.v1.PrepareAccountConfigurationRequest
-	8,  // 5: papilio.xray.users.accounts.v1.AccountsService.AddAccounts:input_type -> papilio.xray.users.accounts.v1.AddAccountsRequest
-	9,  // 6: papilio.xray.users.accounts.v1.AccountsService.RemoveAccounts:input_type -> papilio.xray.users.accounts.v1.RemoveAccountsRequest
-	10, // 7: papilio.xray.users.accounts.v1.AccountsService.AddAccountFromSources:input_type -> papilio.xray.users.accounts.v1.AddAccountFromSourcesRequest
-	11, // 8: papilio.xray.users.accounts.v1.AccountsService.AddAccount:input_type -> papilio.xray.users.accounts.v1.AddAccountRequest
-	12, // 9: papilio.xray.users.accounts.v1.AccountsService.RemoveAccount:input_type -> papilio.xray.users.accounts.v1.RemoveAccountRequest
-	13, // 10: papilio.xray.users.accounts.v1.AccountsService.GetAccountControlStatus:input_type -> papilio.xray.users.accounts.v1.GetAccountControlStatusRequest
-	0,  // 11: papilio.xray.users.accounts.v1.AccountsService.GetAccountCount:input_type -> papilio.xray.users.accounts.v1.GetAccountCountRequest
-	1,  // 12: papilio.xray.users.accounts.v1.AccountsService.GetAccount:input_type -> papilio.xray.users.accounts.v1.GetAccountRequest
-	14, // 13: papilio.xray.users.accounts.v1.AccountsService.PrepareAccountConfiguration:output_type -> papilio.xray.runtime.configs.v1.CompiledConfiguration
-	15, // 14: papilio.xray.users.accounts.v1.AccountsService.AddAccounts:output_type -> papilio.xray.users.accounts.v1.AccountBatch
-	15, // 15: papilio.xray.users.accounts.v1.AccountsService.RemoveAccounts:output_type -> papilio.xray.users.accounts.v1.AccountBatch
-	16, // 16: papilio.xray.users.accounts.v1.AccountsService.AddAccountFromSources:output_type -> papilio.xray.users.accounts.v1.AccountOperation
-	16, // 17: papilio.xray.users.accounts.v1.AccountsService.AddAccount:output_type -> papilio.xray.users.accounts.v1.AccountOperation
-	16, // 18: papilio.xray.users.accounts.v1.AccountsService.RemoveAccount:output_type -> papilio.xray.users.accounts.v1.AccountOperation
-	17, // 19: papilio.xray.users.accounts.v1.AccountsService.GetAccountControlStatus:output_type -> papilio.xray.users.accounts.v1.AccountControlStatus
-	3,  // 20: papilio.xray.users.accounts.v1.AccountsService.GetAccountCount:output_type -> papilio.xray.users.accounts.v1.AccountCount
-	5,  // 21: papilio.xray.users.accounts.v1.AccountsService.GetAccount:output_type -> papilio.xray.users.accounts.v1.AccountObservation
-	13, // [13:22] is the sub-list for method output_type
-	4,  // [4:13] is the sub-list for method input_type
-	4,  // [4:4] is the sub-list for extension type_name
-	4,  // [4:4] is the sub-list for extension extendee
-	0,  // [0:4] is the sub-list for field type_name
+	2,  // 4: papilio.xray.users.accounts.v1.AccountMetadataObservation.observation:type_name -> papilio.xray.users.accounts.v1.Observation
+	8,  // 5: papilio.xray.users.accounts.v1.AccountMetadataObservation.user:type_name -> papilio.xray.users.accounts.v1.AccountMetadata
+	2,  // 6: papilio.xray.users.accounts.v1.AccountMetadataPage.observation:type_name -> papilio.xray.users.accounts.v1.Observation
+	8,  // 7: papilio.xray.users.accounts.v1.AccountMetadataPage.users:type_name -> papilio.xray.users.accounts.v1.AccountMetadata
+	15, // 8: papilio.xray.users.accounts.v1.AccountMetadataPage.expires_at:type_name -> google.protobuf.Timestamp
+	10, // 9: papilio.xray.users.accounts.v1.AccountMetadataPage.read_cost:type_name -> papilio.xray.users.accounts.v1.AccountReadCost
+	2,  // 10: papilio.xray.users.accounts.v1.AccountExportPage.observation:type_name -> papilio.xray.users.accounts.v1.Observation
+	4,  // 11: papilio.xray.users.accounts.v1.AccountExportPage.users:type_name -> papilio.xray.users.accounts.v1.Account
+	15, // 12: papilio.xray.users.accounts.v1.AccountExportPage.expires_at:type_name -> google.protobuf.Timestamp
+	10, // 13: papilio.xray.users.accounts.v1.AccountExportPage.read_cost:type_name -> papilio.xray.users.accounts.v1.AccountReadCost
+	2,  // 14: papilio.xray.users.accounts.v1.AccountCompatibility.observation:type_name -> papilio.xray.users.accounts.v1.Observation
+	16, // 15: papilio.xray.users.accounts.v1.AccountCompatibility.guidance:type_name -> papilio.xray.users.accounts.v1.AccountGuidance
+	6,  // 16: papilio.xray.users.accounts.v1.AccountsService.ListAccountMetadata:input_type -> papilio.xray.users.accounts.v1.ListAccountMetadataRequest
+	7,  // 17: papilio.xray.users.accounts.v1.AccountsService.ExportAccounts:input_type -> papilio.xray.users.accounts.v1.ExportAccountsRequest
+	1,  // 18: papilio.xray.users.accounts.v1.AccountsService.GetAccountMetadata:input_type -> papilio.xray.users.accounts.v1.GetAccountRequest
+	13, // 19: papilio.xray.users.accounts.v1.AccountsService.CheckAccountCompatibility:input_type -> papilio.xray.users.accounts.v1.CheckAccountCompatibilityRequest
+	17, // 20: papilio.xray.users.accounts.v1.AccountsService.PrepareAccountConfiguration:input_type -> papilio.xray.users.accounts.v1.PrepareAccountConfigurationRequest
+	18, // 21: papilio.xray.users.accounts.v1.AccountsService.AddAccounts:input_type -> papilio.xray.users.accounts.v1.AddAccountsRequest
+	19, // 22: papilio.xray.users.accounts.v1.AccountsService.RemoveAccounts:input_type -> papilio.xray.users.accounts.v1.RemoveAccountsRequest
+	20, // 23: papilio.xray.users.accounts.v1.AccountsService.AddAccountFromSources:input_type -> papilio.xray.users.accounts.v1.AddAccountFromSourcesRequest
+	21, // 24: papilio.xray.users.accounts.v1.AccountsService.AddAccount:input_type -> papilio.xray.users.accounts.v1.AddAccountRequest
+	22, // 25: papilio.xray.users.accounts.v1.AccountsService.RemoveAccount:input_type -> papilio.xray.users.accounts.v1.RemoveAccountRequest
+	23, // 26: papilio.xray.users.accounts.v1.AccountsService.GetAccountControlStatus:input_type -> papilio.xray.users.accounts.v1.GetAccountControlStatusRequest
+	0,  // 27: papilio.xray.users.accounts.v1.AccountsService.GetAccountCount:input_type -> papilio.xray.users.accounts.v1.GetAccountCountRequest
+	1,  // 28: papilio.xray.users.accounts.v1.AccountsService.GetAccount:input_type -> papilio.xray.users.accounts.v1.GetAccountRequest
+	11, // 29: papilio.xray.users.accounts.v1.AccountsService.ListAccountMetadata:output_type -> papilio.xray.users.accounts.v1.AccountMetadataPage
+	12, // 30: papilio.xray.users.accounts.v1.AccountsService.ExportAccounts:output_type -> papilio.xray.users.accounts.v1.AccountExportPage
+	9,  // 31: papilio.xray.users.accounts.v1.AccountsService.GetAccountMetadata:output_type -> papilio.xray.users.accounts.v1.AccountMetadataObservation
+	14, // 32: papilio.xray.users.accounts.v1.AccountsService.CheckAccountCompatibility:output_type -> papilio.xray.users.accounts.v1.AccountCompatibility
+	24, // 33: papilio.xray.users.accounts.v1.AccountsService.PrepareAccountConfiguration:output_type -> papilio.xray.runtime.configs.v1.CompiledConfiguration
+	25, // 34: papilio.xray.users.accounts.v1.AccountsService.AddAccounts:output_type -> papilio.xray.users.accounts.v1.AccountBatch
+	25, // 35: papilio.xray.users.accounts.v1.AccountsService.RemoveAccounts:output_type -> papilio.xray.users.accounts.v1.AccountBatch
+	26, // 36: papilio.xray.users.accounts.v1.AccountsService.AddAccountFromSources:output_type -> papilio.xray.users.accounts.v1.AccountOperation
+	26, // 37: papilio.xray.users.accounts.v1.AccountsService.AddAccount:output_type -> papilio.xray.users.accounts.v1.AccountOperation
+	26, // 38: papilio.xray.users.accounts.v1.AccountsService.RemoveAccount:output_type -> papilio.xray.users.accounts.v1.AccountOperation
+	27, // 39: papilio.xray.users.accounts.v1.AccountsService.GetAccountControlStatus:output_type -> papilio.xray.users.accounts.v1.AccountControlStatus
+	3,  // 40: papilio.xray.users.accounts.v1.AccountsService.GetAccountCount:output_type -> papilio.xray.users.accounts.v1.AccountCount
+	5,  // 41: papilio.xray.users.accounts.v1.AccountsService.GetAccount:output_type -> papilio.xray.users.accounts.v1.AccountObservation
+	29, // [29:42] is the sub-list for method output_type
+	16, // [16:29] is the sub-list for method input_type
+	16, // [16:16] is the sub-list for extension type_name
+	16, // [16:16] is the sub-list for extension extendee
+	0,  // [0:16] is the sub-list for field type_name
 }
 
 func init() { file_internal_apps_xray_users_accounts_grpcapi_proto_v1_accounts_proto_init() }
@@ -509,13 +1239,15 @@ func file_internal_apps_xray_users_accounts_grpcapi_proto_v1_accounts_proto_init
 	file_internal_apps_xray_users_accounts_grpcapi_proto_v1_sources_proto_init()
 	file_internal_apps_xray_users_accounts_grpcapi_proto_v1_batches_proto_init()
 	file_internal_apps_xray_users_accounts_grpcapi_proto_v1_configurations_proto_init()
+	file_internal_apps_xray_users_accounts_grpcapi_proto_v1_accounts_proto_msgTypes[13].OneofWrappers = []any{}
+	file_internal_apps_xray_users_accounts_grpcapi_proto_v1_accounts_proto_msgTypes[14].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_internal_apps_xray_users_accounts_grpcapi_proto_v1_accounts_proto_rawDesc), len(file_internal_apps_xray_users_accounts_grpcapi_proto_v1_accounts_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   6,
+			NumMessages:   15,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -44,7 +44,7 @@ func (h Handler) GetAccountControlStatus(ctx context.Context, request *v1.GetAcc
 	return response, nil
 }
 func operationResult(result domain.Operation) *v1.AccountOperation {
-	response := &v1.AccountOperation{InstanceId: result.InstanceID, InboundTag: result.InboundTag, Generation: result.Generation, Kind: result.Kind, Email: result.Email, Effect: string(result.Effect), Acknowledged: result.Acknowledged, RequiresInstanceRestart: result.RequiresInstanceRestart, DurationNs: int64(result.Duration)}
+	response := &v1.AccountOperation{Guidance: operationGuidance(result.Guidance), InstanceId: result.InstanceID, InboundTag: result.InboundTag, Generation: result.Generation, Kind: result.Kind, Email: result.Email, Effect: string(result.Effect), Acknowledged: result.Acknowledged, RequiresInstanceRestart: result.RequiresInstanceRestart, DurationNs: int64(result.Duration)}
 	if !result.ObservedAt.IsZero() {
 		response.ObservedAt = timestamppb.New(result.ObservedAt)
 	}

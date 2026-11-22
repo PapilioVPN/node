@@ -40,6 +40,11 @@ type PageRequest struct {
 	Size   uint32
 	Cursor string
 }
+
+// PageEvidence identifies an immutable retained native observation. Membership
+// writes do not refresh it. Continuations expire after 30 seconds and reject an
+// execution change; active mutations can reject reads as busy. This is not an
+// engine-wide atomic snapshot or a desired-configuration export.
 type PageEvidence struct {
 	NextCursor string
 	ExpiresAt  time.Time

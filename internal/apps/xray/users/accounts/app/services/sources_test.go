@@ -27,7 +27,7 @@ func TestPreparationFailureCancellationAndReplacementDoNotSubmit(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 			calls := 0
-			s, err := services.New([]services.Binding{{ID: "a", Client: client{add: func(_ context.Context, tag string, content []byte) (domain.NativeResult, error) {
+			s, err := newService([]services.Binding{{ID: "a", Client: client{add: func(_ context.Context, tag string, content []byte) (domain.NativeResult, error) {
 				calls++
 				if tag != "members" || string(content) != "native" {
 					t.Fatal(tag, content)

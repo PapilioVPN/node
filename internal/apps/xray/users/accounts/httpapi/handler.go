@@ -20,6 +20,10 @@ type Handler struct {
 }
 
 func (h Handler) Register(router fiber.Router) {
+	router.Get("/v1/xray/users/instances/:id/accounts", h.ListMetadata)
+	router.Get("/v1/xray/users/instances/:id/accounts/exports", h.Export)
+	router.Get("/v1/xray/users/instances/:id/account/metadata", h.GetMetadata)
+	router.Get("/v1/xray/users/instances/:id/accounts/compatibility", h.Compatibility)
 	router.Post("/v1/xray/users/instances/:id/accounts/configurations", h.PrepareConfiguration)
 	router.Post("/v1/xray/users/instances/:id/accounts/additions", h.AddMany)
 	router.Post("/v1/xray/users/instances/:id/accounts/removals", h.RemoveMany)
@@ -105,6 +109,14 @@ func errorStatus(err error) (string, int) {
 		code = "canceled"
 	case errors.Is(err, domain.ErrNotAttempted):
 		code, status = "not_attempted", fiber.StatusConflict
+	case errors.Is(err, domain.ErrStale):
+		code, status = "stale_observation", fiber.StatusConflict
+	case errors.Is(err, domain.ErrIncompatible):
+		code, status = "incompatible_account", fiber.StatusConflict
+	case errors.Is(err, domain.ErrInboundMissing):
+		code, status = "inbound_not_found", fiber.StatusNotFound
+	case errors.Is(err, domain.ErrInboundAmbiguous):
+		code, status = "ambiguous_inbound", fiber.StatusConflict
 	case errors.Is(err, domain.ErrInvalidArgument):
 		code, status = "invalid_argument", fiber.StatusBadRequest
 	case errors.Is(err, domain.ErrNotFound):

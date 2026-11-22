@@ -20,7 +20,7 @@ func TestLookupRetainsAbsenceAndExactSelection(t *testing.T) {
 		}
 		return nil, nil
 	}}
-	s, err := services.New([]services.Binding{{ID: "a", Client: c}}, &execution{generation: 7, state: instances.Running})
+	s, err := newService([]services.Binding{{ID: "a", Client: c}}, &execution{generation: 7, state: instances.Running})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -40,7 +40,7 @@ func TestLookupRetainsAbsenceAndExactSelection(t *testing.T) {
 func TestCountFencesReplacementAndPreservesFailure(t *testing.T) {
 	e := &execution{generation: 1, state: instances.Running}
 	cause := errors.New("native failure")
-	s, err := services.New([]services.Binding{{ID: "a", Client: client{count: func(context.Context, string) (int64, error) { e.replace(); return 2, cause }}}}, e)
+	s, err := newService([]services.Binding{{ID: "a", Client: client{count: func(context.Context, string) (int64, error) { e.replace(); return 2, cause }}}}, e)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -51,7 +51,7 @@ func TestCountFencesReplacementAndPreservesFailure(t *testing.T) {
 }
 func TestNonrunningOrUnconfiguredReadsNeverCallNative(t *testing.T) {
 	e := &execution{generation: 1, state: instances.Stopped}
-	s, err := services.New([]services.Binding{{ID: "a", Client: client{count: func(context.Context, string) (int64, error) { t.Fatal("stopped instance read"); return 0, nil }}}, {ID: "b"}}, e)
+	s, err := newService([]services.Binding{{ID: "a", Client: client{count: func(context.Context, string) (int64, error) { t.Fatal("stopped instance read"); return 0, nil }}}, {ID: "b"}}, e)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -83,7 +83,7 @@ func TestReadAdmissionRejectsAndRecoversAfterCancellation(t *testing.T) {
 	for _, id := range []string{"a", "b", "c", "d", "e"} {
 		bindings = append(bindings, services.Binding{ID: id, Client: c})
 	}
-	s, err := services.New(bindings, &execution{generation: 1, state: instances.Running})
+	s, err := newService(bindings, &execution{generation: 1, state: instances.Running})
 	if err != nil {
 		t.Fatal(err)
 	}
