@@ -32,6 +32,13 @@ type NativeRecords struct {
 	Users []Record
 	ReadCost
 }
+
+// Membership is an owned, bounded native readback for in-process consumers.
+type Membership struct {
+	Observation
+	Users []Record
+}
+
 type NativeMetadata struct {
 	Users []Metadata
 	ReadCost

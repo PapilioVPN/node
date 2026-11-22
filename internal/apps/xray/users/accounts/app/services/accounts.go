@@ -22,8 +22,9 @@ type Client interface {
 	Remove(context.Context, string, string) (domain.NativeResult, error)
 }
 
-// CollectionReader validates fresh native responses; GetMetadata receives the
-// same service-validated nonempty exact selector as Client.Get.
+// CollectionReader validates fresh native responses. Records transfers an owned
+// collection within the native read bounds. GetMetadata receives the same
+// service-validated nonempty exact selector as Client.Get.
 type CollectionReader interface {
 	Records(context.Context, string) (domain.NativeRecords, error)
 	Metadata(context.Context, string) (domain.NativeMetadata, error)
@@ -159,4 +160,23 @@ func (s *Service) Get(ctx context.Context, id, tag, email string) (domain.Accoun
 		return domain.Account{}, err
 	}
 	return domain.Account{Observation: observation, RequestedEmail: email, User: record}, nil
+}
+
+// ReadMembership returns one native collection for an in-process consumer.
+func (s *Service) ReadMembership(ctx context.Context, id, tag string) (domain.Membership, error) {
+	_, observation, release, err := s.begin(ctx, id, tag)
+	if err != nil {
+		return domain.Membership{}, err
+	}
+	defer release()
+	reader := s.entries[id].reader
+	if reader == nil {
+		return domain.Membership{}, domain.ErrUnsupported
+	}
+	started := time.Now()
+	records, err := reader.Records(ctx, tag)
+	if err = s.finish(ctx, &observation, started, err); err != nil {
+		return domain.Membership{}, err
+	}
+	return domain.Membership{Observation: observation, Users: records.Users}, nil
 }

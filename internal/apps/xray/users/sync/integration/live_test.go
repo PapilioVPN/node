@@ -57,6 +57,53 @@ func traffic(address, target string, id int) error {
 	}
 	return nil
 }
+
+func TestNativeSyncWithFullExportRetention(t *testing.T) {
+	f := newFixture(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	request := domain.Request{InstanceID: "one", OperationID: "seed", Mode: domain.Delta,
+		Selection: []string{"selected"}, Sets: []accounts.InboundUserSet{{InboundTag: "selected"}}}
+	for i := range accounts.MaxPageSize + 1 {
+		request.Sets[0].Accounts = append(request.Sets[0].Accounts, nativeUser(i))
+	}
+	var err error
+	request.Expected, err = f.service.Revision(ctx, "one")
+	if err != nil {
+		t.Fatal(err)
+	}
+	plan, err := f.service.Preview(ctx, request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.service.Apply(ctx, "one", plan.PlanID, plan.Revision); err != nil {
+		t.Fatal(err)
+	}
+	for range accounts.MaxObservations {
+		page, err := f.accounts.Export(ctx, "one", "selected", accounts.PageRequest{})
+		if err != nil || page.NextCursor == "" {
+			t.Fatalf("retain public export: cursor=%q err=%v", page.NextCursor, err)
+		}
+	}
+	f.calls.take()
+	request.OperationID = "unchanged"
+	request.Expected, err = f.service.Revision(ctx, "one")
+	if err != nil {
+		t.Fatal(err)
+	}
+	plan, err = f.service.Preview(ctx, request)
+	if err != nil || len(plan.Differences) != 1 || plan.Differences[0].Unchanged != len(request.Sets[0].Accounts) {
+		t.Fatalf("preview with full public retention: %+v %v", plan, err)
+	}
+	receipt, err := f.service.Apply(ctx, "one", plan.PlanID, plan.Revision)
+	if err != nil || receipt.Receipt.Effect != accounts.Completed || len(receipt.Receipt.Steps) != 0 {
+		t.Fatalf("apply unchanged membership: %+v %v", receipt, err)
+	}
+	if calls := f.calls.take(); calls["GetInboundUsers"] != 2 || calls["AlterInbound"] != 0 {
+		t.Fatalf("sync native calls: %v", calls)
+	}
+}
+
 func TestNativeCallGrowthAuthReplayAndRevocation(t *testing.T) {
 	for _, n := range []int{1, 50, 51, 1000} {
 		t.Run(fmt.Sprint(n), func(t *testing.T) {

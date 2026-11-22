@@ -9,7 +9,7 @@ import (
 
 type Source interface {
 	Status(context.Context, string) (upstream.ControlStatus, error)
-	Export(context.Context, string, string, upstream.PageRequest) (upstream.AccountPage, error)
+	ReadMembership(context.Context, string, string) (upstream.Membership, error)
 }
 type Catalog interface {
 	Select(context.Context, string, []string) ([]upstream.Inbound, error)
@@ -23,10 +23,9 @@ type Observer struct {
 	Configs ConfigRevision
 }
 
-// Snapshot uses one Inbounds list for the complete selection and one Accounts
-// export per selected inbound, then zero native calls for continuations. Empty
-// selection reads only local execution/config revisions. This is read/check
-// evidence, not exclusion against direct native or other capability writers.
+// Snapshot reads the inbound catalog once and reads membership once per selected
+// inbound. Empty selection reads local execution and config revisions. Direct
+// native and other capability writers can still change the observed state.
 func (o Observer) Snapshot(ctx context.Context, id string, tags []string) (domain.Snapshot, error) {
 	before, err := o.Source.Status(ctx, id)
 	if err != nil {
@@ -59,38 +58,37 @@ func (o Observer) Snapshot(ctx context.Context, id string, tags []string) (domai
 			if inbound.Tag != tags[i] || inbound.Generation != before.Generation {
 				return domain.Snapshot{}, domain.ErrStale
 			}
-			in := domain.Inbound{Tag: inbound.Tag, AccountType: inbound.AccountType, EmailMatching: inbound.EmailMatching, Live: inbound.LiveAccounts}
-			cursor := ""
-			for {
-				page, err := o.Source.Export(ctx, id, inbound.Tag, upstream.PageRequest{Cursor: cursor})
+			membership, err := o.Source.ReadMembership(ctx, id, inbound.Tag)
+			if err != nil {
+				return domain.Snapshot{}, err
+			}
+			if membership.Generation != before.Generation || membership.InstanceID != id || membership.InboundTag != inbound.Tag {
+				return domain.Snapshot{}, domain.ErrStale
+			}
+			count += len(membership.Users)
+			if count > domain.MaxUsers {
+				return domain.Snapshot{}, domain.ErrCapacity
+			}
+			in := domain.Inbound{
+				Tag: inbound.Tag, AccountType: inbound.AccountType, EmailMatching: inbound.EmailMatching,
+				Live: inbound.LiveAccounts, Users: make([]domain.Member, 0, len(membership.Users)),
+			}
+			for _, user := range membership.Users {
+				if err := ctx.Err(); err != nil {
+					return domain.Snapshot{}, err
+				}
+				size += len(user.Configuration) + len(user.Email) + 128
+				if size > domain.MaxBytes {
+					return domain.Snapshot{}, domain.ErrCapacity
+				}
+				member, err := (Codec{}).Observe(user)
 				if err != nil {
 					return domain.Snapshot{}, err
 				}
-				if page.Generation != before.Generation || page.InstanceID != id || page.InboundTag != inbound.Tag || len(page.Users) > upstream.MaxPageSize {
-					return domain.Snapshot{}, domain.ErrStale
-				}
-				for _, user := range page.Users {
-					count++
-					size += len(user.Configuration) + len(user.Email) + 128
-					if count > domain.MaxUsers || size > domain.MaxBytes {
-						return domain.Snapshot{}, domain.ErrCapacity
-					}
-					member, err := (Codec{}).Observe(user)
-					if err != nil {
-						return domain.Snapshot{}, err
-					}
-					if member.AccountType != inbound.AccountType || member.Email != user.Email {
-						return domain.Snapshot{}, domain.ErrInvalid
-					}
-					in.Users = append(in.Users, member)
-				}
-				if page.NextCursor == "" {
-					break
-				}
-				if page.NextCursor == cursor || len(page.Users) == 0 {
+				if member.AccountType != inbound.AccountType || member.Email != user.Email {
 					return domain.Snapshot{}, domain.ErrInvalid
 				}
-				cursor = page.NextCursor
+				in.Users = append(in.Users, member)
 			}
 			snapshot.Inbounds = append(snapshot.Inbounds, in)
 		}
