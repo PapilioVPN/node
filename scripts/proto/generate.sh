@@ -1,7 +1,8 @@
 #!/bin/sh
 set -eu
 
-case "${1-}" in ''|--check) ;; *) printf '%s\n' 'Usage: generate.sh [--check]' >&2; exit 2 ;; esac
+mode=${1-}
+case "$mode" in ''|--check) ;; *) printf '%s\n' 'Usage: generate.sh [--check]' >&2; exit 2 ;; esac
 root=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 tools="$root/.local/proto-tools"
 mkdir -p "$tools/bin"
@@ -29,69 +30,35 @@ export PATH="$tools/bin:$PATH"
 temporary=$(mktemp -d)
 trap 'rm -rf -- "$temporary"' EXIT HUP INT TERM
 cd "$root"
-for schema in \
-    internal/apps/xray/users/online/grpcapi/proto/v1/online \
-    internal/apps/xray/users/accounts/grpcapi/proto/v1/configurations \
-    internal/apps/xray/users/accounts/grpcapi/proto/v1/batches \
-    internal/apps/xray/users/accounts/grpcapi/proto/v1/sources \
-    internal/apps/xray/users/accounts/grpcapi/proto/v1/control \
-    internal/apps/xray/users/accounts/grpcapi/proto/v1/accounts \
-    internal/apps/xray/proxies/outbounds/grpcapi/proto/v1/control \
-    internal/apps/xray/proxies/outbounds/grpcapi/proto/v1/outbounds \
-    internal/apps/xray/proxies/inbounds/grpcapi/proto/v1/records \
-    internal/apps/xray/proxies/inbounds/grpcapi/proto/v1/control \
-    internal/apps/xray/proxies/inbounds/grpcapi/proto/v1/inbounds \
-    internal/apps/xray/observability/loggers/grpcapi/proto/v1/loggers \
-    internal/apps/xray/observability/traffic/grpcapi/proto/v1/traffic \
-    internal/apps/xray/observability/outboundhealth/grpcapi/proto/v1/health \
-    internal/apps/xray/network/routing/grpcapi/proto/v1/routing \
-    internal/apps/xray/runtime/statistics/grpcapi/proto/v1/statistics \
-    internal/apps/xray/runtime/configs/grpcapi/proto/v1/compilation \
-    internal/apps/xray/runtime/configs/grpcapi/proto/v1/state \
-    internal/apps/xray/runtime/configs/grpcapi/proto/v1/configs \
-    internal/apps/xray/runtime/instances/grpcapi/proto/v1/types \
-    internal/apps/xray/runtime/instances/grpcapi/proto/v1/instances \
-    internal/apps/system/host/identity/grpcapi/proto/v1/identity \
-    internal/apps/system/host/uptime/grpcapi/proto/v1/uptime \
-    internal/apps/system/host/cpu/grpcapi/proto/v1/load \
-    internal/apps/system/host/cpu/grpcapi/proto/v1/cpu \
-    internal/apps/system/host/cpu/grpcapi/proto/v1/usage \
-    internal/apps/system/host/cpu/grpcapi/proto/v1/info \
-    internal/apps/system/host/cpu/grpcapi/proto/v1/frequency \
-    internal/apps/system/host/cpu/grpcapi/proto/v1/activity \
-    internal/apps/system/network/interfaces/grpcapi/proto/v1/interfaces \
-    internal/apps/system/network/interfaces/grpcapi/proto/v1/counters \
-    internal/apps/system/host/memory/grpcapi/proto/v1/memory \
-    internal/apps/system/host/processes/grpcapi/proto/v1/processes \
-    internal/apps/system/storage/filesystems/grpcapi/proto/v1/filesystems \
-    internal/apps/system/storage/devices/grpcapi/proto/v1/devices \
-    internal/apps/system/host/sessions/grpcapi/proto/v1/summary \
-    internal/apps/system/host/sessions/grpcapi/proto/v1/details \
-    internal/apps/system/host/sessions/grpcapi/proto/v1/records \
-    internal/apps/system/host/sessions/grpcapi/proto/v1/sessions \
-    internal/apps/system/host/sensors/grpcapi/proto/v1/temperatures \
-    internal/apps/system/host/sensors/grpcapi/proto/v1/fans \
-    internal/apps/system/host/sensors/grpcapi/proto/v1/power_supplies \
-    internal/apps/system/host/sensors/grpcapi/proto/v1/sensors \
-    internal/apps/system/node/runtime/grpcapi/proto/v1/info \
-    internal/apps/system/node/runtime/grpcapi/proto/v1/resources \
-    internal/apps/system/node/runtime/grpcapi/proto/v1/diagnostics \
-    internal/apps/system/node/runtime/grpcapi/proto/v1/runtime; do
-    protoc -I . -I "$tools/include" --go_out="$temporary" --go_opt=paths=source_relative \
-        --go-grpc_out="$temporary" --go-grpc_opt=paths=source_relative "$schema.proto"
-    for generated in "$schema.pb.go" "${schema}_grpc.pb.go"; do
-        # Message-only schemas have no generated gRPC service file.
-        if [ "$generated" = "${schema}_grpc.pb.go" ] && [ ! -f "$temporary/$generated" ]; then
-            if [ -e "$generated" ]; then
-                printf '%s\n' "Unexpected generated service file: $generated" >&2
-                exit 1
-            fi
-            continue
-        fi
-        if [ "${1-}" = --check ]; then
-            diff -u "$generated" "$temporary/$generated"
-        else
-            cp "$temporary/$generated" "$generated"
-        fi
-    done
-done
+# Discover versioned, capability-owned schemas and generate them in one pass.
+find internal/apps -type f -path '*/grpcapi/proto/v*/*.proto' > "$temporary/schemas"
+LC_ALL=C sort -o "$temporary/schemas" "$temporary/schemas"
+set --
+while IFS= read -r schema; do
+    set -- "$@" "$schema"
+done < "$temporary/schemas"
+if [ "$#" -eq 0 ]; then
+    printf '%s\n' 'No capability gRPC schemas found.' >&2
+    exit 1
+fi
+protoc -I . -I "$tools/include" --go_out="$temporary" --go_opt=paths=source_relative \
+    --go-grpc_out="$temporary" --go-grpc_opt=paths=source_relative "$@"
+
+find internal/apps -type f -path '*/grpcapi/proto/v*/*.pb.go' > "$temporary/existing"
+while IFS= read -r generated; do
+    if [ ! -f "$temporary/$generated" ]; then
+        printf '%s\n' "Unexpected generated file: $generated" >&2
+        exit 1
+    fi
+done < "$temporary/existing"
+
+find "$temporary/internal/apps" -type f -name '*.pb.go' > "$temporary/generated"
+LC_ALL=C sort -o "$temporary/generated" "$temporary/generated"
+while IFS= read -r generated; do
+    destination=${generated#"$temporary/"}
+    if [ "$mode" = --check ]; then
+        diff -u "$destination" "$generated"
+    else
+        cp "$generated" "$destination"
+    fi
+done < "$temporary/generated"
