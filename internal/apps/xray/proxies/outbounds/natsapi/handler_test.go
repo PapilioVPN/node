@@ -20,3 +20,15 @@ func TestInvalidEnvelopesNeverReachService(t *testing.T) {
 		t.Fatal(string(result))
 	}
 }
+
+func TestInvalidControlEnvelopesNeverReachService(t *testing.T) {
+	h := natsapi.Handler{}
+	for _, test := range []struct {
+		call func(context.Context, []byte, nats.Header) []byte
+		body string
+	}{{h.Add, `{"instance_id":"a","tag":"b"}`}, {h.Remove, `{"instance_id":"a"}`}, {h.AddSources, `{"instance_id":"a","sources":[]}`}, {h.Status, `{"instance_id":"a","configuration":"AQ=="}`}} {
+		if result := test.call(context.Background(), []byte(test.body), nil); !strings.Contains(string(result), `"error":"invalid_argument"`) {
+			t.Fatal(string(result))
+		}
+	}
+}

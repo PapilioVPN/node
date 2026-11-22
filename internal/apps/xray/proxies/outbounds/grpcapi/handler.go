@@ -18,6 +18,7 @@ import (
 type Handler struct {
 	v1.UnimplementedOutboundsServiceServer
 	Service *services.Service
+	Sources *services.Sources
 	Timeout time.Duration
 }
 
@@ -53,10 +54,29 @@ func failure(err error) error {
 		code, message = codes.NotFound, "not_found"
 	case errors.Is(err, domain.ErrUnsupported), errors.Is(err, domain.ErrNotRunning):
 		code, message = codes.FailedPrecondition, "failed_precondition"
+	case errors.Is(err, domain.ErrUncertain):
+		code, message = codes.FailedPrecondition, "restart_required"
 	case errors.Is(err, domain.ErrExecutionChanged):
 		code, message = codes.Aborted, "execution_changed"
 	case errors.Is(err, domain.ErrCapacity):
 		code, message = codes.ResourceExhausted, "resource_exhausted"
 	}
 	return status.Error(code, message)
+}
+
+func (h Handler) GetOutboundControlStatus(ctx context.Context, request *v1.GetOutboundControlStatusRequest) (*v1.OutboundControlStatus, error) {
+	if request == nil {
+		return nil, failure(domain.ErrInvalidArgument)
+	}
+	ctx, cancel := context.WithTimeout(ctx, h.Timeout)
+	defer cancel()
+	result, err := h.Service.Status(ctx, request.InstanceId)
+	if err != nil {
+		return nil, failure(err)
+	}
+	response := &v1.OutboundControlStatus{InstanceId: result.InstanceID, Generation: result.Generation, ExecutionState: result.ExecutionState, ApiConfigured: result.APIConfigured, RequestInFlight: result.RequestInFlight, RequiresInstanceRestart: result.RequiresInstanceRestart, ObservedAt: timestamppb.New(result.ObservedAt)}
+	if result.LastOperation != nil {
+		response.LastOperation = operationResult(*result.LastOperation)
+	}
+	return response, nil
 }

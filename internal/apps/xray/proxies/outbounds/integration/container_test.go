@@ -8,7 +8,11 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"flag"
+	"io"
 	"net"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -19,7 +23,11 @@ import (
 
 	"github.com/PapilioVPN/node/internal/shared/mtls"
 	"github.com/PapilioVPN/node/internal/testutil"
+	"github.com/xtls/xray-core/common/serial"
+	"github.com/xtls/xray-core/core"
+	"github.com/xtls/xray-core/proxy/freedom"
 	"go.yaml.in/yaml/v3"
+	"google.golang.org/protobuf/proto"
 )
 
 var image = flag.String("image", "", "prebuilt checked Node image")
@@ -29,12 +37,20 @@ func TestPackagedOutboundReadback(t *testing.T) {
 		t.Fatal("-image must select the prebuilt image")
 	}
 	pki := testutil.NewPKI(t)
+	target := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { io.WriteString(w, "outbound-traffic") }))
+	defer target.Close()
 	f := newFixture(t, pki, brokerFixture(t, pki), "all")
+	probeAddress := configureProbe(t, f, true)
+	workDirectory := t.TempDir()
+	f.config.Instances[0].Xray.WorkDirectory = workDirectory
+	f.config.Communications.Requests.Timeout = 2 * time.Second
+	f.config.Communications.HTTP.WriteTimeout = 3 * time.Second
 	config := f.config
 	config.Instances = append(config.Instances[:0:0], config.Instances...)
 	xray := *config.Instances[0].Xray
 	config.Instances[0].Xray = &xray
 	xray.Binary = "/opt/xray"
+	xray.WorkDirectory = "/work"
 	xray.Configuration = "/etc/engine/config.json"
 	relative := func(files mtls.Files) mtls.Files {
 		return mtls.Files{Certificate: filepath.Base(files.Certificate), PrivateKey: filepath.Base(files.PrivateKey), CA: filepath.Base(files.CA)}
@@ -61,6 +77,7 @@ func TestPackagedOutboundReadback(t *testing.T) {
 	name := "node-outbounds-" + hex.EncodeToString(random[:])
 	docker(t, "run", "--detach", "--pull=never", "--name", name, "--network=host", "--cap-drop=ALL", "--read-only", "--user", strconv.Itoa(os.Getuid())+":"+strconv.Itoa(os.Getgid()),
 		"--mount", "type=bind,src="+directory+",dst=/etc/node,readonly",
+		"--mount", "type=bind,src="+workDirectory+",dst=/work",
 		"--mount", "type=bind,src="+f.config.Instances[0].Xray.Binary+",dst=/opt/xray,readonly",
 		"--mount", "type=bind,src="+f.config.Instances[0].Xray.Configuration+",dst=/etc/engine/config.json,readonly", *image)
 	t.Cleanup(func() { docker(t, "rm", "--force", name) })
@@ -71,6 +88,7 @@ func TestPackagedOutboundReadback(t *testing.T) {
 		if len(result.Outbounds) != 1 || result.Outbounds[0].Tag != "baseline" || result.Generation != 1 {
 			t.Fatal(result)
 		}
+		exercisePackagedControl(t, client, transport, probeAddress, target.URL)
 	}
 
 	docker(t, "stop", "--time", "8", name)
@@ -127,5 +145,33 @@ func containerAddresses(t *testing.T, name string) map[string]string {
 			t.Fatal("packaged outbound endpoints did not start")
 		case <-ticker.C:
 		}
+	}
+}
+
+func exercisePackagedControl(t *testing.T, c clients, transport, address, target string) {
+	t.Helper()
+	proxy, _ := url.Parse("http://" + address)
+	tr := &http.Transport{Proxy: http.ProxyURL(proxy), DisableKeepAlives: true}
+	defer tr.CloseIdleConnections()
+	traffic := &http.Client{Transport: tr, Timeout: time.Second}
+	content, _ := proto.Marshal(&core.OutboundHandlerConfig{Tag: "managed", ProxySettings: serial.ToTypedMessage(&freedom.Config{})})
+	result, code := nativeMutation(t, c, transport, "add", "", content)
+	if code != "" || !result.Acknowledged || result.Effect != "completed" {
+		t.Fatal(result, code)
+	}
+	requireTraffic(t, traffic, target, true)
+	result, code = nativeMutation(t, c, transport, "remove", "managed", nil)
+	if code != "" || !result.Acknowledged {
+		t.Fatal(result, code)
+	}
+	requireTraffic(t, traffic, target, false)
+	result, code = sourceMutation(t, c, transport, "outbound.json", "managed", []byte(`{"outbounds":[{"tag":"managed","protocol":"freedom"}]}`))
+	if code != "" || !result.Acknowledged {
+		t.Fatal(result, code)
+	}
+	requireTraffic(t, traffic, target, true)
+	result, code = nativeMutation(t, c, transport, "remove", "managed", nil)
+	if code != "" || !result.Acknowledged {
+		t.Fatal(result, code)
 	}
 }

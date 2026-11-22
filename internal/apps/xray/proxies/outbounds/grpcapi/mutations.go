@@ -1,0 +1,68 @@
+package grpcapi
+
+import (
+	"context"
+
+	"github.com/PapilioVPN/node/internal/apps/xray/proxies/outbounds/domain"
+	v1 "github.com/PapilioVPN/node/internal/apps/xray/proxies/outbounds/grpcapi/proto/v1"
+	configs "github.com/PapilioVPN/node/internal/apps/xray/runtime/configs/domain"
+	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
+)
+
+func (h Handler) AddOutbound(ctx context.Context, request *v1.AddOutboundRequest) (*v1.OutboundOperation, error) {
+	if request == nil {
+		return nil, failure(domain.ErrInvalidArgument)
+	}
+	ctx, cancel := context.WithTimeout(ctx, h.Timeout)
+	defer cancel()
+	result, err := h.Service.Add(ctx, request.InstanceId, request.Configuration)
+	return mutationResult(result, err)
+}
+func (h Handler) RemoveOutbound(ctx context.Context, request *v1.RemoveOutboundRequest) (*v1.OutboundOperation, error) {
+	if request == nil {
+		return nil, failure(domain.ErrInvalidArgument)
+	}
+	ctx, cancel := context.WithTimeout(ctx, h.Timeout)
+	defer cancel()
+	result, err := h.Service.Remove(ctx, request.InstanceId, request.Tag)
+	return mutationResult(result, err)
+}
+func operationResult(result domain.Operation) *v1.OutboundOperation {
+	response := &v1.OutboundOperation{InstanceId: result.InstanceID, Generation: result.Generation, Kind: result.Kind, Tag: result.Tag, Effect: string(result.Effect), Acknowledged: result.Acknowledged, RequiresInstanceRestart: result.RequiresInstanceRestart, DurationNs: int64(result.Duration)}
+	if !result.ObservedAt.IsZero() {
+		response.ObservedAt = timestamppb.New(result.ObservedAt)
+	}
+	return response
+}
+func mutationResult(result domain.Operation, err error) (*v1.OutboundOperation, error) {
+	response := operationResult(result)
+	if err == nil {
+		return response, nil
+	}
+	detailed, detailErr := status.Convert(failure(err)).WithDetails(response)
+	if detailErr != nil {
+		return nil, failure(err)
+	}
+	return nil, detailed.Err()
+}
+
+func (h Handler) AddOutboundFromSources(ctx context.Context, request *v1.AddOutboundFromSourcesRequest) (*v1.OutboundOperation, error) {
+	if request == nil {
+		return nil, failure(domain.ErrInvalidArgument)
+	}
+	if len(request.Sources) > configs.MaxSources {
+		return nil, failure(domain.ErrCapacity)
+	}
+	sources := make([]configs.Source, len(request.Sources))
+	for i, source := range request.Sources {
+		if source == nil {
+			return nil, failure(domain.ErrInvalidArgument)
+		}
+		sources[i] = configs.Source{Name: source.Name, Content: source.Content}
+	}
+	ctx, cancel := context.WithTimeout(ctx, h.Timeout)
+	defer cancel()
+	result, err := h.Sources.Add(ctx, request.InstanceId, request.Tag, sources)
+	return mutationResult(result, err)
+}

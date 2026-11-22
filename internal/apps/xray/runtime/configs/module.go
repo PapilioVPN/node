@@ -10,6 +10,7 @@ import (
 	"time"
 
 	inboundconfiguration "github.com/PapilioVPN/node/internal/apps/xray/proxies/inbounds/infra/configuration"
+	outboundconfiguration "github.com/PapilioVPN/node/internal/apps/xray/proxies/outbounds/infra/configuration"
 	"github.com/PapilioVPN/node/internal/apps/xray/runtime/configs/app/services"
 	"github.com/PapilioVPN/node/internal/apps/xray/runtime/configs/grpcapi"
 	"github.com/PapilioVPN/node/internal/apps/xray/runtime/configs/httpapi"
@@ -30,6 +31,7 @@ func Module(config []settings.Instance, requests settings.Requests) fx.Option {
 		fx.Provide(compose, composeStores, composeStateService, fx.Private),
 		fx.Provide(sourceProvider),
 		fx.Provide(func(service *services.Service) inboundconfiguration.Compiler { return service }),
+		fx.Provide(func(service *services.Service) outboundconfiguration.Compiler { return service }),
 		fx.Invoke(register, registerLifecycle),
 		fx.Provide(subscribe),
 		fx.Provide(fx.Annotate(finalize, fx.ResultTags(`group:"final-resources"`))),

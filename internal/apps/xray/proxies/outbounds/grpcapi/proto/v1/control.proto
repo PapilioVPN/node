@@ -1,0 +1,51 @@
+syntax = "proto3";
+package papilio.xray.proxies.outbounds.v1;
+option go_package = "github.com/PapilioVPN/node/internal/apps/xray/proxies/outbounds/grpcapi/proto/v1;outboundsv1";
+import "google/protobuf/timestamp.proto";
+import "internal/apps/xray/runtime/configs/grpcapi/proto/v1/compilation.proto";
+// Native errors may still change a missing default or retain constructed resources.
+// This is neither an atomic insert/replacement nor an expiry/cleanup scheduler.
+message AddOutboundRequest {
+  string instance_id = 1;
+  // Native core.OutboundHandlerConfig. expire/comment are unused by this Xray pin.
+  bytes configuration = 2;
+}
+// Removes membership; missing tags succeed. Does not close resources/connections
+// or promote another default. Changing default may affect otherwise unrelated flows.
+message RemoveOutboundRequest {
+  string instance_id = 1;
+  string tag = 2;
+}
+message GetOutboundControlStatusRequest {
+  string instance_id = 1;
+}
+message OutboundOperation {
+  string instance_id = 1;
+  uint64 generation = 2;
+  string kind = 3;
+  string tag = 4;
+  // completed, not_applied or unknown; live changes are not durable desired state.
+  string effect = 5;
+  bool acknowledged = 6;
+  bool requires_instance_restart = 7;
+  google.protobuf.Timestamp observed_at = 8;
+  int64 duration_ns = 9;
+}
+message OutboundControlStatus {
+  string instance_id = 1;
+  uint64 generation = 2;
+  string execution_state = 3;
+  bool api_configured = 4;
+  bool request_in_flight = 5;
+  bool requires_instance_restart = 6;
+  OutboundOperation last_operation = 7;
+  google.protobuf.Timestamp observed_at = 8;
+}
+
+// Compiles ordered native sources, then adds exactly one matching outbound.
+// All other configuration sections and runtime environment changes are excluded.
+message AddOutboundFromSourcesRequest {
+  string instance_id = 1;
+  string tag = 2;
+  repeated papilio.xray.runtime.configs.v1.ConfigurationSource sources = 3;
+}

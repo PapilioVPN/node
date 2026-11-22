@@ -15,3 +15,24 @@ func TestMissingMessageNeverReachesService(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestMissingControlMessagesNeverReachService(t *testing.T) {
+	h := grpcapi.Handler{}
+	ctx := context.Background()
+	_, err := h.AddOutbound(ctx, nil)
+	if status.Code(err) != codes.InvalidArgument {
+		t.Fatal(err)
+	}
+	_, err = h.RemoveOutbound(ctx, nil)
+	if status.Code(err) != codes.InvalidArgument {
+		t.Fatal(err)
+	}
+	_, err = h.AddOutboundFromSources(ctx, nil)
+	if status.Code(err) != codes.InvalidArgument {
+		t.Fatal(err)
+	}
+	_, err = h.GetOutboundControlStatus(ctx, nil)
+	if status.Code(err) != codes.InvalidArgument {
+		t.Fatal(err)
+	}
+}

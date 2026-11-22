@@ -174,3 +174,34 @@ func brokerFixture(t *testing.T, pki testutil.PKI) string {
 	broker := testutil.NewNATSBroker(t, pki.Server, true)
 	return strings.Replace(broker.ClientURL(), "nats://", "tls://", 1)
 }
+
+func configureProbe(t *testing.T, f fixture, route bool) string {
+	t.Helper()
+	reserved, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer reserved.Close()
+	address := reserved.Addr().String()
+	port := reserved.Addr().(*net.TCPAddr).Port
+	path := f.config.Instances[0].Xray.Configuration
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var source map[string]any
+	if err := json.Unmarshal(data, &source); err != nil {
+		t.Fatal(err)
+	}
+	source["inbounds"] = []any{map[string]any{"tag": "probe", "listen": "127.0.0.1", "port": port, "protocol": "http"}}
+	if route {
+		source["routing"] = map[string]any{"rules": []any{map[string]any{"type": "field", "inboundTag": []string{"probe"}, "outboundTag": "managed"}}}
+	} else {
+		source["outbounds"] = []any{map[string]any{"tag": "baseline", "protocol": "freedom"}, map[string]any{"tag": "backup", "protocol": "freedom"}}
+	}
+	data, _ = json.Marshal(source)
+	if err := os.WriteFile(path, data, 0600); err != nil {
+		t.Fatal(err)
+	}
+	return address
+}

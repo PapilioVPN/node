@@ -19,13 +19,22 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	OutboundsService_ListOutbounds_FullMethodName = "/papilio.xray.proxies.outbounds.v1.OutboundsService/ListOutbounds"
+	OutboundsService_AddOutbound_FullMethodName              = "/papilio.xray.proxies.outbounds.v1.OutboundsService/AddOutbound"
+	OutboundsService_AddOutboundFromSources_FullMethodName   = "/papilio.xray.proxies.outbounds.v1.OutboundsService/AddOutboundFromSources"
+	OutboundsService_RemoveOutbound_FullMethodName           = "/papilio.xray.proxies.outbounds.v1.OutboundsService/RemoveOutbound"
+	OutboundsService_GetOutboundControlStatus_FullMethodName = "/papilio.xray.proxies.outbounds.v1.OutboundsService/GetOutboundControlStatus"
+	OutboundsService_ListOutbounds_FullMethodName            = "/papilio.xray.proxies.outbounds.v1.OutboundsService/ListOutbounds"
 )
 
 // OutboundsServiceClient is the client API for OutboundsService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type OutboundsServiceClient interface {
+	AddOutbound(ctx context.Context, in *AddOutboundRequest, opts ...grpc.CallOption) (*OutboundOperation, error)
+	AddOutboundFromSources(ctx context.Context, in *AddOutboundFromSourcesRequest, opts ...grpc.CallOption) (*OutboundOperation, error)
+	// Membership removal only; existing connections/resources are not closed.
+	RemoveOutbound(ctx context.Context, in *RemoveOutboundRequest, opts ...grpc.CallOption) (*OutboundOperation, error)
+	GetOutboundControlStatus(ctx context.Context, in *GetOutboundControlStatusRequest, opts ...grpc.CallOption) (*OutboundControlStatus, error)
 	// One bounded native ListOutbounds RPC; internal API outbound is omitted by Xray.
 	ListOutbounds(ctx context.Context, in *ListOutboundsRequest, opts ...grpc.CallOption) (*OutboundConfigurations, error)
 }
@@ -36,6 +45,46 @@ type outboundsServiceClient struct {
 
 func NewOutboundsServiceClient(cc grpc.ClientConnInterface) OutboundsServiceClient {
 	return &outboundsServiceClient{cc}
+}
+
+func (c *outboundsServiceClient) AddOutbound(ctx context.Context, in *AddOutboundRequest, opts ...grpc.CallOption) (*OutboundOperation, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OutboundOperation)
+	err := c.cc.Invoke(ctx, OutboundsService_AddOutbound_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *outboundsServiceClient) AddOutboundFromSources(ctx context.Context, in *AddOutboundFromSourcesRequest, opts ...grpc.CallOption) (*OutboundOperation, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OutboundOperation)
+	err := c.cc.Invoke(ctx, OutboundsService_AddOutboundFromSources_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *outboundsServiceClient) RemoveOutbound(ctx context.Context, in *RemoveOutboundRequest, opts ...grpc.CallOption) (*OutboundOperation, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OutboundOperation)
+	err := c.cc.Invoke(ctx, OutboundsService_RemoveOutbound_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *outboundsServiceClient) GetOutboundControlStatus(ctx context.Context, in *GetOutboundControlStatusRequest, opts ...grpc.CallOption) (*OutboundControlStatus, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OutboundControlStatus)
+	err := c.cc.Invoke(ctx, OutboundsService_GetOutboundControlStatus_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *outboundsServiceClient) ListOutbounds(ctx context.Context, in *ListOutboundsRequest, opts ...grpc.CallOption) (*OutboundConfigurations, error) {
@@ -52,6 +101,11 @@ func (c *outboundsServiceClient) ListOutbounds(ctx context.Context, in *ListOutb
 // All implementations must embed UnimplementedOutboundsServiceServer
 // for forward compatibility.
 type OutboundsServiceServer interface {
+	AddOutbound(context.Context, *AddOutboundRequest) (*OutboundOperation, error)
+	AddOutboundFromSources(context.Context, *AddOutboundFromSourcesRequest) (*OutboundOperation, error)
+	// Membership removal only; existing connections/resources are not closed.
+	RemoveOutbound(context.Context, *RemoveOutboundRequest) (*OutboundOperation, error)
+	GetOutboundControlStatus(context.Context, *GetOutboundControlStatusRequest) (*OutboundControlStatus, error)
 	// One bounded native ListOutbounds RPC; internal API outbound is omitted by Xray.
 	ListOutbounds(context.Context, *ListOutboundsRequest) (*OutboundConfigurations, error)
 	mustEmbedUnimplementedOutboundsServiceServer()
@@ -64,6 +118,18 @@ type OutboundsServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedOutboundsServiceServer struct{}
 
+func (UnimplementedOutboundsServiceServer) AddOutbound(context.Context, *AddOutboundRequest) (*OutboundOperation, error) {
+	return nil, status.Error(codes.Unimplemented, "method AddOutbound not implemented")
+}
+func (UnimplementedOutboundsServiceServer) AddOutboundFromSources(context.Context, *AddOutboundFromSourcesRequest) (*OutboundOperation, error) {
+	return nil, status.Error(codes.Unimplemented, "method AddOutboundFromSources not implemented")
+}
+func (UnimplementedOutboundsServiceServer) RemoveOutbound(context.Context, *RemoveOutboundRequest) (*OutboundOperation, error) {
+	return nil, status.Error(codes.Unimplemented, "method RemoveOutbound not implemented")
+}
+func (UnimplementedOutboundsServiceServer) GetOutboundControlStatus(context.Context, *GetOutboundControlStatusRequest) (*OutboundControlStatus, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetOutboundControlStatus not implemented")
+}
 func (UnimplementedOutboundsServiceServer) ListOutbounds(context.Context, *ListOutboundsRequest) (*OutboundConfigurations, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListOutbounds not implemented")
 }
@@ -86,6 +152,78 @@ func RegisterOutboundsServiceServer(s grpc.ServiceRegistrar, srv OutboundsServic
 		t.testEmbeddedByValue()
 	}
 	s.RegisterService(&OutboundsService_ServiceDesc, srv)
+}
+
+func _OutboundsService_AddOutbound_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddOutboundRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(OutboundsServiceServer).AddOutbound(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: OutboundsService_AddOutbound_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(OutboundsServiceServer).AddOutbound(ctx, req.(*AddOutboundRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _OutboundsService_AddOutboundFromSources_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddOutboundFromSourcesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(OutboundsServiceServer).AddOutboundFromSources(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: OutboundsService_AddOutboundFromSources_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(OutboundsServiceServer).AddOutboundFromSources(ctx, req.(*AddOutboundFromSourcesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _OutboundsService_RemoveOutbound_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RemoveOutboundRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(OutboundsServiceServer).RemoveOutbound(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: OutboundsService_RemoveOutbound_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(OutboundsServiceServer).RemoveOutbound(ctx, req.(*RemoveOutboundRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _OutboundsService_GetOutboundControlStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetOutboundControlStatusRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(OutboundsServiceServer).GetOutboundControlStatus(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: OutboundsService_GetOutboundControlStatus_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(OutboundsServiceServer).GetOutboundControlStatus(ctx, req.(*GetOutboundControlStatusRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _OutboundsService_ListOutbounds_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -113,6 +251,22 @@ var OutboundsService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "papilio.xray.proxies.outbounds.v1.OutboundsService",
 	HandlerType: (*OutboundsServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "AddOutbound",
+			Handler:    _OutboundsService_AddOutbound_Handler,
+		},
+		{
+			MethodName: "AddOutboundFromSources",
+			Handler:    _OutboundsService_AddOutboundFromSources_Handler,
+		},
+		{
+			MethodName: "RemoveOutbound",
+			Handler:    _OutboundsService_RemoveOutbound_Handler,
+		},
+		{
+			MethodName: "GetOutboundControlStatus",
+			Handler:    _OutboundsService_GetOutboundControlStatus_Handler,
+		},
 		{
 			MethodName: "ListOutbounds",
 			Handler:    _OutboundsService_ListOutbounds_Handler,

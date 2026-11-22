@@ -2,7 +2,13 @@ syntax = "proto3";
 package papilio.xray.proxies.outbounds.v1;
 option go_package = "github.com/PapilioVPN/node/internal/apps/xray/proxies/outbounds/grpcapi/proto/v1;outboundsv1";
 import "google/protobuf/timestamp.proto";
+import "internal/apps/xray/proxies/outbounds/grpcapi/proto/v1/control.proto";
 service OutboundsService {
+  rpc AddOutbound(AddOutboundRequest) returns (OutboundOperation);
+  rpc AddOutboundFromSources(AddOutboundFromSourcesRequest) returns (OutboundOperation);
+  // Membership removal only; existing connections/resources are not closed.
+  rpc RemoveOutbound(RemoveOutboundRequest) returns (OutboundOperation);
+  rpc GetOutboundControlStatus(GetOutboundControlStatusRequest) returns (OutboundControlStatus);
   // One bounded native ListOutbounds RPC; internal API outbound is omitted by Xray.
   rpc ListOutbounds(ListOutboundsRequest) returns (OutboundConfigurations);
 }

@@ -14,11 +14,15 @@ import (
 
 type Handler struct {
 	Service *services.Service
+	Sources *services.Sources
 	Timeout time.Duration
 }
 
 func (h Handler) Register(router fiber.Router) {
 	router.Get("/v1/xray/proxies/instances/:id/outbounds", h.Records)
+	router.Post("/v1/xray/proxies/instances/:id/outbounds", h.Add)
+	router.Delete("/v1/xray/proxies/instances/:id/outbounds", h.Remove)
+	router.Get("/v1/xray/proxies/instances/:id/outbounds/control-status", h.Status)
 }
 func (h Handler) Records(request fiber.Ctx) error {
 	request.Set(fiber.HeaderCacheControl, "no-store")
@@ -51,6 +55,8 @@ func errorStatus(err error) (string, int) {
 		code, status = "not_found", fiber.StatusNotFound
 	case errors.Is(err, domain.ErrUnsupported), errors.Is(err, domain.ErrNotRunning):
 		code, status = "failed_precondition", fiber.StatusConflict
+	case errors.Is(err, domain.ErrUncertain):
+		code, status = "restart_required", fiber.StatusConflict
 	case errors.Is(err, domain.ErrExecutionChanged):
 		code, status = "execution_changed", fiber.StatusConflict
 	case errors.Is(err, domain.ErrCapacity):

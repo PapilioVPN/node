@@ -15,6 +15,7 @@ import (
 
 type Handler struct {
 	Service *services.Service
+	Sources *services.Sources
 	Timeout time.Duration
 }
 
@@ -23,21 +24,25 @@ func (h Handler) request(ctx context.Context, data []byte, headers nats.Header) 
 	if err != nil {
 		return nil, nil, id, err
 	}
+	ctx, cancel, err := h.requestContext(ctx, headers)
+	return ctx, cancel, id, err
+}
+func (h Handler) requestContext(ctx context.Context, headers nats.Header) (context.Context, context.CancelFunc, error) {
 	deadline := time.Now().Add(h.Timeout)
 	if values, ok := headers["Papilio-Deadline"]; ok {
 		if len(values) != 1 {
-			return nil, nil, id, domain.ErrInvalidArgument
+			return nil, nil, domain.ErrInvalidArgument
 		}
 		requested, err := time.Parse(time.RFC3339Nano, values[0])
 		if err != nil {
-			return nil, nil, id, domain.ErrInvalidArgument
+			return nil, nil, domain.ErrInvalidArgument
 		}
 		if requested.Before(deadline) {
 			deadline = requested
 		}
 	}
 	ctx, cancel := context.WithDeadline(ctx, deadline)
-	return ctx, cancel, id, nil
+	return ctx, cancel, nil
 }
 
 func (h Handler) Records(ctx context.Context, data []byte, headers nats.Header) []byte {
@@ -69,6 +74,8 @@ func errorCode(err error) string {
 		code = "not_found"
 	case errors.Is(err, domain.ErrUnsupported), errors.Is(err, domain.ErrNotRunning):
 		code = "failed_precondition"
+	case errors.Is(err, domain.ErrUncertain):
+		code = "restart_required"
 	case errors.Is(err, domain.ErrExecutionChanged):
 		code = "execution_changed"
 	case errors.Is(err, domain.ErrCapacity):
