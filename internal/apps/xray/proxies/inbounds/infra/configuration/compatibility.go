@@ -96,6 +96,23 @@ func (Inspector) DescribeNative(config *core.InboundHandlerConfig) (domain.Summa
 	return summary, nil
 }
 
+// Inspect observes summary and equality evidence from one decoded native record.
+func (i Inspector) Inspect(content []byte) (domain.Summary, string, error) {
+	var config core.InboundHandlerConfig
+	if err := proto.Unmarshal(content, &config); err != nil {
+		return domain.Summary{}, "", errors.Join(domain.ErrInvalidArgument, err)
+	}
+	if config.ReceiverSettings == nil || config.ProxySettings == nil || config.ProxySettings.Type == "" || config.ReceiverSettings.Type == "" {
+		return domain.Summary{}, "", domain.ErrInvalidArgument
+	}
+	summary, err := i.DescribeNative(&config)
+	if err != nil {
+		return domain.Summary{}, "", err
+	}
+	hash, err := fingerprint(&config)
+	return summary, hash, err
+}
+
 // Fingerprint uses deterministic native encoding for plan comparisons. It is
 // private equality evidence, not an account-membership or desired-state revision.
 func (Inspector) Fingerprint(content []byte) (string, error) {

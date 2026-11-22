@@ -69,3 +69,21 @@ func TestReplacementCandidateRejectsCrossFamilyAccountsBeforeRemoval(t *testing.
 		t.Fatal("foreign account approved for VLESS replacement")
 	}
 }
+
+func TestCombinedInspectionPreservesSummaryAndFingerprint(t *testing.T) {
+	config := &core.InboundHandlerConfig{Tag: "selected", ReceiverSettings: &serial.TypedMessage{Type: "opaque.receiver"}, ProxySettings: &serial.TypedMessage{Type: "opaque.proxy"}}
+	config.ProtoReflect().SetUnknown([]byte{0xa0, 0x06, 7})
+	raw, _ := proto.Marshal(config)
+	i := configuration.Inspector{}
+	summary, hash, err := i.Inspect(raw)
+	wantSummary, summaryErr := i.Describe(raw)
+	wantHash, hashErr := i.Fingerprint(raw)
+	if err != nil || summaryErr != nil || hashErr != nil || summary != wantSummary || hash != wantHash {
+		t.Fatal(summary, hash, err)
+	}
+	config.ReceiverSettings = nil
+	raw, _ = proto.Marshal(config)
+	if _, _, err := i.Inspect(raw); err == nil {
+		t.Fatal("incomplete native envelope accepted")
+	}
+}

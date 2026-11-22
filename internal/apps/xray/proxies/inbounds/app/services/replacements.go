@@ -87,11 +87,7 @@ func (c *Catalog) Plan(ctx context.Context, id string, input domain.ReplacementI
 	if err != nil {
 		return domain.ReplacementPlan{}, err
 	}
-	currentSummary, err := c.inspector.Describe(current.Configuration)
-	if err != nil {
-		return domain.ReplacementPlan{}, err
-	}
-	currentHash, err := c.inspector.Fingerprint(current.Configuration)
+	currentSummary, currentHash, err := c.inspector.Inspect(current.Configuration)
 	if err != nil {
 		return domain.ReplacementPlan{}, err
 	}

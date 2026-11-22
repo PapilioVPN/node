@@ -162,7 +162,7 @@ func (s *Service) TagPage(ctx context.Context, id string, input domain.PageReque
 // stays in its concrete adapter, rather than application or Accounts code.
 type Inspector interface {
 	Candidate([]byte) (domain.Summary, string, error)
-	Describe([]byte) (domain.Summary, error)
+	Inspect([]byte) (domain.Summary, string, error)
 	Fingerprint([]byte) (string, error)
 }
 type Catalog struct {

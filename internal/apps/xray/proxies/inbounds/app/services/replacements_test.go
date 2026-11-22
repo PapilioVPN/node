@@ -183,3 +183,12 @@ func TestReplacementStructuralRejectionDoesNotReadOrMutateEngine(t *testing.T) {
 		t.Fatal("invalid candidate reached native engine", native.calls, err)
 	}
 }
+
+func (i inspector) Inspect(b []byte) (domain.Summary, string, error) {
+	summary, err := i.Describe(b)
+	if err != nil {
+		return domain.Summary{}, "", err
+	}
+	hash, err := i.Fingerprint(b)
+	return summary, hash, err
+}
