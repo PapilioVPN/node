@@ -8,6 +8,7 @@ import (
 
 	configs "github.com/PapilioVPN/node/internal/apps/xray/runtime/configs/domain"
 	"github.com/PapilioVPN/node/internal/apps/xray/users/accounts/domain"
+	"github.com/PapilioVPN/node/internal/apps/xray/users/accounts/infra/api"
 	"github.com/PapilioVPN/node/internal/apps/xray/users/accounts/infra/configuration"
 	"github.com/xtls/xray-core/common/protocol"
 	"github.com/xtls/xray-core/common/serial"
@@ -47,7 +48,7 @@ func TestSelectionCompilesOnceAndPreservesNativeUserBytes(t *testing.T) {
 	selected := user(t, "Exact@example.test")
 	input := compiled(t, user(t, "other@example.test"), selected)
 	calls := 0
-	preparer := configuration.Preparer{Compiler: compiler(func(_ context.Context, id string, sources []configs.Source) (configs.Compilation, error) {
+	preparer := configuration.Preparer{Factories: map[string]configuration.Factory{"a": api.New(nil)}, Compiler: compiler(func(_ context.Context, id string, sources []configs.Source) (configs.Compilation, error) {
 		calls++
 		if id != "a" || len(sources) != 2 || sources[1].Name != "tail.json" {
 			t.Fatal(id, sources)
@@ -55,13 +56,13 @@ func TestSelectionCompilesOnceAndPreservesNativeUserBytes(t *testing.T) {
 		return configs.Compilation{Content: input}, nil
 	})}
 	result, err := preparer.Prepare(context.Background(), "a", "selected", "Exact@example.test", []configs.Source{{Name: "base.json"}, {Name: "tail.json"}})
-	if err != nil || calls != 1 || !bytes.Equal(result, selected) {
+	if err != nil || calls != 1 || !bytes.Equal(result.Configuration, selected) {
 		t.Fatal(result, err, calls)
 	}
 	for i := range input {
 		input[i] = 0
 	}
-	if !bytes.Equal(result, selected) {
+	if !bytes.Equal(result.Configuration, selected) {
 		t.Fatal("result still borrows compiled input")
 	}
 }
@@ -69,18 +70,18 @@ func TestSelectionRejectsMissingAmbiguousOrMismatchedAccounts(t *testing.T) {
 	valid := user(t, "a")
 	wrong, _ := proto.Marshal(&protocol.User{Email: "a", Account: &serial.TypedMessage{Type: "xray.proxy.trojan.Account"}})
 	for _, content := range [][]byte{compiled(t, user(t, "other")), compiled(t, valid, valid), compiled(t, wrong), compiled(t, []byte{255})} {
-		p := configuration.Preparer{Compiler: compiler(func(context.Context, string, []configs.Source) (configs.Compilation, error) {
+		p := configuration.Preparer{Factories: map[string]configuration.Factory{"a": api.New(nil)}, Compiler: compiler(func(context.Context, string, []configs.Source) (configs.Compilation, error) {
 			return configs.Compilation{Content: content}, nil
 		})}
-		if result, err := p.Prepare(context.Background(), "a", "selected", "a", nil); !errors.Is(err, domain.ErrInvalidArgument) || result != nil {
+		if result, err := p.Prepare(context.Background(), "a", "selected", "a", nil); !errors.Is(err, domain.ErrInvalidArgument) || result.Configuration != nil {
 			t.Fatal(result, err)
 		}
 	}
 	for _, cause := range []error{configs.ErrRejected, configs.ErrTooLarge, configs.ErrUnsupported, context.Canceled} {
-		p := configuration.Preparer{Compiler: compiler(func(context.Context, string, []configs.Source) (configs.Compilation, error) {
+		p := configuration.Preparer{Factories: map[string]configuration.Factory{"a": api.New(nil)}, Compiler: compiler(func(context.Context, string, []configs.Source) (configs.Compilation, error) {
 			return configs.Compilation{}, cause
 		})}
-		if result, err := p.Prepare(context.Background(), "a", "selected", "a", nil); !errors.Is(err, cause) || result != nil {
+		if result, err := p.Prepare(context.Background(), "a", "selected", "a", nil); !errors.Is(err, cause) || result.Configuration != nil {
 			t.Fatal(result, err)
 		}
 	}
@@ -90,13 +91,13 @@ func FuzzCompiledAccountSelection(f *testing.F) {
 	f.Add([]byte{})
 	f.Add([]byte{10, 1, 255})
 	f.Fuzz(func(t *testing.T, content []byte) {
-		p := configuration.Preparer{Compiler: compiler(func(context.Context, string, []configs.Source) (configs.Compilation, error) {
+		p := configuration.Preparer{Factories: map[string]configuration.Factory{"a": api.New(nil)}, Compiler: compiler(func(context.Context, string, []configs.Source) (configs.Compilation, error) {
 			return configs.Compilation{Content: content}, nil
 		})}
 		result, err := p.Prepare(context.Background(), "a", "selected", "a", nil)
 		if err == nil {
 			var user protocol.User
-			if len(result) > domain.MaxAccountBytes || proto.Unmarshal(result, &user) != nil || user.Email != "a" || user.Account == nil {
+			if len(result.Configuration) > domain.MaxAccountBytes || proto.Unmarshal(result.Configuration, &user) != nil || user.Email != "a" || user.Account == nil {
 				t.Fatal("invalid selected account")
 			}
 		}
@@ -111,11 +112,11 @@ func compiledSeed() []byte {
 }
 func TestSelectionBoundsAndNativeClientMode(t *testing.T) {
 	large, _ := proto.Marshal(&protocol.User{Email: "a", Account: &serial.TypedMessage{Type: "xray.proxy.vless.Account", Value: bytes.Repeat([]byte{1}, domain.MaxAccountBytes)}})
-	p := configuration.Preparer{Compiler: compiler(func(context.Context, string, []configs.Source) (configs.Compilation, error) {
+	p := configuration.Preparer{Factories: map[string]configuration.Factory{"a": api.New(nil)}, Compiler: compiler(func(context.Context, string, []configs.Source) (configs.Compilation, error) {
 		return configs.Compilation{Content: compiled(t, large)}, nil
 	})}
-	if result, err := p.Prepare(context.Background(), "a", "selected", "a", nil); !errors.Is(err, domain.ErrCapacity) || result != nil {
-		t.Fatal(len(result), err)
+	if result, err := p.Prepare(context.Background(), "a", "selected", "a", nil); !errors.Is(err, domain.ErrCapacity) || result.Configuration != nil {
+		t.Fatal(len(result.Configuration), err)
 	}
 	peer, _ := proto.Marshal(&protocol.User{Email: "a", Account: &serial.TypedMessage{Type: "xray.proxy.wireguard.PeerConfig"}})
 	value := protowire.AppendBytes(protowire.AppendTag(nil, 5, protowire.BytesType), peer)
@@ -124,7 +125,7 @@ func TestSelectionBoundsAndNativeClientMode(t *testing.T) {
 	p.Compiler = compiler(func(context.Context, string, []configs.Source) (configs.Compilation, error) {
 		return configs.Compilation{Content: content}, nil
 	})
-	if result, err := p.Prepare(context.Background(), "a", "selected", "a", nil); !errors.Is(err, domain.ErrUnsupported) || result != nil {
+	if result, err := p.Prepare(context.Background(), "a", "selected", "a", nil); !errors.Is(err, domain.ErrUnsupported) || result.Configuration != nil {
 		t.Fatal(result, err)
 	}
 }

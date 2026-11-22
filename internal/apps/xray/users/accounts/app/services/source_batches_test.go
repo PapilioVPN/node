@@ -51,8 +51,8 @@ func TestSourceBatchCompilesOnceAndInvokesNativeOncePerAttemptedAccount(t *testi
 				calls++
 				return nil
 			}})
-			service, _ := newService([]services.Binding{{ID: "a", Client: c}}, &execution{generation: 1, state: instances.Running})
-			sources, _ := services.NewSources(service, configuration.Preparer{Compiler: compiler})
+			service, _ := newSourceService([]services.Binding{{ID: "a", Client: c}}, &execution{generation: 1, state: instances.Running})
+			sources, _ := services.NewSources(service, configuration.Preparer{Compiler: compiler, Factories: map[string]configuration.Factory{"a": c}})
 			result, err := sources.AddMany(context.Background(), "a", items, []configs.Source{{Name: "base.json", Content: []byte("base")}, {Name: "tail.json", Content: []byte("tail")}}, 1)
 			if err != nil || compiles != 1 || calls != size || len(result.Items) != size || result.Operation.Effect != domain.Completed {
 				t.Fatal(result.Operation, err, compiles, calls)
@@ -88,14 +88,15 @@ func TestSourceBatchReportsSelectionAndNativePartialErrors(t *testing.T) {
 				c.Inbound = append(c.Inbound, &core.InboundHandlerConfig{Tag: "bad", ProxySettings: &serial.TypedMessage{Type: proxyType, Value: protowire.AppendBytes(protowire.AppendTag(nil, 1, protowire.BytesType), user)}})
 				compiled, _ = proto.Marshal(&c)
 			}
-			service, _ := newService([]services.Binding{{ID: "a", Client: client{add: func(context.Context, string, []byte) (domain.NativeResult, error) {
+			c := client{add: func(context.Context, string, []byte) (domain.NativeResult, error) {
 				calls++
 				if mode == "native" && calls == 2 {
 					return domain.NativeResult{Effect: domain.Unknown, RequiresInstanceRestart: true}, domain.ErrUncertain
 				}
 				return domain.NativeResult{Effect: domain.Completed, Acknowledged: true}, nil
-			}}}}, &execution{generation: 1, state: instances.Running})
-			sources, _ := services.NewSources(service, configuration.Preparer{Compiler: sourceCompiler(func(context.Context, string, []configs.Source) (configs.Compilation, error) {
+			}}
+			service, _ := newSourceService([]services.Binding{{ID: "a", Client: c}}, &execution{generation: 1, state: instances.Running})
+			sources, _ := services.NewSources(service, configuration.Preparer{Factories: map[string]configuration.Factory{"a": sourceFactory{c}}, Compiler: sourceCompiler(func(context.Context, string, []configs.Source) (configs.Compilation, error) {
 				return configs.Compilation{Content: compiled}, nil
 			})})
 			result, err := sources.AddMany(context.Background(), "a", items, nil, 1)
@@ -121,11 +122,12 @@ func TestSourceBatchPreparationFailureCancellationAndReplacement(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 			compiles, calls, parallelism := 0, 0, 1
-			service, _ := newService([]services.Binding{{ID: "a", Client: client{add: func(context.Context, string, []byte) (domain.NativeResult, error) {
+			c := client{add: func(context.Context, string, []byte) (domain.NativeResult, error) {
 				calls++
 				return domain.NativeResult{}, nil
-			}}}}, e)
-			sources, _ := services.NewSources(service, configuration.Preparer{Compiler: sourceCompiler(func(context.Context, string, []configs.Source) (configs.Compilation, error) {
+			}}
+			service, _ := newSourceService([]services.Binding{{ID: "a", Client: c}}, e)
+			sources, _ := services.NewSources(service, configuration.Preparer{Factories: map[string]configuration.Factory{"a": sourceFactory{c}}, Compiler: sourceCompiler(func(context.Context, string, []configs.Source) (configs.Compilation, error) {
 				compiles++
 				if _, err := service.Count(context.Background(), "a", "members"); !errors.Is(err, domain.ErrCapacity) {
 					t.Error("preparation escaped the live reservation", err)
@@ -162,4 +164,56 @@ func TestSourceBatchPreparationFailureCancellationAndReplacement(t *testing.T) {
 			}
 		})
 	}
+}
+
+// Source preparation carries native identity directly. Re-scanning encoded
+// account bytes through the raw-input inspector is a regression.
+type noSourceInspection struct{}
+
+func (noSourceInspection) AccountType([]byte) (string, error) {
+	panic("prepared source was inspected again")
+}
+
+type sourceProfiles struct{ inboundReader }
+
+func (r sourceProfiles) Get(ctx context.Context, id, tag string) (domain.Inbound, error) {
+	v, err := r.inboundReader.Get(ctx, id, tag)
+	v.AccountType = "xray.proxy.vless.Account"
+	return v, err
+}
+func (r sourceProfiles) Select(ctx context.Context, id string, tags []string) ([]domain.Inbound, error) {
+	result := make([]domain.Inbound, len(tags))
+	for i, tag := range tags {
+		v, err := r.Get(ctx, id, tag)
+		if err != nil {
+			return nil, err
+		}
+		result[i] = v
+	}
+	return result, nil
+}
+func newSourceService(bindings []services.Binding, status services.StatusReader) (*services.Service, error) {
+	return services.New(bindings, status, sourceProfiles{inboundReader{status}}, noSourceInspection{})
+}
+
+type sourceFactory struct{ client services.Client }
+
+func (f sourceFactory) PrepareNative(user *protocol.User) (domain.PreparedAccount, error) {
+	content, err := proto.Marshal(user)
+	if err != nil {
+		return nil, err
+	}
+	return nativeSourceAccount{kind: user.Account.Type, submit: func(ctx context.Context, tag string) (domain.NativeResult, error) {
+		return f.client.Add(ctx, tag, content)
+	}}, nil
+}
+
+type nativeSourceAccount struct {
+	kind   string
+	submit func(context.Context, string) (domain.NativeResult, error)
+}
+
+func (a nativeSourceAccount) AccountType() string { return a.kind }
+func (a nativeSourceAccount) Add(ctx context.Context, tag string) (domain.NativeResult, error) {
+	return a.submit(ctx, tag)
 }

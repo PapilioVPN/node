@@ -163,7 +163,7 @@ func (s *Service) Export(ctx context.Context, id, tag string, r domain.PageReque
 		p.records = result.Users
 		p.cost = result.ReadCost
 		for _, u := range p.records {
-			p.bytes += len(u.Email) + len(u.Configuration) + 32
+			p.bytes += len(u.Email) + len(u.AccountType) + len(u.Configuration) + 64
 		}
 		return nil
 	})

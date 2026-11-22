@@ -28,7 +28,7 @@ func (s *Service) mutate(ctx context.Context, id, tag, kind, email string, invok
 	if err := ctx.Err(); err != nil {
 		return operation, err
 	}
-	if instancevalidators.ID(id) != nil || validators.Selector(tag) != nil {
+	if validators.Selector(tag) != nil {
 		return operation, domain.ErrInvalidArgument
 	}
 	reservation, err := s.reserveMutation(ctx, id, 1)

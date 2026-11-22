@@ -70,7 +70,7 @@ func (p Preparer) PrepareMany(ctx context.Context, id string, selections []domai
 		if inbound == nil || selection.ambiguous || inbound.ProxySettings == nil {
 			err = domain.ErrInvalidArgument
 		} else {
-			err = selectUsers(ctx, inbound.ProxySettings.Type, inbound.ProxySettings.Value, selection.users)
+			err = selectUsers(ctx, inbound.ProxySettings.Type, inbound.ProxySettings.Value, selection.users, p.Factories[id])
 		}
 		if err != nil {
 			for email := range selection.users {
@@ -89,15 +89,16 @@ func (p Preparer) PrepareMany(ctx context.Context, id string, selections []domai
 			return nil, domain.ErrCapacity
 		}
 		remaining -= len(account.Configuration)
-		result[i] = domain.SourceAccount{Configuration: bytes.Clone(account.Configuration), Err: account.Err}
+		result[i] = domain.SourceAccount{Configuration: bytes.Clone(account.Configuration), Prepared: account.Prepared, Err: account.Err}
 	}
 	return result, nil
 }
 
-// selectUsers borrows raw selected User bytes while scanning one proxy payload.
+// selectUsers decodes each selected native user once for preparation and borrows
+// its raw bytes for bounded selection artifacts while scanning one proxy payload.
 // Unknown protocol fields stay intact; this is structural selection, not native
 // semantic credential validation or attestation of the live target's protocol.
-func selectUsers(ctx context.Context, name string, content []byte, requested map[string]domain.SourceAccount) error {
+func selectUsers(ctx context.Context, name string, content []byte, requested map[string]domain.SourceAccount, factory Factory) error {
 	field, account, clientField := userLayout(name)
 	if field == 0 {
 		return domain.ErrUnsupported
@@ -145,6 +146,18 @@ func selectUsers(ctx context.Context, name string, content []byte, requested map
 					selected = domain.SourceAccount{Err: domain.ErrCapacity}
 				case user.Account == nil || user.Account.Type != account:
 					selected = domain.SourceAccount{Err: domain.ErrInvalidArgument}
+				}
+				if selected.Err == nil {
+					if factory == nil {
+						selected = domain.SourceAccount{Err: domain.ErrUnsupported}
+					} else {
+						prepared, err := factory.PrepareNative(&user)
+						if err != nil {
+							selected = domain.SourceAccount{Err: err}
+						} else {
+							selected.Prepared = prepared
+						}
+					}
 				}
 				requested[user.Email] = selected
 				seen[user.Email] = true

@@ -85,16 +85,6 @@ func TestTargetedAbsenceDoesNotBecomeZeroAccount(t *testing.T) {
 		})
 	}
 }
-func TestEmptyLookupCannotFetchTheCollection(t *testing.T) {
-	c := api.New(connection{func(string, any, any, []grpc.CallOption) error {
-		t.Fatal("invalid exact lookup reached Xray")
-		return nil
-	}})
-	if _, err := c.Get(context.Background(), "members", ""); !errors.Is(err, domain.ErrInvalidArgument) {
-		t.Fatal(err)
-	}
-}
-
 func TestMalformedNativeResponsesAndFailuresRemainErrors(t *testing.T) {
 	for _, count := range []int64{-1, math.MaxInt64} {
 		c := api.New(connection{func(_ string, _ any, out any, _ []grpc.CallOption) error {
@@ -136,5 +126,34 @@ func TestMalformedNativeResponsesAndFailuresRemainErrors(t *testing.T) {
 		if !errors.Is(err, cause) || !errors.Is(err, test.want) {
 			t.Fatal(test.code, err)
 		}
+	}
+}
+
+func TestPreparedNativeAccountPreservesCredentialsAndDoesNotSubmitBeforeAdmission(t *testing.T) {
+	user := &protocol.User{Email: "Exact", Level: 7, Account: &serial.TypedMessage{Type: "opaque.Account", Value: []byte{1, 2, 3}}}
+	user.ProtoReflect().SetUnknown([]byte{0xa0, 0x06, 7})
+	calls := 0
+	client := api.New(connection{func(method string, input, _ any, _ []grpc.CallOption) error {
+		calls++
+		r := input.(*handlers.AlterInboundRequest)
+		var operation handlers.AddUserOperation
+		if method != "/xray.app.proxyman.command.HandlerService/AlterInbound" || r.Tag != "members" || proto.Unmarshal(r.Operation.Value, &operation) != nil || !proto.Equal(operation.User, user) {
+			t.Fatal("prepared native account changed", method, r)
+		}
+		return nil
+	}})
+	prepared, err := client.PrepareNative(user)
+	if err != nil || calls != 0 || prepared.AccountType() != user.Account.Type {
+		t.Fatal(err, calls)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	result, err := prepared.Add(ctx, "members")
+	if !errors.Is(err, context.Canceled) || calls != 0 || result.Effect != domain.NotApplied {
+		t.Fatal(result, err, calls)
+	}
+	result, err = prepared.Add(context.Background(), "members")
+	if err != nil || calls != 1 || !result.Acknowledged || result.Email != user.Email {
+		t.Fatal(result, err, calls)
 	}
 }

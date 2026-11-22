@@ -25,18 +25,38 @@ func (c Client) Add(ctx context.Context, tag string, content []byte) (domain.Nat
 	if err := proto.Unmarshal(content, &user); err != nil {
 		return domain.NativeResult{Effect: domain.NotApplied}, errors.Join(domain.ErrInvalidArgument, err)
 	}
-	if user.Account == nil || user.Account.Type == "" {
-		return domain.NativeResult{Effect: domain.NotApplied}, domain.ErrInvalidArgument
-	}
-	// The native account envelope is decoded once. Each inbound owns matching
-	// account types and anonymous-user semantics; do not normalize native identity.
-	if err := validators.Email(user.Email); err != nil {
+	prepared, err := c.PrepareNative(&user)
+	if err != nil {
 		return domain.NativeResult{Effect: domain.NotApplied}, err
 	}
-	result, err := c.alter(ctx, tag, &handlers.AddUserOperation{User: &user})
-	result.Email = user.Email
+	return prepared.Add(ctx, tag)
+}
+
+type preparedAccount struct {
+	client Client
+	user   *protocol.User
+}
+
+// PrepareNative takes ownership of a decoded user without submitting a change.
+func (c Client) PrepareNative(user *protocol.User) (domain.PreparedAccount, error) {
+	if user == nil || user.Account == nil || user.Account.Type == "" {
+		return nil, domain.ErrInvalidArgument
+	}
+	if err := validators.Email(user.Email); err != nil {
+		return nil, err
+	}
+	return preparedAccount{client: c, user: user}, nil
+}
+func (a preparedAccount) AccountType() string { return a.user.Account.Type }
+func (a preparedAccount) Add(ctx context.Context, tag string) (domain.NativeResult, error) {
+	if err := ctx.Err(); err != nil {
+		return domain.NativeResult{Email: a.user.Email, Effect: domain.NotApplied}, err
+	}
+	result, err := a.client.alter(ctx, tag, &handlers.AddUserOperation{User: a.user})
+	result.Email = a.user.Email
 	return result, err
 }
+
 func (c Client) Remove(ctx context.Context, tag, email string) (domain.NativeResult, error) {
 	if err := ctx.Err(); err != nil {
 		return domain.NativeResult{Effect: domain.NotApplied}, err

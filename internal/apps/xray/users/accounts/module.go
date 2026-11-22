@@ -19,7 +19,7 @@ import (
 )
 
 func Module(requests settings.Requests) fx.Option {
-	return fx.Module("xray-accounts", fx.Supply(requests, fx.Private), fx.Provide(compose), fx.Provide(composeSources, composeConfigurations, fx.Private), fx.Invoke(register), fx.Provide(subscribe))
+	return fx.Module("xray-accounts", fx.Supply(requests, fx.Private), fx.Provide(compose), fx.Provide(composeConfigurations, fx.Private), fx.Invoke(register), fx.Provide(subscribe))
 }
 
 type inputs struct {
@@ -27,9 +27,11 @@ type inputs struct {
 	Catalog  *inboundservices.Catalog
 	Bindings []rpc.Binding `group:"xray-native-api"`
 	Status   services.StatusReader
+	Compiler configuration.Compiler
 }
 
-func compose(in inputs) (*services.Service, error) {
+func compose(in inputs) (*services.Service, *services.Sources, error) {
+	factories := make(map[string]configuration.Factory, len(in.Bindings))
 	bindings := make([]services.Binding, 0, len(in.Bindings))
 	for _, resource := range in.Bindings {
 		binding := services.Binding{ID: resource.ID}
@@ -37,14 +39,16 @@ func compose(in inputs) (*services.Service, error) {
 			client := api.New(resource.Client)
 			binding.Client = client
 			binding.Reader = client
+			factories[resource.ID] = client
 		}
 		bindings = append(bindings, binding)
 	}
-	return services.New(bindings, in.Status, inboundreader.Reader{Source: in.Catalog}, api.Inspector{})
-}
-
-func composeSources(service *services.Service, compiler configuration.Compiler) (*services.Sources, error) {
-	return services.NewSources(service, configuration.Preparer{Compiler: compiler})
+	service, err := services.New(bindings, in.Status, inboundreader.Reader{Source: in.Catalog}, api.Inspector{})
+	if err != nil {
+		return nil, nil, err
+	}
+	sources, err := services.NewSources(service, configuration.Preparer{Compiler: in.Compiler, Factories: factories})
+	return service, sources, err
 }
 
 func composeConfigurations(compiler configuration.Compiler) (*services.Configurations, error) {

@@ -10,7 +10,7 @@ import (
 )
 
 type SourcePreparer interface {
-	Prepare(context.Context, string, string, string, []configs.Source) ([]byte, error)
+	Prepare(context.Context, string, string, string, []configs.Source) (domain.SourceAccount, error)
 	PrepareMany(context.Context, string, []domain.SourceSelection, []configs.Source) ([]domain.SourceAccount, error)
 }
 
@@ -39,13 +39,21 @@ func (s *Sources) AddMany(ctx context.Context, id string, items []domain.SourceS
 				results[i].Err = account.Err
 			}
 		}
-		additions := make([]domain.Addition, len(items))
+		tags := make([]string, len(items))
+		types := make([]string, len(items))
 		for i, item := range items {
-			additions[i] = domain.Addition{InboundTag: item.InboundTag, Configuration: prepared[i].Configuration}
+			tags[i] = item.InboundTag
+			if prepared[i].Prepared == nil {
+				if prepared[i].Err == nil {
+					results[i].Err = domain.ErrInvalidArgument
+				}
+				continue
+			}
+			types[i] = prepared[i].Prepared.AccountType()
 		}
-		return s.service.checkBatch(ctx, id, additions, results)
+		return s.service.checkBatchTypes(ctx, id, tags, types, results)
 	}, func(client Client, i int) (domain.NativeResult, error) {
-		return client.Add(ctx, items[i].InboundTag, prepared[i].Configuration)
+		return prepared[i].Prepared.Add(ctx, items[i].InboundTag)
 	})
 }
 
@@ -68,7 +76,7 @@ func (s *Sources) Add(ctx context.Context, id, tag, email string, sources []conf
 		return domain.Operation{InstanceID: id, InboundTag: tag, Kind: "add", Email: email, Effect: domain.NotApplied}, err
 	}
 	return s.service.mutate(ctx, id, tag, "add", email, func(client Client, generation uint64) (domain.NativeResult, error) {
-		content, err := s.preparer.Prepare(ctx, id, tag, email, sources)
+		account, err := s.preparer.Prepare(ctx, id, tag, email, sources)
 		if err != nil {
 			return domain.NativeResult{Email: email, Effect: domain.NotApplied}, err
 		}
@@ -84,6 +92,9 @@ func (s *Sources) Add(ctx context.Context, id, tag, email string, sources []conf
 		if state.Execution.State != instances.Running || state.Execution.Generation != generation {
 			return domain.NativeResult{Email: email, Effect: domain.NotApplied}, domain.ErrExecutionChanged
 		}
-		return s.service.checkedAdd(ctx, client, id, tag, generation, content)
+		if account.Prepared == nil {
+			return domain.NativeResult{Email: email, Effect: domain.NotApplied}, domain.ErrInvalidArgument
+		}
+		return s.service.checkedPreparedAdd(ctx, id, tag, generation, account.Prepared.AccountType(), func() (domain.NativeResult, error) { return account.Prepared.Add(ctx, tag) })
 	})
 }

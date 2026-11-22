@@ -31,10 +31,6 @@ func (c Client) Count(ctx context.Context, tag string) (int64, error) {
 	return result.Count, ctx.Err()
 }
 func (c Client) Get(ctx context.Context, tag, email string) (*domain.Record, error) {
-	// An empty email changes this native RPC into an unbounded collection request.
-	if email == "" {
-		return nil, domain.ErrInvalidArgument
-	}
 	result, err := c.native.GetInboundUsers(ctx, &handlers.GetInboundUserRequest{Tag: tag, Email: email}, grpc.MaxCallRecvMsgSize(domain.MaxAccountBytes))
 	if err != nil {
 		return nil, failure(ctx, err)
@@ -60,8 +56,8 @@ func decode(user *protocol.User) (domain.Record, error) {
 	if user == nil || user.Account == nil || user.Account.Type == "" {
 		return domain.Record{}, domain.ErrInvalidResponse
 	}
-	content, err := proto.Marshal(user)
-	return domain.Record{Email: user.Email, Level: user.Level, Configuration: content}, err
+	content, err := (proto.MarshalOptions{Deterministic: true}).Marshal(user)
+	return domain.Record{Email: user.Email, Level: user.Level, Configuration: content, AccountType: user.Account.Type, HasUnknownFields: len(user.ProtoReflect().GetUnknown()) != 0 || len(user.Account.ProtoReflect().GetUnknown()) != 0}, err
 }
 func failure(ctx context.Context, err error) error {
 	switch {

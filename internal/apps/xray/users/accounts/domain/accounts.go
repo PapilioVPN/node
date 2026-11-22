@@ -20,13 +20,15 @@ var (
 
 const MaxAccountBytes = 1 << 20
 
-// Record retains native protocol.User protobuf, including account credentials and
+// Record retains deterministic native protocol.User protobuf, including credentials and
 // unknown fields. It is runtime readback, not a desired-state record or a promise
 // that every protocol can reconstruct its original source settings.
 type Record struct {
-	Email         string
-	Level         uint32
-	Configuration []byte
+	Email            string
+	Level            uint32
+	Configuration    []byte
+	AccountType      string
+	HasUnknownFields bool
 }
 type Observation struct {
 	InstanceID string

@@ -8,6 +8,7 @@ import (
 
 	configs "github.com/PapilioVPN/node/internal/apps/xray/runtime/configs/domain"
 	"github.com/PapilioVPN/node/internal/apps/xray/users/accounts/domain"
+	"github.com/xtls/xray-core/common/protocol"
 	"github.com/xtls/xray-core/core"
 	"google.golang.org/protobuf/encoding/protowire"
 	"google.golang.org/protobuf/proto"
@@ -16,38 +17,44 @@ import (
 type Compiler interface {
 	Compile(context.Context, string, []configs.Source) (configs.Compilation, error)
 }
-type Preparer struct{ Compiler Compiler }
+type Factory interface {
+	PrepareNative(*protocol.User) (domain.PreparedAccount, error)
+}
+type Preparer struct {
+	Compiler  Compiler
+	Factories map[string]Factory
+}
 
 // Prepare compiles the whole ordered source set once and selects one exact
 // inbound/email. It applies no handlers, features, source environment or peers.
-func (p Preparer) Prepare(ctx context.Context, id, tag, email string, sources []configs.Source) ([]byte, error) {
+func (p Preparer) Prepare(ctx context.Context, id, tag, email string, sources []configs.Source) (domain.SourceAccount, error) {
 	compiled, err := p.Compiler.Compile(ctx, id, sources)
 	if err != nil {
-		return nil, compileError(err)
+		return domain.SourceAccount{}, compileError(err)
 	}
 	if err := ctx.Err(); err != nil {
-		return nil, err
+		return domain.SourceAccount{}, err
 	}
 	if len(compiled.Content) > configs.MaxCompiledBytes {
-		return nil, domain.ErrCapacity
+		return domain.SourceAccount{}, domain.ErrCapacity
 	}
 	var configuration core.Config
 	if err := proto.Unmarshal(compiled.Content, &configuration); err != nil {
-		return nil, errors.Join(domain.ErrInvalidArgument, err)
+		return domain.SourceAccount{}, errors.Join(domain.ErrInvalidArgument, err)
 	}
 	var selected *core.InboundHandlerConfig
 	for _, inbound := range configuration.Inbound {
 		if inbound != nil && inbound.Tag == tag {
 			if selected != nil {
-				return nil, domain.ErrInvalidArgument
+				return domain.SourceAccount{}, domain.ErrInvalidArgument
 			}
 			selected = inbound
 		}
 	}
 	if selected == nil || selected.ProxySettings == nil {
-		return nil, domain.ErrInvalidArgument
+		return domain.SourceAccount{}, domain.ErrInvalidArgument
 	}
-	return selectUser(ctx, selected.ProxySettings.Type, selected.ProxySettings.Value, email)
+	return selectUser(ctx, selected.ProxySettings.Type, selected.ProxySettings.Value, email, p.Factories[id])
 }
 
 // userLayout follows the pinned native proxy config.proto contracts. These
@@ -76,14 +83,19 @@ func userLayout(name string) (field protowire.Number, account string, clientFiel
 		return 0, "", 0
 	}
 }
-func selectUser(ctx context.Context, name string, content []byte, email string) ([]byte, error) {
+func selectUser(ctx context.Context, name string, content []byte, email string, factory Factory) (domain.SourceAccount, error) {
 	requested := map[string]domain.SourceAccount{email: {Err: domain.ErrInvalidArgument}}
-	if err := selectUsers(ctx, name, content, requested); err != nil {
-		return nil, err
+	if err := selectUsers(ctx, name, content, requested, factory); err != nil {
+		return domain.SourceAccount{}, err
 	}
 	selected := requested[email]
-	return bytes.Clone(selected.Configuration), selected.Err
+	if selected.Err != nil {
+		return domain.SourceAccount{}, selected.Err
+	}
+	selected.Configuration = bytes.Clone(selected.Configuration)
+	return selected, nil
 }
+
 func compileError(err error) error {
 	switch {
 	case errors.Is(err, configs.ErrCapacity), errors.Is(err, configs.ErrTooLarge):

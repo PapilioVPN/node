@@ -76,9 +76,6 @@ func metadata(user *protocol.User) (domain.Metadata, error) {
 	return domain.Metadata{Email: user.Email, Level: user.Level, AccountType: user.Account.Type}, nil
 }
 func (c Client) GetMetadata(ctx context.Context, tag, email string) (*domain.Metadata, error) {
-	if email == "" {
-		return nil, domain.ErrInvalidArgument
-	}
 	response, err := c.native.GetInboundUsers(ctx, &handlers.GetInboundUserRequest{Tag: tag, Email: email}, grpc.MaxCallRecvMsgSize(domain.MaxAccountBytes))
 	if err != nil {
 		return nil, failure(ctx, err)

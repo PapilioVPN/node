@@ -12,6 +12,7 @@ import (
 
 	configs "github.com/PapilioVPN/node/internal/apps/xray/runtime/configs/domain"
 	"github.com/PapilioVPN/node/internal/apps/xray/users/accounts/domain"
+	"github.com/PapilioVPN/node/internal/apps/xray/users/accounts/infra/api"
 	"github.com/PapilioVPN/node/internal/apps/xray/users/accounts/infra/configuration"
 	"github.com/PapilioVPN/node/internal/testutil"
 )
@@ -49,12 +50,12 @@ func TestPreparedMembershipRunsAndClearsEveryNativeAccountFamily(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			preparer := configuration.Preparer{Compiler: compiler}
+			preparer := configuration.Preparer{Compiler: compiler, Factories: map[string]configuration.Factory{"a": api.New(nil)}}
 			account, err := preparer.Prepare(ctx, "a", "members", "prepared@example.test", []configs.Source{{Name: "accounts.json", Content: familySource(t, family, "prepared@example.test", 3)}})
 			if err != nil {
 				t.Fatal(err)
 			}
-			prepared, err := configuration.ReplaceUsers(ctx, compiled.Content, []domain.InboundUserSet{{InboundTag: "members", Accounts: [][]byte{account}}})
+			prepared, err := configuration.ReplaceUsers(ctx, compiled.Content, []domain.InboundUserSet{{InboundTag: "members", Accounts: [][]byte{account.Configuration}}})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -83,7 +84,7 @@ func TestPreparedMembershipRunsAndClearsEveryNativeAccountFamily(t *testing.T) {
 			}
 			restartAccountInstance(t, c)
 			assertFamilyCount(t, c, "http", 0)
-			if result, code := accountMutation(t, c, "http", "add", "", account); code != "" || !result.Acknowledged {
+			if result, code := accountMutation(t, c, "http", "add", "", account.Configuration); code != "" || !result.Acknowledged {
 				t.Fatal("empty prepared config lost native account management", result, code)
 			}
 			assertFamilyCount(t, c, "http", 1)

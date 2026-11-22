@@ -13,13 +13,17 @@ import (
 	"github.com/PapilioVPN/node/internal/apps/xray/users/accounts/domain"
 )
 
-// Client uses focused native operations, never a preflight collection scan.
+// Client uses service-validated selectors. Get receives a nonempty exact email,
+// since an empty native selector would become a collection request.
 type Client interface {
 	Count(context.Context, string) (int64, error)
 	Get(context.Context, string, string) (*domain.Record, error)
 	Add(context.Context, string, []byte) (domain.NativeResult, error)
 	Remove(context.Context, string, string) (domain.NativeResult, error)
 }
+
+// CollectionReader validates fresh native responses; GetMetadata receives the
+// same service-validated nonempty exact selector as Client.Get.
 type CollectionReader interface {
 	Records(context.Context, string) (domain.NativeRecords, error)
 	Metadata(context.Context, string) (domain.NativeMetadata, error)

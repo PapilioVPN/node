@@ -29,6 +29,7 @@ func (c *collections) Records(context.Context, string) (domain.NativeRecords, er
 	return r, nil
 }
 func (c *collections) GetMetadata(context.Context, string, string) (*domain.Metadata, error) {
+	c.calls++
 	return nil, nil
 }
 func TestStablePagesDoNotRepeatNativeReadAndBindSelectionViewAndExecution(t *testing.T) {
@@ -93,5 +94,21 @@ func TestCompletedLocalMembershipChangeDoesNotRefreshAnExistingObservation(t *te
 	next, err := s.ListMetadata(context.Background(), "a", "tag", domain.PageRequest{Cursor: page.NextCursor})
 	if err != nil || len(next.Users) != 1 || reader.calls != 1 || next.ObservedAt != page.ObservedAt {
 		t.Fatal("membership write invalidated immutable observation", next, err, reader.calls)
+	}
+}
+
+func TestEmptyMetadataLookupCannotBecomeNativeCollectionRequest(t *testing.T) {
+	reader := &collections{}
+	s, err := newService([]services.Binding{{ID: "a", Client: client{}, Reader: reader}}, &execution{generation: 1, state: instances.Running})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, email := range []string{"", "nul\x00"} {
+		if _, err := s.GetMetadata(context.Background(), "a", "members", email); !errors.Is(err, domain.ErrInvalidArgument) {
+			t.Fatal(err)
+		}
+	}
+	if reader.calls != 0 {
+		t.Fatal("invalid exact lookup reached native I/O", reader.calls)
 	}
 }

@@ -8,6 +8,7 @@ import (
 
 	configs "github.com/PapilioVPN/node/internal/apps/xray/runtime/configs/domain"
 	"github.com/PapilioVPN/node/internal/apps/xray/users/accounts/domain"
+	"github.com/PapilioVPN/node/internal/apps/xray/users/accounts/infra/api"
 	"github.com/PapilioVPN/node/internal/apps/xray/users/accounts/infra/configuration"
 	"github.com/xtls/xray-core/common/protocol"
 	"github.com/xtls/xray-core/common/serial"
@@ -18,7 +19,7 @@ import (
 func TestSourceBatchPreservesDuplicatesAnonymousSelectionsAndOwnedBytes(t *testing.T) {
 	anonymous, exact := user(t, ""), user(t, "Exact")
 	input := compiled(t, anonymous, exact)
-	p := configuration.Preparer{Compiler: compiler(func(context.Context, string, []configs.Source) (configs.Compilation, error) {
+	p := configuration.Preparer{Factories: map[string]configuration.Factory{"a": api.New(nil)}, Compiler: compiler(func(context.Context, string, []configs.Source) (configs.Compilation, error) {
 		return configs.Compilation{Content: input}, nil
 	})}
 	result, err := p.PrepareMany(context.Background(), "a", []domain.SourceSelection{{InboundTag: "selected", Email: "Exact"}, {InboundTag: "selected"}, {InboundTag: "selected", Email: "Exact"}, {InboundTag: "selected", Email: "exact"}}, nil)
@@ -44,7 +45,7 @@ func TestSourceBatchRejectsAmbiguousInboundsAndAccountsAtTheirPositions(t *testi
 			c.Inbound = append(c.Inbound, c.Inbound[0], c.Inbound[0])
 			input, _ = proto.Marshal(&c)
 		}
-		p := configuration.Preparer{Compiler: compiler(func(context.Context, string, []configs.Source) (configs.Compilation, error) {
+		p := configuration.Preparer{Factories: map[string]configuration.Factory{"a": api.New(nil)}, Compiler: compiler(func(context.Context, string, []configs.Source) (configs.Compilation, error) {
 			return configs.Compilation{Content: input}, nil
 		})}
 		result, err := p.PrepareMany(context.Background(), "a", []domain.SourceSelection{{InboundTag: "selected", Email: "a"}, {InboundTag: "absent", Email: "a"}}, nil)
@@ -61,7 +62,7 @@ func TestSourceBatchRejectsAmbiguousInboundsAndAccountsAtTheirPositions(t *testi
 
 func TestSourceBatchEnforcesTotalSelectedBytesIncludingRepeatedSelections(t *testing.T) {
 	raw, _ := proto.Marshal(&protocol.User{Email: "a", Account: &serial.TypedMessage{Type: "xray.proxy.vless.Account", Value: bytes.Repeat([]byte{1}, domain.MaxAccountBytes-100)}})
-	p := configuration.Preparer{Compiler: compiler(func(context.Context, string, []configs.Source) (configs.Compilation, error) {
+	p := configuration.Preparer{Factories: map[string]configuration.Factory{"a": api.New(nil)}, Compiler: compiler(func(context.Context, string, []configs.Source) (configs.Compilation, error) {
 		return configs.Compilation{Content: compiled(t, raw)}, nil
 	})}
 	items := make([]domain.SourceSelection, 5)
@@ -78,7 +79,7 @@ func FuzzCompiledSourceBatch(f *testing.F) {
 	f.Add([]byte{})
 	f.Add([]byte{10, 1, 255})
 	f.Fuzz(func(t *testing.T, content []byte) {
-		p := configuration.Preparer{Compiler: compiler(func(context.Context, string, []configs.Source) (configs.Compilation, error) {
+		p := configuration.Preparer{Factories: map[string]configuration.Factory{"a": api.New(nil)}, Compiler: compiler(func(context.Context, string, []configs.Source) (configs.Compilation, error) {
 			return configs.Compilation{Content: content}, nil
 		})}
 		result, err := p.PrepareMany(context.Background(), "a", []domain.SourceSelection{{InboundTag: "selected", Email: "a"}, {InboundTag: "selected"}}, nil)

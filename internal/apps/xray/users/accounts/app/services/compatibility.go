@@ -69,6 +69,10 @@ func (s *Service) checkedAdd(ctx context.Context, c Client, id, tag string, gene
 	if err != nil {
 		return domain.NativeResult{Effect: domain.NotApplied, RequiresInstanceRestart: errors.Is(err, domain.ErrUncertain), Guidance: guidance(err, domain.NotApplied)}, err
 	}
+	return s.checkedPreparedAdd(ctx, id, tag, generation, actual, func() (domain.NativeResult, error) { return c.Add(ctx, tag, content) })
+}
+
+func (s *Service) checkedPreparedAdd(ctx context.Context, id, tag string, generation uint64, actual string, submit func() (domain.NativeResult, error)) (domain.NativeResult, error) {
 	inbound, err := s.inbounds.Get(ctx, id, tag)
 	if err != nil {
 		return domain.NativeResult{Effect: domain.NotApplied, RequiresInstanceRestart: errors.Is(err, domain.ErrUncertain), Guidance: guidance(err, domain.NotApplied)}, err
@@ -81,13 +85,13 @@ func (s *Service) checkedAdd(ctx context.Context, c Client, id, tag string, gene
 	if err = s.observeMutation(ctx, &op, ctx.Err()); err != nil {
 		return domain.NativeResult{Effect: domain.NotApplied, RequiresInstanceRestart: errors.Is(err, domain.ErrUncertain), Guidance: guidance(err, domain.NotApplied)}, err
 	}
-	return c.Add(ctx, tag, content)
+	return submit()
 }
 func (s *Service) checkBatch(ctx context.Context, id string, items []domain.Addition, results []domain.ItemResult) error {
-	tags := make([]string, 0)
-	seen := map[string]bool{}
+	tags := make([]string, len(items))
 	types := make([]string, len(items))
 	for i, item := range items {
+		tags[i] = item.InboundTag
 		if !errors.Is(results[i].Err, domain.ErrNotAttempted) {
 			continue
 		}
@@ -96,11 +100,18 @@ func (s *Service) checkBatch(ctx context.Context, id string, items []domain.Addi
 		if err != nil {
 			results[i].Err = err
 			results[i].Operation.Guidance = guidance(err, domain.NotApplied)
-			continue
 		}
-		if !seen[item.InboundTag] {
-			tags = append(tags, item.InboundTag)
-			seen[item.InboundTag] = true
+	}
+	return s.checkBatchTypes(ctx, id, tags, types, results)
+}
+
+func (s *Service) checkBatchTypes(ctx context.Context, id string, itemTags, types []string, results []domain.ItemResult) error {
+	tags := make([]string, 0)
+	seen := make(map[string]bool)
+	for i, tag := range itemTags {
+		if errors.Is(results[i].Err, domain.ErrNotAttempted) && !seen[tag] {
+			tags = append(tags, tag)
+			seen[tag] = true
 		}
 	}
 	if len(tags) == 0 {
@@ -120,11 +131,11 @@ func (s *Service) checkBatch(ctx context.Context, id string, items []domain.Addi
 		}
 		byTag[inbound.Tag] = inbound
 	}
-	for i, item := range items {
+	for i, tag := range itemTags {
 		if !errors.Is(results[i].Err, domain.ErrNotAttempted) {
 			continue
 		}
-		g, err := check(byTag[item.InboundTag], types[i], results[i].Operation.Generation)
+		g, err := check(byTag[tag], types[i], results[i].Operation.Generation)
 		if err != nil {
 			results[i].Err = err
 			results[i].Operation.Guidance = g
