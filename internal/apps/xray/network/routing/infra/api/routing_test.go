@@ -93,3 +93,29 @@ func TestNativeRuleListOneCallAtAllSizes(t *testing.T) {
 		}
 	}
 }
+
+func TestBalancerPresenceAndOversizedProjection(t *testing.T) {
+	for _, present := range []bool{false, true} {
+		c := &connection{call: func(_ string, _ any, out any) error {
+			b := &native.BalancerMsg{}
+			if present {
+				b.Override = &native.OverrideInfo{}
+				b.PrincipleTarget = &native.PrincipleTargetInfo{}
+			}
+			out.(*native.GetBalancerInfoResponse).Balancer = b
+			return nil
+		}}
+		b, err := New(c).Balancer(context.Background(), "b")
+		if err != nil || (b.Override != nil) != present || (b.PrincipalTargets != nil) != present || c.calls != 1 {
+			t.Fatal(b, err)
+		}
+	}
+	c := &connection{call: func(_ string, _ any, out any) error {
+		out.(*native.GetBalancerInfoResponse).Balancer = &native.BalancerMsg{Override: &native.OverrideInfo{Target: "private"}, PrincipleTarget: &native.PrincipleTargetInfo{Tag: make([]string, 51)}}
+		return nil
+	}}
+	b, err := New(c).Balancer(context.Background(), "b")
+	if !errors.Is(err, domain.ErrCapacity) || b.Override != nil || b.PrincipalTargets != nil {
+		t.Fatal("oversized response leaked partial facts", b, err)
+	}
+}

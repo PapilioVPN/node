@@ -90,17 +90,17 @@ func (r *Router) Balancer(ctx context.Context, tag string) (domain.Balancer, err
 	result := domain.Balancer{}
 	if b.Override != nil {
 		if unknown(b.Override) {
-			return result, domain.ErrInvalidResponse
+			return domain.Balancer{}, domain.ErrInvalidResponse
 		}
 		target := b.Override.Target
 		result.Override = &target
 	}
 	if b.PrincipleTarget != nil {
 		if unknown(b.PrincipleTarget) {
-			return result, domain.ErrInvalidResponse
+			return domain.Balancer{}, domain.ErrInvalidResponse
 		}
 		if len(b.PrincipleTarget.Tag) > domain.MaxPageSize {
-			return result, domain.ErrCapacity
+			return domain.Balancer{}, domain.ErrCapacity
 		}
 		tags := append([]string{}, b.PrincipleTarget.Tag...)
 		result.PrincipalTargets = &tags

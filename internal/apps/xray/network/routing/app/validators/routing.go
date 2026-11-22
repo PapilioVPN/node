@@ -4,15 +4,15 @@ package validators
 import (
 	"encoding/json"
 	"net/netip"
-	"strings"
 	"unicode/utf8"
 
 	"github.com/PapilioVPN/node/internal/apps/xray/network/routing/domain"
+	instancevalidators "github.com/PapilioVPN/node/internal/apps/xray/runtime/instances/app/validators"
 )
 
-func Text(s string) bool { return utf8.ValidString(s) && !strings.ContainsRune(s, 0) && len(s) <= 4096 }
+func Text(s string) bool { return utf8.ValidString(s) && len(s) <= 4096 }
 func ID(id string) error {
-	if strings.TrimSpace(id) == "" || !Text(id) {
+	if instancevalidators.ID(id) != nil {
 		return domain.ErrInvalidArgument
 	}
 	return nil

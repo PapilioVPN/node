@@ -170,3 +170,28 @@ func TestOverrideRequiresTargetPresenceAndProbeIsSelectionOnly(t *testing.T) {
 		t.Fatal(p, err)
 	}
 }
+
+func TestObservationRetentionIsBoundedAndContinuationIsScoped(t *testing.T) {
+	b := &backend{rows: make([]domain.Rule, 51)}
+	s, _ := setup(b, nil)
+	ctx := context.Background()
+	token := ""
+	for range domain.MaxObservations {
+		p, err := s.List(ctx, domain.PageRequest{InstanceID: "one"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		token = p.NextPageToken
+	}
+	if _, err := s.List(ctx, domain.PageRequest{InstanceID: "one"}); !errors.Is(err, domain.ErrCapacity) || b.lists != domain.MaxObservations {
+		t.Fatal("retention admission did native work", err, b.lists)
+	}
+	for _, r := range []domain.PageRequest{{InstanceID: "disabled", PageToken: token}, {InstanceID: "one", PageSize: 1, PageToken: token}, {InstanceID: "one", PageToken: "forged"}} {
+		if _, err := s.List(ctx, r); !errors.Is(err, domain.ErrInvalidArgument) {
+			t.Fatal("continuation scope changed", r, err)
+		}
+	}
+	if p, err := s.List(ctx, domain.PageRequest{InstanceID: "one", PageToken: token}); err != nil || len(p.Rules) != 1 || p.Fresh {
+		t.Fatal(p, err)
+	}
+}
