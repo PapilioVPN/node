@@ -57,3 +57,23 @@ func TestExpiredContinuationHasNoNativeReadOrSuccessfulPage(t *testing.T) {
 		t.Fatal(result, err)
 	}
 }
+
+type capacityClient struct{ expiryClient }
+
+func (capacityClient) Records(context.Context) ([]domain.Record, error) {
+	return []domain.Record{{Configuration: make([]byte, 32)}, {Configuration: make([]byte, 32)}}, nil
+}
+
+func TestRejectedScanDoesNotDestroyAnExistingContinuation(t *testing.T) {
+	service, _ := New([]Binding{{ID: "a", Client: capacityClient{}}}, expiryStatus{})
+	id := token()
+	service.pages[id] = recordPage{records: domain.Records{InstanceID: "a", Generation: 1, Outbounds: make([]domain.Record, 2)}, expires: time.Now().Add(time.Minute), bytes: 100}
+	service.pages[token()] = recordPage{records: domain.Records{InstanceID: "other"}, expires: time.Now().Add(time.Minute), bytes: domain.MaxResponseBytes - 100}
+	if _, err := service.List(context.Background(), "a", domain.PageRequest{PageSize: 1}); !errors.Is(err, domain.ErrCapacity) {
+		t.Fatal(err)
+	}
+	page, err := service.List(context.Background(), "a", domain.PageRequest{PageToken: id + ":1"})
+	if err != nil || len(page.Outbounds) != 1 {
+		t.Fatal("failed scan invalidated a previously admitted observation", page, err)
+	}
+}

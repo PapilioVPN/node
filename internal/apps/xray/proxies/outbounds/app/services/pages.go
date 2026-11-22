@@ -72,19 +72,26 @@ func (s *Service) List(ctx context.Context, id string, request domain.PageReques
 	s.pagesMu.Lock()
 	defer s.pagesMu.Unlock()
 	used := 0
+	otherScans := 0
 	for key, page := range s.pages {
-		if time.Now().After(page.expires) || page.records.InstanceID == id {
+		if time.Now().After(page.expires) {
 			delete(s.pages, key)
-		} else {
+		} else if page.records.InstanceID != id {
 			used += page.bytes
+			otherScans++
+		}
+	}
+	if len(records.Outbounds) > int(size) && (otherScans >= 32 || used+retained > domain.MaxResponseBytes) {
+		return domain.Records{}, domain.ErrCapacity
+	}
+	for key, page := range s.pages {
+		if page.records.InstanceID == id {
+			delete(s.pages, key)
 		}
 	}
 	if len(records.Outbounds) <= int(size) {
 		records.Outbounds = cloneRecords(records.Outbounds)
 		return records, nil
-	}
-	if len(s.pages) >= 32 || used+retained > domain.MaxResponseBytes {
-		return domain.Records{}, domain.ErrCapacity
 	}
 	key := token()
 	saved := records
