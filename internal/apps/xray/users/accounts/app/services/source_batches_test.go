@@ -167,10 +167,10 @@ func TestSourceBatchPreparationFailureCancellationAndReplacement(t *testing.T) {
 }
 
 // Source preparation carries native identity directly. Re-scanning encoded
-// account bytes through the raw-input inspector is a regression.
-type noSourceInspection struct{}
+// account bytes through the raw-input decoder is a regression.
+type noSourcePreparation struct{ services.Client }
 
-func (noSourceInspection) AccountType([]byte) (string, error) {
+func (noSourcePreparation) Prepare([]byte) (domain.PreparedAccount, error) {
 	panic("prepared source was inspected again")
 }
 
@@ -193,7 +193,10 @@ func (r sourceProfiles) Select(ctx context.Context, id string, tags []string) ([
 	return result, nil
 }
 func newSourceService(bindings []services.Binding, status services.StatusReader) (*services.Service, error) {
-	return services.New(bindings, status, sourceProfiles{inboundReader{status}}, noSourceInspection{})
+	for i := range bindings {
+		bindings[i].Client = noSourcePreparation{bindings[i].Client}
+	}
+	return services.New(bindings, status, sourceProfiles{inboundReader{status}})
 }
 
 type sourceFactory struct{ client services.Client }

@@ -13,7 +13,6 @@ type InboundReader interface {
 	Get(context.Context, string, string) (domain.Inbound, error)
 	Select(context.Context, string, []string) ([]domain.Inbound, error)
 }
-type AccountInspector interface{ AccountType([]byte) (string, error) }
 
 func check(inbound domain.Inbound, actual string, generation uint64) (*domain.Guidance, error) {
 	g := &domain.Guidance{Protocol: inbound.Protocol, ExpectedAccountType: inbound.AccountType, ActualAccountType: actual, Reason: inbound.Reason, NextAction: "supply_matching_account"}
@@ -65,11 +64,11 @@ func (s *Service) CheckCompatibility(ctx context.Context, id, tag string, accoun
 	return result, nil
 }
 func (s *Service) checkedAdd(ctx context.Context, c Client, id, tag string, generation uint64, content []byte) (domain.NativeResult, error) {
-	actual, err := s.inspector.AccountType(content)
+	prepared, err := c.Prepare(content)
 	if err != nil {
 		return domain.NativeResult{Effect: domain.NotApplied, RequiresInstanceRestart: errors.Is(err, domain.ErrUncertain), Guidance: guidance(err, domain.NotApplied)}, err
 	}
-	return s.checkedPreparedAdd(ctx, id, tag, generation, actual, func() (domain.NativeResult, error) { return c.Add(ctx, tag, content) })
+	return s.checkedPreparedAdd(ctx, id, tag, generation, prepared.AccountType(), func() (domain.NativeResult, error) { return prepared.Add(ctx, tag) })
 }
 
 func (s *Service) checkedPreparedAdd(ctx context.Context, id, tag string, generation uint64, actual string, submit func() (domain.NativeResult, error)) (domain.NativeResult, error) {
@@ -87,7 +86,7 @@ func (s *Service) checkedPreparedAdd(ctx context.Context, id, tag string, genera
 	}
 	return submit()
 }
-func (s *Service) checkBatch(ctx context.Context, id string, items []domain.Addition, results []domain.ItemResult) error {
+func (s *Service) prepareBatch(ctx context.Context, id string, client Client, items []domain.Addition, prepared []domain.PreparedAccount, results []domain.ItemResult) error {
 	tags := make([]string, len(items))
 	types := make([]string, len(items))
 	for i, item := range items {
@@ -95,12 +94,14 @@ func (s *Service) checkBatch(ctx context.Context, id string, items []domain.Addi
 		if !errors.Is(results[i].Err, domain.ErrNotAttempted) {
 			continue
 		}
-		actual, err := s.inspector.AccountType(item.Configuration)
-		types[i] = actual
+		account, err := client.Prepare(item.Configuration)
 		if err != nil {
 			results[i].Err = err
 			results[i].Operation.Guidance = guidance(err, domain.NotApplied)
+			continue
 		}
+		prepared[i] = account
+		types[i] = account.AccountType()
 	}
 	return s.checkBatchTypes(ctx, id, tags, types, results)
 }

@@ -14,6 +14,43 @@ import (
 	"github.com/PapilioVPN/node/internal/apps/xray/users/accounts/domain"
 )
 
+type preparedOnlyClient struct {
+	client
+	prepared, submitted int
+}
+
+func (c *preparedOnlyClient) Prepare([]byte) (domain.PreparedAccount, error) {
+	c.prepared++
+	return nativeSourceAccount{kind: "test.account", submit: func(context.Context, string) (domain.NativeResult, error) {
+		c.submitted++
+		return domain.NativeResult{Effect: domain.Completed, Acknowledged: true}, nil
+	}}, nil
+}
+
+func (*preparedOnlyClient) Add(context.Context, string, []byte) (domain.NativeResult, error) {
+	panic("accepted account was decoded again for submission")
+}
+
+func TestRawAdditionsUsePreparedAccountForCompatibilityAndSubmission(t *testing.T) {
+	for _, size := range []int{1, 50, 51, 1000} {
+		t.Run(fmt.Sprint(size), func(t *testing.T) {
+			c := &preparedOnlyClient{}
+			s, _ := newService([]services.Binding{{ID: "a", Client: c}}, &execution{generation: 1, state: instances.Running})
+			items := make([]domain.Addition, size)
+			for i := range items {
+				items[i] = domain.Addition{InboundTag: "members", Configuration: []byte{1}}
+			}
+			result, err := s.AddMany(context.Background(), "a", items, 1)
+			if err != nil || result.Operation.Effect != domain.Completed || c.prepared != size || c.submitted != size {
+				t.Fatal(result.Operation, err, c.prepared, c.submitted)
+			}
+			if _, err := s.Add(context.Background(), "a", "members", []byte{1}); err != nil || c.prepared != size+1 || c.submitted != size+1 {
+				t.Fatal(err, c.prepared, c.submitted)
+			}
+		})
+	}
+}
+
 func TestBatchesPreserveSameInboundOrderWithoutPreflightReads(t *testing.T) {
 	for _, size := range []int{1, 50, 51, 1000} {
 		t.Run(fmt.Sprint(size), func(t *testing.T) {

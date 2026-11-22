@@ -196,7 +196,7 @@ func newFixture(t *testing.T) *fixture {
 	catalog := inboundservices.NewCatalog(inbounds, inboundconfiguration.Inspector{})
 	selection := accountinbounds.Reader{Source: catalog}
 	nativeAccounts := accountapi.New(counter)
-	accounts, err := accountservices.New([]accountservices.Binding{{ID: "one", Client: nativeAccounts, Reader: nativeAccounts}}, instances, selection, accountapi.Inspector{})
+	accounts, err := accountservices.New([]accountservices.Binding{{ID: "one", Client: nativeAccounts, Reader: nativeAccounts}}, instances, selection)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -16,11 +16,14 @@ func (s *Service) AddMany(ctx context.Context, id string, items []domain.Additio
 		return domain.Batch{}, err
 	}
 	ops := make([]domain.Operation, len(items))
+	prepared := make([]domain.PreparedAccount, len(items))
 	for i, item := range items {
 		ops[i] = domain.Operation{InstanceID: id, InboundTag: item.InboundTag, Kind: "add", Effect: domain.NotApplied}
 	}
-	return s.batch(ctx, id, "add_batch", ops, parallelism, func(results []domain.ItemResult) error { return s.checkBatch(ctx, id, items, results) }, func(c Client, i int) (domain.NativeResult, error) {
-		return c.Add(ctx, items[i].InboundTag, items[i].Configuration)
+	return s.batch(ctx, id, "add_batch", ops, parallelism, func(results []domain.ItemResult) error {
+		return s.prepareBatch(ctx, id, s.entries[id].client, items, prepared, results)
+	}, func(_ Client, i int) (domain.NativeResult, error) {
+		return prepared[i].Add(ctx, items[i].InboundTag)
 	})
 }
 

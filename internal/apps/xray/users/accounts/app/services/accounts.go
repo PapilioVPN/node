@@ -19,6 +19,7 @@ type Client interface {
 	Count(context.Context, string) (int64, error)
 	Get(context.Context, string, string) (*domain.Record, error)
 	Add(context.Context, string, []byte) (domain.NativeResult, error)
+	Prepare([]byte) (domain.PreparedAccount, error)
 	Remove(context.Context, string, string) (domain.NativeResult, error)
 }
 
@@ -49,7 +50,6 @@ type entry struct {
 }
 type Service struct {
 	inbounds         InboundReader
-	inspector        AccountInspector
 	pages            observationStore
 	entries          map[string]*entry
 	status           StatusReader
@@ -57,11 +57,11 @@ type Service struct {
 }
 
 // New admits up to 32 reads globally and eight per instance without queueing.
-func New(bindings []Binding, status StatusReader, inbounds InboundReader, inspector AccountInspector) (*Service, error) {
-	if status == nil || inbounds == nil || inspector == nil {
+func New(bindings []Binding, status StatusReader, inbounds InboundReader) (*Service, error) {
+	if status == nil || inbounds == nil {
 		return nil, domain.ErrInvalidArgument
 	}
-	s := &Service{inbounds: inbounds, inspector: inspector, entries: make(map[string]*entry, len(bindings)), status: status, reads: make(chan struct{}, 32), mutations: make(chan struct{}, 8)}
+	s := &Service{inbounds: inbounds, entries: make(map[string]*entry, len(bindings)), status: status, reads: make(chan struct{}, 32), mutations: make(chan struct{}, 8)}
 	for _, b := range bindings {
 		if instancevalidators.ID(b.ID) != nil {
 			return nil, domain.ErrInvalidArgument

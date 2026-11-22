@@ -21,15 +21,20 @@ func (c Client) Add(ctx context.Context, tag string, content []byte) (domain.Nat
 	if err := ctx.Err(); err != nil {
 		return domain.NativeResult{Effect: domain.NotApplied}, err
 	}
-	var user protocol.User
-	if err := proto.Unmarshal(content, &user); err != nil {
-		return domain.NativeResult{Effect: domain.NotApplied}, errors.Join(domain.ErrInvalidArgument, err)
-	}
-	prepared, err := c.PrepareNative(&user)
+	prepared, err := c.Prepare(content)
 	if err != nil {
 		return domain.NativeResult{Effect: domain.NotApplied}, err
 	}
 	return prepared.Add(ctx, tag)
+}
+
+// Prepare decodes untrusted wire input once for compatibility and submission.
+func (c Client) Prepare(content []byte) (domain.PreparedAccount, error) {
+	var user protocol.User
+	if err := proto.Unmarshal(content, &user); err != nil {
+		return nil, errors.Join(domain.ErrInvalidArgument, err)
+	}
+	return c.PrepareNative(&user)
 }
 
 type preparedAccount struct {
@@ -39,7 +44,7 @@ type preparedAccount struct {
 
 // PrepareNative takes ownership of a decoded user without submitting a change.
 func (c Client) PrepareNative(user *protocol.User) (domain.PreparedAccount, error) {
-	if user == nil || user.Account == nil || user.Account.Type == "" {
+	if user == nil || user.Account == nil || user.Account.Type == "" || len(user.Account.Type) > 1024 {
 		return nil, domain.ErrInvalidArgument
 	}
 	if err := validators.Email(user.Email); err != nil {

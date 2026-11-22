@@ -43,7 +43,7 @@ func compose(in inputs) (*services.Service, *services.Sources, error) {
 		}
 		bindings = append(bindings, binding)
 	}
-	service, err := services.New(bindings, in.Status, inboundreader.Reader{Source: in.Catalog}, api.Inspector{})
+	service, err := services.New(bindings, in.Status, inboundreader.Reader{Source: in.Catalog})
 	if err != nil {
 		return nil, nil, err
 	}

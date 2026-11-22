@@ -52,7 +52,7 @@ func TestIncompatibleSingleAccountsNeverReachNativeMutation(t *testing.T) {
 				t.Fatal("unsafe native mutation dispatched")
 				return domain.NativeResult{}, nil
 			}}
-			s, err := services.New([]services.Binding{{ID: "a", Client: c}}, &execution{state: instances.Running, generation: 1}, p, accountInspector{})
+			s, err := services.New([]services.Binding{{ID: "a", Client: c}}, &execution{state: instances.Running, generation: 1}, p)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -75,7 +75,7 @@ func TestBatchCompatibilityLookupDoesNotGrowWithAccounts(t *testing.T) {
 				calls++
 				return domain.NativeResult{Effect: domain.Completed, Acknowledged: true}, nil
 			}}
-			s, _ := services.New([]services.Binding{{ID: "a", Client: c}}, &execution{state: instances.Running, generation: 1}, p, accountInspector{})
+			s, _ := services.New([]services.Binding{{ID: "a", Client: c}}, &execution{state: instances.Running, generation: 1}, p)
 			items := make([]domain.Addition, count)
 			for i := range items {
 				items[i] = domain.Addition{InboundTag: fmt.Sprint(i % 3), Configuration: []byte("credential")}

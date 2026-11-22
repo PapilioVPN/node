@@ -154,7 +154,7 @@ func restartOwners(t *testing.T, old *fullFixture) *fullFixture {
 	}
 	selection := accountinbounds.Reader{Source: inboundservices.NewCatalog(inbounds, inboundconfiguration.Inspector{})}
 	nativeAccounts := accountapi.New(counter)
-	accounts, err := accountservices.New([]accountservices.Binding{{ID: "one", Client: nativeAccounts, Reader: nativeAccounts}}, instances, selection, accountapi.Inspector{})
+	accounts, err := accountservices.New([]accountservices.Binding{{ID: "one", Client: nativeAccounts, Reader: nativeAccounts}}, instances, selection)
 	if err != nil {
 		t.Fatal(err)
 	}

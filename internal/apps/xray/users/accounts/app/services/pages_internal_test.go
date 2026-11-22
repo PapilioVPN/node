@@ -22,6 +22,7 @@ func (*cacheClient) Count(context.Context, string) (int64, error) { panic("count
 func (*cacheClient) Get(context.Context, string, string) (*domain.Record, error) {
 	panic("per-account read")
 }
+func (*cacheClient) Prepare([]byte) (domain.PreparedAccount, error) { panic("unexpected preparation") }
 func (*cacheClient) Add(context.Context, string, []byte) (domain.NativeResult, error) {
 	panic("unexpected write")
 }

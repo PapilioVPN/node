@@ -51,7 +51,12 @@ func TestNativeAccountMutationIsOneRPCAndPreservesUnknownFields(t *testing.T) {
 			user := &protocol.User{Email: "MixedCase@example.test", Account: &serial.TypedMessage{Type: "future.account", Value: []byte{1, 2}}}
 			user.ProtoReflect().SetUnknown([]byte{0xa0, 0x06, 7})
 			content, _ := proto.Marshal(user)
-			result, err := c.Add(context.Background(), "members", content)
+			prepared, err := c.Prepare(content)
+			if err != nil || calls != 0 {
+				t.Fatal("preparation submitted native work", err, calls)
+			}
+			clear(content) // The accepted native object owns its decoded fields.
+			result, err := prepared.Add(context.Background(), "members")
 			expected := domain.Unknown
 			if mode == "success" {
 				expected = domain.Completed

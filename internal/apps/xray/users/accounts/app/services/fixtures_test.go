@@ -34,6 +34,9 @@ func (c client) Get(ctx context.Context, tag, email string) (*domain.Record, err
 	return c.get(ctx, tag, email)
 }
 
+func (c client) Prepare(content []byte) (domain.PreparedAccount, error) {
+	return nativeSourceAccount{kind: "test.account", submit: func(ctx context.Context, tag string) (domain.NativeResult, error) { return c.Add(ctx, tag, content) }}, nil
+}
 func (c client) Add(ctx context.Context, tag string, content []byte) (domain.NativeResult, error) {
 	return c.add(ctx, tag, content)
 }
@@ -59,9 +62,6 @@ func (r inboundReader) Select(ctx context.Context, id string, tags []string) ([]
 	return result, nil
 }
 
-type accountInspector struct{}
-
-func (accountInspector) AccountType([]byte) (string, error) { return "test.account", nil }
 func newService(bindings []services.Binding, status services.StatusReader) (*services.Service, error) {
-	return services.New(bindings, status, inboundReader{status}, accountInspector{})
+	return services.New(bindings, status, inboundReader{status})
 }
