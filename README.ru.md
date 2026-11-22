@@ -65,7 +65,7 @@ test -f "$config_dir/config.yml" ||
 docker logs papilio-node
 ```
 
-Для остановки примера используйте `docker stop --time 150 papilio-node`.
+Для остановки примера используйте `docker stop --time 165 papilio-node`.
 
 Скрипт монтирует каталог настроек только для чтения. Для Xray добавьте
 `instances` по [примеру настроек](deploy/config.example.yml) и подключите
@@ -83,10 +83,11 @@ docker logs papilio-node
 | --- | --- |
 | [Система и Node](https://github.com/PapilioVPN/node/tree/main/internal/apps/system) | Идентификация хоста, время работы, нагрузка, CPU, память и swap, процессы, сеансы и история входов, датчики, файловые системы и ввод-вывод устройств, счётчики сетевых интерфейсов и диагностика ресурсов Node. |
 | [Экземпляры Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/runtime/instances) | Список настроенных экземпляров, просмотр состояния, запуск, остановка, перезапуск и проверка готовности через API Xray. При настроенном постоянном хранилище доступны повторное подключение к проверенному процессу, восстановление с ограничением попыток, явное сохранение процесса и аренды контроллера. |
-| [Конфигурация Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/runtime/configs) | Проверка и компиляция исходных файлов, чтение целевой и применённой ревизий, замена и применение конфигурации. |
+| [Конфигурация Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/runtime/configs) | Проверка и компиляция исходных файлов, чтение целевой и применённой ревизий, предпросмотр, применение и восстановление конфигурации. |
 | [Входящие обработчики Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/proxies/inbounds) | Списки обработчиков и тегов, сводки и проверка совместимости, добавление из скомпилированных данных или исходников, удаление по тегу, просмотр и выполнение планов замены. |
 | [Исходящие обработчики Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/proxies/outbounds) | Снимки списка обработчиков с пагинацией, добавление из скомпилированных данных или исходников и удаление по тегу. Просмотр планов замены, применение поддерживаемых изменений без перезапуска и чтение результатов. Изменения с перезапуском выполняются через API конфигурации. |
 | [Учётные записи Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/users/accounts) | Подсчёт и поиск действующих учётных записей, постраничные метаданные без секретов, явный экспорт нативных записей и проверка совместимости входящих обработчиков. Добавление и удаление по одной или ограниченными пакетами и подготовка состава учётных записей в скомпилированной конфигурации. |
+| [Синхронизация аккаунтов Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/users/sync) | Предпросмотр и применение изменений для выбранных входящих подключений, передача данных частями и чтение результатов. |
 | [Присутствие в Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/users/online) | Просмотр числа пользователей онлайн, списков пользователей, записей и IP-адресов отдельных пользователей. |
 | [Маршрутизация Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/network/routing) | Просмотр, добавление и удаление действующих правил, проверка выбора маршрута, просмотр состояния балансировщиков и переопределение их цели. |
 | [Статистика Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/runtime/statistics) | Чтение нативной статистики движка. |
@@ -94,6 +95,7 @@ docker logs papilio-node
 | [Состояние исходящих обработчиков Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/observability/outboundhealth) | Списки доступных результатов проверок и поиск результатов по тегу обработчика. |
 | [Журналы Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/observability/loggers) | Повторное открытие журналов Xray с просмотром результата операции. |
 | [Консольные журналы Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/observability/logs) | Чтение последних консольных записей с удалением секретов и продолжение по курсору. Ответ сообщает о пропусках, смене процесса и пределах захвата. |
+| [Диагностика Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/tools/diagnostics) | Состояние процесса, ревизии конфигурации, версия исполняемого файла и возможности нативного API в одном отчёте. |
 | [Ключи и сертификаты Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/tools/credentials) | Генерация UUID, ключевого материала X25519/WireGuard и ML-DSA-65/ML-KEM-768, пар шифрования VLESS, сертификатов TLS и наборов ключей ECH. Вычисление хешей сертификатов TLS. Закрытые данные доступны только в текущем ответе. |
 
 Операции в реальном времени действуют на запущенный экземпляр. Операции

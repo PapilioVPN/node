@@ -64,7 +64,7 @@ The sample enables all three transports. For HTTP-only use, remove
 docker logs papilio-node
 ```
 
-Stop this example with `docker stop --time 150 papilio-node`.
+Stop this example with `docker stop --time 165 papilio-node`.
 
 The runner mounts the configuration directory read-only. For Xray, add
 `instances` in [the example settings](deploy/config.example.yml) and mount
@@ -82,10 +82,11 @@ described in the example settings.
 | --- | --- |
 | [System and Node](https://github.com/PapilioVPN/node/tree/main/internal/apps/system) | Host identity, uptime, load, CPU, memory and swap, processes, sessions and login records, sensors, filesystem and device I/O, interface counters, and Node process and resource diagnostics. |
 | [Xray instances](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/runtime/instances) | List and inspect configured instances, start, stop and restart them, and check native readiness. With durable state configured, verify and reattach healthy executions, request bounded repair, set explicit retention and manage controller leases. |
-| [Xray configuration](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/runtime/configs) | Validate and compile sources, inspect desired and applied revisions, and replace or apply configuration. |
+| [Xray configuration](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/runtime/configs) | Validate and compile sources, inspect desired and applied revisions, and review, apply or recover configuration changes. |
 | [Xray inbounds](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/proxies/inbounds) | List handlers and tags, inspect summaries and compatibility, add from compiled data or sources, remove by tag, and review and execute replacement plans. |
 | [Xray outbounds](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/proxies/outbounds) | Read paginated handler snapshots, add from compiled data or sources, and remove by tag. Review replacement plans, apply supported live changes and retrieve their outcomes. Changes that need a restart use the configuration API. |
 | [Xray accounts](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/users/accounts) | Count and look up live accounts, page through credential-free metadata, explicitly export native account records, and check inbound compatibility. Add or remove accounts individually or in bounded batches, and prepare membership in compiled configuration. |
+| [Xray account sync](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/users/sync) | Preview and apply changes to selected inbound memberships, including chunked input, and read back operation results. |
 | [Xray presence](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/users/online) | Read online counts, users, records and individual users’ IP addresses. |
 | [Xray routing](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/network/routing) | List, add and remove live rules, test route selection, inspect balancers and override their target. |
 | [Xray statistics](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/runtime/statistics) | Read native runtime statistics. |
@@ -93,6 +94,7 @@ described in the example settings.
 | [Xray outbound health](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/observability/outboundhealth) | List observable outbound health results and inspect individual outbounds by tag. |
 | [Xray loggers](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/observability/loggers) | Reopen Xray loggers and inspect the outcome. |
 | [Xray console logs](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/observability/logs) | Read sanitized recent console records and follow them with a resumable cursor. Responses describe gaps, execution changes and capture limits. |
+| [Xray diagnostics](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/tools/diagnostics) | Inspect execution, configuration revisions, the selected executable and native API capabilities in one report. |
 | [Xray credential tools](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/tools/credentials) | Generate UUIDs, X25519/WireGuard and ML-DSA-65/ML-KEM-768 key material, VLESS encryption pairs, TLS certificates and ECH key sets. Hash TLS certificates. Private artifacts are returned only in the current response. |
 
 Live operations act on the running instance. Configuration operations manage

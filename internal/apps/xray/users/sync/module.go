@@ -4,9 +4,15 @@ package sync
 import (
 	"context"
 
+	inboundservices "github.com/PapilioVPN/node/internal/apps/xray/proxies/inbounds/app/services"
+	configservices "github.com/PapilioVPN/node/internal/apps/xray/runtime/configs/app/services"
+	accountservices "github.com/PapilioVPN/node/internal/apps/xray/users/accounts/app/services"
+	accountinbounds "github.com/PapilioVPN/node/internal/apps/xray/users/accounts/infra/inbounds"
 	"github.com/PapilioVPN/node/internal/apps/xray/users/sync/app/services"
 	"github.com/PapilioVPN/node/internal/apps/xray/users/sync/grpcapi"
 	"github.com/PapilioVPN/node/internal/apps/xray/users/sync/httpapi"
+	accountadapter "github.com/PapilioVPN/node/internal/apps/xray/users/sync/infra/accounts"
+	configadapter "github.com/PapilioVPN/node/internal/apps/xray/users/sync/infra/configs"
 	"github.com/PapilioVPN/node/internal/apps/xray/users/sync/natsapi"
 	"github.com/PapilioVPN/node/internal/platform/natsclient"
 	"github.com/PapilioVPN/node/internal/settings"
@@ -15,12 +21,24 @@ import (
 	"google.golang.org/grpc"
 )
 
-// Module accepts already composed narrow owners. The integration owner supplies
-// the shared Accounts service and versioned Configs binding; no second native
-// connection, desired store or compiler is constructed here. Ten subscriptions
-// require ten existing per-subscription drain budgets when installed.
-func Module(service *services.Service, transfers *services.Transfers, requests settings.Requests) fx.Option {
-	return fx.Module("xray-sync", fx.Supply(service, transfers, requests, fx.Private), fx.Invoke(register), fx.Provide(subscriptions))
+func Module(config []settings.Instance, requests settings.Requests) fx.Option {
+	return TransportModule(requests, fx.Supply(config, fx.Private), fx.Provide(compose, services.NewTransfers, fx.Private))
+}
+
+func TransportModule(requests settings.Requests, options ...fx.Option) fx.Option {
+	return fx.Module("xray-sync", fx.Options(options...), fx.Supply(requests, fx.Private), fx.Invoke(register), fx.Provide(subscriptions))
+}
+
+func compose(config []settings.Instance, accounts *accountservices.Service, catalog *inboundservices.Catalog, memberships *configservices.Memberships) (*services.Service, error) {
+	ids := make([]string, 0, len(config))
+	for _, instance := range config {
+		ids = append(ids, instance.ID)
+	}
+	configs := configadapter.V1{Source: memberships}
+	observations := accountadapter.Observer{
+		Source: accounts, Catalog: accountinbounds.Reader{Source: catalog}, Configs: configs,
+	}
+	return services.New(ids, observations, accounts, configs, accountadapter.Codec{})
 }
 
 type inputs struct {

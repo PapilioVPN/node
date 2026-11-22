@@ -68,7 +68,7 @@ test -f "$config_dir/config.yml" ||
 docker logs papilio-node
 ```
 
-برای توقف اجرای نمونه از `docker stop --time 150 papilio-node` استفاده کن.
+برای توقف اجرای نمونه از `docker stop --time 165 papilio-node` استفاده کن.
 
 اسکریپت اجرا پوشهٔ تنظیمات را فقط‌خواندنی mount می‌کند. برای Xray،
 `instances` را طبق [تنظیمات نمونه](deploy/config.example.yml) تعریف کن و فایل
@@ -88,10 +88,11 @@ mountهای صریح توضیح‌داده‌شده در نمونه را به‌
 | --- | --- |
 | [سیستم و Node](https://github.com/PapilioVPN/node/tree/main/internal/apps/system) | هویت میزبان، زمان کارکرد، بار، CPU، حافظه و swap، پردازش‌ها، نشست‌ها و سوابق ورود، حسگرها، فایل‌سیستم و ورودی‌وخروجی دیسک، شمارنده‌های رابط شبکه و عیب‌یابی پردازش و منابع Node. |
 | [نمونه‌های Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/runtime/instances) | فهرست و وضعیت نمونه‌ها، شروع، توقف، راه‌اندازی مجدد و بررسی آمادگی بومی. با تنظیم مسیر ماندگار، تأیید و اتصال مجدد به پردازش سالم، بازیابی با تعداد تلاش محدود، تعیین حفظ پردازش هنگام توقف و مدیریت lease کنترلر. |
-| [تنظیمات Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/runtime/configs) | اعتبارسنجی و کامپایل سورس‌ها، مشاهدهٔ نسخهٔ مطلوب و اعمال‌شده، جایگزینی و اعمال کانفیگ. |
+| [تنظیمات Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/runtime/configs) | اعتبارسنجی و کامپایل سورس‌ها، مشاهدهٔ نسخه‌های مطلوب و اعمال‌شده، و بازبینی، اعمال یا بازیابی تغییرات کانفیگ. |
 | [ورودی‌های Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/proxies/inbounds) | فهرست handlerها و tagها، خلاصه و سازگاری ورودی‌ها، افزودن از دادهٔ کامپایل‌شده یا سورس، حذف با tag و بازبینی و اجرای طرح جایگزینی. |
 | [خروجی‌های Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/proxies/outbounds) | فهرست صفحه‌بندی‌شدهٔ handlerها، افزودن از دادهٔ کامپایل‌شده یا سورس و حذف با tag. بازبینی طرح جایگزینی، اعمال تغییر زندهٔ پشتیبانی‌شده و خواندن نتیجه. تغییرهای نیازمند راه‌اندازی مجدد از API تنظیمات اعمال می‌شوند. |
 | [حساب‌های Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/users/accounts) | شمارش و جست‌وجوی حساب‌های موتور، فهرست صفحه‌بندی‌شدهٔ مشخصات بدون دادهٔ محرمانه، خروجی صریح رکوردهای بومی و بررسی سازگاری ورودی. افزودن و حذف تکی یا گروهی با سقف مشخص و آماده‌سازی اعضا در کانفیگ کامپایل‌شده. |
+| [همگام‌سازی حساب‌های Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/users/sync) | پیش‌نمایش و اعمال تغییر اعضای ورودی‌های منتخب، ارسال ورودی در چند قطعه و خواندن نتیجهٔ عملیات. |
 | [حضور آنلاین در Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/users/online) | مشاهدهٔ شمارش، کاربران و رکوردهای آنلاین و IPهای هر کاربر. |
 | [مسیریابی Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/network/routing) | فهرست‌کردن، افزودن و حذف قوانین زنده، آزمایش انتخاب مسیر، خواندن وضعیت balancer و تعیین مقصد آن. |
 | [آمار Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/runtime/statistics) | خواندن آمار اجرایی بومی موتور. |
@@ -99,6 +100,7 @@ mountهای صریح توضیح‌داده‌شده در نمونه را به‌
 | [سلامت خروجی‌های Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/observability/outboundhealth) | فهرست نتایج قابل مشاهدهٔ سلامت و بررسی یک خروجی با tag. |
 | [Loggerهای Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/observability/loggers) | بازکردن مجدد loggerهای Xray و مشاهدهٔ نتیجهٔ عملیات. |
 | [لاگ کنسول Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/observability/logs) | خواندن لاگ‌های اخیر کنسول با حذف دادهٔ حساس و ادامهٔ دریافت از موقعیت ثبت‌شده. پاسخ، شکاف‌ها، تغییر اجرای موتور و سقف ثبت لاگ را گزارش می‌کند. |
+| [عیب‌یابی Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/tools/diagnostics) | وضعیت اجرا، نسخه‌های کانفیگ، نسخهٔ فایل اجرایی و قابلیت‌های API بومی را در یک گزارش ببین. |
 | [ابزارهای کلید و گواهی Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/tools/credentials) | تولید UUID، کلیدهای X25519 و WireGuard، مواد کلید ML-DSA-65 و ML-KEM-768، جفت رمزنگاری VLESS، گواهی TLS و مجموعه‌کلید ECH. محاسبهٔ هش گواهی TLS. مواد خصوصی فقط در همان پاسخ برمی‌گردند. |
 
 عملیات زنده روی نمونهٔ در حال اجرا اثر می‌گذارد. عملیات کانفیگ تعیین

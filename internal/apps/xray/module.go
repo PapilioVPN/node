@@ -17,7 +17,7 @@ func Module(config []settings.Instance, requests settings.Requests) fx.Option {
 		runtime.Module(config, requests),
 		observability.Module(requests),
 		proxies.Module(requests),
-		users.Module(requests),
+		users.Module(config, requests),
 		network.Module(requests),
 		tools.Module(config, requests),
 	)

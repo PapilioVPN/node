@@ -59,7 +59,7 @@ type operator struct {
 func startTransport(t *testing.T, f *fixture, kind string, pki testutil.PKI, broker string) *operator {
 	t.Helper()
 	log := &addresses{Handler: slog.NewTextHandler(io.Discard, nil), values: make(map[string]string)}
-	opts := []fx.Option{fx.NopLogger, fx.Supply(slog.New(log)), syncmodule.Module(f.service, services.NewTransfers(), settings.Requests{Timeout: 2 * time.Second})}
+	opts := []fx.Option{fx.NopLogger, fx.Supply(slog.New(log)), syncmodule.TransportModule(settings.Requests{Timeout: 2 * time.Second}, fx.Supply(f.service, services.NewTransfers(), fx.Private))}
 	switch kind {
 	case "http":
 		opts = append(opts, fx.Supply(settings.HTTP{Address: "127.0.0.1:0", TLS: pki.Server, ReadTimeout: 2 * time.Second, WriteTimeout: 3 * time.Second, IdleTimeout: time.Second, ShutdownTimeout: time.Second, BodyLimit: 2 << 20, Concurrency: 8}), httpserver.Module)
@@ -81,6 +81,11 @@ func startTransport(t *testing.T, f *fixture, kind string, pki testutil.PKI, bro
 			t.Error(err)
 		}
 	})
+	return connect(t, kind, pki, broker, log)
+}
+
+func connect(t *testing.T, kind string, pki testutil.PKI, broker string, log *addresses) *operator {
+	t.Helper()
 	identity, err := mtls.Client(pki.Client)
 	if err != nil {
 		t.Fatal(err)

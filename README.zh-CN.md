@@ -62,7 +62,7 @@ test -f "$config_dir/config.yml" ||
 docker logs papilio-node
 ```
 
-使用 `docker stop --time 150 papilio-node` 停止示例容器。
+使用 `docker stop --time 165 papilio-node` 停止示例容器。
 
 启动脚本以只读方式挂载配置目录。要运行 Xray，请参照[示例配置](deploy/config.example.yml)
 添加 `instances`，并以只读方式挂载所选的可执行文件和配置。每个实例应拥有独立的
@@ -77,10 +77,11 @@ docker logs papilio-node
 | --- | --- |
 | [系统与 Node](https://github.com/PapilioVPN/node/tree/main/internal/apps/system) | 主机标识、运行时长、负载、CPU、内存和交换空间、进程、会话与登录记录、传感器、文件系统和设备 I/O、网络接口计数器，以及 Node 进程与资源诊断。 |
 | [Xray 实例](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/runtime/instances) | 列出已配置的实例，查看状态，启动、停止和重启实例，并检查原生就绪状态。配置持久化状态后，可验证并重新接管健康进程，执行限次修复，明确设置进程保留策略并管理控制器租约。 |
-| [Xray 配置](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/runtime/configs) | 验证和编译配置源，查看期望和已应用的修订版本，以及替换和应用配置。 |
+| [Xray 配置](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/runtime/configs) | 验证并编译配置源，查看期望和已应用的修订版本，以及预览、应用或恢复配置变更。 |
 | [Xray 入站](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/proxies/inbounds) | 列出处理器和标签，查看摘要及兼容性，从编译数据或配置源添加，按标签删除，以及审查并执行替换计划。 |
 | [Xray 出站](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/proxies/outbounds) | 分页读取处理器快照，从编译数据或配置源添加，以及按标签删除。审查替换计划，应用支持的在线变更并查看结果。需要重启的变更通过配置 API 应用。 |
 | [Xray 账户](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/users/accounts) | 统计和查找运行中的账户，分页查看不含凭据的元数据，显式导出原生账户记录，并检查入站兼容性。支持单个或限量批量增删，并为编译后的配置准备账户成员列表。 |
+| [Xray 账户同步](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/users/sync) | 预览并应用选定入站的成员变更，支持分块提交和读取操作结果。 |
 | [Xray 在线状态](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/users/online) | 查看在线人数、用户、记录以及单个用户的 IP 地址。 |
 | [Xray 路由](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/network/routing) | 列出、添加和删除运行中的路由规则，测试路由选择，查看负载均衡器状态并覆盖其目标。 |
 | [Xray 统计](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/runtime/statistics) | 读取引擎的原生运行统计。 |
@@ -88,6 +89,7 @@ docker logs papilio-node
 | [Xray 出站健康](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/observability/outboundhealth) | 列出可观测的出站健康结果，也可按出站标签查询。 |
 | [Xray 日志记录器](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/observability/loggers) | 重新打开 Xray 日志记录器并查看操作结果。 |
 | [Xray 控制台日志](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/observability/logs) | 读取脱敏后的近期控制台记录，并通过游标继续获取。响应会报告缺口、执行实例变更和采集上限。 |
+| [Xray 诊断](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/tools/diagnostics) | 通过一份报告查看运行状态、配置修订、可执行文件版本及原生 API 能力。 |
 | [Xray 凭据工具](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/tools/credentials) | 生成 UUID、X25519/WireGuard 和 ML-DSA-65/ML-KEM-768 密钥材料、VLESS 加密对、TLS 证书和 ECH 密钥集，并计算 TLS 证书哈希。私密材料仅在当前响应中返回。 |
 
 在线操作作用于运行中的实例，配置操作决定 Xray 启动时使用的设置。

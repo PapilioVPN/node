@@ -19,7 +19,7 @@ import (
 )
 
 func Module(requests settings.Requests) fx.Option {
-	return fx.Module("xray-accounts", fx.Supply(requests, fx.Private), fx.Provide(compose, composeSources, composeConfigurations, fx.Private), fx.Invoke(register), fx.Provide(subscribe))
+	return fx.Module("xray-accounts", fx.Supply(requests, fx.Private), fx.Provide(compose), fx.Provide(composeSources, composeConfigurations, fx.Private), fx.Invoke(register), fx.Provide(subscribe))
 }
 
 type inputs struct {
