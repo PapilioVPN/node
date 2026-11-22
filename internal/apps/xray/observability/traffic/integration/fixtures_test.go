@@ -5,6 +5,7 @@ package integration_test
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log/slog"
 	"net"
@@ -57,18 +58,20 @@ func (l *listenerLog) Handle(_ context.Context, record slog.Record) error {
 }
 
 type fixture struct {
-	config   settings.Config
-	proxy    string
-	target   *httptest.Server
-	original []byte
-	api      stats.StatsServiceClient
-	http     *http.Client
-	address  string
-	grpc     trafficv1.TrafficServiceClient
-	nats     *nats.Conn
+	config     settings.Config
+	proxy      string
+	target     *httptest.Server
+	original   []byte
+	api        stats.StatsServiceClient
+	http       *http.Client
+	address    string
+	grpc       trafficv1.TrafficServiceClient
+	nats       *nats.Conn
+	relay      *nativeRelay
+	connection *grpc.ClientConn
 }
 
-func newFixture(t *testing.T, pki testutil.PKI, broker, transport string) *fixture {
+func newFixture(t *testing.T, pki testutil.PKI, broker, transport string, options ...fixtureOptions) *fixture {
 	t.Helper()
 	binary := os.Getenv("XRAY_TEST_BINARY")
 	if binary == "" {
@@ -96,12 +99,29 @@ func newFixture(t *testing.T, pki testutil.PKI, broker, transport string) *fixtu
 		io.WriteString(w, strings.Repeat("counter-payload", 1024))
 	}))
 	t.Cleanup(f.target.Close)
-	data, err := json.Marshal(map[string]any{
+	nativeConfig := map[string]any{
 		"log": map[string]any{"loglevel": "none"}, "api": map[string]any{"tag": "api", "listen": nativeReservation.Addr().String(), "services": []string{"StatsService"}}, "stats": map[string]any{},
 		"policy":    map[string]any{"levels": map[string]any{"0": map[string]any{"statsUserUplink": true, "statsUserDownlink": true}}, "system": map[string]any{"statsInboundUplink": true, "statsInboundDownlink": true, "statsOutboundUplink": true, "statsOutboundDownlink": true}},
 		"inbounds":  []any{map[string]any{"tag": inboundTag, "listen": "127.0.0.1", "port": number, "protocol": "http", "settings": map[string]any{"accounts": []any{map[string]any{"user": account, "pass": "fixture-password"}}, "userLevel": 0}}},
 		"outbounds": []any{map[string]any{"tag": outboundTag, "protocol": "freedom"}},
-	})
+	}
+	opt := fixtureOptions{}
+	if len(options) > 0 {
+		opt = options[0]
+	}
+	outbounds := nativeConfig["outbounds"].([]any)
+	for i := 0; i < opt.extraOutbounds; i++ {
+		tag := fmt.Sprintf("extra-%04d", i)
+		if i == 0 {
+			tag = "user>>>collision"
+		}
+		if opt.trailingOutbounds {
+			tag = fmt.Sprintf("zz-extra-%04d", i)
+		}
+		outbounds = append(outbounds, map[string]any{"tag": tag, "protocol": "freedom"})
+	}
+	nativeConfig["outbounds"] = outbounds
+	data, err := json.Marshal(nativeConfig)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -110,37 +130,70 @@ func newFixture(t *testing.T, pki testutil.PKI, broker, transport string) *fixtu
 		t.Fatal(err)
 	}
 	f.original = data
-	f.config = settings.Config{StartupTimeout: 5 * time.Second, ShutdownTimeout: 6 * time.Second, Instances: []settings.Instance{{ID: "edge-a", Engine: "xray", StopTimeout: time.Second, Xray: &settings.Xray{Binary: binary, Configuration: source, API: &settings.XrayAPI{Network: "tcp", Address: nativeReservation.Addr().String()}}}}}
-	f.config.Communications.Requests.Timeout = time.Second
+	f.config = settings.Config{StartupTimeout: 5 * time.Second, ShutdownTimeout: 10 * time.Second, Instances: []settings.Instance{{ID: "edge-a", Engine: "xray", StopTimeout: time.Second, Xray: &settings.Xray{Binary: binary, Configuration: source, API: &settings.XrayAPI{Network: "tcp", Address: nativeReservation.Addr().String()}}}}}
+	nativeAddress := nativeReservation.Addr().String()
+	if opt.relay {
+		address, relay := newNativeRelay(t, nativeAddress)
+		f.relay = relay
+		f.config.Instances[0].Xray.API.Address = address
+	}
+	requestTimeout := time.Second
+	if opt.extraOutbounds >= 499 {
+		requestTimeout = 5 * time.Second
+	}
+	f.config.Communications.Requests.Timeout = requestTimeout
 	switch transport {
 	case "http":
-		f.config.Communications.HTTP = &settings.HTTP{Address: "127.0.0.1:0", TLS: pki.Server, ReadTimeout: time.Second, WriteTimeout: 2 * time.Second, IdleTimeout: time.Second, ShutdownTimeout: time.Second, BodyLimit: 32 << 10, Concurrency: 16}
+		f.config.Communications.HTTP = &settings.HTTP{Address: "127.0.0.1:0", TLS: pki.Server, ReadTimeout: time.Second, WriteTimeout: requestTimeout + time.Second, IdleTimeout: time.Second, ShutdownTimeout: time.Second, BodyLimit: 32 << 10, Concurrency: 16}
 	case "grpc":
 		f.config.Communications.GRPC = &settings.GRPC{Address: "127.0.0.1:0", TLS: pki.Server, ConnectionTimeout: 100 * time.Millisecond, ShutdownTimeout: time.Second, MaxRecvMessageSize: 32 << 10, MaxSendMessageSize: 32 << 10, MaxConnections: 8, MaxConcurrentStreams: 8, MaxHeaderListSize: 8192}
 	case "nats":
 		f.config.Communications.NATS = &settings.NATS{Servers: []string{broker}, TLS: pki.Client, TLSHandshakeFirst: true, ConnectTimeout: time.Second, ShutdownTimeout: time.Second, WriteTimeout: time.Second, ReconnectWait: time.Second, MaxReconnects: 0, ReconnectBufferSize: -1, PingInterval: time.Second, MaxPingsOutstanding: 2}
-		f.config.Communications.Requests.NATS = &settings.NATSRequests{SubjectPrefix: "fixture.traffic", PendingMessages: 8, PendingBytes: 32 << 10, ShutdownTimeout: 10 * time.Millisecond}
+		f.config.Communications.Requests.NATS = &settings.NATSRequests{SubjectPrefix: "fixture.traffic", PendingMessages: 8, PendingBytes: 32 << 10, ShutdownTimeout: 50 * time.Millisecond}
+	}
+	// Fix the management port while native endpoints are still reserved. A
+	// later port-zero management bind must not reclaim a pending child endpoint.
+	var managementReservation net.Listener
+	if f.config.Communications.HTTP != nil || f.config.Communications.GRPC != nil {
+		managementReservation, err = net.Listen("tcp", "127.0.0.1:0")
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { managementReservation.Close() })
+		if f.config.Communications.HTTP != nil {
+			f.config.Communications.HTTP.Address = managementReservation.Addr().String()
+		}
+		if f.config.Communications.GRPC != nil {
+			f.config.Communications.GRPC.Address = managementReservation.Addr().String()
+		}
 	}
 	if err := f.config.Validate(); err != nil {
 		t.Fatal(err)
 	}
 	log := &listenerLog{Handler: slog.NewTextHandler(io.Discard, nil), addresses: map[string]string{}}
-	app := bootstrap.New(f.config, slog.New(log))
 	nativeReservation.Close()
 	proxyReservation.Close()
+	if managementReservation != nil {
+		managementReservation.Close()
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	if err := app.Start(ctx); err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 6*time.Second)
-		defer cancel()
-		if err := app.Stop(ctx); err != nil {
-			t.Error(err)
+	if image := os.Getenv("TRAFFIC_TEST_IMAGE"); image != "" {
+		log.addresses = startContainer(t, f.config, image)
+	} else {
+		app := bootstrap.New(f.config, slog.New(log))
+		if err := app.Start(ctx); err != nil {
+			t.Fatal(err)
 		}
-	})
-	connection, err := grpc.NewClient(f.config.Instances[0].Xray.API.Address, grpc.WithTransportCredentials(insecure.NewCredentials()))
+		t.Cleanup(func() {
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+			if err := app.Stop(ctx); err != nil {
+				t.Error(err)
+			}
+		})
+	}
+	connection, err := grpc.NewClient(nativeAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -169,7 +222,7 @@ func newFixture(t *testing.T, pki testutil.PKI, broker, transport string) *fixtu
 	case "http":
 		resource := &http.Transport{TLSClientConfig: identity}
 		t.Cleanup(resource.CloseIdleConnections)
-		f.http = &http.Client{Transport: resource, Timeout: 2 * time.Second}
+		f.http = &http.Client{Transport: resource, Timeout: f.config.Communications.Requests.Timeout + time.Second}
 		f.address = "https://" + log.addresses["HTTP listening"]
 	case "grpc":
 		connection, err := grpc.NewClient(log.addresses["gRPC listening"], grpc.WithTransportCredentials(credentials.NewTLS(identity)))
@@ -177,6 +230,7 @@ func newFixture(t *testing.T, pki testutil.PKI, broker, transport string) *fixtu
 			t.Fatal(err)
 		}
 		t.Cleanup(func() { connection.Close() })
+		f.connection = connection
 		f.grpc = trafficv1.NewTrafficServiceClient(connection)
 	case "nats":
 		f.nats, err = nats.Connect(broker, nats.Secure(identity), nats.TLSHandshakeFirst(), nats.NoReconnect())
