@@ -3,8 +3,11 @@
 package integration_test
 
 import (
+	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log/slog"
 	"net"
@@ -198,4 +201,113 @@ func brokerFixture(t *testing.T, pki testutil.PKI) string {
 	t.Helper()
 	broker := testutil.NewNATSBroker(t, pki.Server, true)
 	return strings.Replace(broker.ClientURL(), "nats://", "tls://", 1)
+}
+
+type accountFamily struct {
+	name, proxy, account string
+	caseSensitive        bool
+	duplicate            string
+	missingRemovalOK     bool
+	settings             func(string, byte) map[string]any
+}
+
+func nativeAccountFamilies() []accountFamily {
+	key := func(seed byte, size int) string {
+		return base64.StdEncoding.EncodeToString(bytes.Repeat([]byte{seed}, size))
+	}
+	member := func(email string, fields map[string]any) map[string]any {
+		fields["email"], fields["level"] = email, 7
+		return fields
+	}
+	return []accountFamily{
+		{name: "vless", proxy: "vless", account: "xray.proxy.vless.Account", duplicate: "rejected", settings: func(email string, seed byte) map[string]any {
+			return map[string]any{"decryption": "none", "clients": []any{member(email, map[string]any{"id": fmt.Sprintf("00000000-0000-4000-8000-%012x", seed)})}}
+		}},
+		{name: "vmess", proxy: "vmess", account: "xray.proxy.vmess.Account", duplicate: "rejected", settings: func(email string, seed byte) map[string]any {
+			return map[string]any{"clients": []any{member(email, map[string]any{"id": fmt.Sprintf("00000000-0000-4000-8000-%012x", seed)})}}
+		}},
+		{name: "trojan", proxy: "trojan", account: "xray.proxy.trojan.Account", duplicate: "rejected", settings: func(email string, seed byte) map[string]any {
+			return map[string]any{"clients": []any{member(email, map[string]any{"password": fmt.Sprintf("fixture-%d", seed)})}}
+		}},
+		{name: "shadowsocks", proxy: "shadowsocks", account: "xray.proxy.shadowsocks.Account", duplicate: "appended", settings: func(email string, seed byte) map[string]any {
+			return map[string]any{"clients": []any{member(email, map[string]any{"method": "aes-128-gcm", "password": fmt.Sprintf("fixture-%d", seed)})}}
+		}},
+		{name: "shadowsocks2022", proxy: "shadowsocks", account: "xray.proxy.shadowsocks_2022.Account", duplicate: "rejected", settings: func(email string, seed byte) map[string]any {
+			return map[string]any{"method": "2022-blake3-aes-128-gcm", "password": key(1, 16), "clients": []any{member(email, map[string]any{"password": key(seed, 16)})}}
+		}},
+		{name: "wireguard", proxy: "wireguard", account: "xray.proxy.wireguard.PeerConfig", caseSensitive: true, duplicate: "replaced", missingRemovalOK: true, settings: func(email string, seed byte) map[string]any {
+			return map[string]any{"secretKey": key(1, 32), "address": []string{"10.55.0.1/24"}, "peers": []any{member(email, map[string]any{"publicKey": key(seed, 32), "allowedIPs": []string{fmt.Sprintf("10.55.0.%d/32", seed)}})}}
+		}},
+		{name: "hysteria", proxy: "hysteria", account: "xray.proxy.hysteria.account.Account", caseSensitive: true, duplicate: "replaced", missingRemovalOK: true, settings: func(email string, seed byte) map[string]any {
+			return map[string]any{"version": 2, "clients": []any{member(email, map[string]any{"auth": fmt.Sprintf("fixture-%d", seed)})}}
+		}},
+		{name: "masque", proxy: "masque", account: "xray.proxy.masque.Account", duplicate: "rejected", settings: func(email string, seed byte) map[string]any {
+			return map[string]any{"address": []string{"10.56.0.1/24"}, "clients": []any{member(email, map[string]any{"pass": fmt.Sprintf("fixture-%d", seed)})}}
+		}},
+	}
+}
+
+func (f accountFamily) inbound(email string, seed byte) map[string]any {
+	return map[string]any{"tag": "members", "port": 1, "protocol": f.proxy, "settings": f.settings(email, seed)}
+}
+
+func familySource(t *testing.T, family accountFamily, email string, seed byte) []byte {
+	t.Helper()
+	data, err := json.Marshal(map[string]any{"inbounds": []any{family.inbound(email, seed)}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return data
+}
+
+func configureFamily(t *testing.T, f fixture, family accountFamily) {
+	t.Helper()
+	// MASQUE can bind both TCP and UDP; reserve both until its config is written.
+	var tcp net.Listener
+	var udp net.PacketConn
+	var err error
+	for range 8 {
+		tcp, err = net.Listen("tcp", "127.0.0.1:0")
+		if err != nil {
+			t.Fatal(err)
+		}
+		udp, err = net.ListenPacket("udp", tcp.Addr().String())
+		if err == nil {
+			break
+		}
+		tcp.Close()
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tcp.Close()
+	defer udp.Close()
+	path := f.config.Instances[0].Xray.Configuration
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var configuration map[string]any
+	if err := json.Unmarshal(data, &configuration); err != nil {
+		t.Fatal(err)
+	}
+	inbound := family.inbound("original@example.test", 2)
+	inbound["listen"], inbound["port"] = "127.0.0.1", tcp.Addr().(*net.TCPAddr).Port
+	if family.name == "hysteria" || family.name == "masque" {
+		inbound["streamSettings"] = map[string]any{
+			"network": family.name, "security": "tls",
+			"tlsSettings": map[string]any{"certificates": []any{map[string]any{"certificateFile": f.pki.Server.Certificate, "keyFile": f.pki.Server.PrivateKey}}},
+		}
+		if family.name == "hysteria" {
+			inbound["streamSettings"].(map[string]any)["hysteriaSettings"] = map[string]any{"version": 2}
+		}
+	}
+	configuration["inbounds"] = []any{inbound}
+	data, err = json.Marshal(configuration)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, data, 0600); err != nil {
+		t.Fatal(err)
+	}
 }
