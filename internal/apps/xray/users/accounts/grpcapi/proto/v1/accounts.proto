@@ -4,7 +4,10 @@ option go_package = "github.com/PapilioVPN/node/internal/apps/xray/users/account
 import "google/protobuf/timestamp.proto";
 import "internal/apps/xray/users/accounts/grpcapi/proto/v1/control.proto";
 import "internal/apps/xray/users/accounts/grpcapi/proto/v1/sources.proto";
+import "internal/apps/xray/users/accounts/grpcapi/proto/v1/batches.proto";
 service AccountsService {
+  rpc AddAccounts(AddAccountsRequest) returns (AccountBatch);
+  rpc RemoveAccounts(RemoveAccountsRequest) returns (AccountBatch);
   rpc AddAccountFromSources(AddAccountFromSourcesRequest) returns (AccountOperation);
   // Live native membership only, not durable desired-state replacement.
   rpc AddAccount(AddAccountRequest) returns (AccountOperation);

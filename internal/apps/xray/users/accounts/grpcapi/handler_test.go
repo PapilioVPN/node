@@ -45,3 +45,17 @@ func TestMissingSourceInputsNeverReachService(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestInvalidBatchMessagesNeverReachService(t *testing.T) {
+	h := grpcapi.Handler{}
+	for _, request := range []*v1.AddAccountsRequest{nil, {Parallelism: 5}, {Items: []*v1.AccountAddition{nil}}} {
+		if _, err := h.AddAccounts(context.Background(), request); status.Code(err) != codes.InvalidArgument {
+			t.Fatal(err)
+		}
+	}
+	for _, request := range []*v1.RemoveAccountsRequest{nil, {Parallelism: 5}, {Items: []*v1.AccountRemoval{nil}}, {Items: []*v1.AccountRemoval{{InboundTag: "members"}}}} {
+		if _, err := h.RemoveAccounts(context.Background(), request); status.Code(err) != codes.InvalidArgument {
+			t.Fatal(err)
+		}
+	}
+}

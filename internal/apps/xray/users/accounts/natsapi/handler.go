@@ -89,6 +89,8 @@ func errorCode(err error) string {
 		code = "deadline_exceeded"
 	case errors.Is(err, context.Canceled):
 		code = "canceled"
+	case errors.Is(err, domain.ErrNotAttempted):
+		code = "not_attempted"
 	case errors.Is(err, domain.ErrInvalidArgument):
 		code = "invalid_argument"
 	case errors.Is(err, domain.ErrNotFound):

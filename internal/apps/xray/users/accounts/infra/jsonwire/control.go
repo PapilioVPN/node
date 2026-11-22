@@ -27,6 +27,17 @@ func DecodeControl(data []byte) (request ControlRequest, err error) {
 		return request, domain.ErrCapacity
 	}
 	decoder := json.NewDecoder(bytes.NewReader(data))
+	request, err = decodeControlObject(decoder)
+	if err != nil {
+		return request, err
+	}
+	if _, err := decoder.Token(); !errors.Is(err, io.EOF) {
+		return request, domain.ErrInvalidArgument
+	}
+	return request, nil
+}
+
+func decodeControlObject(decoder *json.Decoder) (request ControlRequest, err error) {
 	if token, err := decoder.Token(); err != nil || token != json.Delim('{') {
 		return request, domain.ErrInvalidArgument
 	}
@@ -71,9 +82,6 @@ func DecodeControl(data []byte) (request ControlRequest, err error) {
 		}
 	}
 	if token, err := decoder.Token(); err != nil || token != json.Delim('}') {
-		return request, domain.ErrInvalidArgument
-	}
-	if _, err := decoder.Token(); !errors.Is(err, io.EOF) {
 		return request, domain.ErrInvalidArgument
 	}
 	return request, nil

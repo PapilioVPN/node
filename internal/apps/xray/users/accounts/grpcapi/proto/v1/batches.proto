@@ -1,0 +1,44 @@
+syntax = "proto3";
+package papilio.xray.users.accounts.v1;
+option go_package = "github.com/PapilioVPN/node/internal/apps/xray/users/accounts/grpcapi/proto/v1;accountsv1";
+import "internal/apps/xray/users/accounts/grpcapi/proto/v1/control.proto";
+
+message AccountAddition {
+  string inbound_tag = 1;
+  // Native protocol.User; its account type must match the actual inbound.
+  bytes configuration = 2;
+}
+message AccountRemoval {
+  string inbound_tag = 1;
+  // Required presence; explicit empty email retains native protocol semantics.
+  optional string email = 2;
+}
+message AddAccountsRequest {
+  string instance_id = 1;
+  repeated AccountAddition items = 2;
+  // Zero selects four; supported range 1..4. One preserves execution order.
+  // Parallel execution is for independent items, including on one inbound.
+  uint32 parallelism = 3;
+}
+message RemoveAccountsRequest {
+  string instance_id = 1;
+  repeated AccountRemoval items = 2;
+  uint32 parallelism = 3;
+}
+message AccountBatchItem {
+  uint32 index = 1;
+  // The native adapter was invoked; this does not prove network submission.
+  bool attempted = 2;
+  AccountOperation operation = 3;
+  string error = 4;
+}
+// Live, non-atomic, ephemeral operations; at most 1000 items and 4MiB of added
+// configuration bytes. Results preserve input order. After the first error no
+// new work starts; already admitted work is joined and may have effects.
+// Application errors are returned in this body, not large gRPC status trailers.
+// Inspect error and every item. A lost response does not prove no effect.
+message AccountBatch {
+  AccountOperation operation = 1;
+  repeated AccountBatchItem items = 2;
+  string error = 3;
+}

@@ -24,6 +24,7 @@ type operation struct {
 	Effect                  string `json:"effect"`
 	Acknowledged            bool   `json:"acknowledged"`
 	RequiresInstanceRestart bool   `json:"requires_instance_restart"`
+	Kind                    string `json:"kind"`
 }
 
 func accountMutation(t *testing.T, c clients, transport, kind, email string, content []byte) (operation, string) {
@@ -43,12 +44,12 @@ func accountMutation(t *testing.T, c clients, transport, kind, email string, con
 		if err != nil {
 			for _, detail := range status.Convert(err).Details() {
 				if value, ok := detail.(*v1.AccountOperation); ok {
-					return operation{value.InboundTag, value.Email, value.Generation, value.Effect, value.Acknowledged, value.RequiresInstanceRestart}, status.Convert(err).Message()
+					return operation{value.InboundTag, value.Email, value.Generation, value.Effect, value.Acknowledged, value.RequiresInstanceRestart, value.Kind}, status.Convert(err).Message()
 				}
 			}
 			t.Fatal(err)
 		}
-		return operation{result.InboundTag, result.Email, result.Generation, result.Effect, result.Acknowledged, result.RequiresInstanceRestart}, ""
+		return operation{result.InboundTag, result.Email, result.Generation, result.Effect, result.Acknowledged, result.RequiresInstanceRestart, result.Kind}, ""
 	}
 	if transport == "http" {
 		method, path := http.MethodPost, c.address+"/v1/xray/users/instances/edge-a/accounts?inbound_tag=members"
@@ -123,7 +124,7 @@ func accountControl(t *testing.T, c clients, transport string) controlState {
 		}
 		result = controlState{Generation: state.Generation, RequestInFlight: state.RequestInFlight, RequiresInstanceRestart: state.RequiresInstanceRestart}
 		if value := state.LastOperation; value != nil {
-			result.LastOperation = &operation{value.InboundTag, value.Email, value.Generation, value.Effect, value.Acknowledged, value.RequiresInstanceRestart}
+			result.LastOperation = &operation{value.InboundTag, value.Email, value.Generation, value.Effect, value.Acknowledged, value.RequiresInstanceRestart, value.Kind}
 		}
 	case "nats":
 		response, err := c.nats.RequestWithContext(ctx, "fixture.accounts.xray.users.accounts.status.v1.get", []byte(`{"instance_id":"edge-a"}`))

@@ -26,12 +26,12 @@ func sourceAccount(t *testing.T, c clients, transport, name, email string, conte
 		if err != nil {
 			for _, detail := range status.Convert(err).Details() {
 				if result, ok := detail.(*v1.AccountOperation); ok {
-					return operation{result.InboundTag, result.Email, result.Generation, result.Effect, result.Acknowledged, result.RequiresInstanceRestart}, status.Convert(err).Message()
+					return operation{result.InboundTag, result.Email, result.Generation, result.Effect, result.Acknowledged, result.RequiresInstanceRestart, result.Kind}, status.Convert(err).Message()
 				}
 			}
 			t.Fatal(err)
 		}
-		return operation{result.InboundTag, result.Email, result.Generation, result.Effect, result.Acknowledged, result.RequiresInstanceRestart}, ""
+		return operation{result.InboundTag, result.Email, result.Generation, result.Effect, result.Acknowledged, result.RequiresInstanceRestart, result.Kind}, ""
 	}
 	input := map[string]any{"email": email, "sources": []any{map[string]any{"name": name, "content": content}}}
 	if transport == "nats" {

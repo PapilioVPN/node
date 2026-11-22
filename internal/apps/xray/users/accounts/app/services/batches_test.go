@@ -239,3 +239,22 @@ func TestBatchCancellationJoinsAllActiveNativeWork(t *testing.T) {
 		t.Fatal(status)
 	}
 }
+
+func TestBatchByteAndParallelismBoundsRejectBeforeNativeWork(t *testing.T) {
+	calls := 0
+	c := client{add: func(context.Context, string, []byte) (domain.NativeResult, error) {
+		calls++
+		return domain.NativeResult{}, nil
+	}}
+	s, _ := services.New([]services.Binding{{ID: "a", Client: c}}, &execution{generation: 1, state: instances.Running})
+	large := make([]byte, domain.MaxAccountBytes)
+	items := []domain.Addition{{InboundTag: "a", Configuration: large}, {InboundTag: "a", Configuration: large}, {InboundTag: "a", Configuration: large}, {InboundTag: "a", Configuration: large}, {InboundTag: "a", Configuration: []byte{1}}}
+	if _, err := s.AddMany(context.Background(), "a", items, 1); !errors.Is(err, domain.ErrCapacity) || calls != 0 {
+		t.Fatal(err, calls)
+	}
+	for _, parallelism := range []int{-1, domain.MaxBatchParallelism + 1} {
+		if _, err := s.AddMany(context.Background(), "a", items[:1], parallelism); !errors.Is(err, domain.ErrInvalidArgument) || calls != 0 {
+			t.Fatal(err, calls)
+		}
+	}
+}

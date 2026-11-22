@@ -19,6 +19,8 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
+	AccountsService_AddAccounts_FullMethodName             = "/papilio.xray.users.accounts.v1.AccountsService/AddAccounts"
+	AccountsService_RemoveAccounts_FullMethodName          = "/papilio.xray.users.accounts.v1.AccountsService/RemoveAccounts"
 	AccountsService_AddAccountFromSources_FullMethodName   = "/papilio.xray.users.accounts.v1.AccountsService/AddAccountFromSources"
 	AccountsService_AddAccount_FullMethodName              = "/papilio.xray.users.accounts.v1.AccountsService/AddAccount"
 	AccountsService_RemoveAccount_FullMethodName           = "/papilio.xray.users.accounts.v1.AccountsService/RemoveAccount"
@@ -31,6 +33,8 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type AccountsServiceClient interface {
+	AddAccounts(ctx context.Context, in *AddAccountsRequest, opts ...grpc.CallOption) (*AccountBatch, error)
+	RemoveAccounts(ctx context.Context, in *RemoveAccountsRequest, opts ...grpc.CallOption) (*AccountBatch, error)
 	AddAccountFromSources(ctx context.Context, in *AddAccountFromSourcesRequest, opts ...grpc.CallOption) (*AccountOperation, error)
 	// Live native membership only, not durable desired-state replacement.
 	AddAccount(ctx context.Context, in *AddAccountRequest, opts ...grpc.CallOption) (*AccountOperation, error)
@@ -49,6 +53,26 @@ type accountsServiceClient struct {
 
 func NewAccountsServiceClient(cc grpc.ClientConnInterface) AccountsServiceClient {
 	return &accountsServiceClient{cc}
+}
+
+func (c *accountsServiceClient) AddAccounts(ctx context.Context, in *AddAccountsRequest, opts ...grpc.CallOption) (*AccountBatch, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AccountBatch)
+	err := c.cc.Invoke(ctx, AccountsService_AddAccounts_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *accountsServiceClient) RemoveAccounts(ctx context.Context, in *RemoveAccountsRequest, opts ...grpc.CallOption) (*AccountBatch, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AccountBatch)
+	err := c.cc.Invoke(ctx, AccountsService_RemoveAccounts_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *accountsServiceClient) AddAccountFromSources(ctx context.Context, in *AddAccountFromSourcesRequest, opts ...grpc.CallOption) (*AccountOperation, error) {
@@ -115,6 +139,8 @@ func (c *accountsServiceClient) GetAccount(ctx context.Context, in *GetAccountRe
 // All implementations must embed UnimplementedAccountsServiceServer
 // for forward compatibility.
 type AccountsServiceServer interface {
+	AddAccounts(context.Context, *AddAccountsRequest) (*AccountBatch, error)
+	RemoveAccounts(context.Context, *RemoveAccountsRequest) (*AccountBatch, error)
 	AddAccountFromSources(context.Context, *AddAccountFromSourcesRequest) (*AccountOperation, error)
 	// Live native membership only, not durable desired-state replacement.
 	AddAccount(context.Context, *AddAccountRequest) (*AccountOperation, error)
@@ -135,6 +161,12 @@ type AccountsServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedAccountsServiceServer struct{}
 
+func (UnimplementedAccountsServiceServer) AddAccounts(context.Context, *AddAccountsRequest) (*AccountBatch, error) {
+	return nil, status.Error(codes.Unimplemented, "method AddAccounts not implemented")
+}
+func (UnimplementedAccountsServiceServer) RemoveAccounts(context.Context, *RemoveAccountsRequest) (*AccountBatch, error) {
+	return nil, status.Error(codes.Unimplemented, "method RemoveAccounts not implemented")
+}
 func (UnimplementedAccountsServiceServer) AddAccountFromSources(context.Context, *AddAccountFromSourcesRequest) (*AccountOperation, error) {
 	return nil, status.Error(codes.Unimplemented, "method AddAccountFromSources not implemented")
 }
@@ -172,6 +204,42 @@ func RegisterAccountsServiceServer(s grpc.ServiceRegistrar, srv AccountsServiceS
 		t.testEmbeddedByValue()
 	}
 	s.RegisterService(&AccountsService_ServiceDesc, srv)
+}
+
+func _AccountsService_AddAccounts_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddAccountsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AccountsServiceServer).AddAccounts(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AccountsService_AddAccounts_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AccountsServiceServer).AddAccounts(ctx, req.(*AddAccountsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AccountsService_RemoveAccounts_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RemoveAccountsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AccountsServiceServer).RemoveAccounts(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AccountsService_RemoveAccounts_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AccountsServiceServer).RemoveAccounts(ctx, req.(*RemoveAccountsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _AccountsService_AddAccountFromSources_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -289,6 +357,14 @@ var AccountsService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "papilio.xray.users.accounts.v1.AccountsService",
 	HandlerType: (*AccountsServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "AddAccounts",
+			Handler:    _AccountsService_AddAccounts_Handler,
+		},
+		{
+			MethodName: "RemoveAccounts",
+			Handler:    _AccountsService_RemoveAccounts_Handler,
+		},
 		{
 			MethodName: "AddAccountFromSources",
 			Handler:    _AccountsService_AddAccountFromSources_Handler,

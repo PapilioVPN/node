@@ -61,3 +61,20 @@ func TestMalformedControlRequestsNeverReachService(t *testing.T) {
 		}
 	}
 }
+
+func TestMalformedBatchesNeverReachService(t *testing.T) {
+	app := fiber.New()
+	httpapi.Handler{}.Register(app)
+	for _, path := range []string{"additions", "removals"} {
+		request := httptest.NewRequest("POST", "/v1/xray/users/instances/a/accounts/"+path, strings.NewReader(`{"items":[]}`))
+		request.Header.Set("Content-Type", "application/json")
+		response, err := app.Test(request)
+		if err != nil {
+			t.Fatal(err)
+		}
+		response.Body.Close()
+		if response.StatusCode != 400 || response.Header.Get("Cache-Control") != "no-store" {
+			t.Fatal(path, response.StatusCode)
+		}
+	}
+}

@@ -9,11 +9,53 @@ import (
 	"testing"
 	"time"
 
+	"github.com/PapilioVPN/node/internal/apps/xray/users/accounts/domain"
 	"github.com/PapilioVPN/node/internal/testutil"
 	handlers "github.com/xtls/xray-core/app/proxyman/command"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
+
+func TestLostBatchAcknowledgementPreservesUnattemptedTail(t *testing.T) {
+	pki := testutil.NewPKI(t)
+	f := newFixture(t, pki, brokerFixture(t, pki), "all")
+	relay, drop := testutil.LostReplies(t, f.native)
+	f.config.Instances[0].Xray.API.Address = relay
+	f.config.Communications.Requests.Timeout = 200 * time.Millisecond
+	c := startNode(t, f)
+	awaitNative(t, f.native)
+	result := batchAccounts(t, c, "http", []domain.Addition{
+		{InboundTag: "members", Configuration: accountConfiguration(t, "managed@example.test")},
+		{InboundTag: "members", Configuration: accountConfiguration(t, "never@example.test")},
+	}, nil, 1)
+	if result.Error != "deadline_exceeded" || len(result.Items) != 2 || result.Operation.Effect != "unknown" || !result.Operation.RequiresInstanceRestart || !result.Items[0].Attempted || result.Items[0].Operation.Acknowledged || result.Items[1].Attempted || result.Items[1].Error != "not_attempted" {
+		t.Fatal(result)
+	}
+	direct, err := grpc.NewClient(f.native, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer direct.Close()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	observed, err := handlers.NewHandlerServiceClient(direct).GetInboundUsers(ctx, &handlers.GetInboundUserRequest{Tag: "members", Email: "managed@example.test"})
+	if err != nil || len(observed.GetUsers()) != 1 || observed.Users[0].Email != "managed@example.test" {
+		t.Fatal("lost response did not mean no native effect", observed, err)
+	}
+	drop.Store(false)
+	for _, transport := range []string{"http", "grpc", "nats"} {
+		result = batchAccounts(t, c, transport, nil, []domain.Removal{{InboundTag: "members", Email: "managed@example.test"}}, 1)
+		if result.Error != "restart_required" || result.Operation.Effect != "not_applied" || !result.Operation.RequiresInstanceRestart || result.Items[0].Attempted {
+			t.Fatal(transport, result)
+		}
+	}
+	restartAccountInstance(t, c)
+	assertFamilyCount(t, c, "http", 2)
+	result = batchAccounts(t, c, "grpc", []domain.Addition{{InboundTag: "members", Configuration: accountConfiguration(t, "managed@example.test")}}, nil, 1)
+	if result.Error != "" || result.Operation.Generation != 2 || result.Operation.Effect != "completed" {
+		t.Fatal(result)
+	}
+}
 
 func TestLostAccountAcknowledgementRequiresExecutionReplacement(t *testing.T) {
 	target := accountTarget(t)

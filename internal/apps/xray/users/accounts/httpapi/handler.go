@@ -19,6 +19,8 @@ type Handler struct {
 }
 
 func (h Handler) Register(router fiber.Router) {
+	router.Post("/v1/xray/users/instances/:id/accounts/additions", h.AddMany)
+	router.Post("/v1/xray/users/instances/:id/accounts/removals", h.RemoveMany)
 	router.Get("/v1/xray/users/instances/:id/accounts/count", h.Count)
 	router.Get("/v1/xray/users/instances/:id/account", h.Get)
 	router.Post("/v1/xray/users/instances/:id/accounts", h.Add)
@@ -99,6 +101,8 @@ func errorStatus(err error) (string, int) {
 		code, status = "deadline_exceeded", fiber.StatusGatewayTimeout
 	case errors.Is(err, context.Canceled):
 		code = "canceled"
+	case errors.Is(err, domain.ErrNotAttempted):
+		code, status = "not_attempted", fiber.StatusConflict
 	case errors.Is(err, domain.ErrInvalidArgument):
 		code, status = "invalid_argument", fiber.StatusBadRequest
 	case errors.Is(err, domain.ErrNotFound):

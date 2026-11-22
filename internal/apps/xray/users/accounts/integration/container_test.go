@@ -17,9 +17,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/PapilioVPN/node/internal/apps/xray/users/accounts/domain"
 	"github.com/PapilioVPN/node/internal/shared/mtls"
 	"github.com/PapilioVPN/node/internal/testutil"
+	"github.com/xtls/xray-core/common/protocol"
+	"github.com/xtls/xray-core/common/serial"
+	"github.com/xtls/xray-core/proxy/vless"
 	"go.yaml.in/yaml/v3"
+	"google.golang.org/protobuf/proto"
 )
 
 var image = flag.String("image", "", "prebuilt checked Node image")
@@ -78,6 +83,7 @@ func TestPackagedAccountReads(t *testing.T) {
 		assertNativeAccounts(t, client, transport)
 		exerciseAccountControl(t, client, transport, address, target.Listener.Addr().String())
 		exerciseSourceAccount(t, client, transport, "json", address, target.Listener.Addr().String())
+		exercisePackagedBatch(t, client, transport, address, target.Listener.Addr().String())
 	}
 
 	docker(t, "stop", "--time", "8", name)
@@ -88,6 +94,39 @@ func TestPackagedAccountReads(t *testing.T) {
 	if err == nil {
 		connection.Close()
 		t.Fatal("native Xray API survived Node shutdown")
+	}
+}
+
+func exercisePackagedBatch(t *testing.T, client clients, transport, address, target string) {
+	t.Helper()
+	second, err := proto.Marshal(&protocol.User{Email: "second-batch@example.test", Account: serial.ToTypedMessage(&vless.Account{Id: "bb8cb7d1-537e-484e-ae0e-02c28c8aad02"})})
+	if err != nil {
+		t.Fatal(err)
+	}
+	result := batchAccounts(t, client, transport, []domain.Addition{
+		{InboundTag: "members", Configuration: accountConfiguration(t, "first-batch@example.test")},
+		{InboundTag: "members", Configuration: second},
+	}, nil, 4)
+	if result.Error != "" || len(result.Items) != 2 || result.Operation.Effect != "completed" {
+		t.Fatal(result)
+	}
+	assertFamilyCount(t, client, transport, 4)
+	connection, _, err := accountTunnel(address, managedID, target)
+	if err != nil {
+		t.Fatal("packaged batch account did not authenticate", err)
+	}
+	connection.Close()
+	result = batchAccounts(t, client, transport, nil, []domain.Removal{
+		{InboundTag: "members", Email: "first-batch@example.test"},
+		{InboundTag: "members", Email: "second-batch@example.test"},
+	}, 4)
+	if result.Error != "" || result.Operation.Effect != "completed" {
+		t.Fatal(result)
+	}
+	assertFamilyCount(t, client, transport, 2)
+	if connection, _, err := accountTunnel(address, managedID, target); err == nil {
+		connection.Close()
+		t.Fatal("packaged batch removal did not revoke new authentication")
 	}
 }
 func docker(t *testing.T, args ...string) string {

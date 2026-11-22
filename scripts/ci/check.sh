@@ -25,6 +25,7 @@ go test -run="^$" -fuzz="^FuzzCompilationEnvelope$" -fuzztime=10s -parallel=2 ./
 go test -run="^$" -fuzz="^FuzzSelection$" -fuzztime=10s -parallel=2 ./internal/apps/xray/users/accounts/infra/jsonwire
 go test -run="^$" -fuzz="^FuzzStateEnvelope$" -fuzztime=10s -parallel=2 ./internal/apps/xray/runtime/configs/infra/jsonwire
 go test -run="^$" -fuzz="^FuzzAccountControlEnvelope$" -fuzztime=10s -parallel=2 ./internal/apps/xray/users/accounts/infra/jsonwire
+go test -run="^$" -fuzz="^FuzzAccountBatchEnvelope$" -fuzztime=10s -parallel=2 ./internal/apps/xray/users/accounts/infra/jsonwire
 go test -run="^$" -fuzz="^FuzzCompiledAccountSelection$" -fuzztime=10s -parallel=2 ./internal/apps/xray/users/accounts/infra/configuration
 govulncheck ./...
 mkdir -p dist

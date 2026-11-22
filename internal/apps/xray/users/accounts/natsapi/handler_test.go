@@ -31,6 +31,17 @@ func TestMalformedSelectionNeverReachesService(t *testing.T) {
 	}
 }
 
+func TestInvalidBatchEnvelopesNeverReachService(t *testing.T) {
+	h := natsapi.Handler{}
+	for _, call := range []func(context.Context, []byte, nats.Header) []byte{h.AddMany, h.RemoveMany} {
+		for _, body := range []string{`{}`, `{"instance_id":"a","items":null}`, `{"items":[{"inbound_tag":"a","email":"x"}]}`, `{"instance_id":"a","items":[{"inbound_tag":"a","email":null}]}`} {
+			if result := call(context.Background(), []byte(body), nil); !strings.Contains(string(result), `"error":"invalid_argument"`) {
+				t.Fatal(body, string(result))
+			}
+		}
+	}
+}
+
 func TestMalformedControlRequestsNeverReachService(t *testing.T) {
 	h := natsapi.Handler{}
 	for _, test := range []struct {

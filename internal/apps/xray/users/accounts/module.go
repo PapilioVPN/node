@@ -62,6 +62,8 @@ func register(in adapters) {
 func subscribe(in adapters) natsclient.Subscriptions {
 	handler := natsapi.Handler{Service: in.Service, Sources: in.Sources, Timeout: in.Requests.Timeout}
 	return natsclient.Subscriptions{Endpoints: []natsclient.Subscription{
+		{Name: "Xray account batch addition", SubjectSuffix: "xray.users.accounts.batches.v1.add", Handle: handler.AddMany},
+		{Name: "Xray account batch removal", SubjectSuffix: "xray.users.accounts.batches.v1.remove", Handle: handler.RemoveMany},
 		{Name: "Xray account source addition", SubjectSuffix: "xray.users.accounts.sources.v1.add", Handle: handler.AddSources},
 		{Name: "Xray account addition", SubjectSuffix: "xray.users.accounts.v1.add", Handle: handler.Add},
 		{Name: "Xray account removal", SubjectSuffix: "xray.users.accounts.v1.remove", Handle: handler.Remove},
