@@ -1,0 +1,43 @@
+syntax = "proto3";
+package papilio.xray.users.online.v1;
+option go_package = "github.com/PapilioVPN/node/internal/apps/xray/users/online/grpcapi/proto/v1;onlinev1";
+import "google/protobuf/timestamp.proto";
+
+service OnlineService {
+ rpc GetUserOnlineStats(GetUserOnlineStatsRequest) returns (UserOnlineStats);
+ rpc ListUserOnlineIPs(ListUserOnlineIPsRequest) returns (UserOnlineIPs);
+}
+message GetUserOnlineStatsRequest { string instance_id = 1; string email = 2; }
+message ListUserOnlineIPsRequest { string instance_id = 1; string email = 2; }
+enum OnlineState {
+ ONLINE_STATE_UNSPECIFIED = 0;
+ ONLINE_STATE_ONLINE = 1;
+ ONLINE_STATE_OFFLINE = 2;
+ // No native map: unused/missing identity and disabled policy are indistinguishable.
+ ONLINE_STATE_UNTRACKED = 3;
+}
+message OnlineObservation {
+ string instance_id = 1;
+ string email = 2;
+ uint64 generation = 3;
+ string source = 4;
+ google.protobuf.Timestamp observed_at = 5;
+ int64 duration_ns = 6;
+}
+message UserOnlineStats {
+ OnlineObservation observation = 1;
+ OnlineState state = 2;
+ // Distinct tracked IPs, not connection count. Absent for an unregistered map.
+ optional int64 count = 3;
+}
+message OnlineIP {
+ string ip = 1;
+ // Native last AddIP Unix seconds; deleted on final connection removal.
+ int64 last_seen_unix_seconds = 2;
+}
+message UserOnlineIPs {
+ OnlineObservation observation = 1;
+ OnlineState state = 2;
+ // At most 50 records, complete or resource_exhausted, with no silent truncation.
+ repeated OnlineIP ips = 3;
+}
