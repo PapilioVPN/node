@@ -22,6 +22,7 @@ func TestResourcesMethodsStrictShapeAndPrivateResponse(t *testing.T) {
 		want               string
 	}{
 		{"POST", "uuids", `{}`, 200, "fixture-private"},
+		{"POST", "uuids?command=run", `{}`, 400, "invalid_argument"},
 		{"POST", "uuids", `{"command":"run"}`, 400, "invalid_argument"},
 		{"POST", "uuids", `{"instance_id":"a"}`, 400, "invalid_argument"},
 		{"POST", "uuids", `{"name":null}`, 400, "invalid_argument"},

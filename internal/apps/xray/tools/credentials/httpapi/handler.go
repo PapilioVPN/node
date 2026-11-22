@@ -4,6 +4,7 @@ package httpapi
 import (
 	"context"
 	"github.com/PapilioVPN/node/internal/apps/xray/tools/credentials/app/services"
+	"github.com/PapilioVPN/node/internal/apps/xray/tools/credentials/domain"
 	"github.com/PapilioVPN/node/internal/apps/xray/tools/credentials/infra/jsonwire"
 	"github.com/gofiber/fiber/v3"
 	"time"
@@ -27,6 +28,9 @@ func (h Handler) Register(router fiber.Router) {
 }
 func (h Handler) UUID(request fiber.Ctx) error {
 	request.Set(fiber.HeaderCacheControl, "no-store")
+	if len(request.Request().URI().QueryString()) != 0 {
+		return failure(request, domain.ErrInvalidArgument)
+	}
 	id, input, err := jsonwire.DecodeUUID(request.Body(), request.Params("id"))
 	if err != nil {
 		return failure(request, err)
@@ -46,6 +50,9 @@ func (h Handler) UUID(request fiber.Ctx) error {
 }
 func (h Handler) X25519(request fiber.Ctx) error {
 	request.Set(fiber.HeaderCacheControl, "no-store")
+	if len(request.Request().URI().QueryString()) != 0 {
+		return failure(request, domain.ErrInvalidArgument)
+	}
 	id, input, err := jsonwire.DecodeX25519(request.Body(), request.Params("id"))
 	if err != nil {
 		return failure(request, err)
@@ -65,6 +72,9 @@ func (h Handler) X25519(request fiber.Ctx) error {
 }
 func (h Handler) WireGuard(request fiber.Ctx) error {
 	request.Set(fiber.HeaderCacheControl, "no-store")
+	if len(request.Request().URI().QueryString()) != 0 {
+		return failure(request, domain.ErrInvalidArgument)
+	}
 	id, input, err := jsonwire.DecodeWireGuard(request.Body(), request.Params("id"))
 	if err != nil {
 		return failure(request, err)
@@ -84,6 +94,9 @@ func (h Handler) WireGuard(request fiber.Ctx) error {
 }
 func (h Handler) MLDSA65(request fiber.Ctx) error {
 	request.Set(fiber.HeaderCacheControl, "no-store")
+	if len(request.Request().URI().QueryString()) != 0 {
+		return failure(request, domain.ErrInvalidArgument)
+	}
 	id, input, err := jsonwire.DecodeSeed(request.Body(), request.Params("id"))
 	if err != nil {
 		return failure(request, err)
@@ -103,6 +116,9 @@ func (h Handler) MLDSA65(request fiber.Ctx) error {
 }
 func (h Handler) MLKEM768(request fiber.Ctx) error {
 	request.Set(fiber.HeaderCacheControl, "no-store")
+	if len(request.Request().URI().QueryString()) != 0 {
+		return failure(request, domain.ErrInvalidArgument)
+	}
 	id, input, err := jsonwire.DecodeSeed(request.Body(), request.Params("id"))
 	if err != nil {
 		return failure(request, err)
@@ -122,6 +138,9 @@ func (h Handler) MLKEM768(request fiber.Ctx) error {
 }
 func (h Handler) VLESSEncryption(request fiber.Ctx) error {
 	request.Set(fiber.HeaderCacheControl, "no-store")
+	if len(request.Request().URI().QueryString()) != 0 {
+		return failure(request, domain.ErrInvalidArgument)
+	}
 	id, err := jsonwire.DecodeEmpty(request.Body(), request.Params("id"))
 	if err != nil {
 		return failure(request, err)
@@ -141,6 +160,9 @@ func (h Handler) VLESSEncryption(request fiber.Ctx) error {
 }
 func (h Handler) Certificate(request fiber.Ctx) error {
 	request.Set(fiber.HeaderCacheControl, "no-store")
+	if len(request.Request().URI().QueryString()) != 0 {
+		return failure(request, domain.ErrInvalidArgument)
+	}
 	id, input, err := jsonwire.DecodeCertificate(request.Body(), request.Params("id"))
 	if err != nil {
 		return failure(request, err)
@@ -160,6 +182,9 @@ func (h Handler) Certificate(request fiber.Ctx) error {
 }
 func (h Handler) CertificateHashes(request fiber.Ctx) error {
 	request.Set(fiber.HeaderCacheControl, "no-store")
+	if len(request.Request().URI().QueryString()) != 0 {
+		return failure(request, domain.ErrInvalidArgument)
+	}
 	id, input, err := jsonwire.DecodeCertificateHashes(request.Body(), request.Params("id"))
 	if err != nil {
 		return failure(request, err)
@@ -179,6 +204,9 @@ func (h Handler) CertificateHashes(request fiber.Ctx) error {
 }
 func (h Handler) ECH(request fiber.Ctx) error {
 	request.Set(fiber.HeaderCacheControl, "no-store")
+	if len(request.Request().URI().QueryString()) != 0 {
+		return failure(request, domain.ErrInvalidArgument)
+	}
 	id, input, err := jsonwire.DecodeECH(request.Body(), request.Params("id"))
 	if err != nil {
 		return failure(request, err)
