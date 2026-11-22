@@ -111,6 +111,12 @@ func echLists(keys []byte) ([]echList, error) {
 	return lists, nil
 }
 func (r *Runner) ECH(ctx context.Context, input domain.ECHInput) (domain.ECHResult, error) {
+	ctx, release, err := r.acquire(ctx)
+	if err != nil {
+		return domain.ECHResult{}, err
+	}
+	defer release()
+
 	args := []string{"tls", "ech"}
 	if input.ServerName != nil {
 		args = append(args, "--serverName="+*input.ServerName)
@@ -122,16 +128,12 @@ func (r *Runner) ECH(ctx context.Context, input domain.ECHInput) (domain.ECHResu
 		if _, err := echLists(restored); err != nil {
 			return domain.ECHResult{}, domain.ErrInvalidArgument
 		}
+		// The pinned native CLI accepts restoration material only in its argv.
 		args = append(args, "-i", *input.ServerKeys)
 	}
 	if input.Format == domain.PEM {
 		args = append(args, "--pem")
 	}
-	ctx, release, err := r.acquire(ctx)
-	if err != nil {
-		return domain.ECHResult{}, err
-	}
-	defer release()
 	raw, err := r.run(ctx, args...)
 	if err != nil {
 		return domain.ECHResult{}, err

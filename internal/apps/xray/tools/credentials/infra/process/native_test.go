@@ -60,6 +60,8 @@ func TestRealNativeBlockedHashCancellationAndClose(t *testing.T) {
 				}
 			} else if mode == "cancel" {
 				cancel()
+			} else {
+				<-ctx.Done()
 			}
 			select {
 			case err := <-done:

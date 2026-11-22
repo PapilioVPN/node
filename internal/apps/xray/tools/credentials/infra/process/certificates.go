@@ -99,6 +99,12 @@ func equalNames(a, b []string) bool {
 	return true
 }
 func (r *Runner) CertificateHashes(ctx context.Context, input domain.CertificateHashInput) (result domain.CertificateHashResult, err error) {
+	ctx, release, err := r.acquire(ctx)
+	if err != nil {
+		return result, err
+	}
+	defer release()
+
 	certs, err := validators.Certificates(input.Certificate)
 	if err != nil {
 		return result, err
@@ -108,11 +114,6 @@ func (r *Runner) CertificateHashes(ctx context.Context, input domain.Certificate
 	}
 	// This native CLI consumes a file. Stage only the bounded supplied certificate
 	// in the configured private workspace; no arbitrary path or key file is used.
-	ctx, release, err := r.acquire(ctx)
-	if err != nil {
-		return result, err
-	}
-	defer release()
 	directory, err := os.MkdirTemp(r.config.WorkDirectory, "credentials-")
 	if err != nil {
 		return result, domain.ErrUnavailable
