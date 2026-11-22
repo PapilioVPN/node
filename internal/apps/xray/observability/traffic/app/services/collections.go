@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
-	"errors"
 	"strconv"
 	"strings"
 	"time"
@@ -193,17 +192,16 @@ func (s *Service) ReadPair(ctx context.Context, id string, scope domain.Scope, n
 	}
 	result := domain.Pair{InstanceID: id, Scope: scope, Name: name, Generation: before}
 	for _, direction := range []domain.Direction{domain.Uplink, domain.Downlink} {
-		got, err := s.read(ctx, id, domain.Selection{Scope: scope, Name: name, Direction: direction}, selected)
-		if errors.Is(err, domain.ErrCounterNotFound) {
-			continue
-		}
-		if err != nil {
+		got, absent, err := s.read(ctx, id, domain.Selection{Scope: scope, Name: name, Direction: direction}, selected)
+		if err != nil && !absent {
 			return domain.Pair{}, err
 		}
-		if result.Generation != 0 && result.Generation != got.Generation {
+		if result.Generation != got.Generation {
 			return domain.Pair{}, domain.ErrExecutionChanged
 		}
-		result.Generation = got.Generation
+		if absent {
+			continue
+		}
 		if direction == domain.Uplink {
 			result.Uplink = &got
 		} else {

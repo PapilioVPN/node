@@ -82,45 +82,52 @@ func (s *Service) Read(ctx context.Context, id string, selection domain.Selectio
 	if selected.reader == nil {
 		return domain.Observation{}, domain.ErrUnsupported
 	}
-	return s.read(ctx, id, selection, selected)
+	observation, _, err := s.read(ctx, id, selection, selected)
+	if err != nil {
+		return domain.Observation{}, err
+	}
+	return observation, nil
 }
 
-// read consumes an already validated selection and immutable instance binding.
-// Native admission, cancellation and before/after execution checks stay here.
-func (s *Service) read(ctx context.Context, id string, selection domain.Selection, selected entry) (domain.Observation, error) {
+// read reports absence separately once the execution and context are verified.
+// In that case, only the observation's generation is populated.
+func (s *Service) read(ctx context.Context, id string, selection domain.Selection, selected entry) (observation domain.Observation, absent bool, err error) {
 	select {
 	case s.slots <- struct{}{}:
 	default:
-		return domain.Observation{}, domain.ErrCapacity
+		return domain.Observation{}, false, domain.ErrCapacity
 	}
 	defer func() { <-s.slots }()
 	select {
 	case selected.slots <- struct{}{}:
 	default:
-		return domain.Observation{}, domain.ErrCapacity
+		return domain.Observation{}, false, domain.ErrCapacity
 	}
 	defer func() { <-selected.slots }()
 	started := time.Now()
 	before, err := s.status.Status(ctx, id)
 	if err != nil {
-		return domain.Observation{}, err
+		return domain.Observation{}, false, err
 	}
 	if before.Execution.State != instances.Running {
-		return domain.Observation{}, domain.ErrNotRunning
+		return domain.Observation{}, false, domain.ErrNotRunning
 	}
 	value, readErr := selected.reader.Read(ctx, selection)
 	after, err := s.status.Status(ctx, id)
 	if err != nil {
-		return domain.Observation{}, errors.Join(err, readErr)
+		return domain.Observation{}, false, errors.Join(err, readErr)
 	}
 	if after.Execution.State != instances.Running || before.Execution.Generation != after.Execution.Generation {
-		return domain.Observation{}, errors.Join(domain.ErrExecutionChanged, readErr)
-	}
-	if readErr != nil {
-		return domain.Observation{}, readErr
+		return domain.Observation{}, false, errors.Join(domain.ErrExecutionChanged, readErr)
 	}
 	if err := ctx.Err(); err != nil {
-		return domain.Observation{}, err
+		return domain.Observation{}, false, errors.Join(err, readErr)
 	}
-	return domain.Observation{InstanceID: id, Generation: after.Execution.Generation, Selection: selection, Bytes: value, Source: domain.Source, ObservedAt: time.Now().UTC(), Duration: time.Since(started)}, nil
+	if readErr != nil {
+		if errors.Is(readErr, domain.ErrCounterNotFound) {
+			return domain.Observation{Generation: after.Execution.Generation}, true, readErr
+		}
+		return domain.Observation{}, false, readErr
+	}
+	return domain.Observation{InstanceID: id, Generation: after.Execution.Generation, Selection: selection, Bytes: value, Source: domain.Source, ObservedAt: time.Now().UTC(), Duration: time.Since(started)}, false, nil
 }

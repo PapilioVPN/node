@@ -111,3 +111,40 @@ func TestPairsKeepMissingAndZeroWithTwoCalls(t *testing.T) {
 		}
 	}
 }
+
+func TestPairStopsAfterMissingCounterWithReadFailure(t *testing.T) {
+	statusFailure := errors.New("execution status failed")
+	for _, test := range []struct {
+		name      string
+		execution instances.Execution
+		statusErr error
+		want      error
+	}{
+		{name: "execution stopped", execution: instances.Execution{State: instances.Stopped}, want: domain.ErrExecutionChanged},
+		{name: "execution replaced", execution: instances.Execution{State: instances.Running, Generation: 8}, want: domain.ErrExecutionChanged},
+		{name: "status failed", statusErr: statusFailure, want: statusFailure},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			reads, observations := 0, 0
+			reader := readerFunc(func(context.Context, domain.Selection) (int64, error) {
+				reads++
+				return 0, domain.ErrCounterNotFound
+			})
+			status := statusFunc(func(ctx context.Context, id string) (instances.Status, error) {
+				observations++
+				if observations == 3 {
+					return instances.Status{Execution: test.execution}, test.statusErr
+				}
+				return running(ctx, id)
+			})
+			s, err := New([]Binding{{ID: "a", Reader: reader}}, status)
+			if err != nil {
+				t.Fatal(err)
+			}
+			result, err := s.ReadPair(context.Background(), "a", domain.User, "x")
+			if !errors.Is(err, test.want) || result != (domain.Pair{}) || reads != 1 {
+				t.Fatalf("pair=%+v err=%v native reads=%d", result, err, reads)
+			}
+		})
+	}
+}
