@@ -38,6 +38,7 @@ func TestLiveNativeAccountFamilies(t *testing.T) {
 
 func exerciseFamilyMembership(t *testing.T, c clients, transport string, family accountFamily) {
 	t.Helper()
+	assertFamilyCompatibility(t, c, transport, family.account)
 	const email = "Managed@example.test"
 	assertFamilyCount(t, c, transport, 1)
 	baseline := familyMember(t, c, transport, "original@example.test")

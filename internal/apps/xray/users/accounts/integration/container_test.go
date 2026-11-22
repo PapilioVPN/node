@@ -82,6 +82,14 @@ func TestPackagedAccountReads(t *testing.T) {
 	awaitNative(t, f.native)
 	for _, transport := range []string{"http", "grpc", "nats"} {
 		assertNativeAccounts(t, client, transport)
+		for _, view := range []string{"metadata", "export"} {
+			page := accountView(t, client, transport, view, "members", "")
+			if page.Error != "" || len(page.Users) != 2 {
+				t.Fatal("packaged account view", view, page)
+			}
+		}
+		_ = compatibilityData(t, client, transport, "compatibility", "members", "xray.proxy.vless.Account")
+		_ = compatibilityData(t, client, transport, "metadata", "members", "first@example.test")
 		exerciseAccountControl(t, client, transport, address, target.Listener.Addr().String())
 		exerciseSourceAccount(t, client, transport, "json", address, target.Listener.Addr().String())
 		exercisePackagedBatch(t, client, transport, address, target.Listener.Addr().String())

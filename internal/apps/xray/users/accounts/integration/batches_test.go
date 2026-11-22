@@ -22,6 +22,8 @@ func TestLiveAccountBatchesAcrossTransports(t *testing.T) {
 		t.Run(transport, func(t *testing.T) {
 			target := accountTarget(t)
 			f := newFixture(t, pki, broker, transport)
+			relayAddress, relay := accountRelay(t, f.native)
+			f.config.Instances[0].Xray.API.Address = relayAddress
 			address := allowAccountTraffic(t, f, target.Listener.Addr().String())
 			f.config.Communications.Requests.Timeout = 2 * time.Second
 			if h := f.config.Communications.HTTP; h != nil {
@@ -47,6 +49,9 @@ func TestLiveAccountBatchesAcrossTransports(t *testing.T) {
 				removals = append(removals, domain.Removal{InboundTag: "members", Email: email})
 			}
 			result := batchAccounts(t, c, transport, additions, nil, 4)
+			if relay.lists.Load() != 1 || relay.alters.Load() != 51 {
+				t.Fatal("batch compatibility introduced N+1", relay.lists.Load(), relay.alters.Load())
+			}
 			if result.Error != "" || len(result.Items) != 51 || result.Operation.Effect != "completed" || !result.Operation.Acknowledged {
 				t.Fatal(result)
 			}
@@ -74,7 +79,7 @@ func TestLiveAccountBatchesAcrossTransports(t *testing.T) {
 				connection.Close()
 				t.Fatal("batch-removed account still authenticates")
 			}
-			// Malformed protobuf fails locally after the first ordered effect;
+			// Malformed protobuf is rejected by preflight; prior ordered valid work may apply;
 			// the following item is never attempted. No atomicity is implied.
 			partial := make([]domain.Addition, 1000)
 			for i := range partial {
@@ -82,7 +87,7 @@ func TestLiveAccountBatchesAcrossTransports(t *testing.T) {
 			}
 			partial[0], partial[1] = additions[0], domain.Addition{InboundTag: "members", Configuration: []byte{255}}
 			result = batchAccounts(t, c, transport, partial, nil, 1)
-			if result.Error != "invalid_argument" || result.Operation.Effect != "partial" || result.Operation.Acknowledged || len(result.Items) != 1000 || result.Items[0].Operation.Effect != "completed" || !result.Items[1].Attempted || result.Items[1].Operation.Effect != "not_applied" || result.Items[2].Attempted || result.Items[2].Error != "not_attempted" {
+			if result.Error != "invalid_argument" || result.Operation.Effect != "partial" || result.Operation.Acknowledged || len(result.Items) != 1000 || result.Items[0].Operation.Effect != "completed" || result.Items[1].Attempted || result.Items[1].Operation.Effect != "not_applied" || result.Items[2].Attempted || result.Items[2].Error != "not_attempted" {
 				t.Fatal(result)
 			}
 			assertFamilyCount(t, c, transport, 3)

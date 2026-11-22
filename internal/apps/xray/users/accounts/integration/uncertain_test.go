@@ -19,7 +19,7 @@ import (
 func TestLostBatchAcknowledgementPreservesUnattemptedTail(t *testing.T) {
 	pki := testutil.NewPKI(t)
 	f := newFixture(t, pki, brokerFixture(t, pki), "all")
-	relay, drop := testutil.LostReplies(t, f.native)
+	relay, drop := lostAccountReplies(t, f.native)
 	f.config.Instances[0].Xray.API.Address = relay
 	f.config.Communications.Requests.Timeout = 200 * time.Millisecond
 	c := startNode(t, f)
@@ -62,7 +62,7 @@ func TestLostAccountAcknowledgementRequiresExecutionReplacement(t *testing.T) {
 	pki := testutil.NewPKI(t)
 	f := newFixture(t, pki, brokerFixture(t, pki), "all")
 	address := allowAccountTraffic(t, f, target.Listener.Addr().String())
-	relay, drop := testutil.LostReplies(t, f.native)
+	relay, drop := lostAccountReplies(t, f.native)
 	f.config.Instances[0].Xray.API.Address = relay
 	f.config.Communications.Requests.Timeout = 200 * time.Millisecond
 	c := startNode(t, f)

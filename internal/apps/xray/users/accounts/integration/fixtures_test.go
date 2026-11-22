@@ -72,7 +72,7 @@ type fixture struct {
 	engineTLS mtls.Files
 }
 
-func newFixture(t *testing.T, pki testutil.PKI, broker, transport string) fixture {
+func newFixture(t testing.TB, pki testutil.PKI, broker, transport string) fixture {
 	t.Helper()
 	binary := os.Getenv("XRAY_TEST_BINARY")
 	if binary == "" {
@@ -135,7 +135,7 @@ func newFixture(t *testing.T, pki testutil.PKI, broker, transport string) fixtur
 	}
 	return fixture{config: config, pki: pki, native: native}
 }
-func startNode(t *testing.T, f fixture) clients {
+func startNode(t testing.TB, f fixture) clients {
 	t.Helper()
 	log := &listenerLog{Handler: slog.NewTextHandler(io.Discard, nil), addresses: map[string]string{}}
 	app := bootstrap.New(f.config, slog.New(log))
@@ -155,7 +155,7 @@ func startNode(t *testing.T, f fixture) clients {
 	defer log.mu.Unlock()
 	return connect(t, f, log.addresses)
 }
-func connect(t *testing.T, f fixture, addresses map[string]string) clients {
+func connect(t testing.TB, f fixture, addresses map[string]string) clients {
 	t.Helper()
 	tlsConfig, err := mtls.Client(f.pki.Client)
 	if err != nil {
@@ -184,7 +184,7 @@ func connect(t *testing.T, f fixture, addresses map[string]string) clients {
 	}
 	return result
 }
-func awaitNative(t *testing.T, address string) {
+func awaitNative(t testing.TB, address string) {
 	t.Helper()
 	connection, err := grpc.NewClient(address, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
@@ -209,7 +209,7 @@ func awaitNative(t *testing.T, address string) {
 		}
 	}
 }
-func brokerFixture(t *testing.T, pki testutil.PKI) string {
+func brokerFixture(t testing.TB, pki testutil.PKI) string {
 	t.Helper()
 	broker := testutil.NewNATSBroker(t, pki.Server, true)
 	return strings.Replace(broker.ClientURL(), "nats://", "tls://", 1)
