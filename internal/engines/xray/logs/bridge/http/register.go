@@ -1,9 +1,10 @@
 package http
 
 import (
-	"encoding/json"
+	"encoding/base64"
 	"errors"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/PapilioVPN/node/internal/engines/xray/logs/live"
@@ -11,15 +12,6 @@ import (
 )
 
 const writeTimeout = 2 * time.Second
-
-type record struct {
-	Execution        uint64      `json:"execution,string"`
-	Sequence         uint64      `json:"sequence,string"`
-	Source           live.Source `json:"source"`
-	ReceivedUnixNano int64       `json:"received_unix_nano,string"`
-	Message          []byte      `json:"message"`
-	Truncated        bool        `json:"truncated"`
-}
 
 func Register(router chi.Router, service *live.Service) {
 	router.Get("/v1/xray/instances/{id}/logs", func(w http.ResponseWriter, r *http.Request) {
@@ -47,7 +39,7 @@ func Register(router chi.Router, service *live.Service) {
 		if flush(controller) != nil {
 			return
 		}
-		encoder := json.NewEncoder(w)
+		var line []byte
 		for {
 			event, err := sub.Next(r.Context())
 			if err != nil {
@@ -56,11 +48,8 @@ func Register(router chi.Router, service *live.Service) {
 			if err := controller.SetWriteDeadline(time.Now().Add(writeTimeout)); err != nil {
 				return
 			}
-			if err := encoder.Encode(record{
-				Execution: event.Execution, Sequence: event.Sequence, Source: event.Source,
-				ReceivedUnixNano: event.ReceivedUnixNano, Message: []byte(event.Message),
-				Truncated: event.Truncated,
-			}); err != nil || flush(controller) != nil {
+			line = appendRecord(line[:0], event)
+			if _, err := w.Write(line); err != nil || flush(controller) != nil {
 				return
 			}
 		}
@@ -72,4 +61,24 @@ func flush(controller *http.ResponseController) error {
 		return err
 	}
 	return controller.SetWriteDeadline(time.Time{})
+}
+
+func appendRecord(line []byte, event live.Event) []byte {
+	line = append(line, `{"execution":"`...)
+	line = strconv.AppendUint(line, event.Execution, 10)
+	line = append(line, `","sequence":"`...)
+	line = strconv.AppendUint(line, event.Sequence, 10)
+	line = append(line, `","source":`...)
+	if event.Source == live.Stderr {
+		line = append(line, `"stderr"`...)
+	} else {
+		line = append(line, `"stdout"`...)
+	}
+	line = append(line, `,"received_unix_nano":"`...)
+	line = strconv.AppendInt(line, event.ReceivedUnixNano, 10)
+	line = append(line, `","message":"`...)
+	line = base64.StdEncoding.AppendEncode(line, []byte(event.Message))
+	line = append(line, `","truncated":`...)
+	line = strconv.AppendBool(line, event.Truncated)
+	return append(line, '}', '\n')
 }

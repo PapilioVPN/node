@@ -41,19 +41,48 @@ func resetTrafficScope(service *traffic.Service) http.HandlerFunc {
 			outcome = "interrupted"
 			w.WriteHeader(http.StatusConflict)
 		}
-		type counter struct {
-			Name      string            `json:"name"`
-			Direction traffic.Direction `json:"direction"`
-			Result    directionReset    `json:"result"`
-		}
-		counters := make([]counter, len(report))
-		for i := range report {
-			row := &report[i]
-			counters[i] = counter{Name: row.Name, Direction: row.Direction, Result: directionResponse(&row.DirectionReset)}
-		}
-		_ = json.NewEncoder(w).Encode(struct {
-			Outcome  string    `json:"outcome"`
-			Counters []counter `json:"counters"`
-		}{outcome, counters})
+		_, _ = w.Write(appendScopeReport(outcome, report))
 	}
+}
+
+func appendScopeReport(outcome string, report []traffic.CounterReset) []byte {
+	size := 40 + len(report)*86
+	for i := range report {
+		size += len(report[i].Name)
+	}
+	body := append(make([]byte, 0, size), `{"outcome":"`...)
+	body = append(body, outcome...)
+	body = append(body, `","counters":[`...)
+	for i := range report {
+		row := &report[i]
+		if i != 0 {
+			body = append(body, ',')
+		}
+		body = append(body, `{"name":`...)
+		body = appendCounterName(body, row.Name)
+		body = append(body, `,"direction":"`...)
+		body = append(body, string(row.Direction)...)
+		body = append(body, `","result":{"effect":"`...)
+		body = append(body, string(row.Effect)...)
+		body = append(body, '"')
+		if row.Effect == traffic.ResetAcknowledged {
+			body = append(body, `,"previous_bytes":`...)
+			body = strconv.AppendInt(body, row.PreviousBytes, 10)
+		}
+		body = append(body, '}', '}')
+	}
+	return append(body, "]}\n"...)
+}
+
+func appendCounterName(body []byte, name string) []byte {
+	for i := range len(name) {
+		b := name[i]
+		if b < 0x20 || b >= 0x80 || b == '"' || b == '\\' || b == '<' || b == '>' || b == '&' {
+			quoted, _ := json.Marshal(name)
+			return append(body, quoted...)
+		}
+	}
+	body = append(body, '"')
+	body = append(body, name...)
+	return append(body, '"')
 }
