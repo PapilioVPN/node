@@ -14,11 +14,12 @@ import (
 
 var Module = fx.Module("xray-stats", fx.Invoke(register))
 
-func register(config settings.Xray, instance *lifecycle.Service, router *chi.Mux, server *grpcserver.Server) {
+func register(life fx.Lifecycle, config settings.Xray, instance *lifecycle.Service, router *chi.Mux, server *grpcserver.Server) {
 	if !config.Enabled() {
 		return
 	}
 	service := runtime.New(instance)
+	life.Append(fx.Hook{OnStop: service.Close})
 	http.Register(router, service)
 	grpc.Register(server, service)
 }

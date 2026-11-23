@@ -55,6 +55,8 @@ func main() {
 	var protocol, node, nodePID, reference, referencePID, cert, descriptor, config string
 	var rounds, cycles, reads int
 	var runtimeStats bool
+	var runtimeStatsClients string
+	var runtimeStatsWindow time.Duration
 	flag.StringVar(&protocol, "transport", "", "http or grpc")
 	flag.StringVar(&node, "node", "", "PapilioVPN Node address")
 	flag.StringVar(&nodePID, "node-pid", "", "PapilioVPN Node PID in this namespace")
@@ -67,9 +69,20 @@ func main() {
 	flag.IntVar(&cycles, "cycles", 30, "lifecycle cycles per node per round")
 	flag.IntVar(&reads, "reads", 12, "status reads per running instance per cycle")
 	flag.BoolVar(&runtimeStats, "runtime-stats", false, "measure backend runtime statistics")
+	flag.StringVar(&runtimeStatsClients, "runtime-stats-clients", "1,8", "comma-separated client counts for runtime statistics")
+	flag.DurationVar(&runtimeStatsWindow, "runtime-stats-window", 450*time.Millisecond, "polling window for each runtime statistics measurement")
 	flag.Parse()
 	if (protocol != "http" && protocol != "grpc") || rounds < 1 || cycles < 1 || reads < 1 {
 		log.Fatal("specify http or grpc and positive workloads")
+	}
+	var clientCounts []int
+	if runtimeStats {
+		if runtimeStatsWindow <= 0 {
+			log.Fatal("runtime statistics window must be positive")
+		}
+		counts, err := parseRuntimeStatsClients(runtimeStatsClients)
+		check(err)
+		clientCounts = counts
 	}
 
 	tlsConfig := &tls.Config{RootCAs: x509.NewCertPool(), MinVersion: tls.VersionTLS13}
@@ -92,6 +105,9 @@ func main() {
 	switch protocol {
 	case "http":
 		transport := &http.Transport{TLSClientConfig: tlsConfig}
+		if runtimeStats {
+			transport.MaxIdleConnsPerHost = slices.Max(clientCounts)
+		}
 		defer transport.CloseIdleConnections()
 		client := &http.Client{Transport: transport}
 		targets[0].call = httpCall(client, node, [3]string{"PUT", "GET", "DELETE"},
@@ -153,7 +169,7 @@ func main() {
 	}
 
 	if runtimeStats {
-		benchmarkRuntimeStats(protocol, targets, rounds)
+		benchmarkRuntimeStats(protocol, targets, rounds, clientCounts, runtimeStatsWindow)
 		return
 	}
 

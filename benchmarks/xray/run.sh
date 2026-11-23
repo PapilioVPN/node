@@ -62,7 +62,9 @@ YAML
 export GOMAXPROCS=1
 benchmark_args=()
 if [[ ${XRAY_BENCH_RUNTIME_STATS:-0} == 1 ]]; then
-  benchmark_args+=(-runtime-stats)
+  benchmark_args+=(-runtime-stats
+    -runtime-stats-clients "${XRAY_BENCH_RUNTIME_STATS_CLIENTS:-1,8}"
+    -runtime-stats-window "${XRAY_BENCH_RUNTIME_STATS_WINDOW:-450ms}")
 fi
 taskset -c "${XRAY_BENCH_SERVER_CPU:-2}" "$node" -config "$work/node.yml" >"$work/node.log" 2>&1 &
 node_pid=$!
