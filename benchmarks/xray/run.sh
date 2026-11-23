@@ -44,7 +44,39 @@ cat > "$work/xray.json" <<'JSON'
   "outbounds": [{"tag":"direct","protocol":"freedom"}]
 }
 JSON
-if [[ ${XRAY_BENCH_TRAFFIC_NAMES:-0} != 0 ]]; then
+if [[ ${XRAY_BENCH_ROUTING_RULES:-0} != 0 ]]; then
+  python3 - "$XRAY_BENCH_ROUTING_RULES" "$work" <<'PYTHON'
+import json
+from pathlib import Path
+import sys
+
+total = int(sys.argv[1])
+if not 2 <= total <= 10000:
+    raise SystemExit("expected 2 to 10000 active routing rules")
+rules = []
+for i in range(1, total):
+    rule = {"type": "field", "port": str(2000 + i)}
+    if i % 4 == 1:
+        rule["balancerTag"] = "pool"
+    else:
+        rule.update(ruleTag=f"rule-{total-i:04}", outboundTag="direct")
+    rules.append(rule)
+config = {
+    "log": {"loglevel": "none"},
+    "outbounds": [{"protocol": "freedom", "tag": tag} for tag in ("direct", "pool-a", "pool-b")],
+    "routing": {
+        "balancers": [{"tag": "pool", "selector": ["pool-"], "strategy": {"type": "roundRobin"}}],
+        "rules": rules,
+    },
+}
+directory = Path(sys.argv[2])
+(directory / "reference-xray.json").write_text(json.dumps(config))
+# The reference inserts this list row for its management inbound. Give Node's
+# otherwise identical fixture the same row so all returned pairs are equal.
+rules.insert(0, {"type": "field", "inboundTag": ["API_INBOUND"], "outboundTag": "API"})
+(directory / "xray.json").write_text(json.dumps(config))
+PYTHON
+elif [[ ${XRAY_BENCH_TRAFFIC_NAMES:-0} != 0 ]]; then
   python3 - "${XRAY_BENCH_TRAFFIC_NAMES}" "$work" "${XRAY_BENCH_TRAFFIC_CASE:-}" <<'PYTHON'
 import json
 from pathlib import Path
@@ -94,7 +126,12 @@ YAML
 
 export GOMAXPROCS=1
 benchmark_args=()
-if [[ ${XRAY_BENCH_TRAFFIC_NAMES:-0} != 0 ]]; then
+if [[ ${XRAY_BENCH_ROUTING_RULES:-0} != 0 ]]; then
+  benchmark_args+=(-routing-rules "$XRAY_BENCH_ROUTING_RULES" -routing-reference-config "$work/reference-xray.json"
+    -routing-runtime-dir "$work/run" -routing-operation "${XRAY_BENCH_ROUTING_OPERATION:-}"
+    -runtime-stats-clients "${XRAY_BENCH_ROUTING_CLIENTS:-1,8}"
+    -runtime-stats-window "${XRAY_BENCH_ROUTING_WINDOW:-450ms}")
+elif [[ ${XRAY_BENCH_TRAFFIC_NAMES:-0} != 0 ]]; then
   benchmark_args+=(-traffic-names "$XRAY_BENCH_TRAFFIC_NAMES" -traffic-reference-config "$work/reference-xray.json"
     -traffic-case "${XRAY_BENCH_TRAFFIC_CASE:-}"
     -runtime-stats-clients "${XRAY_BENCH_TRAFFIC_CLIENTS:-1,8}"
@@ -134,7 +171,11 @@ for protocol in "${protocols[@]}"; do
       exit 1
     fi
   done
-  if ! taskset -c "${XRAY_BENCH_CLIENT_CPU:-4}" "$client" "${benchmark_args[@]}" -transport "$protocol" \
+  samples=()
+  if [[ ${XRAY_BENCH_ROUTING_RULES:-0} != 0 ]]; then
+    samples+=(-routing-samples "$output/$protocol-samples.csv")
+  fi
+  if ! taskset -c "${XRAY_BENCH_CLIENT_CPU:-4}" "$client" "${benchmark_args[@]}" "${samples[@]}" -transport "$protocol" \
     -node "127.0.0.1:$node_port" -node-pid "$node_pid" -reference 127.0.0.1:20883 \
     -reference-pid "$reference_pid" -cert "$work/cert.pem" -reference-proto "$descriptor" \
     -config "$work/xray.json" -rounds "${XRAY_BENCH_ROUNDS:-5}" -cycles "${XRAY_BENCH_CYCLES:-30}" \

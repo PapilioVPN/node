@@ -50,12 +50,15 @@ type target struct {
 	call    func(context.Context, operation) error
 	stats   func(context.Context) (uint32, error)
 	traffic func(trafficRead) trafficCall
+	routing routingReads
 }
 
 func main() {
 	var protocol, node, nodePID, reference, referencePID, cert, descriptor, config string
 	var rounds, cycles, reads, trafficNames int
 	var runtimeStats bool
+	var routing routingWorkload
+	var routingConfig string
 	var runtimeStatsClients, trafficCase, referenceTrafficConfig string
 	var runtimeStatsWindow time.Duration
 	flag.StringVar(&protocol, "transport", "", "http or grpc")
@@ -75,6 +78,11 @@ func main() {
 	flag.StringVar(&trafficCase, "traffic-case", "", "run only a traffic case such as user/list or both online reads with online")
 	flag.StringVar(&referenceTrafficConfig, "traffic-reference-config", "", "Xray fixture configuration for the reference traffic listener")
 	flag.IntVar(&trafficNames, "traffic-names", 0, "seed and measure traffic for this many benchmark accounts")
+	flag.IntVar(&routing.rules, "routing-rules", 0, "measure routing reads with this many active rules")
+	flag.StringVar(&routing.operation, "routing-operation", "", "run only list or balancer")
+	flag.StringVar(&routing.runtimeDir, "routing-runtime-dir", "", "fixture Node runtime directory")
+	flag.StringVar(&routing.sampleFile, "routing-samples", "", "write individual successful routing latencies to this CSV")
+	flag.StringVar(&routingConfig, "routing-reference-config", "", "equivalent Xray configuration before PasarGuard injects its management rule")
 	flag.Parse()
 	if (protocol != "http" && protocol != "grpc") || rounds < 1 || cycles < 1 || reads < 1 {
 		log.Fatal("specify http or grpc and positive workloads")
@@ -83,13 +91,18 @@ func main() {
 	if trafficNames < 0 || trafficNames > 10000 || (trafficNames > 0 && runtimeStats) {
 		log.Fatal("select one benchmark and a traffic account count from 1 to 10000")
 	}
-	if runtimeStats || trafficNames > 0 {
+	if runtimeStats || trafficNames > 0 || routing.rules > 0 {
 		if runtimeStatsWindow <= 0 {
 			log.Fatal("runtime statistics window must be positive")
 		}
 		counts, err := parseRuntimeStatsClients(runtimeStatsClients)
 		check(err)
 		clientCounts = counts
+	}
+
+	if routing.rules != 0 && (routing.rules < 2 || runtimeStats || trafficNames != 0 || routingConfig == "" || routing.runtimeDir == "" ||
+		(routing.operation != "" && routing.operation != "list" && routing.operation != "balancer")) {
+		log.Fatal("routing comparison requires at least two rules, its fixture paths and an optional list or balancer operation")
 	}
 
 	tlsConfig := &tls.Config{RootCAs: x509.NewCertPool(), MinVersion: tls.VersionTLS13}
@@ -109,6 +122,9 @@ func main() {
 		}
 		config = referenceTrafficConfig
 	}
+	if routing.rules > 0 {
+		config = routingConfig
+	}
 	refStart := dynamicpb.NewMessage(methods.ByName("Start").Input())
 	refStart.Set(refStart.Descriptor().Fields().ByName("config"), protoreflect.ValueOfString(string(read(config))))
 	payload, err := proto.Marshal(refStart)
@@ -118,7 +134,7 @@ func main() {
 	switch protocol {
 	case "http":
 		transport := &http.Transport{TLSClientConfig: tlsConfig}
-		if runtimeStats || trafficNames > 0 {
+		if runtimeStats || trafficNames > 0 || routing.rules > 0 {
 			transport.MaxIdleConnsPerHost = slices.Max(clientCounts)
 		}
 		defer transport.CloseIdleConnections()
@@ -130,6 +146,10 @@ func main() {
 			[3]string{"/start", "/info", "/stop"}, payload, func(op operation, data []byte) error {
 				return verifyReference(op, methods.ByName("GetBaseInfo").Output(), data)
 			})
+		if routing.rules > 0 {
+			targets[0].routing = routingHTTP(client, node, false)
+			targets[1].routing = routingHTTP(client, reference, true)
+		}
 		if runtimeStats {
 			targets[0].stats = runtimeStatsHTTP(client, node, "/v1/xray/instances/primary/stats/runtime", decodeNodeStats)
 			targets[1].stats = runtimeStatsHTTP(client, reference, "/stats/backend", decodeReferenceStats)
@@ -179,6 +199,10 @@ func main() {
 			}
 			return nil
 		}
+		if routing.rules > 0 {
+			targets[0].routing = routingGRPC(nodeConn, false)
+			targets[1].routing = routingGRPC(refConn, true)
+		}
 		if runtimeStats {
 			targets[0].stats, targets[1].stats = runtimeStatsGRPC(nodeConn, refConn)
 		}
@@ -187,6 +211,13 @@ func main() {
 		}
 	}
 
+	if routing.rules > 0 {
+		routing.rounds = rounds
+		routing.clients = clientCounts
+		routing.window = runtimeStatsWindow
+		benchmarkRouting(protocol, targets, routing)
+		return
+	}
 	if trafficNames > 0 {
 		benchmarkTraffic(protocol, targets, rounds, clientCounts, trafficNames, runtimeStatsWindow, trafficCase)
 		return
