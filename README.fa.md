@@ -71,7 +71,8 @@ docker run --rm --network=host --read-only --cap-drop ALL \
 | شمارنده‌های ترافیک Xray | بایت آپلود و دانلود یک یا همهٔ حساب‌ها، ورودی‌ها یا خروجی‌ها را با HTTP و gRPC بخوان. |
 | ریست ترافیک Xray | با فعال‌سازی صریح، شمارندهٔ یک جهت یا هر دو جهت یک حساب یا تگ را با HTTP و gRPC بخوان و صفر کن. |
 | حساب‌ها و IPهای آنلاین Xray | فهرست حساب‌های آنلاین، تعداد IPهای مبدأ یکتا و زمان آخرین مشاهده را با HTTP و gRPC بخوان. |
-| مسیریابی Xray | قوانین فعال را به ترتیب بخوان و وضعیت یک balancer را با تگ آن از HTTP و gRPC بگیر. |
+| مسیریابی Xray | قوانین فعال را بخوان، مسیر را آزمایش کن، قوانین را تغییر بده و وضعیت یا مقصد balancer را با HTTP و gRPC مدیریت کن. |
+| حساب‌های VLESS در Xray | حساب‌های یک ورودی فعال VLESS را با HTTP و gRPC اضافه، حذف یا شمارش کن. |
 | سلامت خروجی‌های Xray | نمونه‌های ثبت‌شدهٔ Observatory را برای همهٔ خروجی‌ها یا یک تگ با HTTP و gRPC بخوان. |
 
 <a name="management"></a>
@@ -109,6 +110,10 @@ docker run --rm --network=host --read-only --cap-drop ALL \
 از `GET /v1/xray/instances/{id}/stats/online/users` یا `XrayStatsService.ListOnlineUsers` برای دیدن نام حساب‌هایی استفاده کن که Xray در لحظه دست‌کم یک IP مبدأ برایشان ثبت کرده. ترتیب فهرست ثابت نیست. اگر حساب آنلاینی نباشد، HTTP پاسخ `{"names":[]}` می‌دهد.
 
 برای خواندن وضعیت مسیریابی از `GET /v1/xray/instances/{id}/routing/rules` و `GET /v1/xray/instances/{id}/routing/balancer?tag=...` استفاده کن. متدهای gRPC، `XrayRoutingService.ListRoutingRules` و `GetBalancerInfo` هستند. پاسخ مقصد override و گزینه‌های گزارش‌شدهٔ Xray را جدا برمی‌گرداند. [قرارداد gRPC](internal/engines/xray/routing/bridge/grpc/proto/v1/routing.proto)
+
+برای ارزیابی یا تغییر مسیریابی اجرای فعال از `XrayRoutingService.TestRoute`، `AddRoutingRule`، `RemoveRoutingRule` و `OverrideBalancerTarget` استفاده کن. مسیرهای HTTP و تأیید جایگزینی قوانین در گزارش آمده‌اند. [قرارداد کنترل مسیر](benchmarks/xray/routing-rule-writes.md)
+
+از `XrayAccountsService.AddVLESSAccount`، `RemoveVLESSAccount` و `CountVLESSAccounts` یا مسیرهای HTTP زیر `/v1/xray/instances/{id}/inbounds/{tag}/accounts` استفاده کن. این عملیات روی اجرای فعال اعمال می‌شوند. [قرارداد VLESS](benchmarks/xray/vless-accounts.md)
 
 برای خواندن نمونه‌های Observatory معمولی از `GET /v1/xray/instances/{id}/outbounds/health` یا `XrayOutboundsService.GetOutboundHealth` استفاده کن. برای یک خروجی تگش را بده. پاسخ سه حالت سالم، ناموفق و بدون نمونه را مشخص می‌کند. [قرارداد gRPC](internal/engines/xray/outbounds/bridge/grpc/proto/v1/outbounds.proto)
 

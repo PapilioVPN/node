@@ -66,7 +66,8 @@ docker run --rm --network=host --read-only --cap-drop ALL \
 | Xray traffic resets | Read and clear one direction or both directions of a named account or tag over HTTP and gRPC when explicitly enabled. |
 | Xray traffic counters | Read upload and download bytes for one or all accounts, inbound tags, or outbound tags over HTTP and gRPC. |
 | Xray online accounts and IPs | List online accounts, count distinct source IPs, or read their last-seen times over HTTP and gRPC. |
-| Xray routing | Read active rules in order and inspect a balancer by tag over HTTP and gRPC. |
+| Xray routing | Read active rules, test a route, edit rules and inspect or override a balancer over HTTP and gRPC. |
+| Xray VLESS accounts | Add, remove and count named accounts on one live VLESS inbound over HTTP and gRPC. |
 | Xray outbound health | Read all recorded Observatory samples or select an outbound by tag over HTTP and gRPC. |
 
 <a name="management"></a>
@@ -104,6 +105,10 @@ Use `GET /v1/xray/instances/{id}/stats/online/count?name=...` or `/stats/online/
 Use `GET /v1/xray/instances/{id}/stats/online/users` or `XrayStatsService.ListOnlineUsers` to list account names with at least one source IP currently tracked by Xray. The list has no guaranteed order. When there are no online accounts, HTTP returns `{"names":[]}`.
 
 Use `GET /v1/xray/instances/{id}/routing/rules` and `GET /v1/xray/instances/{id}/routing/balancer?tag=...` to read routing state. The gRPC methods are `XrayRoutingService.ListRoutingRules` and `GetBalancerInfo`. The response reports the override separately from the targets reported by Xray. [gRPC contract](internal/engines/xray/routing/bridge/grpc/proto/v1/routing.proto)
+
+Use `XrayRoutingService.TestRoute`, `AddRoutingRule`, `RemoveRoutingRule` and `OverrideBalancerTarget` to evaluate and modify the live router. The HTTP routes and confirmation for rule replacement are documented with the benchmark. [Routing control](benchmarks/xray/routing-rule-writes.md)
+
+Use `XrayAccountsService.AddVLESSAccount`, `RemoveVLESSAccount` and `CountVLESSAccounts` or the HTTP routes under `/v1/xray/instances/{id}/inbounds/{tag}/accounts`. These operations apply to the active execution. [VLESS contract](benchmarks/xray/vless-accounts.md)
 
 Use `GET /v1/xray/instances/{id}/outbounds/health` or `XrayOutboundsService.GetOutboundHealth` to read ordinary Observatory samples. Provide a tag for one outbound. The response distinguishes healthy, failed and missing samples. [gRPC contract](internal/engines/xray/outbounds/bridge/grpc/proto/v1/outbounds.proto)
 

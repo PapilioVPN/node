@@ -651,6 +651,10 @@ GOMAXPROCS=1 XRAY_BENCH_ONLINE_USERS="$XRAY_BINARY" \
 
 - [Routing rule and balancer reads](xray/routing.md) includes paired round data,
   focused repeats for the slower cases, and the JSON encoding measurements.
+- [Route evaluation and balancer overrides](xray/routing-control.md) and
+  [rule changes](xray/routing-rule-writes.md) include the paired control benchmarks.
+- [Live VLESS accounts](xray/vless-accounts.md) covers additions, removals,
+  and native membership counts.
 - [Recorded outbound health](xray/outbound-health.md) includes the paired results,
   contract differences, and raw samples for the individual requests.
 

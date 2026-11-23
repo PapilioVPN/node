@@ -69,7 +69,8 @@ docker run --rm --network=host --read-only --cap-drop ALL \
 | Счётчики трафика Xray | Чтение входящих и исходящих байтов для одной или всех учётных записей, входящих или исходящих тегов через HTTP и gRPC. |
 | Сброс трафика Xray | Получить и обнулить одно или оба направления для учётной записи или тега через HTTP и gRPC после явного включения. |
 | Онлайн-аккаунты и IP в Xray | Получить список онлайн-аккаунтов, число уникальных IP или время их последнего обнаружения по HTTP и gRPC. |
-| Маршрутизация Xray | Прочитать активные правила по порядку и состояние балансировщика по тегу через HTTP и gRPC. |
+| Маршрутизация Xray | Читать и изменять правила, проверять маршрут и управлять целью балансировщика по HTTP и gRPC. |
+| Учётные записи VLESS в Xray | Добавлять, удалять и подсчитывать учётные записи активного входящего VLESS по HTTP и gRPC. |
 | Состояние исходящих подключений Xray | Получить все наблюдения Observatory или выбрать исходящее подключение по тегу через HTTP и gRPC. |
 
 <a name="management"></a>
@@ -107,6 +108,10 @@ HTTP-запрос `GET /v1/host/stats` и метод gRPC `HostService.GetSystem
 Используйте `GET /v1/xray/instances/{id}/stats/online/users` или `XrayStatsService.ListOnlineUsers`, чтобы получить имена аккаунтов, для которых Xray отслеживает хотя бы один IP-адрес источника. Порядок списка не задан. Когда онлайн-аккаунтов нет, HTTP возвращает `{"names":[]}`.
 
 Используйте `GET /v1/xray/instances/{id}/routing/rules` и `GET /v1/xray/instances/{id}/routing/balancer?tag=...` для чтения состояния маршрутизации. Методы gRPC — `XrayRoutingService.ListRoutingRules` и `GetBalancerInfo`. Переопределённая цель и цели, указанные Xray, передаются раздельно. [Контракт gRPC](internal/engines/xray/routing/bridge/grpc/proto/v1/routing.proto)
+
+Используйте `XrayRoutingService.TestRoute`, `AddRoutingRule`, `RemoveRoutingRule` и `OverrideBalancerTarget` для проверки и изменения активной маршрутизации. Маршруты HTTP и подтверждение замены правил описаны в отчёте. [Управление маршрутизацией](benchmarks/xray/routing-rule-writes.md)
+
+Используйте `XrayAccountsService.AddVLESSAccount`, `RemoveVLESSAccount` и `CountVLESSAccounts` или HTTP-маршруты под `/v1/xray/instances/{id}/inbounds/{tag}/accounts`. Операции применяются к активному запуску. [Контракт VLESS](benchmarks/xray/vless-accounts.md)
 
 Используйте `GET /v1/xray/instances/{id}/outbounds/health` или `XrayOutboundsService.GetOutboundHealth` для чтения обычных наблюдений Observatory. Для одного исходящего подключения укажите его тег. Ответ различает успешную проверку, сбой и отсутствие наблюдения. [Контракт gRPC](internal/engines/xray/outbounds/bridge/grpc/proto/v1/outbounds.proto)
 

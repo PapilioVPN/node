@@ -69,7 +69,8 @@ docker run --rm --network=host --read-only --cap-drop ALL \
 | Xray 流量计数器 | 通过 HTTP 和 gRPC 读取单个或全部账户、入站标签或出站标签的上行与下行字节数。 |
 | Xray 流量清零 | 显式启用后，通过 HTTP 和 gRPC 读取并清零指定账户或标签的单个方向或两个方向。 |
 | Xray 在线账户和 IP | 通过 HTTP 和 gRPC 查询在线账户、不同来源 IP 数量及其最近出现时间。 |
-| Xray 路由 | 通过 HTTP 和 gRPC 按顺序读取生效规则，并按标签读取负载均衡器状态。 |
+| Xray 路由 | 通过 HTTP 和 gRPC 读取与修改规则、测试路由，并查询或覆盖负载均衡目标。 |
+| Xray VLESS 账户 | 通过 HTTP 和 gRPC 添加、移除和统计运行中的 VLESS 入站账户。 |
 | Xray 出站健康状态 | 通过 HTTP 和 gRPC 读取全部 Observatory 观测结果，或按出站标签查询。 |
 
 <a name="management"></a>
@@ -107,6 +108,10 @@ HTTP `GET /v1/host/stats` 和 gRPC `HostService.GetSystemStats` 返回 `uptime_s
 使用 `GET /v1/xray/instances/{id}/stats/online/users` 或 `XrayStatsService.ListOnlineUsers` 查询 Xray 当前至少跟踪一个来源 IP 的账户名称。列表顺序不固定。没有在线账户时，HTTP 返回 `{"names":[]}`。
 
 使用 `GET /v1/xray/instances/{id}/routing/rules` 和 `GET /v1/xray/instances/{id}/routing/balancer?tag=...` 读取路由状态。gRPC 方法为 `XrayRoutingService.ListRoutingRules` 和 `GetBalancerInfo`。响应分别返回覆盖目标和 Xray 报告的目标。 [gRPC 接口](internal/engines/xray/routing/bridge/grpc/proto/v1/routing.proto)
+
+使用 `XrayRoutingService.TestRoute`、`AddRoutingRule`、`RemoveRoutingRule` 和 `OverrideBalancerTarget` 评估或修改当前路由。报告记录了 HTTP 路径和替换规则所需的确认。 [路由控制](benchmarks/xray/routing-rule-writes.md)
+
+使用 `XrayAccountsService.AddVLESSAccount`、`RemoveVLESSAccount` 和 `CountVLESSAccounts`，或使用 `/v1/xray/instances/{id}/inbounds/{tag}/accounts` 下的 HTTP 路径。操作作用于当前运行的实例。 [VLESS 接口](benchmarks/xray/vless-accounts.md)
 
 使用 `GET /v1/xray/instances/{id}/outbounds/health` 或 `XrayOutboundsService.GetOutboundHealth` 读取普通 Observatory 观测结果。提供标签可查询单个出站。响应区分健康、探测失败和缺少样本。 [gRPC 接口](internal/engines/xray/outbounds/bridge/grpc/proto/v1/outbounds.proto)
 
