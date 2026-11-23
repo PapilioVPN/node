@@ -67,10 +67,15 @@ func TestAccountRestoreOnReplacementCore(t *testing.T) {
 	assertNamed(t, f, "vless")
 }
 
+func (f fixture) hasManagedAccountInitializer() bool {
+	type initializer = func(context.Context, string, *grpc.ClientConn, []membership.InboundSnapshot, []string) (func(), error)
+	_, ok := any(f.instance).(interface{ SetAccountInitializer(initializer) })
+	return ok
+}
+
 func TestSyncMembershipSurvivesManagedRestart(t *testing.T) {
 	f := startFixture(t, configuredAccount{Email: "configured", ID: credential})
-	type initializer = func(context.Context, string, *grpc.ClientConn, []membership.InboundSnapshot, []string) (func(), error)
-	if _, ok := any(f.instance).(interface{ SetAccountInitializer(initializer) }); !ok {
+	if !f.hasManagedAccountInitializer() {
 		t.Skip("requires the instances startup initializer")
 	}
 	first := &accountsv1.SyncUserRequest{Id: instanceID, InboundTags: []string{"vless", "trojan"}, Email: "member",

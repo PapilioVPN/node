@@ -108,10 +108,11 @@ func (entry *inboundAccounts) prepare(email string, c membership.Credential) (me
 		if c.Peer.KeepAlive != 0 {
 			peer.KeepAlive = strconv.FormatUint(uint64(c.Peer.KeepAlive), 10)
 		}
-		msg, err = normalizePeer(peer)
-		if err != nil {
-			return account, err
+		normalized, err := normalizePeer(peer)
+		if err != nil || len(normalized.AllowedIps) == 0 || normalized.PublicKey == entry.peerPublicKey {
+			return account, membership.ErrInvalid
 		}
+		msg = normalized
 	}
 	account.Value, err = proto.Marshal(msg)
 	if err != nil {

@@ -9,8 +9,11 @@ import (
 
 	accountsv1 "github.com/PapilioVPN/node/internal/engines/xray/accounts/bridge/grpc/proto/v1"
 	"github.com/PapilioVPN/node/internal/engines/xray/accounts/membership"
+	"github.com/PapilioVPN/node/internal/engines/xray/accounts/native"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/emptypb"
 	"testing"
 )
 
@@ -142,4 +145,39 @@ func assertNamed(t *testing.T, f fixture, tag string, names ...string) {
 	if len(remaining) != 0 {
 		t.Fatalf("missing members in %s: %v", tag, remaining)
 	}
+}
+
+func TestMultiInboundSyncStopsAfterNativeRejection(t *testing.T) {
+	f := startFixture(t, configuredAccount{Email: "move", ID: credential})
+	ctx, cancel := context.WithTimeout(t.Context(), 4*time.Second)
+	defer cancel()
+	_, err := f.grpc.CountVLESSAccounts(ctx, &accountsv1.CountVLESSAccountsRequest{Id: instanceID, InboundTag: "vless"})
+	require(t, err)
+
+	// Change the engine through its private API after Node has inventoried it.
+	// The duplicate email forces an actual Xray rejection on the second effect.
+	wire, err := proto.Marshal(&native.PasswordAccount{Password: "private account"})
+	require(t, err)
+	body, err := proto.Marshal(&native.AddUserOperation{User: &native.User{Email: "move",
+		Account: &native.TypedMessage{Type: "xray.proxy.trojan.Account", Value: wire}}})
+	require(t, err)
+	conn, err := f.instance.NativeConnection(instanceID)
+	require(t, err)
+	require(t, conn.Invoke(ctx, native.AlterInboundMethod, &native.AlterInboundRequest{Tag: "trojan",
+		Operation: &native.TypedMessage{Type: native.AddUserOperationType, Value: body}}, &emptypb.Empty{}))
+
+	stream, err := f.grpc.SyncUsersChunked(ctx)
+	require(t, err)
+	require(t, stream.Send(&accountsv1.UsersChunk{Id: instanceID, InboundTags: []string{"vless", "trojan"}, Last: true,
+		Accounts: []*accountsv1.VLESSAccount{
+			{Email: "move", Assignments: []*accountsv1.Assignment{{InboundTag: "trojan", Credential: &accountsv1.Credential{Protocol: "trojan", Password: "changed"}}}},
+			{Email: "unattempted", Assignments: []*accountsv1.Assignment{{InboundTag: "trojan", Credential: &accountsv1.Credential{Protocol: "trojan", Password: "new"}}}},
+		}}))
+	result, err := stream.CloseAndRecv()
+	require(t, err)
+	if result.GetOutcome() != "unknown" || result.GetRemoved() != 1 || result.GetAdded() != 0 || result.GetFailure() != "native_acknowledgement_unknown" {
+		t.Fatalf("actual Xray rejection = %v", result)
+	}
+	assertNamed(t, f, "vless")
+	assertNamed(t, f, "trojan", "move")
 }

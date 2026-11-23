@@ -83,6 +83,9 @@ func TestSyncNativeAccountProtocols(t *testing.T) {
 		require(t, err)
 		return hex.EncodeToString(private.PublicKey().Bytes())
 	}
+	key256 := func(value byte) string {
+		return base64.StdEncoding.EncodeToString(bytes.Repeat([]byte{value}, 32))
+	}
 	security := testTLS(t)
 	for _, tc := range []struct {
 		name, protocol, settings, stream string
@@ -102,6 +105,9 @@ func TestSyncNativeAccountProtocols(t *testing.T) {
 		{"shadowsocks2022", "shadowsocks", fmt.Sprintf(`{"method":"2022-blake3-aes-128-gcm","password":%q,"clients":[{"email":"seed","password":%q}]}`, key(1), key(2)), "",
 			&accountsv1.Credential{Protocol: "shadowsocks2022", Key: key(3)},
 			&accountsv1.Credential{Protocol: "shadowsocks2022", Key: key(4)}, 1, key(4)},
+		{"shadowsocks2022-aes256", "shadowsocks", fmt.Sprintf(`{"method":"2022-blake3-aes-256-gcm","password":%q,"clients":[{"email":"seed","password":%q}]}`, key256(1), key256(2)), "",
+			&accountsv1.Credential{Protocol: "shadowsocks2022", Key: key256(3)},
+			&accountsv1.Credential{Protocol: "shadowsocks2022", Key: key256(4)}, 1, key256(4)},
 		{"hysteria", "hysteria", `{"version":2,"clients":[]}`, `"network":"hysteria",` + security,
 			&accountsv1.Credential{Protocol: "hysteria", Auth: "initial-auth"},
 			&accountsv1.Credential{Protocol: "hysteria", Auth: "updated-auth"}, 0, "updated-auth"},
@@ -140,7 +146,7 @@ func TestSyncNativeAccountProtocols(t *testing.T) {
 				invalid.Credential.Password = ""
 			case "shadowsocks":
 				invalid.Credential.Method = "unsupported-cipher"
-			case "shadowsocks2022":
+			case "shadowsocks2022", "shadowsocks2022-aes256":
 				invalid.Credential.Key = "YWJjZA=="
 			case "hysteria":
 				invalid.Credential.Auth = ""
@@ -152,6 +158,29 @@ func TestSyncNativeAccountProtocols(t *testing.T) {
 			}
 			if users := f.nativeUsers(t, "subject"); len(users) != tc.wantBefore+1 {
 				t.Fatalf("membership after rejected credential = %d", len(users))
+			}
+			if tc.name == "wireguard" {
+				contender := proto.Clone(input).(*accountsv1.SyncUserRequest)
+				contender.Email = "contender"
+				contender.Credential.Peer.PublicKey = tc.next.Peer.PublicKey
+				contender.Credential.Peer.AllowedIps = []string{"198.18.19.0/24"}
+				result, err := f.grpc.SyncUser(t.Context(), contender)
+				require(t, err)
+				if result.GetOutcome() != "not_applied" || result.GetFailure() != "conflict" {
+					t.Fatalf("overlapping WireGuard peer = %v", result)
+				}
+				assertNamed(t, f, "subject", input.Email)
+
+				noPSK := proto.Clone(input).(*accountsv1.SyncUserRequest)
+				noPSK.Credential.Peer.PreSharedKey = ""
+				result, err = f.grpc.SyncUser(t.Context(), noPSK)
+				require(t, err)
+				expectSync(t, result, 1, 1)
+				var peer native.WireGuardAccount
+				require(t, proto.Unmarshal(f.nativeUsers(t, "subject")[0].Account.Value, &peer))
+				if peer.PreSharedKey != "" || peer.PublicKey != input.Credential.Peer.PublicKey {
+					t.Fatal("WireGuard peer with the same public key kept its old PSK")
+				}
 			}
 
 			result, err = f.grpc.SyncUsers(t.Context(), &accountsv1.SyncUsersRequest{Id: instanceID, InboundTag: "subject",
@@ -179,6 +208,14 @@ func TestSyncNativeAccountProtocols(t *testing.T) {
 				require(t, proto.Unmarshal(users[0].Account.Value, &account))
 				if account.CipherType != 6 {
 					t.Fatal("Shadowsocks cipher was not replaced")
+				}
+			}
+			if f.hasManagedAccountInitializer() {
+				f.request(t, http.MethodDelete, executionPath, nil, http.StatusOK)
+				f.request(t, http.MethodPut, executionPath, nil, http.StatusOK)
+				restored := f.nativeUsers(t, "subject")
+				if len(restored) != 1 || !proto.Equal(restored[0], users[0]) {
+					t.Fatal("replacement core did not restore the accepted credential")
 				}
 			}
 
@@ -234,4 +271,29 @@ func testTLS(t *testing.T) string {
 	}}})
 	require(t, err)
 	return `"security":"tls","tlsSettings":` + string(config)
+}
+
+func TestSyncRejectsSS2022InboundsWithoutNativeUserManager(t *testing.T) {
+	executable := os.Getenv("NODE_TEST_XRAY")
+	if executable == "" {
+		t.Skip("set NODE_TEST_XRAY to the absolute path of Xray v26.11.9")
+	}
+	key := base64.StdEncoding.EncodeToString(bytes.Repeat([]byte{1}, 16))
+	for _, tc := range []struct{ name, clients string }{
+		{"single-user", "[]"},
+		{"relay", fmt.Sprintf(`[{"email":"relay","password":%q,"address":"127.0.0.1","port":53}]`, key)},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			port, _ := freePorts(t)
+			source := fmt.Sprintf(`{"inbounds":[{"tag":"subject","listen":"127.0.0.1","port":%d,"protocol":"shadowsocks","settings":{"method":"2022-blake3-aes-128-gcm","password":%q,"clients":%s}}]}`, port, key, tc.clients)
+			f := startSourceFixture(t, executable, source)
+			reply, err := f.grpc.SyncUser(t.Context(), &accountsv1.SyncUserRequest{
+				Id: instanceID, InboundTag: "subject", Email: "member", Credential: &accountsv1.Credential{Protocol: "shadowsocks2022", Key: key},
+			})
+			require(t, err)
+			if reply.GetOutcome() != "not_applied" || reply.GetFailure() != "wrong_protocol" {
+				t.Fatalf("%s received a live account effect: %v", tc.name, reply)
+			}
+		})
+	}
 }

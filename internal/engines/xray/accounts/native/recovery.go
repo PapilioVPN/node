@@ -117,7 +117,7 @@ func prepareRestore(e *editor, saved acceptedInbound) (restorePlan, error) {
 	released := make(map[membership.IDKey]bool)
 	for name, original := range e.entry.records {
 		target, requested := saved.accounts[name]
-		if !requested && !saved.full || proto.Equal(original, target) {
+		if (!requested && !saved.full) || proto.Equal(original, target) {
 			continue
 		}
 		plan.removals = append(plan.removals, name)
@@ -133,7 +133,7 @@ func prepareRestore(e *editor, saved acceptedInbound) (restorePlan, error) {
 		if err != nil {
 			return plan, err
 		}
-		if ids[key.Identity] || !released[key.Identity] && e.HasID(key.Identity) {
+		if ids[key.Identity] || (!released[key.Identity] && e.HasID(key.Identity)) {
 			return plan, membership.ErrExists
 		}
 		ids[key.Identity] = true
@@ -145,7 +145,7 @@ func prepareRestore(e *editor, saved acceptedInbound) (restorePlan, error) {
 	slices.SortFunc(plan.additions, func(a, b membership.PreparedAccount) int {
 		return strings.Compare(a.Name, b.Name)
 	})
-	return plan, nil
+	return plan, e.checkPeerRoutes(plan.removals, plan.additions)
 }
 
 func applyRestores(state *inventory, restores []restorePlan) error {

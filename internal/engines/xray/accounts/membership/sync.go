@@ -83,7 +83,7 @@ type Editor interface {
 	Lookup(name string) (Key, bool)
 	HasID(IDKey) bool
 	Prepare(email string, credential Credential) (PreparedAccount, error)
-	Stage(full bool, members []PlannedMember) error
+	Stage(full bool, members []PlannedMember, removals []string, additions []PreparedAccount) error
 	Add(PreparedAccount) error
 	Remove(name string) error
 }

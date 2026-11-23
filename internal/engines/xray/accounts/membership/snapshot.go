@@ -95,7 +95,7 @@ func applyPlans(session EditSession, groups [][]change, full bool, result *SyncR
 		if err != nil {
 			return err
 		}
-		if err := editor.Stage(full, plan.targets); err != nil {
+		if err := editor.Stage(full, plan.targets, plan.removals, plan.additions); err != nil {
 			return err
 		}
 		plans[i] = plan

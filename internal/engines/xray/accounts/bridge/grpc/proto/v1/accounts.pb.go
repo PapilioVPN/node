@@ -247,15 +247,16 @@ func (x *CountVLESSAccountsResponse) GetCount() int64 {
 }
 
 type SyncUserRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	InboundTag    string                 `protobuf:"bytes,2,opt,name=inbound_tag,json=inboundTag,proto3" json:"inbound_tag,omitempty"`
-	Email         string                 `protobuf:"bytes,3,opt,name=email,proto3" json:"email,omitempty"`
-	Uuid          *string                `protobuf:"bytes,4,opt,name=uuid,proto3,oneof" json:"uuid,omitempty"`
-	Flow          *string                `protobuf:"bytes,5,opt,name=flow,proto3,oneof" json:"flow,omitempty"`
-	Credential    *Credential            `protobuf:"bytes,6,opt,name=credential,proto3" json:"credential,omitempty"`
-	InboundTags   []string               `protobuf:"bytes,7,rep,name=inbound_tags,json=inboundTags,proto3" json:"inbound_tags,omitempty"`
-	Assignments   []*Assignment          `protobuf:"bytes,8,rep,name=assignments,proto3" json:"assignments,omitempty"`
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	Id         string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	InboundTag string                 `protobuf:"bytes,2,opt,name=inbound_tag,json=inboundTag,proto3" json:"inbound_tag,omitempty"`
+	Email      string                 `protobuf:"bytes,3,opt,name=email,proto3" json:"email,omitempty"`
+	Uuid       *string                `protobuf:"bytes,4,opt,name=uuid,proto3,oneof" json:"uuid,omitempty"`
+	Flow       *string                `protobuf:"bytes,5,opt,name=flow,proto3,oneof" json:"flow,omitempty"`
+	Credential *Credential            `protobuf:"bytes,6,opt,name=credential,proto3" json:"credential,omitempty"`
+	// Use inbound_tags with assignments, or inbound_tag with one credential.
+	InboundTags   []string      `protobuf:"bytes,7,rep,name=inbound_tags,json=inboundTags,proto3" json:"inbound_tags,omitempty"`
+	Assignments   []*Assignment `protobuf:"bytes,8,rep,name=assignments,proto3" json:"assignments,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -541,8 +542,9 @@ type SyncUsersRequest struct {
 	Id         string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	InboundTag string                 `protobuf:"bytes,2,opt,name=inbound_tag,json=inboundTag,proto3" json:"inbound_tag,omitempty"`
 	// Required. An explicitly empty snapshot clears named membership.
-	Snapshot      *VLESSAccounts `protobuf:"bytes,3,opt,name=snapshot,proto3" json:"snapshot,omitempty"`
-	InboundTags   []string       `protobuf:"bytes,4,rep,name=inbound_tags,json=inboundTags,proto3" json:"inbound_tags,omitempty"`
+	Snapshot *VLESSAccounts `protobuf:"bytes,3,opt,name=snapshot,proto3" json:"snapshot,omitempty"`
+	// With no inbound_tag, replaces named membership of each selected inbound.
+	InboundTags   []string `protobuf:"bytes,4,rep,name=inbound_tags,json=inboundTags,proto3" json:"inbound_tags,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -614,8 +616,9 @@ type UsersChunk struct {
 	Index uint32 `protobuf:"varint,3,opt,name=index,proto3" json:"index,omitempty"`
 	Last  bool   `protobuf:"varint,4,opt,name=last,proto3" json:"last,omitempty"`
 	// An absent credential and uuid remove only that named account.
-	Accounts      []*VLESSAccount `protobuf:"bytes,5,rep,name=accounts,proto3" json:"accounts,omitempty"`
-	InboundTags   []string        `protobuf:"bytes,6,rep,name=inbound_tags,json=inboundTags,proto3" json:"inbound_tags,omitempty"`
+	Accounts []*VLESSAccount `protobuf:"bytes,5,rep,name=accounts,proto3" json:"accounts,omitempty"`
+	// For multiple inbounds, repeat this same ordered selection in each chunk.
+	InboundTags   []string `protobuf:"bytes,6,rep,name=inbound_tags,json=inboundTags,proto3" json:"inbound_tags,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -693,15 +696,18 @@ func (x *UsersChunk) GetInboundTags() []string {
 }
 
 type Credential struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Protocol      string                 `protobuf:"bytes,1,opt,name=protocol,proto3" json:"protocol,omitempty"`
-	Uuid          string                 `protobuf:"bytes,2,opt,name=uuid,proto3" json:"uuid,omitempty"`
-	Flow          *string                `protobuf:"bytes,3,opt,name=flow,proto3,oneof" json:"flow,omitempty"`
-	Password      string                 `protobuf:"bytes,4,opt,name=password,proto3" json:"password,omitempty"`
-	Method        string                 `protobuf:"bytes,5,opt,name=method,proto3" json:"method,omitempty"`
-	Key           string                 `protobuf:"bytes,6,opt,name=key,proto3" json:"key,omitempty"`
-	Auth          string                 `protobuf:"bytes,7,opt,name=auth,proto3" json:"auth,omitempty"`
-	Peer          *WireGuardPeer         `protobuf:"bytes,8,opt,name=peer,proto3" json:"peer,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// vless, vmess, trojan, shadowsocks, shadowsocks2022, hysteria, masque, wireguard
+	Protocol string `protobuf:"bytes,1,opt,name=protocol,proto3" json:"protocol,omitempty"`
+	Uuid     string `protobuf:"bytes,2,opt,name=uuid,proto3" json:"uuid,omitempty"`
+	// VLESS only. Explicit empty clears flow. Omission preserves a matching account.
+	Flow     *string `protobuf:"bytes,3,opt,name=flow,proto3,oneof" json:"flow,omitempty"`
+	Password string  `protobuf:"bytes,4,opt,name=password,proto3" json:"password,omitempty"`
+	Method   string  `protobuf:"bytes,5,opt,name=method,proto3" json:"method,omitempty"`
+	// The SS2022 per-user key in standard base64, sized for the inbound cipher.
+	Key           string         `protobuf:"bytes,6,opt,name=key,proto3" json:"key,omitempty"`
+	Auth          string         `protobuf:"bytes,7,opt,name=auth,proto3" json:"auth,omitempty"`
+	Peer          *WireGuardPeer `protobuf:"bytes,8,opt,name=peer,proto3" json:"peer,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }

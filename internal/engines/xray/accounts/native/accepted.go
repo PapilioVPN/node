@@ -54,14 +54,18 @@ func (e *editor) user(account membership.PreparedAccount) *User {
 		Account: &TypedMessage{Type: e.entry.layout.accountType, Value: account.Value}}
 }
 
-func (e *editor) Stage(full bool, members []membership.PlannedMember) error {
+func (e *editor) Stage(full bool, members []membership.PlannedMember, removals []string, additions []membership.PreparedAccount) error {
+	if err := e.checkPeerRoutes(removals, additions); err != nil {
+		return err
+	}
 	if !full && len(members) == 0 {
 		return nil
 	}
 	current := e.staged.inbounds[e.scope.InboundTag]
 	next := acceptedInbound{layout: e.entry.layout, keySize: e.entry.ss2022KeySize,
-		accounts: make(map[string]*User, len(members)), full: full || current.full}
+		accounts: make(map[string]*User, len(members)), full: full}
 	if !full && current.accounts != nil && current.layout == next.layout && current.keySize == next.keySize {
+		next.full = current.full
 		next.accounts = maps.Clone(current.accounts)
 		next.bytes = current.bytes
 	}

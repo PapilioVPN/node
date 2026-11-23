@@ -51,6 +51,7 @@ message SyncUserRequest {
   optional string uuid = 4;
   optional string flow = 5;
   Credential credential = 6;
+  // Use inbound_tags with assignments, or inbound_tag with one credential.
   repeated string inbound_tags = 7;
   repeated Assignment assignments = 8;
 }
@@ -81,6 +82,7 @@ message SyncUsersRequest {
   string inbound_tag = 2;
   // Required. An explicitly empty snapshot clears named membership.
   VLESSAccounts snapshot = 3;
+  // With no inbound_tag, replaces named membership of each selected inbound.
   repeated string inbound_tags = 4;
 }
 
@@ -93,15 +95,19 @@ message UsersChunk {
   bool last = 4;
   // An absent credential and uuid remove only that named account.
   repeated VLESSAccount accounts = 5;
+  // For multiple inbounds, repeat this same ordered selection in each chunk.
   repeated string inbound_tags = 6;
 }
 
 message Credential {
+  // vless, vmess, trojan, shadowsocks, shadowsocks2022, hysteria, masque, wireguard
   string protocol = 1;
   string uuid = 2;
+  // VLESS only. Explicit empty clears flow. Omission preserves a matching account.
   optional string flow = 3;
   string password = 4;
   string method = 5;
+  // The SS2022 per-user key in standard base64, sized for the inbound cipher.
   string key = 6;
   string auth = 7;
   WireGuardPeer peer = 8;

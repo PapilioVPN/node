@@ -17,9 +17,11 @@ const (
 )
 
 type inboundAccounts struct {
-	layout        accountLayout
-	ss2022KeySize int
-	ambiguous     bool
+	layout         accountLayout
+	peerPublicKey  string
+	anonymousPeers []*User
+	ss2022KeySize  int
+	ambiguous      bool
 
 	// The mutation lock protects the live membership and the outcome fence.
 	names     map[string]membership.Key
@@ -112,6 +114,8 @@ func buildInventory(conn *grpc.ClientConn, inbounds []*Inbound) (*inventory, err
 			}
 			if name != "" {
 				entry.records[name] = user
+			} else if entry.layout.protocol == membership.WireGuard {
+				entry.anonymousPeers = append(entry.anonymousPeers, user)
 			}
 		}
 	}
@@ -149,6 +153,9 @@ func (entry *inboundAccounts) configuredUsers(data []byte) ([]*User, bool) {
 			case "2022-blake3-aes-256-gcm":
 				entry.ss2022KeySize = 32
 			}
+		case number == 1 && entry.layout.protocol == membership.WireGuard && kind == protowire.BytesType:
+			secret, _ := protowire.ConsumeString(data)
+			entry.peerPublicKey = devicePublicKey(secret)
 		case number == 8 && entry.layout.protocol == membership.WireGuard && kind == protowire.VarintType:
 			client, _ := protowire.ConsumeVarint(data)
 			if client != 0 {
