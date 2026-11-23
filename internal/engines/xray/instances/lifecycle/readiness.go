@@ -15,6 +15,7 @@ import (
 func openNativeConnection(socket string) (*grpc.ClientConn, error) {
 	target := url.URL{Scheme: "unix", Path: socket}
 	return grpc.NewClient(target.String(),
+		grpc.WithDisableRetry(),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithConnectParams(grpc.ConnectParams{
 			Backoff: backoff.Config{

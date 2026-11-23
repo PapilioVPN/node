@@ -39,14 +39,14 @@ func TestMeasureOnlineUsers(t *testing.T) {
 	const total = 1000
 	const rounds = 5
 	const window = 350 * time.Millisecond
-	owner, httpServer, grpcConn, proxy := startOnlineUsersFixture(t, executable, total)
+	owner, httpServer, grpcConn, proxy := startStatsFixture(t, executable, total, false, map[string]bool{"statsUserOnline": true})
 
 	ctx, cancel := context.WithTimeout(t.Context(), time.Minute)
 	defer cancel()
 	_, err := owner.Start(ctx, "primary")
-	requireOnlineFixture(t, err)
+	requireStatsFixture(t, err)
 	conn, err := owner.NativeConnection("primary")
-	requireOnlineFixture(t, err)
+	requireStatsFixture(t, err)
 
 	target := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write([]byte("traffic fixture"))
@@ -85,24 +85,24 @@ func TestMeasureOnlineUsers(t *testing.T) {
 	}
 
 	out := csv.NewWriter(os.Stdout)
-	requireOnlineFixture(t, out.Write([]string{"transport", "round", "accounts", "clients", "success", "rejected", "goodput_per_sec", "p50_us", "p95_us", "p99_us"}))
+	requireStatsFixture(t, out.Write([]string{"transport", "round", "accounts", "clients", "success", "rejected", "goodput_per_sec", "p50_us", "p95_us", "p99_us"}))
 	active := 0
 	for _, count := range []int{0, 100, total} {
 		for ; active < count; active++ {
-			tunnel, err := openOnlineTunnel(ctx, proxy, strings.TrimPrefix(target.URL, "http://"), onlineFixtureName(active))
-			requireOnlineFixture(t, err)
+			tunnel, err := openOnlineTunnel(ctx, proxy, strings.TrimPrefix(target.URL, "http://"), statsFixtureName(active))
+			requireStatsFixture(t, err)
 			defer tunnel.Close()
 		}
 
 		for _, read := range reads {
 			names, err := read.call(ctx)
-			requireOnlineFixture(t, err)
+			requireStatsFixture(t, err)
 			slices.Sort(names)
 			if len(names) != count {
 				t.Fatalf("%s reported %d accounts, want %d", read.name, len(names), count)
 			}
 			for i, got := range names {
-				want := onlineFixtureName(i)
+				want := statsFixtureName(i)
 				if read.name == "native" {
 					want = "user>>>" + want + ">>>online"
 				}
@@ -123,8 +123,8 @@ func TestMeasureOnlineUsers(t *testing.T) {
 						}
 						return uint32(len(names)), err
 					}, clients, window)
-					requireOnlineFixture(t, err)
-					requireOnlineFixture(t, out.Write([]string{
+					requireStatsFixture(t, err)
+					requireStatsFixture(t, out.Write([]string{
 						read.name, strconv.Itoa(round + 1), strconv.Itoa(count), strconv.Itoa(clients),
 						strconv.Itoa(len(result.timings)), strconv.Itoa(result.rejected),
 						fmt.Sprintf("%.2f", float64(len(result.timings))/result.elapsed.Seconds()),
@@ -133,32 +133,32 @@ func TestMeasureOnlineUsers(t *testing.T) {
 				}
 			}
 			out.Flush()
-			requireOnlineFixture(t, out.Error())
+			requireStatsFixture(t, out.Error())
 		}
 	}
 }
 
-func startOnlineUsersFixture(t *testing.T, executable string, count int) (*lifecycle.Service, *httptest.Server, *grpc.ClientConn, string) {
+func startStatsFixture(t *testing.T, executable string, count int, resetEnabled bool, policy map[string]bool) (*lifecycle.Service, *httptest.Server, *grpc.ClientConn, string) {
 	t.Helper()
 	proxy, err := net.Listen("tcp4", "127.0.0.1:0")
-	requireOnlineFixture(t, err)
+	requireStatsFixture(t, err)
 	proxyAddr := proxy.Addr().String()
 	proxyPort := proxy.Addr().(*net.TCPAddr).Port
-	requireOnlineFixture(t, proxy.Close())
+	requireStatsFixture(t, proxy.Close())
 
 	accounts := make([]map[string]string, count)
 	for i := range accounts {
-		accounts[i] = map[string]string{"user": onlineFixtureName(i), "pass": "fixture"}
+		accounts[i] = map[string]string{"user": statsFixtureName(i), "pass": "fixture"}
 	}
 	dir, err := os.MkdirTemp("", "node-users-bench-")
-	requireOnlineFixture(t, err)
-	t.Cleanup(func() { requireOnlineFixture(t, os.RemoveAll(dir)) })
+	requireStatsFixture(t, err)
+	t.Cleanup(func() { requireStatsFixture(t, os.RemoveAll(dir)) })
 	configFile := filepath.Join(dir, "xray.json")
 	config, err := json.Marshal(map[string]any{
 		"log":   map[string]string{"loglevel": "none"},
 		"stats": map[string]any{},
 		"policy": map[string]any{
-			"levels": map[string]any{"0": map[string]bool{"statsUserOnline": true}},
+			"levels": map[string]any{"0": policy},
 		},
 		"inbounds": []any{map[string]any{
 			"protocol": "http", "tag": "fixture", "listen": "127.0.0.1", "port": proxyPort,
@@ -166,29 +166,29 @@ func startOnlineUsersFixture(t *testing.T, executable string, count int) (*lifec
 		}},
 		"outbounds": []map[string]string{{"tag": "direct", "protocol": "freedom"}},
 	})
-	requireOnlineFixture(t, err)
-	requireOnlineFixture(t, os.WriteFile(configFile, config, 0600))
+	requireStatsFixture(t, err)
+	requireStatsFixture(t, os.WriteFile(configFile, config, 0600))
 
 	router := chi.NewRouter()
 	router.Use(func(next http.Handler) http.Handler { return bridgehttp.RequireAPIKey(key, next) })
 	httpServer := httptest.NewTLSServer(router)
 	t.Cleanup(httpServer.Close)
 	server, err := bridgegrpc.NewServer(bridgegrpc.Config{APIKey: key, TLS: httpServer.TLS.Clone()})
-	requireOnlineFixture(t, err)
+	requireStatsFixture(t, err)
 	listener, err := net.Listen("tcp4", "127.0.0.1:0")
-	requireOnlineFixture(t, err)
+	requireStatsFixture(t, err)
 	t.Cleanup(func() { _ = listener.Close() })
 	var owner *lifecycle.Service
 	app := fx.New(fx.NopLogger, xray.Module, fx.Supply(router, server, settings.Xray{
-		ID: "primary", Executable: executable, ConfigFile: configFile, RuntimeDirectory: dir,
+		ID: "primary", Executable: executable, ConfigFile: configFile, RuntimeDirectory: dir, ResetEngineStats: resetEnabled,
 	}), fx.Populate(&owner))
 	start, cancel := context.WithTimeout(t.Context(), 3*time.Second)
 	defer cancel()
-	requireOnlineFixture(t, app.Start(start))
+	requireStatsFixture(t, app.Start(start))
 	t.Cleanup(func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		requireOnlineFixture(t, app.Stop(ctx))
+		requireStatsFixture(t, app.Stop(ctx))
 	})
 
 	done := make(chan error, 1)
@@ -201,14 +201,14 @@ func startOnlineUsersFixture(t *testing.T, executable string, count int) (*lifec
 	})
 	tlsConfig := httpServer.Client().Transport.(*http.Transport).TLSClientConfig
 	conn, err := grpc.NewClient(listener.Addr().String(), grpc.WithTransportCredentials(credentials.NewTLS(tlsConfig)))
-	requireOnlineFixture(t, err)
-	t.Cleanup(func() { requireOnlineFixture(t, conn.Close()) })
+	requireStatsFixture(t, err)
+	t.Cleanup(func() { requireStatsFixture(t, conn.Close()) })
 	return owner, httpServer, conn, proxyAddr
 }
 
-func onlineFixtureName(index int) string { return fmt.Sprintf("account-%04d", index) }
+func statsFixtureName(index int) string { return fmt.Sprintf("account-%04d", index) }
 
-func requireOnlineFixture(t *testing.T, err error) {
+func requireStatsFixture(t *testing.T, err error) {
 	t.Helper()
 	if err != nil {
 		t.Fatal(err)

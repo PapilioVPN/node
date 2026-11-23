@@ -32,7 +32,7 @@ func NewOnline(instances activeInstances) *Online {
 }
 
 func (client *Online) Count(ctx context.Context, id, name string) (int64, error) {
-	var result OnlineCountResponse
+	var result NamedCounterResponse
 	key := onlineKey(name)
 	if err := client.read(ctx, id, getOnlineCount, &OnlineRequest{Name: key}, &result, onlineCountOptions); err != nil {
 		return 0, err

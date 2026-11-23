@@ -12,6 +12,7 @@ type Xray struct {
 	Executable       string `yaml:"executable"`
 	ConfigFile       string `yaml:"config_file"`
 	RuntimeDirectory string `yaml:"runtime_directory"`
+	ResetEngineStats bool   `yaml:"reset_engine_stats"`
 }
 
 func (xray Xray) Enabled() bool { return xray.ID != "" }

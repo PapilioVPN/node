@@ -31,6 +31,7 @@ func usage(entry *traffic.Usage) trafficUsage {
 
 func RegisterTraffic(router chi.Router, service *traffic.Service) {
 	router.Get("/v1/xray/instances/{id}/stats/traffic/{scope}", getTraffic(service))
+	router.Post("/v1/xray/instances/{id}/stats/traffic/{scope}/resets", resetTraffic(service))
 }
 
 func getTraffic(service *traffic.Service) http.HandlerFunc {

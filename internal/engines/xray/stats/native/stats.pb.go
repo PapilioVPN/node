@@ -325,27 +325,27 @@ func (x *OnlineRequest) GetName() string {
 	return ""
 }
 
-type OnlineCountResponse struct {
+type NamedCounterResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Stat          *TrafficCounter        `protobuf:"bytes,1,opt,name=stat,proto3" json:"stat,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *OnlineCountResponse) Reset() {
-	*x = OnlineCountResponse{}
+func (x *NamedCounterResponse) Reset() {
+	*x = NamedCounterResponse{}
 	mi := &file_stats_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *OnlineCountResponse) String() string {
+func (x *NamedCounterResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*OnlineCountResponse) ProtoMessage() {}
+func (*NamedCounterResponse) ProtoMessage() {}
 
-func (x *OnlineCountResponse) ProtoReflect() protoreflect.Message {
+func (x *NamedCounterResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_stats_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -357,12 +357,12 @@ func (x *OnlineCountResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use OnlineCountResponse.ProtoReflect.Descriptor instead.
-func (*OnlineCountResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use NamedCounterResponse.ProtoReflect.Descriptor instead.
+func (*NamedCounterResponse) Descriptor() ([]byte, []int) {
 	return file_stats_proto_rawDescGZIP(), []int{5}
 }
 
-func (x *OnlineCountResponse) GetStat() *TrafficCounter {
+func (x *NamedCounterResponse) GetStat() *TrafficCounter {
 	if x != nil {
 		return x.Stat
 	}
@@ -466,6 +466,59 @@ func (x *OnlineUsersResponse) GetUsers() []string {
 	return nil
 }
 
+// Wire projection for GetStats. Reset swaps the existing counter with zero.
+type ResetCounterRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Reset_        bool                   `protobuf:"varint,2,opt,name=reset,proto3" json:"reset,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ResetCounterRequest) Reset() {
+	*x = ResetCounterRequest{}
+	mi := &file_stats_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ResetCounterRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ResetCounterRequest) ProtoMessage() {}
+
+func (x *ResetCounterRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_stats_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ResetCounterRequest.ProtoReflect.Descriptor instead.
+func (*ResetCounterRequest) Descriptor() ([]byte, []int) {
+	return file_stats_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *ResetCounterRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *ResetCounterRequest) GetReset_() bool {
+	if x != nil {
+		return x.Reset_
+	}
+	return false
+}
+
 var File_stats_proto protoreflect.FileDescriptor
 
 const file_stats_proto_rawDesc = "" +
@@ -492,8 +545,8 @@ const file_stats_proto_rawDesc = "" +
 	"\x12QueryStatsResponse\x12<\n" +
 	"\x05stats\x18\x01 \x03(\v2&.papiliovpn.xray.native.TrafficCounterR\x05stats\"#\n" +
 	"\rOnlineRequest\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\"Q\n" +
-	"\x13OnlineCountResponse\x12:\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\"R\n" +
+	"\x14NamedCounterResponse\x12:\n" +
 	"\x04stat\x18\x01 \x01(\v2&.papiliovpn.xray.native.TrafficCounterR\x04stat\"\xa5\x01\n" +
 	"\x11OnlineIPsResponse\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12D\n" +
@@ -502,7 +555,10 @@ const file_stats_proto_rawDesc = "" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\x03R\x05value:\x028\x01\"+\n" +
 	"\x13OnlineUsersResponse\x12\x14\n" +
-	"\x05users\x18\x01 \x03(\tR\x05usersB?Z=github.com/PapilioVPN/node/internal/engines/xray/stats/nativeb\x06proto3"
+	"\x05users\x18\x01 \x03(\tR\x05users\"?\n" +
+	"\x13ResetCounterRequest\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
+	"\x05reset\x18\x02 \x01(\bR\x05resetB?Z=github.com/PapilioVPN/node/internal/engines/xray/stats/nativeb\x06proto3"
 
 var (
 	file_stats_proto_rawDescOnce sync.Once
@@ -516,22 +572,23 @@ func file_stats_proto_rawDescGZIP() []byte {
 	return file_stats_proto_rawDescData
 }
 
-var file_stats_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_stats_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_stats_proto_goTypes = []any{
-	(*SysStatsResponse)(nil),    // 0: papiliovpn.xray.native.SysStatsResponse
-	(*QueryStatsRequest)(nil),   // 1: papiliovpn.xray.native.QueryStatsRequest
-	(*TrafficCounter)(nil),      // 2: papiliovpn.xray.native.TrafficCounter
-	(*QueryStatsResponse)(nil),  // 3: papiliovpn.xray.native.QueryStatsResponse
-	(*OnlineRequest)(nil),       // 4: papiliovpn.xray.native.OnlineRequest
-	(*OnlineCountResponse)(nil), // 5: papiliovpn.xray.native.OnlineCountResponse
-	(*OnlineIPsResponse)(nil),   // 6: papiliovpn.xray.native.OnlineIPsResponse
-	(*OnlineUsersResponse)(nil), // 7: papiliovpn.xray.native.OnlineUsersResponse
-	nil,                         // 8: papiliovpn.xray.native.OnlineIPsResponse.IpsEntry
+	(*SysStatsResponse)(nil),     // 0: papiliovpn.xray.native.SysStatsResponse
+	(*QueryStatsRequest)(nil),    // 1: papiliovpn.xray.native.QueryStatsRequest
+	(*TrafficCounter)(nil),       // 2: papiliovpn.xray.native.TrafficCounter
+	(*QueryStatsResponse)(nil),   // 3: papiliovpn.xray.native.QueryStatsResponse
+	(*OnlineRequest)(nil),        // 4: papiliovpn.xray.native.OnlineRequest
+	(*NamedCounterResponse)(nil), // 5: papiliovpn.xray.native.NamedCounterResponse
+	(*OnlineIPsResponse)(nil),    // 6: papiliovpn.xray.native.OnlineIPsResponse
+	(*OnlineUsersResponse)(nil),  // 7: papiliovpn.xray.native.OnlineUsersResponse
+	(*ResetCounterRequest)(nil),  // 8: papiliovpn.xray.native.ResetCounterRequest
+	nil,                          // 9: papiliovpn.xray.native.OnlineIPsResponse.IpsEntry
 }
 var file_stats_proto_depIdxs = []int32{
 	2, // 0: papiliovpn.xray.native.QueryStatsResponse.stats:type_name -> papiliovpn.xray.native.TrafficCounter
-	2, // 1: papiliovpn.xray.native.OnlineCountResponse.stat:type_name -> papiliovpn.xray.native.TrafficCounter
-	8, // 2: papiliovpn.xray.native.OnlineIPsResponse.ips:type_name -> papiliovpn.xray.native.OnlineIPsResponse.IpsEntry
+	2, // 1: papiliovpn.xray.native.NamedCounterResponse.stat:type_name -> papiliovpn.xray.native.TrafficCounter
+	9, // 2: papiliovpn.xray.native.OnlineIPsResponse.ips:type_name -> papiliovpn.xray.native.OnlineIPsResponse.IpsEntry
 	3, // [3:3] is the sub-list for method output_type
 	3, // [3:3] is the sub-list for method input_type
 	3, // [3:3] is the sub-list for extension type_name
@@ -550,7 +607,7 @@ func file_stats_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_stats_proto_rawDesc), len(file_stats_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   9,
+			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

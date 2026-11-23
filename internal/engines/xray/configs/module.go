@@ -17,7 +17,10 @@ func register(config settings.Xray, router *chi.Mux, server *grpcserver.Server) 
 	if !config.Enabled() {
 		return
 	}
-	service := validation.New(validation.Config(config))
+	service := validation.New(validation.Config{
+		ID: config.ID, Executable: config.Executable,
+		ConfigFile: config.ConfigFile, RuntimeDirectory: config.RuntimeDirectory,
+	})
 	http.Register(router, service)
 	grpc.Register(server, service)
 }

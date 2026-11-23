@@ -13,27 +13,30 @@ const (
 	maxConcurrentLists = 16
 )
 
-type reader interface {
+type counters interface {
 	Read(context.Context, string, Scope, string) (Usage, error)
 	List(context.Context, string, Scope) ([]Usage, error)
+	Reset(context.Context, Counter) (int64, error)
 }
 
 type Service struct {
-	reader reader
-	reads  atomic.Int32
-	lists  atomic.Int32
+	counters     counters
+	reads        atomic.Int32
+	resets       atomic.Int32
+	resetEnabled bool
+	lists        atomic.Int32
 }
 
-func New(reader reader) *Service {
-	return &Service{reader: reader}
+func New(counters counters, resetEnabled bool) *Service {
+	return &Service{counters: counters, resetEnabled: resetEnabled}
 }
 
 func (service *Service) Get(ctx context.Context, id string, scope Scope, name string) (Usage, error) {
 	if id == "" || !scope.valid() || name == "" || len(name) > maxNameBytes {
 		return Usage{}, ErrInvalid
 	}
-	return withReadLimit(ctx, &service.reads, maxConcurrentReads, func(ctx context.Context) (Usage, error) {
-		return service.reader.Read(ctx, id, scope, name)
+	return withLimit(ctx, &service.reads, maxConcurrentReads, ErrBusy, func(ctx context.Context) (Usage, error) {
+		return service.counters.Read(ctx, id, scope, name)
 	})
 }
 
@@ -41,19 +44,19 @@ func (service *Service) List(ctx context.Context, id string, scope Scope) ([]Usa
 	if id == "" || !scope.valid() {
 		return nil, ErrInvalid
 	}
-	return withReadLimit(ctx, &service.lists, maxConcurrentLists, func(ctx context.Context) ([]Usage, error) {
-		return service.reader.List(ctx, id, scope)
+	return withLimit(ctx, &service.lists, maxConcurrentLists, ErrBusy, func(ctx context.Context) ([]Usage, error) {
+		return service.counters.List(ctx, id, scope)
 	})
 }
 
-func withReadLimit[T any](ctx context.Context, active *atomic.Int32, limit int32, read func(context.Context) (T, error)) (T, error) {
+func withLimit[T any](ctx context.Context, active *atomic.Int32, limit int32, busy error, read func(context.Context) (T, error)) (T, error) {
 	var zero T
 	if err := ctx.Err(); err != nil {
 		return zero, err
 	}
 	for count := active.Load(); ; count = active.Load() {
 		if count >= limit {
-			return zero, ErrBusy
+			return zero, busy
 		}
 		if active.CompareAndSwap(count, count+1) {
 			break

@@ -31,3 +31,30 @@ message XrayTrafficUsage {
 message XrayTrafficList {
   repeated XrayTrafficUsage entries = 1;
 }
+
+enum XrayTrafficDirection {
+  XRAY_TRAFFIC_DIRECTION_UNSPECIFIED = 0;
+  XRAY_TRAFFIC_DIRECTION_UPLINK = 1;
+  XRAY_TRAFFIC_DIRECTION_DOWNLINK = 2;
+}
+
+message XrayTrafficResetRequest {
+  string id = 1;
+  XrayTrafficScope scope = 2;
+  string name = 3;
+  XrayTrafficDirection direction = 4;
+}
+
+message XrayTrafficResetResult {
+  int64 previous_bytes = 1;
+}
+
+// A missing failure detail gives the client no evidence of the reset outcome.
+message XrayTrafficResetFailure {
+  enum Effect {
+    EFFECT_UNSPECIFIED = 0;
+    NOT_APPLIED = 1;
+    UNKNOWN = 2;
+  }
+  Effect effect = 1;
+}

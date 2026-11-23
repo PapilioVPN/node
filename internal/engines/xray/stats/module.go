@@ -24,7 +24,7 @@ func register(life fx.Lifecycle, config settings.Xray, instance *lifecycle.Servi
 	service := runtime.New(instance)
 	life.Append(fx.Hook{OnStop: service.Close})
 	http.Register(router, service)
-	trafficService := traffic.New(native.NewTraffic(instance))
+	trafficService := traffic.New(native.NewTraffic(instance), config.ResetEngineStats)
 	http.RegisterTraffic(router, trafficService)
 	onlineService := online.New(native.NewOnline(instance))
 	http.RegisterOnline(router, onlineService)

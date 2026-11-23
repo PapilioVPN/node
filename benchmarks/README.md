@@ -653,3 +653,39 @@ GOMAXPROCS=1 XRAY_BENCH_ONLINE_USERS="$XRAY_BINARY" \
   focused repeats for the slower cases, and the JSON encoding measurements.
 - [Recorded outbound health](xray/outbound-health.md) includes the paired results,
   contract differences, and raw samples for the individual requests.
+
+## Xray exact traffic counter reset
+
+Node sends one targeted native `GetStats(reset=true)` for a selected account
+or tag and direction. The pinned PasarGuard reset uses a substring
+`QueryStats` that can clear both directions and other matching counters. The
+benchmark uses the exact Xray call as the baseline. [PasarGuard reset implementation](https://github.com/PasarGuard/node/blob/739eab94a9343d9f0035baf7162796844109f4c4/backend/xray/api/stats.go#L41-L49) · [Pinned Xray reset](https://github.com/XTLS/Xray-core/blob/676eaf66f8f05d4d558ee7a74b4736623d3feeb9/app/stats/command/command.go#L30-L46)
+
+The fixture creates 1 or 512 registered user downlink counters with local
+HTTP proxy traffic and clears one nonzero counter before timing. Every timed
+operation resets the same registered zero counter without foreground traffic.
+Each path uses the same Xray instance. The native path uses a Unix socket.
+The public paths add TLS, loopback transport, API-key validation and wire
+encoding. All processes use logical CPU 2, `GOMAXPROCS=1` and pinned Xray
+v26.11.9. Node and the fixture client were built with Go 1.27.3 on Linux
+6.17, amd64, AMD Ryzen 7 3750H.
+
+Each cell shows median p50 µs / p95 µs / successful requests per second over
+five 300 ms rounds. No requests were rejected.
+
+| Registered counters | Clients | Native Xray | Node HTTP | Node gRPC |
+| ---: | ---: | ---: | ---: | ---: |
+| 1 | 1 | 127 / 215 / 6813 | 331 / 696 / 2552 | 415 / 747 / 2225 |
+| 1 | 8 | 392 / 928 / 15262 | 1571 / 3505 / 4367 | 1172 / 3084 / 5784 |
+| 512 | 1 | 155 / 359 / 5034 | 688 / 1270 / 1187 | 483 / 1160 / 1612 |
+| 512 | 8 | 403 / 825 / 16000 | 1776 / 3577 / 3973 | 1391 / 3280 / 5125 |
+
+[Per-round CSV](xray/results/2026-11-23-traffic-reset.csv) · [Benchmark source](xray/reset_test.go)
+
+Set `XRAY_BINARY` to the absolute path of the pinned Xray executable.
+
+```sh
+work=$(mktemp -d)
+GOTOOLCHAIN=go1.27.3 CGO_ENABLED=0 go test -c -trimpath -o "$work/bench" ./benchmarks/xray
+GOMAXPROCS=1 XRAY_BENCH_TRAFFIC_RESET="$XRAY_BINARY"   taskset -c "${XRAY_BENCH_SERVER_CPU:-2}" "$work/bench" -test.run '^TestMeasureTrafficReset$' -test.v
+```

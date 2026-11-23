@@ -69,6 +69,7 @@ docker run --rm --network=host --read-only --cap-drop ALL \
 | اعتبارسنجی کانفیگ Xray | بررسی فایل JSON تنظیم‌شده از HTTP و gRPC پیش از راه‌اندازی دوبارهٔ نمونه. |
 | آمار اجرای Xray | خواندن زمان کارکرد، تخصیص حافظه، goroutineها و شمارنده‌های GC نمونهٔ فعال از HTTP و gRPC. |
 | شمارنده‌های ترافیک Xray | بایت آپلود و دانلود یک یا همهٔ حساب‌ها، ورودی‌ها یا خروجی‌ها را با HTTP و gRPC بخوان. |
+| ریست دقیق ترافیک Xray | با فعال‌سازی صریح، مقدار یک شمارندهٔ آپلود یا دانلود را با HTTP یا gRPC بخوان و صفر کن. |
 | حساب‌ها و IPهای آنلاین Xray | فهرست حساب‌های آنلاین، تعداد IPهای مبدأ یکتا و زمان آخرین مشاهده را با HTTP و gRPC بخوان. |
 | مسیریابی Xray | قوانین فعال را به ترتیب بخوان و وضعیت یک balancer را با تگ آن از HTTP و gRPC بگیر. |
 | سلامت خروجی‌های Xray | نمونه‌های ثبت‌شدهٔ Observatory را برای همهٔ خروجی‌ها یا یک تگ با HTTP و gRPC بخوان. |
@@ -98,6 +99,8 @@ docker run --rm --network=host --read-only --cap-drop ALL \
 از `GET /v1/xray/instances/{id}/stats/runtime` یا `XrayStatsService.GetRuntimeStats` استفاده کن. هر پاسخ از نمونه‌ای تازه از اجرای فعال Xray استفاده می‌کند. درخواست‌های هم‌زمان می‌توانند نمونهٔ بعدی را مشترک بخوانند. واحد حافظه بایت، زمان کارکرد ثانیهٔ کامل از آغاز سرویس آمار Xray و مجموع مکث GC نانوثانیه است. اگر نمونهٔ تنظیم‌شده در دسترس نباشد، HTTP پاسخ `503` و gRPC وضعیت `UNAVAILABLE` می‌دهد. صف انتظار ظرفیت ۱۲۸ درخواست دارد. اگر صف پر باشد، درخواست در HTTP پاسخ `429` و در gRPC وضعیت `RESOURCE_EXHAUSTED` می‌گیرد. [قرارداد gRPC](internal/engines/xray/stats/bridge/grpc/proto/v1/runtime_stats.proto) · [بنچمارک و نتایج خام](benchmarks/README.md#xray-runtime-statistics-after-the-rewrite)
 
 از `GET /v1/xray/instances/{id}/stats/traffic/{scope}` با `user`، `inbound` یا `outbound` استفاده کن. برای یک حساب یا تگ، `?name=...` را اضافه کن. متدهای gRPC، `XrayStatsService.GetTraffic` و `ListTraffic` هستند. خواندن، شمارنده‌ها را تغییر نمی‌دهد. جهت غایب در پاسخ نمی‌آید و مقدار صفر به‌صورت صفر برمی‌گردد. اگر نام پیدا نشود، HTTP پاسخ `404` و gRPC وضعیت `NOT_FOUND` می‌دهد. فهرست ترتیب ثابتی ندارد. آمار ترافیک محدودهٔ موردنیاز را در سیاست Xray فعال کن. [قرارداد gRPC](internal/engines/xray/stats/bridge/grpc/proto/v1/traffic.proto)
+
+برای ریست ترافیک در API مدیریت، `xray.reset_engine_stats: true` را فعال کن. از `POST /v1/xray/instances/{id}/stats/traffic/{scope}/resets?name=...&direction=uplink` یا `XrayStatsService.ResetTrafficCounter` استفاده کن. برای دانلود، جهت `downlink` را بده. Xray مقدار قبلی را بر حسب بایت برمی‌گرداند و همان شمارنده را اتمی صفر می‌کند. در صورت نتیجهٔ نامعلوم یا نرسیدن پاسخ، قبل از تکرار وضعیت را بررسی کن.
 
 از `GET /v1/xray/instances/{id}/stats/online/count?name=...` برای شمارش و از `/stats/online/ips?name=...` زیر مسیر همان نمونه برای فهرست استفاده کن. متدهای gRPC، `XrayStatsService.GetOnlineIPCount` و `ListOnlineIPs` هستند. `statsUserOnline` را در سطح سیاست حساب فعال کن. زمان‌ها بر حسب ثانیهٔ یونیکس هستند. اگر نقشهٔ IP حساب خالی باشد، شمارش صفر و فهرست خالی برمی‌گردد. اگر مشاهده‌ای وجود نداشته باشد، HTTP پاسخ `404` و gRPC وضعیت `NOT_FOUND` می‌دهد. [قرارداد gRPC](internal/engines/xray/stats/bridge/grpc/proto/v1/online.proto)
 

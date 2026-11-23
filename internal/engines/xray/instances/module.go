@@ -14,7 +14,10 @@ import (
 var Module = fx.Module("xray-instances", fx.Provide(newService), fx.Invoke(register))
 
 func newService(config settings.Xray) *lifecycle.Service {
-	return lifecycle.New(lifecycle.Config(config))
+	return lifecycle.New(lifecycle.Config{
+		ID: config.ID, Executable: config.Executable,
+		ConfigFile: config.ConfigFile, RuntimeDirectory: config.RuntimeDirectory,
+	})
 }
 
 func register(life fx.Lifecycle, config settings.Xray, service *lifecycle.Service, router *chi.Mux, server *grpcserver.Server) {

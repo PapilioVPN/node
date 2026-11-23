@@ -69,7 +69,7 @@ func TestTrafficCountersWithRealProxy(t *testing.T) {
 	server := grpc.NewServer()
 	var owner *lifecycle.Service
 	app := fx.New(fx.NopLogger, xray.Module,
-		fx.Supply(router, server, settings.Xray{ID: "primary", Executable: executable, ConfigFile: config, RuntimeDirectory: dir}),
+		fx.Supply(router, server, settings.Xray{ID: "primary", Executable: executable, ConfigFile: config, RuntimeDirectory: dir, ResetEngineStats: true}),
 		fx.Populate(&owner))
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	defer cancel()
@@ -174,6 +174,9 @@ func TestTrafficCountersWithRealProxy(t *testing.T) {
 	if status.Code(err) != codes.NotFound {
 		t.Fatalf("missing counter: gRPC %v", err)
 	}
+	t.Run("traffic counter reset", func(t *testing.T) {
+		verifyTrafficReset(t, ctx, router, client)
+	})
 	_, err = owner.Stop(ctx, "primary")
 	require(t, err)
 	_, err = client.ListTraffic(ctx, &statsv1.XrayTrafficListRequest{Id: "primary", Scope: user})

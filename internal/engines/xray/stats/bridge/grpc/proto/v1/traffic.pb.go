@@ -73,6 +73,104 @@ func (XrayTrafficScope) EnumDescriptor() ([]byte, []int) {
 	return file_proto_v1_traffic_proto_rawDescGZIP(), []int{0}
 }
 
+type XrayTrafficDirection int32
+
+const (
+	XrayTrafficDirection_XRAY_TRAFFIC_DIRECTION_UNSPECIFIED XrayTrafficDirection = 0
+	XrayTrafficDirection_XRAY_TRAFFIC_DIRECTION_UPLINK      XrayTrafficDirection = 1
+	XrayTrafficDirection_XRAY_TRAFFIC_DIRECTION_DOWNLINK    XrayTrafficDirection = 2
+)
+
+// Enum value maps for XrayTrafficDirection.
+var (
+	XrayTrafficDirection_name = map[int32]string{
+		0: "XRAY_TRAFFIC_DIRECTION_UNSPECIFIED",
+		1: "XRAY_TRAFFIC_DIRECTION_UPLINK",
+		2: "XRAY_TRAFFIC_DIRECTION_DOWNLINK",
+	}
+	XrayTrafficDirection_value = map[string]int32{
+		"XRAY_TRAFFIC_DIRECTION_UNSPECIFIED": 0,
+		"XRAY_TRAFFIC_DIRECTION_UPLINK":      1,
+		"XRAY_TRAFFIC_DIRECTION_DOWNLINK":    2,
+	}
+)
+
+func (x XrayTrafficDirection) Enum() *XrayTrafficDirection {
+	p := new(XrayTrafficDirection)
+	*p = x
+	return p
+}
+
+func (x XrayTrafficDirection) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (XrayTrafficDirection) Descriptor() protoreflect.EnumDescriptor {
+	return file_proto_v1_traffic_proto_enumTypes[1].Descriptor()
+}
+
+func (XrayTrafficDirection) Type() protoreflect.EnumType {
+	return &file_proto_v1_traffic_proto_enumTypes[1]
+}
+
+func (x XrayTrafficDirection) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use XrayTrafficDirection.Descriptor instead.
+func (XrayTrafficDirection) EnumDescriptor() ([]byte, []int) {
+	return file_proto_v1_traffic_proto_rawDescGZIP(), []int{1}
+}
+
+type XrayTrafficResetFailure_Effect int32
+
+const (
+	XrayTrafficResetFailure_EFFECT_UNSPECIFIED XrayTrafficResetFailure_Effect = 0
+	XrayTrafficResetFailure_NOT_APPLIED        XrayTrafficResetFailure_Effect = 1
+	XrayTrafficResetFailure_UNKNOWN            XrayTrafficResetFailure_Effect = 2
+)
+
+// Enum value maps for XrayTrafficResetFailure_Effect.
+var (
+	XrayTrafficResetFailure_Effect_name = map[int32]string{
+		0: "EFFECT_UNSPECIFIED",
+		1: "NOT_APPLIED",
+		2: "UNKNOWN",
+	}
+	XrayTrafficResetFailure_Effect_value = map[string]int32{
+		"EFFECT_UNSPECIFIED": 0,
+		"NOT_APPLIED":        1,
+		"UNKNOWN":            2,
+	}
+)
+
+func (x XrayTrafficResetFailure_Effect) Enum() *XrayTrafficResetFailure_Effect {
+	p := new(XrayTrafficResetFailure_Effect)
+	*p = x
+	return p
+}
+
+func (x XrayTrafficResetFailure_Effect) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (XrayTrafficResetFailure_Effect) Descriptor() protoreflect.EnumDescriptor {
+	return file_proto_v1_traffic_proto_enumTypes[2].Descriptor()
+}
+
+func (XrayTrafficResetFailure_Effect) Type() protoreflect.EnumType {
+	return &file_proto_v1_traffic_proto_enumTypes[2]
+}
+
+func (x XrayTrafficResetFailure_Effect) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use XrayTrafficResetFailure_Effect.Descriptor instead.
+func (XrayTrafficResetFailure_Effect) EnumDescriptor() ([]byte, []int) {
+	return file_proto_v1_traffic_proto_rawDescGZIP(), []int{6, 0}
+}
+
 type XrayTrafficRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -289,6 +387,163 @@ func (x *XrayTrafficList) GetEntries() []*XrayTrafficUsage {
 	return nil
 }
 
+type XrayTrafficResetRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Scope         XrayTrafficScope       `protobuf:"varint,2,opt,name=scope,proto3,enum=papiliovpn.node.v1.XrayTrafficScope" json:"scope,omitempty"`
+	Name          string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	Direction     XrayTrafficDirection   `protobuf:"varint,4,opt,name=direction,proto3,enum=papiliovpn.node.v1.XrayTrafficDirection" json:"direction,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *XrayTrafficResetRequest) Reset() {
+	*x = XrayTrafficResetRequest{}
+	mi := &file_proto_v1_traffic_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *XrayTrafficResetRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*XrayTrafficResetRequest) ProtoMessage() {}
+
+func (x *XrayTrafficResetRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_v1_traffic_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use XrayTrafficResetRequest.ProtoReflect.Descriptor instead.
+func (*XrayTrafficResetRequest) Descriptor() ([]byte, []int) {
+	return file_proto_v1_traffic_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *XrayTrafficResetRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *XrayTrafficResetRequest) GetScope() XrayTrafficScope {
+	if x != nil {
+		return x.Scope
+	}
+	return XrayTrafficScope_XRAY_TRAFFIC_SCOPE_UNSPECIFIED
+}
+
+func (x *XrayTrafficResetRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *XrayTrafficResetRequest) GetDirection() XrayTrafficDirection {
+	if x != nil {
+		return x.Direction
+	}
+	return XrayTrafficDirection_XRAY_TRAFFIC_DIRECTION_UNSPECIFIED
+}
+
+type XrayTrafficResetResult struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	PreviousBytes int64                  `protobuf:"varint,1,opt,name=previous_bytes,json=previousBytes,proto3" json:"previous_bytes,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *XrayTrafficResetResult) Reset() {
+	*x = XrayTrafficResetResult{}
+	mi := &file_proto_v1_traffic_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *XrayTrafficResetResult) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*XrayTrafficResetResult) ProtoMessage() {}
+
+func (x *XrayTrafficResetResult) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_v1_traffic_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use XrayTrafficResetResult.ProtoReflect.Descriptor instead.
+func (*XrayTrafficResetResult) Descriptor() ([]byte, []int) {
+	return file_proto_v1_traffic_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *XrayTrafficResetResult) GetPreviousBytes() int64 {
+	if x != nil {
+		return x.PreviousBytes
+	}
+	return 0
+}
+
+// A missing failure detail gives the client no evidence of the reset outcome.
+type XrayTrafficResetFailure struct {
+	state         protoimpl.MessageState         `protogen:"open.v1"`
+	Effect        XrayTrafficResetFailure_Effect `protobuf:"varint,1,opt,name=effect,proto3,enum=papiliovpn.node.v1.XrayTrafficResetFailure_Effect" json:"effect,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *XrayTrafficResetFailure) Reset() {
+	*x = XrayTrafficResetFailure{}
+	mi := &file_proto_v1_traffic_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *XrayTrafficResetFailure) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*XrayTrafficResetFailure) ProtoMessage() {}
+
+func (x *XrayTrafficResetFailure) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_v1_traffic_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use XrayTrafficResetFailure.ProtoReflect.Descriptor instead.
+func (*XrayTrafficResetFailure) Descriptor() ([]byte, []int) {
+	return file_proto_v1_traffic_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *XrayTrafficResetFailure) GetEffect() XrayTrafficResetFailure_Effect {
+	if x != nil {
+		return x.Effect
+	}
+	return XrayTrafficResetFailure_EFFECT_UNSPECIFIED
+}
+
 var File_proto_v1_traffic_proto protoreflect.FileDescriptor
 
 const file_proto_v1_traffic_proto_rawDesc = "" +
@@ -308,12 +563,29 @@ const file_proto_v1_traffic_proto_rawDesc = "" +
 	"\r_uplink_bytesB\x11\n" +
 	"\x0f_downlink_bytes\"Q\n" +
 	"\x0fXrayTrafficList\x12>\n" +
-	"\aentries\x18\x01 \x03(\v2$.papiliovpn.node.v1.XrayTrafficUsageR\aentries*\x94\x01\n" +
+	"\aentries\x18\x01 \x03(\v2$.papiliovpn.node.v1.XrayTrafficUsageR\aentries\"\xc1\x01\n" +
+	"\x17XrayTrafficResetRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12:\n" +
+	"\x05scope\x18\x02 \x01(\x0e2$.papiliovpn.node.v1.XrayTrafficScopeR\x05scope\x12\x12\n" +
+	"\x04name\x18\x03 \x01(\tR\x04name\x12F\n" +
+	"\tdirection\x18\x04 \x01(\x0e2(.papiliovpn.node.v1.XrayTrafficDirectionR\tdirection\"?\n" +
+	"\x16XrayTrafficResetResult\x12%\n" +
+	"\x0eprevious_bytes\x18\x01 \x01(\x03R\rpreviousBytes\"\xa5\x01\n" +
+	"\x17XrayTrafficResetFailure\x12J\n" +
+	"\x06effect\x18\x01 \x01(\x0e22.papiliovpn.node.v1.XrayTrafficResetFailure.EffectR\x06effect\">\n" +
+	"\x06Effect\x12\x16\n" +
+	"\x12EFFECT_UNSPECIFIED\x10\x00\x12\x0f\n" +
+	"\vNOT_APPLIED\x10\x01\x12\v\n" +
+	"\aUNKNOWN\x10\x02*\x94\x01\n" +
 	"\x10XrayTrafficScope\x12\"\n" +
 	"\x1eXRAY_TRAFFIC_SCOPE_UNSPECIFIED\x10\x00\x12\x1b\n" +
 	"\x17XRAY_TRAFFIC_SCOPE_USER\x10\x01\x12\x1e\n" +
 	"\x1aXRAY_TRAFFIC_SCOPE_INBOUND\x10\x02\x12\x1f\n" +
-	"\x1bXRAY_TRAFFIC_SCOPE_OUTBOUND\x10\x03BUZSgithub.com/PapilioVPN/node/internal/engines/xray/stats/bridge/grpc/proto/v1;statsv1b\x06proto3"
+	"\x1bXRAY_TRAFFIC_SCOPE_OUTBOUND\x10\x03*\x86\x01\n" +
+	"\x14XrayTrafficDirection\x12&\n" +
+	"\"XRAY_TRAFFIC_DIRECTION_UNSPECIFIED\x10\x00\x12!\n" +
+	"\x1dXRAY_TRAFFIC_DIRECTION_UPLINK\x10\x01\x12#\n" +
+	"\x1fXRAY_TRAFFIC_DIRECTION_DOWNLINK\x10\x02BUZSgithub.com/PapilioVPN/node/internal/engines/xray/stats/bridge/grpc/proto/v1;statsv1b\x06proto3"
 
 var (
 	file_proto_v1_traffic_proto_rawDescOnce sync.Once
@@ -327,24 +599,32 @@ func file_proto_v1_traffic_proto_rawDescGZIP() []byte {
 	return file_proto_v1_traffic_proto_rawDescData
 }
 
-var file_proto_v1_traffic_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_proto_v1_traffic_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_proto_v1_traffic_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
+var file_proto_v1_traffic_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_proto_v1_traffic_proto_goTypes = []any{
-	(XrayTrafficScope)(0),          // 0: papiliovpn.node.v1.XrayTrafficScope
-	(*XrayTrafficRequest)(nil),     // 1: papiliovpn.node.v1.XrayTrafficRequest
-	(*XrayTrafficListRequest)(nil), // 2: papiliovpn.node.v1.XrayTrafficListRequest
-	(*XrayTrafficUsage)(nil),       // 3: papiliovpn.node.v1.XrayTrafficUsage
-	(*XrayTrafficList)(nil),        // 4: papiliovpn.node.v1.XrayTrafficList
+	(XrayTrafficScope)(0),               // 0: papiliovpn.node.v1.XrayTrafficScope
+	(XrayTrafficDirection)(0),           // 1: papiliovpn.node.v1.XrayTrafficDirection
+	(XrayTrafficResetFailure_Effect)(0), // 2: papiliovpn.node.v1.XrayTrafficResetFailure.Effect
+	(*XrayTrafficRequest)(nil),          // 3: papiliovpn.node.v1.XrayTrafficRequest
+	(*XrayTrafficListRequest)(nil),      // 4: papiliovpn.node.v1.XrayTrafficListRequest
+	(*XrayTrafficUsage)(nil),            // 5: papiliovpn.node.v1.XrayTrafficUsage
+	(*XrayTrafficList)(nil),             // 6: papiliovpn.node.v1.XrayTrafficList
+	(*XrayTrafficResetRequest)(nil),     // 7: papiliovpn.node.v1.XrayTrafficResetRequest
+	(*XrayTrafficResetResult)(nil),      // 8: papiliovpn.node.v1.XrayTrafficResetResult
+	(*XrayTrafficResetFailure)(nil),     // 9: papiliovpn.node.v1.XrayTrafficResetFailure
 }
 var file_proto_v1_traffic_proto_depIdxs = []int32{
 	0, // 0: papiliovpn.node.v1.XrayTrafficRequest.scope:type_name -> papiliovpn.node.v1.XrayTrafficScope
 	0, // 1: papiliovpn.node.v1.XrayTrafficListRequest.scope:type_name -> papiliovpn.node.v1.XrayTrafficScope
-	3, // 2: papiliovpn.node.v1.XrayTrafficList.entries:type_name -> papiliovpn.node.v1.XrayTrafficUsage
-	3, // [3:3] is the sub-list for method output_type
-	3, // [3:3] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	5, // 2: papiliovpn.node.v1.XrayTrafficList.entries:type_name -> papiliovpn.node.v1.XrayTrafficUsage
+	0, // 3: papiliovpn.node.v1.XrayTrafficResetRequest.scope:type_name -> papiliovpn.node.v1.XrayTrafficScope
+	1, // 4: papiliovpn.node.v1.XrayTrafficResetRequest.direction:type_name -> papiliovpn.node.v1.XrayTrafficDirection
+	2, // 5: papiliovpn.node.v1.XrayTrafficResetFailure.effect:type_name -> papiliovpn.node.v1.XrayTrafficResetFailure.Effect
+	6, // [6:6] is the sub-list for method output_type
+	6, // [6:6] is the sub-list for method input_type
+	6, // [6:6] is the sub-list for extension type_name
+	6, // [6:6] is the sub-list for extension extendee
+	0, // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_proto_v1_traffic_proto_init() }
@@ -358,8 +638,8 @@ func file_proto_v1_traffic_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_v1_traffic_proto_rawDesc), len(file_proto_v1_traffic_proto_rawDesc)),
-			NumEnums:      1,
-			NumMessages:   4,
+			NumEnums:      3,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

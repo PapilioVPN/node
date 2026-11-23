@@ -37,7 +37,7 @@ message OnlineRequest {
   string name = 1;
 }
 
-message OnlineCountResponse {
+message NamedCounterResponse {
   TrafficCounter stat = 1;
 }
 
@@ -49,4 +49,10 @@ message OnlineIPsResponse {
 // Wire projection for GetAllOnlineUsers.
 message OnlineUsersResponse {
   repeated string users = 1;
+}
+
+// Wire projection for GetStats. Reset swaps the existing counter with zero.
+message ResetCounterRequest {
+  string name = 1;
+  bool reset = 2;
 }
