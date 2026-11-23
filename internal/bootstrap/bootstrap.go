@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/PapilioVPN/node/internal/host"
 	"github.com/PapilioVPN/node/internal/settings"
 	"go.uber.org/fx"
 	"go.uber.org/fx/fxevent"
@@ -18,7 +19,8 @@ const lifecycleTimeout = 5 * time.Second
 func Run(ctx context.Context, config settings.Config, logger *slog.Logger) error {
 	app := fx.New(
 		fx.Supply(config.Management, logger),
-		fx.Provide(loadTLS, newReadiness, newHTTPServer, newGRPCServer),
+		fx.Provide(loadTLS, newReadiness, newHTTPRouter, newHTTPServer, newGRPCServer),
+		host.Module,
 		fx.Invoke(registerListeners),
 		fx.WithLogger(func() fxevent.Logger { return &fxevent.SlogLogger{Logger: logger} }),
 	)

@@ -54,10 +54,13 @@ docker run --rm --network=host --read-only --cap-drop ALL \
 | Area | Available operations |
 | --- | --- |
 | Node readiness | Check whether the Node management listeners are serving over HTTP and gRPC. |
+| Host uptime | Read the elapsed time since Linux boot in whole seconds over HTTP and gRPC. |
 
 <a name="management"></a>
 
 ## Management APIs
+
+HTTP `GET /v1/host/uptime` returns `uptime_seconds`. gRPC `HostService.GetUptime` returns the same quantity using the [Host API contract](api/v1/host.proto). Both read the boot clock visible to Node's Linux time namespace.
 
 The example binds both listeners to loopback. HTTP `GET /healthz` returns `204 No Content` when ready. The gRPC health service on port 8081 reports `SERVING` for the empty service name. Set `management.tls.cert_file` and `management.tls.key_file` to enable TLS. Optionally configure `management.tls.client_ca_file` for mutual TLS and `management.api_key` for the `x-api-key` header or metadata.
 

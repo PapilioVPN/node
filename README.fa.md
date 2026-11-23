@@ -59,10 +59,13 @@ docker run --rm --network=host --read-only --cap-drop ALL \
 | بخش | عملیات در دسترس |
 | --- | --- |
 | آمادگی Node | بررسی آمادگی رابط‌های مدیریتی Node از طریق HTTP و gRPC. |
+| زمان کارکرد میزبان | خواندن زمان سپری‌شده از بوت لینوکس به ثانیهٔ کامل از طریق HTTP و gRPC. |
 
 <a name="management"></a>
 
 ## رابط‌های مدیریتی
+
+درخواست HTTP به `GET /v1/host/uptime` فیلد `uptime_seconds` را برمی‌گرداند. عملیات gRPC یعنی `HostService.GetUptime` همین مقدار را مطابق [قرارداد API میزبان](api/v1/host.proto) می‌دهد. هر دو ساعت بوت قابل مشاهده در فضای زمانی لینوکسِ Node را می‌خوانند.
 
 در نمونه، هر دو listener روی loopback باز می‌شوند. درخواست HTTP به `GET /healthz` هنگام آمادگی پاسخ `204 No Content` دارد. سرویس health در gRPC روی پورت 8081 برای نام سرویس خالی وضعیت `SERVING` را می‌دهد. برای فعال‌کردن TLS، فیلدهای `management.tls.cert_file` و `management.tls.key_file` را تنظیم کن. فیلد `management.tls.client_ca_file` برای mTLS و `management.api_key` برای هدر یا متادیتای `x-api-key` اختیاری‌اند.
 

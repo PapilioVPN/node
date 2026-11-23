@@ -13,7 +13,7 @@ import (
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 )
 
-func newHTTPServer(config settings.Management, tlsConfig *tls.Config, readiness *health.Server) *http.Server {
+func newHTTPRouter(config settings.Management, readiness *health.Server) *chi.Mux {
 	router := chi.NewRouter()
 	router.Use(func(next http.Handler) http.Handler {
 		return bridgehttp.RequireAPIKey(config.APIKey, next)
@@ -26,7 +26,10 @@ func newHTTPServer(config settings.Management, tlsConfig *tls.Config, readiness 
 		}
 		w.WriteHeader(http.StatusNoContent)
 	})
+	return router
+}
 
+func newHTTPServer(config settings.Management, tlsConfig *tls.Config, router *chi.Mux) *http.Server {
 	return &http.Server{
 		Addr:              config.HTTPAddress,
 		Handler:           router,

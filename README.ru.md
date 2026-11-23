@@ -57,10 +57,13 @@ docker run --rm --network=host --read-only --cap-drop ALL \
 | Раздел | Доступные операции |
 | --- | --- |
 | Готовность Node | Проверка готовности интерфейсов управления Node по HTTP и gRPC. |
+| Время работы хоста | Время с момента загрузки Linux в целых секундах по HTTP и gRPC. |
 
 <a name="management"></a>
 
 ## API управления
+
+HTTP-запрос `GET /v1/host/uptime` возвращает поле `uptime_seconds`. В gRPC метод `HostService.GetUptime` возвращает ту же величину согласно [контракту API хоста](api/v1/host.proto). Оба метода используют часы загрузки из пространства имён времени Linux, доступного Node.
 
 В примере оба интерфейса привязаны к loopback. HTTP-запрос `GET /healthz` возвращает `204 No Content`, когда Node готов. Служба проверки gRPC на порту 8081 возвращает `SERVING` для пустого имени службы. Для TLS укажите `management.tls.cert_file` и `management.tls.key_file`. Необязательный параметр `management.tls.client_ca_file` включает mTLS, а `management.api_key` задаёт ключ для заголовка или метаданных `x-api-key`.
 

@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/json"
 	"encoding/pem"
 	"io"
 	"log/slog"
@@ -14,6 +15,8 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -24,6 +27,8 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/emptypb"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 func TestRunServesAndStopsBothListeners(t *testing.T) {
@@ -108,6 +113,8 @@ func TestRunServesAndStopsBothListeners(t *testing.T) {
 			if err != nil || response.GetStatus() != healthpb.HealthCheckResponse_SERVING {
 				t.Fatalf("gRPC readiness = %v, %v", response, err)
 			}
+			verifyHostUptime(t, verifyCtx, httpClient, scheme+"://"+httpAddress, config.APIKey, connection)
+
 			if mode.mutual {
 				serverOnlyTLS := grpcConfig.TLS.Clone()
 				serverOnlyTLS.Certificates = nil
@@ -124,6 +131,63 @@ func TestRunServesAndStopsBothListeners(t *testing.T) {
 			}
 		})
 	}
+}
+
+func verifyHostUptime(t *testing.T, ctx context.Context, httpClient *http.Client, baseURL, key string, connection *grpc.ClientConn) {
+	t.Helper()
+	const method = "/papiliovpn.node.v1.HostService/GetUptime"
+	before := procUptime(t)
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, baseURL+"/v1/host/uptime", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if key != "" {
+		request.Header.Set("X-API-Key", key)
+		checkHTTP(t, ctx, httpClient, request.URL.String(), "", http.StatusUnauthorized)
+	}
+	response, err := httpClient.Do(request)
+	var observed struct {
+		Seconds *uint64 `json:"uptime_seconds"`
+	}
+	if err != nil {
+		t.Error(err)
+	} else {
+		defer response.Body.Close()
+		if response.StatusCode != http.StatusOK {
+			t.Errorf("HTTP uptime status = %d, want %d", response.StatusCode, http.StatusOK)
+		} else if err := json.NewDecoder(response.Body).Decode(&observed); err != nil {
+			t.Error(err)
+		} else if observed.Seconds == nil {
+			t.Error("HTTP uptime response omitted uptime_seconds")
+		}
+	}
+	var rpcUptime wrapperspb.UInt64Value
+	rpcErr := connection.Invoke(ctx, method, &emptypb.Empty{}, &rpcUptime)
+	after := procUptime(t)
+	if observed.Seconds != nil && (*observed.Seconds < before || *observed.Seconds > after) {
+		t.Errorf("HTTP uptime = %d, want %d to %d", *observed.Seconds, before, after)
+	}
+	if rpcErr != nil || rpcUptime.GetValue() < before || rpcUptime.GetValue() > after {
+		t.Errorf("gRPC uptime = %d, %v, want %d to %d", rpcUptime.GetValue(), rpcErr, before, after)
+	}
+}
+
+func procUptime(t *testing.T) uint64 {
+	t.Helper()
+	data, err := os.ReadFile("/proc/uptime")
+	if err != nil {
+		t.Fatal(err)
+	}
+	fields := strings.Fields(string(data))
+	if len(fields) == 0 {
+		t.Fatal("empty /proc/uptime")
+	}
+	whole, _, _ := strings.Cut(fields[0], ".")
+	seconds, err := strconv.ParseUint(whole, 10, 64)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return seconds
 }
 
 func TestBindFailureReleasesFirstListener(t *testing.T) {

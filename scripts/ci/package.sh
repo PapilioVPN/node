@@ -51,6 +51,7 @@ if [[ "$ready" != true ]]; then
   docker logs "$container" >&2
   exit 1
 fi
+curl -fs --max-time 1 "http://$address/v1/host/uptime" >/dev/null
 docker stop --time 8 "$container" >/dev/null
 test "$(docker inspect --format '{{.State.ExitCode}}' "$container")" = 0
 
