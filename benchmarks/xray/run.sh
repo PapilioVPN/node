@@ -143,6 +143,9 @@ xray:
   config_file: 'xray.json'
   runtime_directory: 'run'
 YAML
+if [[ ${XRAY_BENCH_TRAFFIC_CASE:-} == reset-pair/one ]]; then
+  printf '  reset_engine_stats: true\n' >> "$work/node.yml"
+fi
 
 export GOMAXPROCS=1
 benchmark_args=()

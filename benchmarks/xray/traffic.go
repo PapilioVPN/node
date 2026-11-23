@@ -45,12 +45,16 @@ func benchmarkTraffic(protocol string, targets []target, rounds int, clients []i
 		{"outbound", statsv1.XrayTrafficScope_XRAY_TRAFFIC_SCOPE_OUTBOUND, 1, "direct", 1},
 		{"outbound", statsv1.XrayTrafficScope_XRAY_TRAFFIC_SCOPE_OUTBOUND, 0, "", 1},
 	}
+	resetPair := selection == "reset-pair/one"
 	online := selection == "online" || strings.HasPrefix(selection, "online-")
 	if online {
 		cases = []trafficRead{
 			{scope: "online-count", name: "account-0000"},
 			{scope: "online-ips", name: "account-0000"},
 		}
+	}
+	if resetPair {
+		cases = []trafficRead{{scope: "reset-pair", name: "account-0000"}}
 	}
 	if selection != "" && selection != "online" {
 		cases = slices.DeleteFunc(cases, func(item trafficRead) bool { return item.label() != selection })
@@ -73,6 +77,13 @@ func benchmarkTraffic(protocol string, targets []target, rounds int, clients []i
 			defer tunnel.Close()
 		} else {
 			check(seedTraffic(ctx, target.URL, address, names))
+		}
+		if resetPair {
+			seeded, err := t.traffic(cases[0])(ctx)
+			check(fmtError(t.name, cases[0], err))
+			if seeded != 1 {
+				check(fmt.Errorf("%s reset did not return both nonzero seeded counters", t.name))
+			}
 		}
 		cancel()
 		defer func() {
@@ -104,7 +115,18 @@ func benchmarkTraffic(protocol string, targets []target, rounds int, clients []i
 				for _, index := range order {
 					t := targets[index]
 					ctx, cancel := context.WithTimeout(context.Background(), window+15*time.Second)
-					result, err := pollRuntimeStats(ctx, t.traffic(spec), count, window)
+					call := t.traffic(spec)
+					if resetPair {
+						reset := call
+						call = func(ctx context.Context) (uint32, error) {
+							seeded, err := reset(ctx)
+							if err == nil && seeded != 0 {
+								err = fmt.Errorf("timed reset found a nonzero counter after seeding")
+							}
+							return seeded, err
+						}
+					}
+					result, err := pollRuntimeStats(ctx, call, count, window)
 					cancel()
 					check(fmtError(t.name, spec, err))
 
@@ -167,6 +189,9 @@ func trafficHTTP(client *http.Client, node, reference string) (func(trafficRead)
 			if strings.HasPrefix(spec.scope, "online-") {
 				return onlineHTTP(client, node, spec, false)
 			}
+			if spec.scope == "reset-pair" {
+				return nodePairHTTP(client, node, spec.name)
+			}
 			endpoint := "https://" + node + "/v1/xray/instances/primary/stats/traffic/" + spec.scope
 			if spec.name != "" {
 				endpoint += "?name=" + url.QueryEscape(spec.name)
@@ -193,6 +218,9 @@ func trafficHTTP(client *http.Client, node, reference string) (func(trafficRead)
 			if strings.HasPrefix(spec.scope, "online-") {
 				return onlineHTTP(client, reference, spec, true)
 			}
+			if spec.scope == "reset-pair" {
+				return referencePairHTTP(client, reference, spec.name)
+			}
 			input, err := proto.Marshal(&ReferenceTrafficRequest{Name: spec.name, Type: spec.referenceScope})
 			check(err)
 			return func(ctx context.Context) (uint32, error) {
@@ -210,7 +238,11 @@ func trafficHTTP(client *http.Client, node, reference string) (func(trafficRead)
 }
 
 func trafficHTTPRead(ctx context.Context, client *http.Client, endpoint string, payload []byte) ([]byte, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, bytes.NewReader(payload))
+	return trafficHTTPRequest(ctx, client, http.MethodGet, endpoint, payload)
+}
+
+func trafficHTTPRequest(ctx context.Context, client *http.Client, method, endpoint string, payload []byte) ([]byte, error) {
+	req, err := http.NewRequestWithContext(ctx, method, endpoint, bytes.NewReader(payload))
 	if err != nil {
 		return nil, err
 	}
@@ -240,6 +272,9 @@ func trafficGRPC(node, reference *grpc.ClientConn) (func(trafficRead) trafficCal
 			if strings.HasPrefix(spec.scope, "online-") {
 				return onlineGRPC(node, spec, false)
 			}
+			if spec.scope == "reset-pair" {
+				return nodePairGRPC(client, spec.name)
+			}
 			single := &statsv1.XrayTrafficRequest{Id: "primary", Scope: spec.nodeScope, Name: spec.name}
 			list := &statsv1.XrayTrafficListRequest{Id: "primary", Scope: spec.nodeScope}
 			return func(ctx context.Context) (uint32, error) {
@@ -260,6 +295,9 @@ func trafficGRPC(node, reference *grpc.ClientConn) (func(trafficRead) trafficCal
 		}, func(spec trafficRead) trafficCall {
 			if strings.HasPrefix(spec.scope, "online-") {
 				return onlineGRPC(reference, spec, true)
+			}
+			if spec.scope == "reset-pair" {
+				return referencePairGRPC(reference, spec.name)
 			}
 			request := &ReferenceTrafficRequest{Name: spec.name, Type: spec.referenceScope}
 			return func(ctx context.Context) (uint32, error) {

@@ -63,7 +63,7 @@ docker run --rm --network=host --read-only --cap-drop ALL \
 | Xray instance | Start, read lifecycle state, and stop one configured instance over HTTP and gRPC, with typed startup failures. |
 | Xray config validation | Check the configured Xray JSON over HTTP and gRPC before restarting the instance. |
 | Xray runtime statistics | Read the active instance’s uptime, memory allocation, goroutines, and garbage collection counters over HTTP and gRPC. |
-| Exact Xray traffic reset | Read and clear one upload or download counter over HTTP or gRPC when explicitly enabled. |
+| Xray traffic resets | Read and clear one direction or both directions of a named account or tag over HTTP and gRPC when explicitly enabled. |
 | Xray traffic counters | Read upload and download bytes for one or all accounts, inbound tags, or outbound tags over HTTP and gRPC. |
 | Xray online accounts and IPs | List online accounts, count distinct source IPs, or read their last-seen times over HTTP and gRPC. |
 | Xray routing | Read active rules in order and inspect a balancer by tag over HTTP and gRPC. |
@@ -96,6 +96,8 @@ Use `GET /v1/xray/instances/{id}/stats/runtime` or `XrayStatsService.GetRuntimeS
 Use `GET /v1/xray/instances/{id}/stats/traffic/{scope}` with `user`, `inbound`, or `outbound`. Add `?name=...` for one account or tag. The gRPC methods are `XrayStatsService.GetTraffic` and `ListTraffic`. Reads leave the counters intact. A missing direction is omitted and a stored zero is returned as zero. A missing named entry returns HTTP `404` or gRPC `NOT_FOUND`. List order is unspecified. Enable traffic statistics in the Xray policy for the selected scope. [gRPC contract](internal/engines/xray/stats/bridge/grpc/proto/v1/traffic.proto)
 
 Enable `xray.reset_engine_stats: true` to allow traffic resets through the management API. Use `POST /v1/xray/instances/{id}/stats/traffic/{scope}/resets?name=...&direction=uplink` or `XrayStatsService.ResetTrafficCounter`. Use `downlink` to select the other direction. Xray atomically returns the previous byte count and clears the selected counter. An unknown outcome or a lost response requires reconciliation before a repeat.
+
+Use `POST /v1/xray/instances/{id}/stats/traffic/{scope}/pair-resets?name=...` or `XrayStatsService.ResetTrafficPair` for both directions. Xray clears each direction separately. HTTP returns both outcomes in the response body, including when interrupted. gRPC includes partial progress in the status detail. Previous bytes are present only for acknowledged directions.
 
 Use `GET /v1/xray/instances/{id}/stats/online/count?name=...` or `/stats/online/ips?name=...` under the same instance path. The gRPC methods are `XrayStatsService.GetOnlineIPCount` and `ListOnlineIPs`. Enable `statsUserOnline` at the account's policy level. Timestamps are Unix seconds. An account with an empty tracked IP map returns zero or an empty map. A missing observation returns HTTP `404` or gRPC `NOT_FOUND`. [gRPC contract](internal/engines/xray/stats/bridge/grpc/proto/v1/online.proto)
 

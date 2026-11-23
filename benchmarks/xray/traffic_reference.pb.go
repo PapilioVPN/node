@@ -25,6 +25,7 @@ const (
 type ReferenceTrafficRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Reset_        bool                   `protobuf:"varint,2,opt,name=reset,proto3" json:"reset,omitempty"`
 	Type          int32                  `protobuf:"varint,3,opt,name=type,proto3" json:"type,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -65,6 +66,13 @@ func (x *ReferenceTrafficRequest) GetName() string {
 		return x.Name
 	}
 	return ""
+}
+
+func (x *ReferenceTrafficRequest) GetReset_() bool {
+	if x != nil {
+		return x.Reset_
+	}
+	return false
 }
 
 func (x *ReferenceTrafficRequest) GetType() int32 {
@@ -190,9 +198,10 @@ var File_traffic_reference_proto protoreflect.FileDescriptor
 
 const file_traffic_reference_proto_rawDesc = "" +
 	"\n" +
-	"\x17traffic_reference.proto\x12\tbenchmark\"A\n" +
+	"\x17traffic_reference.proto\x12\tbenchmark\"W\n" +
 	"\x17ReferenceTrafficRequest\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
+	"\x05reset\x18\x02 \x01(\bR\x05reset\x12\x12\n" +
 	"\x04type\x18\x03 \x01(\x05R\x04type\"h\n" +
 	"\x14ReferenceTrafficStat\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x12\n" +

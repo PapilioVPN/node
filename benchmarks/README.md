@@ -689,3 +689,72 @@ work=$(mktemp -d)
 GOTOOLCHAIN=go1.27.3 CGO_ENABLED=0 go test -c -trimpath -o "$work/bench" ./benchmarks/xray
 GOMAXPROCS=1 XRAY_BENCH_TRAFFIC_RESET="$XRAY_BINARY"   taskset -c "${XRAY_BENCH_SERVER_CPU:-2}" "$work/bench" -test.run '^TestMeasureTrafficReset$' -test.v
 ```
+
+## Xray named traffic pair reset
+
+Node resets the uplink and downlink of one account or tag through two
+targeted native calls on the same execution. It keeps each directional
+acknowledgement, stops after a non-missing failure, and skips the second
+call if the execution changes. The pinned PasarGuard uses one substring
+`QueryStats(reset=true)` call. The benchmark used unambiguous account
+names and verified that each response contained the two selected directions.
+It compares outcomes for that fixture. PasarGuard's substring selection and
+failure reporting have different guarantees. [Native GetStats and QueryStats](https://github.com/XTLS/Xray-core/blob/676eaf66f8f05d4d558ee7a74b4736623d3feeb9/app/stats/command/command.go#L30-L46) · [PasarGuard named reset](https://github.com/PasarGuard/node/blob/739eab94a9343d9f0035baf7162796844109f4c4/backend/xray/api/stats.go#L104-L114)
+
+Both products used Xray v26.11.9 with 1 or 512 accounts and the same
+local HTTP proxy traffic fixture. The benchmark checked a nonzero seeded
+pair on each target before timing repeated resets of that registered zero
+pair. HTTP used JSON on Node and protobuf on PasarGuard. Both transports
+used TLS and API-key checks with reused connections. The binaries used Go
+1.27.3, `CGO_ENABLED=0`, and `-trimpath`. Servers and Xray children were
+pinned to CPU 2, and the client to CPU 6 on the same Linux 6.17 Ryzen 7
+3750H host. All used `GOMAXPROCS=1`.
+
+Cells give Node / PasarGuard. Values are medians of five 450 ms rounds,
+with alternating product and concurrency order. There were zero rejected
+requests.
+
+| Accounts | Transport | Clients | p50 µs | p95 µs | Successful requests/s |
+| ---: | --- | ---: | ---: | ---: | ---: |
+| 1 | HTTP | 1 | 565 / 383 | 1110 / 670 | 1548 / 2331 |
+| 1 | HTTP | 8 | 1620 / 1067 | 3343 / 2702 | 4416 / 6500 |
+| 1 | gRPC | 1 | 833 / 503 | 2106 / 968 | 1015 / 1723 |
+| 1 | gRPC | 8 | 1747 / 1503 | 3412 / 3239 | 4187 / 4728 |
+| 512 | HTTP | 1 | 597 / 595 | 1199 / 1016 | 1437 / 1563 |
+| 512 | HTTP | 8 | 1772 / 1959 | 3582 / 5318 | 4150 / 3378 |
+| 512 | gRPC | 1 | 643 / 621 | 1338 / 963 | 1310 / 1508 |
+| 512 | gRPC | 8 | 1764 / 1859 | 3834 / 3838 | 3968 / 3958 |
+
+Node led on all three metrics with 512 accounts and eight clients on
+both transports. The gRPC p95 gap in that case was under 1%. PasarGuard
+led in the remaining six cases.
+
+A separate one-client diagnostic called both strategies over the same
+native Unix socket. The median per-round p50 was 306 / 146 µs for 1 account and
+758 / 577 µs for 512 accounts for two exact calls versus one substring call.
+The diagnostic used five 250 ms windows with alternating method order,
+Go 1.26.11, and CPU 2. This measures the effect of the two native requests
+before the public HTTP and gRPC layers. The substring call can also reset
+an unrelated counter whose key contains the pattern. [Native diagnostic data](xray/results/2026-11-23-traffic-reset-pair-native.csv)
+
+[Paired per-round results](xray/results/2026-11-23-traffic-reset-pair.csv)
+
+Build both nodes, the benchmark client, and the reference descriptor using
+the [lifecycle setup](#reproduce). Run the paired fixture for each size.
+
+```sh
+for accounts in 1 512; do
+  XRAY_BENCH_TRAFFIC_NAMES="$accounts" XRAY_BENCH_TRAFFIC_CASE=reset-pair/one \
+  XRAY_BENCH_TRAFFIC_CLIENTS=1,8 XRAY_BENCH_TRAFFIC_WINDOW=450ms \
+  XRAY_BENCH_CLIENT_CPU=6 XRAY_BENCH_ROUNDS=5 \
+    bash benchmarks/xray/run.sh "$work/node" "$work/pasarguard" "$work/xray/xray" \
+      "$work/bench" "$work/reference.pb" "$work/reset-pair-$accounts"
+done
+```
+
+Run the native diagnostic with the pinned Xray binary in `XRAY_BINARY`.
+
+```sh
+GOMAXPROCS=1 XRAY_BENCH_NATIVE_PAIR_RESET="$XRAY_BINARY" \
+  taskset -c 2 go test ./benchmarks/xray -run '^TestMeasureNativePairReset$' -count=1 -v
+```

@@ -7,6 +7,7 @@ option go_package = "github.com/PapilioVPN/node/benchmarks/xray;main";
 // Wire projection for PasarGuard GetStats at the pinned benchmark revision.
 message ReferenceTrafficRequest {
   string name = 1;
+  bool reset = 2;
   int32 type = 3;
 }
 
