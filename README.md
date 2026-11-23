@@ -24,6 +24,7 @@
   <a href="#quick-start">Quick start</a> ·
   <a href="#capabilities">Capabilities</a> ·
   <a href="#management">Management APIs</a> ·
+  <a href="#benchmarks">Benchmarks</a> ·
   <a href="#development">Development</a>
 </p>
 
@@ -75,6 +76,10 @@ HTTP `GET /v1/host/storage` and gRPC `HostService.GetStorage` report `path`, `to
 HTTP `GET /v1/host/stats` and gRPC `HostService.GetSystemStats` return `uptime_seconds`, `cpu`, `memory`, and `storage` using the individual operations' data and units. Unavailable fields are omitted, including `cpu` during its initial sample window.
 
 The example binds both listeners to loopback. HTTP `GET /healthz` returns `204 No Content` when ready. The gRPC health service on port 8081 reports `SERVING` for the empty service name. Set `management.tls.cert_file` and `management.tls.key_file` to enable TLS. Optionally configure `management.tls.client_ca_file` for mutual TLS and `management.api_key` for the `x-api-key` header or metadata.
+
+## Benchmarks
+
+See the [Host benchmark report](benchmarks/README.md) for the HTTP and gRPC comparison with PasarGuard 0.5.7, per-round results, and a command to measure native Host reads.
 
 ## Development
 

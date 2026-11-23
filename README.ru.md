@@ -24,6 +24,7 @@
   <a href="#quick-start">Быстрый старт</a> ·
   <a href="#capabilities">Возможности</a> ·
   <a href="#management">API управления</a> ·
+  <a href="#benchmarks">Бенчмарки</a> ·
   <a href="#development">Разработка</a>
 </p>
 
@@ -78,6 +79,12 @@ HTTP-запрос `GET /v1/host/storage` и метод gRPC `HostService.GetStor
 HTTP-запрос `GET /v1/host/stats` и метод gRPC `HostService.GetSystemStats` возвращают `uptime_seconds`, `cpu`, `memory` и `storage` с теми же данными и единицами, что и отдельные операции. Недоступные поля пропускаются. Поле `cpu` появляется после первого корректного замера.
 
 В примере оба интерфейса привязаны к loopback. HTTP-запрос `GET /healthz` возвращает `204 No Content`, когда Node готов. Служба проверки gRPC на порту 8081 возвращает `SERVING` для пустого имени службы. Для TLS укажите `management.tls.cert_file` и `management.tls.key_file`. Необязательный параметр `management.tls.client_ca_file` включает mTLS, а `management.api_key` задаёт ключ для заголовка или метаданных `x-api-key`.
+
+<a name="benchmarks"></a>
+
+## Бенчмарки
+
+В [отчёте о бенчмарках хоста](benchmarks/README.md) приведены сравнение HTTP и gRPC с PasarGuard 0.5.7, результаты каждого раунда и команда для замера чтения данных хоста в Linux.
 
 <a name="development"></a>
 

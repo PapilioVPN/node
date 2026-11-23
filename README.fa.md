@@ -24,6 +24,7 @@
   <a href="#quick-start">شروع سریع</a> ·
   <a href="#capabilities">قابلیت‌ها</a> ·
   <a href="#management">رابط‌های مدیریتی</a> ·
+  <a href="#benchmarks">بنچمارک‌ها</a> ·
   <a href="#development">توسعه</a>
 </p>
 
@@ -80,6 +81,12 @@ docker run --rm --network=host --read-only --cap-drop ALL \
 درخواست `GET /v1/host/stats` و عملیات `HostService.GetSystemStats` فیلدهای `uptime_seconds`، `cpu`، `memory` و `storage` را با داده‌ها و واحدهای APIهای تکی می‌دهند. فیلدهای در دسترس‌نبودنی در پاسخ نمی‌آیند. برای نمونه، `cpu` بعد از آماده‌شدن اولین نمونه می‌آید.
 
 در نمونه، هر دو listener روی loopback باز می‌شوند. درخواست HTTP به `GET /healthz` هنگام آمادگی پاسخ `204 No Content` دارد. سرویس health در gRPC روی پورت 8081 برای نام سرویس خالی وضعیت `SERVING` را می‌دهد. برای فعال‌کردن TLS، فیلدهای `management.tls.cert_file` و `management.tls.key_file` را تنظیم کن. فیلد `management.tls.client_ca_file` برای mTLS و `management.api_key` برای هدر یا متادیتای `x-api-key` اختیاری‌اند.
+
+<a name="benchmarks"></a>
+
+## بنچمارک‌ها
+
+[گزارش بنچمارک Host](benchmarks/README.md) مقایسهٔ HTTP و gRPC با PasarGuard 0.5.7، نتایج هر دور و دستور اندازه‌گیری خواندن اطلاعات میزبان از لینوکس را دارد.
 
 <a name="development"></a>
 

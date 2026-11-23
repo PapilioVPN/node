@@ -24,6 +24,7 @@
   <a href="#quick-start">快速开始</a> ·
   <a href="#capabilities">功能</a> ·
   <a href="#management">管理 API</a> ·
+  <a href="#benchmarks">基准测试</a> ·
   <a href="#development">开发</a>
 </p>
 
@@ -78,6 +79,12 @@ HTTP `GET /v1/host/storage` 和 gRPC `HostService.GetStorage` 返回 `path`、`t
 HTTP `GET /v1/host/stats` 和 gRPC `HostService.GetSystemStats` 返回 `uptime_seconds`、`cpu`、`memory` 和 `storage`，数据和单位与各独立操作一致。不可用的字段会省略，`cpu` 会在首次有效采样后返回。
 
 示例中的两个监听端口都绑定到环回地址。Node 就绪时，HTTP `GET /healthz` 返回 `204 No Content`。端口 8081 上的 gRPC 健康检查对空服务名返回 `SERVING`。设置 `management.tls.cert_file` 和 `management.tls.key_file` 可启用 TLS。可选项 `management.tls.client_ca_file` 启用 mTLS，`management.api_key` 用于 `x-api-key` 请求头或元数据。
+
+<a name="benchmarks"></a>
+
+## 基准测试
+
+[主机基准测试报告](benchmarks/README.md)包含与 PasarGuard 0.5.7 的 HTTP 和 gRPC 对比、每轮测试结果，以及测量 Linux 主机读取性能的命令。
 
 <a name="development"></a>
 
