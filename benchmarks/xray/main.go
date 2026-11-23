@@ -53,6 +53,7 @@ type target struct {
 	routing  routingReads
 	health   func(string) trafficCall
 	accounts accountCalls
+	logs     logStream
 }
 
 func main() {
@@ -62,6 +63,7 @@ func main() {
 	var outboundCase, outboundSamples string
 	var routing routingWorkload
 	var accounts accountWorkload
+	var logs logWorkload
 	var routingConfig string
 	var runtimeStatsClients, trafficCase, referenceTrafficConfig string
 	var runtimeStatsWindow time.Duration
@@ -94,6 +96,8 @@ func main() {
 	flag.StringVar(&accounts.generated, "account-reference-generated", "", "PasarGuard's generated fixture config")
 	flag.StringVar(&accounts.samples, "account-samples", "", "write successful account operation latencies to this compressed CSV")
 	flag.IntVar(&accounts.mutations, "account-mutations", 256, "accounts added and removed per measurement round")
+	flag.StringVar(&logs.proxy, "logs-proxy", "", "benchmark stdout access logs generated through this Xray proxy")
+	flag.StringVar(&logs.raw, "logs-samples", "", "write raw per-subscriber log CSV to this gzip path")
 	flag.Parse()
 	if (protocol != "http" && protocol != "grpc") || rounds < 1 || cycles < 1 || reads < 1 {
 		log.Fatal("specify http or grpc and positive workloads")
@@ -164,6 +168,10 @@ func main() {
 			[3]string{"/start", "/info", "/stop"}, payload, func(op operation, data []byte) error {
 				return verifyReference(op, methods.ByName("GetBaseInfo").Output(), data)
 			})
+		if logs.proxy != "" {
+			targets[0].logs = logsHTTP(client, node, false)
+			targets[1].logs = logsHTTP(client, reference, true)
+		}
 		if routing.rules > 0 {
 			targets[0].routing = routingHTTP(client, node, false)
 			targets[1].routing = routingHTTP(client, reference, true)
@@ -223,6 +231,9 @@ func main() {
 			}
 			return nil
 		}
+		if logs.proxy != "" {
+			targets[0].logs, targets[1].logs = logsGRPC(nodeConn, refConn)
+		}
 		if routing.rules > 0 {
 			targets[0].routing = routingGRPC(nodeConn, false)
 			targets[1].routing = routingGRPC(refConn, true)
@@ -241,6 +252,10 @@ func main() {
 		}
 	}
 
+	if logs.proxy != "" {
+		benchmarkLogs(protocol, targets, rounds, logs)
+		return
+	}
 	if routing.rules > 0 {
 		routing.rounds = rounds
 		routing.clients = clientCounts
