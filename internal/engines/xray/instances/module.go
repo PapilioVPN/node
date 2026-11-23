@@ -5,6 +5,7 @@ import (
 	"github.com/PapilioVPN/node/internal/engines/xray/instances/bridge/grpc"
 	"github.com/PapilioVPN/node/internal/engines/xray/instances/bridge/http"
 	"github.com/PapilioVPN/node/internal/engines/xray/instances/lifecycle"
+	"github.com/PapilioVPN/node/internal/engines/xray/logs/live"
 	"github.com/PapilioVPN/node/internal/settings"
 	"github.com/go-chi/chi/v5"
 	"go.uber.org/fx"
@@ -13,11 +14,11 @@ import (
 
 var Module = fx.Module("xray-instances", fx.Provide(newService), fx.Invoke(register))
 
-func newService(config settings.Xray) *lifecycle.Service {
+func newService(config settings.Xray, logs *live.Service) *lifecycle.Service {
 	return lifecycle.New(lifecycle.Config{
 		ID: config.ID, Executable: config.Executable,
 		ConfigFile: config.ConfigFile, RuntimeDirectory: config.RuntimeDirectory,
-	})
+	}, logs)
 }
 
 func register(life fx.Lifecycle, config settings.Xray, service *lifecycle.Service, router *chi.Mux, server *grpcserver.Server) {

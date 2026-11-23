@@ -15,6 +15,7 @@ import (
 
 	bridge "github.com/PapilioVPN/go-bridge/api/http/server"
 	"github.com/PapilioVPN/node/internal/engines/xray/instances/lifecycle"
+	"github.com/PapilioVPN/node/internal/engines/xray/logs/live"
 	httpstats "github.com/PapilioVPN/node/internal/engines/xray/stats/bridge/http"
 	"github.com/PapilioVPN/node/internal/engines/xray/stats/native"
 	stats "github.com/PapilioVPN/node/internal/engines/xray/stats/runtime"
@@ -37,7 +38,7 @@ func main() {
 	path := filepath.Join(dir, "xray.json")
 	check(os.WriteFile(path, []byte(`{"log":{"loglevel":"none"}}`), 0600))
 
-	owner := lifecycle.New(lifecycle.Config{ID: "primary", Executable: os.Args[1], ConfigFile: path, RuntimeDirectory: dir})
+	owner := lifecycle.New(lifecycle.Config{ID: "primary", Executable: os.Args[1], ConfigFile: path, RuntimeDirectory: dir}, live.New("primary"))
 	defer shutDown(owner.Close)
 	ctx := context.Background()
 	_, err = owner.Start(ctx, "primary")

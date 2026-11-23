@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package papiliovpn.node.v1;
+
+option go_package = "github.com/PapilioVPN/node/internal/engines/xray/logs/bridge/grpc/proto/v1;logsv1";
+
+service XrayLogsService {
+  // Follows one ready execution from admission until it ends. There is no replay.
+  // A full subscriber queue drops new events for that subscriber. A later
+  // sequence gap indicates loss.
+  rpc GetLogs(XrayLogsRequest) returns (stream XrayLogEvent);
+}
+
+message XrayLogsRequest {
+  string id = 1;
+}
+
+enum XrayLogSource {
+  XRAY_LOG_SOURCE_UNSPECIFIED = 0;
+  XRAY_LOG_SOURCE_STDOUT = 1;
+  XRAY_LOG_SOURCE_STDERR = 2;
+}
+
+message XrayLogEvent {
+  uint64 execution = 1;
+  uint64 sequence = 2;
+  XrayLogSource source = 3;
+  int64 received_unix_nano = 4;
+  // The first 16 KiB of a line, excluding the LF delimiter.
+  bytes message = 5;
+  bool truncated = 6;
+}

@@ -7,8 +7,10 @@ import (
 	"os/exec"
 	"runtime"
 	"syscall"
+	"time"
 
 	"github.com/PapilioVPN/node/internal/engines/xray/configs/runconfig"
+	"github.com/PapilioVPN/node/internal/engines/xray/logs/live"
 )
 
 type process struct {
@@ -24,7 +26,7 @@ type processExit struct {
 	code       int
 }
 
-func startProcess(config Config) (child, error) {
+func startProcess(config Config, logs *live.Execution) (child, error) {
 	run, err := runconfig.Prepare(config.ConfigFile, config.RuntimeDirectory)
 	if err != nil {
 		return nil, err
@@ -32,6 +34,11 @@ func startProcess(config Config) (child, error) {
 
 	cmd := exec.Command(config.Executable, run.Args...)
 	cmd.Stdin = bytes.NewReader(run.Overlay)
+	stdout := &outputWriter{run: logs, source: live.Stdout}
+	stderr := &outputWriter{run: logs, source: live.Stderr}
+	cmd.Stdout, cmd.Stderr = stdout, stderr
+	// Bound the join if a descendant inherits an output pipe.
+	cmd.WaitDelay = 250 * time.Millisecond
 	// Linux sends the signal when the creating thread dies. Keep that thread
 	// alive until Wait returns so the runtime cannot end it during normal use.
 	cmd.SysProcAttr = &syscall.SysProcAttr{Pdeathsig: syscall.SIGKILL}
@@ -46,6 +53,8 @@ func startProcess(config Config) (child, error) {
 		}
 		started <- nil
 		waitErr := cmd.Wait()
+		stdout.finish()
+		stderr.finish()
 		p.exit = processExit{err: waitErr, cleanupErr: run.Cleanup(), code: cmd.ProcessState.ExitCode()}
 		close(p.exited)
 	}()

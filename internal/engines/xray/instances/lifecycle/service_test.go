@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/PapilioVPN/node/internal/engines/xray/logs/live"
 	"google.golang.org/grpc"
 )
 
@@ -133,8 +134,8 @@ func TestCloseCancelsStartAndRejectsFurtherMutations(t *testing.T) {
 
 func newTestService(t *testing.T, process child, probe func(context.Context, grpc.ClientConnInterface) error) *Service {
 	t.Helper()
-	service := New(Config{ID: "primary"})
-	service.launch = func(Config) (child, error) { return process, nil }
+	service := New(Config{ID: "primary"}, live.New("primary"))
+	service.launch = func(Config, *live.Execution) (child, error) { return process, nil }
 	service.probe = probe
 	t.Cleanup(func() {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)

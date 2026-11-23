@@ -16,6 +16,7 @@ import (
 
 	"github.com/PapilioVPN/node/internal/engines/xray/instances"
 	instancesv1 "github.com/PapilioVPN/node/internal/engines/xray/instances/bridge/grpc/proto/v1"
+	"github.com/PapilioVPN/node/internal/engines/xray/logs"
 	"github.com/PapilioVPN/node/internal/settings"
 	"github.com/go-chi/chi/v5"
 	"go.uber.org/fx"
@@ -139,7 +140,7 @@ func newFixtureWithExecutable(t *testing.T, engineConfig, executable string) fix
 		t.Fatal(err)
 	}
 	router, rpcServer := chi.NewRouter(), grpc.NewServer()
-	app := fx.New(fx.NopLogger, instances.Module,
+	app := fx.New(fx.NopLogger, instances.Module, logs.Module,
 		fx.Supply(router, rpcServer, settings.Xray{
 			ID: "primary", Executable: executable, ConfigFile: config, RuntimeDirectory: runtimeDir,
 		}))

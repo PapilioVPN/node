@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"sync"
 
+	"github.com/PapilioVPN/node/internal/engines/xray/logs/live"
 	"github.com/PapilioVPN/node/internal/settings"
 	"go.uber.org/fx"
 	"google.golang.org/grpc"
@@ -24,6 +25,7 @@ func registerListeners(
 	readiness *health.Server,
 	httpServer *http.Server,
 	grpcServer *grpc.Server,
+	xrayLogs *live.Service,
 ) {
 	var serving sync.WaitGroup
 	serveFailed := func(protocol string, err error) {
@@ -64,6 +66,7 @@ func registerListeners(
 		},
 		OnStop: func(ctx context.Context) error {
 			readiness.Shutdown()
+			xrayLogs.Close()
 			grpcDone := make(chan struct{})
 			go func() {
 				defer close(grpcDone)

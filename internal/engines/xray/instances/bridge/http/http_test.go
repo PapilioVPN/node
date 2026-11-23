@@ -7,12 +7,13 @@ import (
 	"testing"
 
 	"github.com/PapilioVPN/node/internal/engines/xray/instances/lifecycle"
+	"github.com/PapilioVPN/node/internal/engines/xray/logs/live"
 	"github.com/go-chi/chi/v5"
 )
 
 func TestInstanceRoutesRejectInvalidRequests(t *testing.T) {
 	router := chi.NewRouter()
-	Register(router, lifecycle.New(lifecycle.Config{ID: "primary"}))
+	Register(router, lifecycle.New(lifecycle.Config{ID: "primary"}, live.New("primary")))
 	for _, test := range []struct {
 		method, path, body string
 		want               int

@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/PapilioVPN/node/internal/engines/xray/logs/live"
 	"golang.org/x/sync/semaphore"
 	"google.golang.org/grpc"
 )
@@ -27,6 +28,7 @@ type child interface {
 
 type execution struct {
 	child      child
+	logs       *live.Execution
 	done       chan struct{}
 	finalState State
 	exit       processExit
@@ -36,7 +38,8 @@ type execution struct {
 
 type Service struct {
 	config Config
-	launch func(Config) (child, error)
+	logs   *live.Service
+	launch func(Config, *live.Execution) (child, error)
 	probe  func(context.Context, grpc.ClientConnInterface) error
 
 	control  *semaphore.Weighted
@@ -48,10 +51,10 @@ type Service struct {
 	run   *execution
 }
 
-func New(config Config) *Service {
+func New(config Config, logs *live.Service) *Service {
 	shutdown, cancel := context.WithCancel(context.Background())
 	return &Service{
-		config: config, launch: startProcess, probe: waitForReadiness,
+		config: config, logs: logs, launch: startProcess, probe: waitForReadiness,
 		control: semaphore.NewWeighted(1), shutdown: shutdown, cancel: cancel, state: Stopped,
 	}
 }
@@ -105,15 +108,17 @@ func (service *Service) Start(ctx context.Context, id string) (Status, error) {
 		cancel()
 	}
 
-	process, err := service.launch(service.config)
+	logs := service.logs.Prepare()
+	process, err := service.launch(service.config, logs)
 	if err != nil {
+		logs.End()
 		service.mu.Lock()
 		service.state = Failed
 		service.mu.Unlock()
 		return Status{}, &StartError{Reason: LaunchFailed, cause: err}
 	}
 
-	run := &execution{child: process, done: make(chan struct{}), finalState: Failed}
+	run := &execution{child: process, logs: logs, done: make(chan struct{}), finalState: Failed}
 	service.mu.Lock()
 	service.run = run
 	service.mu.Unlock()
@@ -132,6 +137,7 @@ func (service *Service) Start(ctx context.Context, id string) (Status, error) {
 	if probeErr == nil && startErr == nil && !run.exited {
 		run.conn = conn
 		service.state = Ready
+		logs.Activate()
 		service.mu.Unlock()
 		return Status{ID: id, State: Ready}, nil
 	}
@@ -220,6 +226,7 @@ func (service *Service) release() { service.control.Release(1) }
 func (service *Service) wait(run *execution, cancelStart context.CancelFunc) {
 	exit := run.child.wait()
 	service.mu.Lock()
+	run.logs.End()
 	defer service.mu.Unlock()
 	run.exit = exit
 	run.exited = true
@@ -249,6 +256,7 @@ func (service *Service) stop(ctx context.Context) error {
 	}
 	service.state = Stopping
 	run.finalState = Stopped
+	run.logs.End()
 	service.mu.Unlock()
 
 	signalErr := run.child.terminate()
