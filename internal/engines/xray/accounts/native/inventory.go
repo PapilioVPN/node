@@ -2,8 +2,6 @@ package native
 
 import (
 	"context"
-	"crypto/sha256"
-	"strings"
 
 	"github.com/PapilioVPN/node/internal/engines/xray/accounts/membership"
 	"google.golang.org/grpc"
@@ -17,15 +15,13 @@ const (
 	maxAccounts      = 65536
 )
 
-type fingerprint [sha256.Size]byte
-
 type inboundAccounts struct {
 	vless     bool
 	ambiguous bool
 
 	// The mutation lock protects the live membership and the outcome fence.
-	names     map[fingerprint]fingerprint
-	ids       map[fingerprint]struct{}
+	names     map[string]membership.IDKey
+	ids       map[membership.IDKey]struct{}
 	uncertain bool
 }
 
@@ -102,8 +98,8 @@ func buildInventory(conn *grpc.ClientConn, inbounds []*Inbound) (*inventory, err
 		if result.size > maxAccounts {
 			return nil, membership.ErrTooLarge
 		}
-		entry.names = make(map[fingerprint]fingerprint, len(config.Users))
-		entry.ids = make(map[fingerprint]struct{}, len(config.Users))
+		entry.names = make(map[string]membership.IDKey, len(config.Users))
+		entry.ids = make(map[membership.IDKey]struct{}, len(config.Users))
 		for _, user := range config.Users {
 			var account VlessAccount
 			wire := user.GetAccount()
@@ -112,7 +108,7 @@ func buildInventory(conn *grpc.ClientConn, inbounds []*Inbound) (*inventory, err
 				break
 			}
 			id, valid := membership.ParseUUID(account.Id)
-			if !valid || !entry.insert(user.GetEmail(), effectiveID(id)) {
+			if !valid || !entry.insert(user.GetEmail(), id.Key()) {
 				entry.ambiguous = true
 				break
 			}
@@ -132,12 +128,12 @@ func (i *inventory) vless(tag string) (*inboundAccounts, error) {
 	return entry, nil
 }
 
-func (entry *inboundAccounts) insert(email string, id fingerprint) bool {
+func (entry *inboundAccounts) insert(email string, id membership.IDKey) bool {
 	if _, exists := entry.ids[id]; exists {
 		return false
 	}
 	if email != "" {
-		name := emailKey(email)
+		name := membership.NameKey(email)
 		if _, exists := entry.names[name]; exists {
 			return false
 		}
@@ -145,14 +141,4 @@ func (entry *inboundAccounts) insert(email string, id fingerprint) bool {
 	}
 	entry.ids[id] = struct{}{}
 	return true
-}
-
-func emailKey(email string) fingerprint {
-	return sha256.Sum256([]byte(strings.ToLower(email)))
-}
-
-func effectiveID(id membership.UUID) fingerprint {
-	// Xray's VLESS ProcessUUID ignores bytes 6 and 7 on lookup and deletion.
-	id[6], id[7] = 0, 0
-	return sha256.Sum256(id[:])
 }

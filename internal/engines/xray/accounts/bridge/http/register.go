@@ -27,6 +27,7 @@ type accountCount struct {
 
 func Register(router chi.Router, service *membership.Service) {
 	const base = "/v1/xray/instances/{id}/inbounds/{tag}/accounts"
+	router.Put(base+"/membership", syncUser(service))
 	router.Post(base, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
 		var input addAccount

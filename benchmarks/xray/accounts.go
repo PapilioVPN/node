@@ -31,9 +31,11 @@ const accountPath = "/v1/xray/instances/primary/inbounds/vless/accounts"
 type accountWorkload struct {
 	runtimeDir, generated, samples string
 	mutations                      int
+	sync                           bool
 }
 
 type accountCalls struct {
+	syncUser    syncAccounts
 	add, remove func(context.Context, string, string) error
 	count       func(context.Context) (uint32, error)
 }
@@ -59,7 +61,22 @@ func accountHTTP(client *http.Client, node, reference string) (accountCalls, acc
 		_, err = accountHTTPCall(ctx, client, http.MethodPut, "https://"+reference+"/user/sync", wire, http.StatusOK)
 		return err
 	}
+	syncNode := func(ctx context.Context, endpoint string, input any) error {
+		wire, err := json.Marshal(input)
+		if err != nil {
+			return err
+		}
+		body, err := accountHTTPCall(ctx, client, http.MethodPut, "https://"+endpoint, wire, http.StatusOK)
+		if err != nil {
+			return err
+		}
+		return syncHTTPResult(body)
+	}
+	syncRef := func(ctx context.Context, accounts []syncAccount) error {
+		return syncUser(ctx, accounts[0].Email, accounts[0].UUID)
+	}
 	return accountCalls{
+		syncUser: syncUserHTTP(syncNode, node),
 		add: func(ctx context.Context, email, uuid string) error {
 			return mutate(ctx, http.MethodPost, body{Email: email, UUID: uuid})
 		},
@@ -75,7 +92,7 @@ func accountHTTP(client *http.Client, node, reference string) (accountCalls, acc
 			err = json.Unmarshal(wire, &result)
 			return result.Count, err
 		},
-	}, accountCalls{add: syncUser, remove: func(ctx context.Context, email, _ string) error { return syncUser(ctx, email, "") }}
+	}, accountCalls{syncUser: syncRef, add: syncUser, remove: func(ctx context.Context, email, _ string) error { return syncUser(ctx, email, "") }}
 }
 
 func accountHTTPCall(ctx context.Context, client *http.Client, method, endpoint string, body []byte, want int) ([]byte, error) {
@@ -113,7 +130,11 @@ func accountGRPC(node, reference *grpc.ClientConn) (accountCalls, accountCalls) 
 		_, err = wrapped.CloseAndRecv()
 		return err
 	}
+	syncRef := func(ctx context.Context, accounts []syncAccount) error {
+		return syncUser(ctx, accounts[0].Email, accounts[0].UUID)
+	}
 	return accountCalls{
+		syncUser: syncUserGRPC(node),
 		add: func(ctx context.Context, email, uuid string) error {
 			_, err := client.AddVLESSAccount(auth(ctx), &accountsv1.AddVLESSAccountRequest{Id: "primary", InboundTag: "vless", Email: email, Uuid: uuid})
 			return err
@@ -126,7 +147,7 @@ func accountGRPC(node, reference *grpc.ClientConn) (accountCalls, accountCalls) 
 			resp, err := client.CountVLESSAccounts(auth(ctx), &accountsv1.CountVLESSAccountsRequest{Id: "primary", InboundTag: "vless"})
 			return uint32(resp.GetCount()), err
 		},
-	}, accountCalls{add: syncUser, remove: func(ctx context.Context, email, _ string) error { return syncUser(ctx, email, "") }}
+	}, accountCalls{syncUser: syncRef, add: syncUser, remove: func(ctx context.Context, email, _ string) error { return syncUser(ctx, email, "") }}
 }
 
 func referenceAccount(email, uuid string) *ReferenceAccountUser {

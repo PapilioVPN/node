@@ -165,12 +165,17 @@ func checkRPCError(t *testing.T, err error, code codes.Code) {
 
 func checkTraffic(t *testing.T, inboundPort, targetPort int, accepted bool) {
 	t.Helper()
+	checkTrafficCredential(t, inboundPort, targetPort, credential, accepted)
+}
+
+func checkTrafficCredential(t *testing.T, inboundPort, targetPort int, uuid string, accepted bool) {
+	t.Helper()
 	conn, err := net.DialTimeout("tcp4", net.JoinHostPort("127.0.0.1", strconv.Itoa(inboundPort)), time.Second)
 	require(t, err)
 	defer conn.Close()
 	require(t, conn.SetDeadline(time.Now().Add(2*time.Second)))
 
-	id, valid := membership.ParseUUID(credential)
+	id, valid := membership.ParseUUID(uuid)
 	if !valid {
 		t.Fatal("invalid fixture UUID")
 	}

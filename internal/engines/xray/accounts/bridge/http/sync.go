@@ -1,0 +1,41 @@
+package http
+
+import (
+	"encoding/json"
+	"net/http"
+
+	"github.com/PapilioVPN/node/internal/engines/xray/accounts/membership"
+)
+
+func syncUser(service *membership.Service) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-store")
+		var input struct {
+			Email string          `json:"email"`
+			UUID  json.RawMessage `json:"uuid"`
+		}
+		if !readBody(w, r, &input) {
+			return
+		}
+		var uuid *string
+		if input.UUID != nil {
+			if err := json.Unmarshal(input.UUID, &uuid); err != nil || uuid == nil {
+				writeError(w, membership.ErrInvalid)
+				return
+			}
+		}
+		result, err := service.SyncUser(r.Context(), membership.SyncUserRequest{
+			Scope: scope(r), Email: input.Email, UUID: uuid,
+		})
+		writeSync(w, result, err)
+	}
+}
+
+func writeSync(w http.ResponseWriter, result membership.SyncResult, err error) {
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(result)
+}

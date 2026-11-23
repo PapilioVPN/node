@@ -92,6 +92,7 @@ func main() {
 	flag.BoolVar(&outboundHealth, "outbound-health", false, "measure ordinary Observatory reads")
 	flag.StringVar(&outboundCase, "outbound-health-case", "", "run only one or all outbound observations")
 	flag.StringVar(&outboundSamples, "outbound-health-samples", "", "path for compressed per-request outbound health CSV")
+	flag.BoolVar(&accounts.sync, "account-sync", false, "measure single-account synchronization")
 	flag.StringVar(&accounts.runtimeDir, "account-runtime-dir", "", "measure VLESS accounts on the execution in this runtime directory")
 	flag.StringVar(&accounts.generated, "account-reference-generated", "", "PasarGuard's generated fixture config")
 	flag.StringVar(&accounts.samples, "account-samples", "", "write successful account operation latencies to this compressed CSV")
@@ -264,7 +265,11 @@ func main() {
 		return
 	}
 	if accounts.runtimeDir != "" {
-		benchmarkAccounts(protocol, targets, rounds, clientCounts, runtimeStatsWindow, accounts)
+		if accounts.sync {
+			benchmarkAccountSync(protocol, targets, rounds, reads, accounts)
+		} else {
+			benchmarkAccounts(protocol, targets, rounds, clientCounts, runtimeStatsWindow, accounts)
+		}
 		return
 	}
 

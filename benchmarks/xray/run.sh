@@ -170,6 +170,9 @@ if [[ ${XRAY_BENCH_VLESS_ACCOUNTS:-0} == 1 ]]; then
     -account-mutations "${XRAY_BENCH_ACCOUNT_MUTATIONS:-256}"
     -runtime-stats-clients "${XRAY_BENCH_ACCOUNT_COUNT_CLIENTS:-1,8}"
     -runtime-stats-window "${XRAY_BENCH_ACCOUNT_COUNT_WINDOW:-550ms}")
+  if [[ ${XRAY_BENCH_ACCOUNT_SYNC:-0} == 1 ]]; then
+    benchmark_args+=(-account-sync)
+  fi
 elif [[ ${XRAY_BENCH_ROUTING_RULES:-0} != 0 ]]; then
   benchmark_args+=(-routing-rules "$XRAY_BENCH_ROUTING_RULES" -routing-reference-config "$work/reference-xray.json"
     -routing-runtime-dir "$work/run" -routing-operation "${XRAY_BENCH_ROUTING_OPERATION:-}"
@@ -225,7 +228,11 @@ for protocol in "${protocols[@]}"; do
   done
   samples=()
   if [[ ${XRAY_BENCH_VLESS_ACCOUNTS:-0} == 1 ]]; then
-    samples+=(-account-samples "$output/$protocol-samples.csv.gz")
+    if [[ ${XRAY_BENCH_ACCOUNT_SYNC:-0} == 1 ]]; then
+      samples+=(-account-samples "$output/$protocol-samples.csv")
+    else
+      samples+=(-account-samples "$output/$protocol-samples.csv.gz")
+    fi
   elif [[ ${XRAY_BENCH_ROUTING_RULES:-0} != 0 ]]; then
     samples+=(-routing-samples "$output/$protocol-samples.csv")
   elif [[ ${XRAY_BENCH_OUTBOUND_HEALTH:-0} == 1 ]]; then
@@ -236,7 +243,9 @@ for protocol in "${protocols[@]}"; do
     -reference-pid "$reference_pid" -cert "$work/cert.pem" -reference-proto "$descriptor" \
     -config "$work/xray.json" -rounds "${XRAY_BENCH_ROUNDS:-5}" -cycles "${XRAY_BENCH_CYCLES:-30}" \
     -reads "${XRAY_BENCH_READS:-12}" > "$output/$protocol.csv"; then
-    tail -n 30 "$work/node.log" "$work/reference.log" >&2
+    if [[ ${XRAY_BENCH_ACCOUNT_SYNC:-0} != 1 ]]; then
+      tail -n 30 "$work/node.log" "$work/reference.log" >&2
+    fi
     exit 1
   fi
   kill "$reference_pid"

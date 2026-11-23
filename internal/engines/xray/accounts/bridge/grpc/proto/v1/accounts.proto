@@ -6,6 +6,8 @@ option go_package = "github.com/PapilioVPN/node/internal/engines/xray/accounts/b
 import "google/protobuf/empty.proto";
 
 service XrayAccountsService {
+  // Reconciles one account by email. Absent uuid requests removal.
+  rpc SyncUser(SyncUserRequest) returns (SyncResult);
   // Adds one live VLESS account with default Xray level and empty flow.
   rpc AddVLESSAccount(AddVLESSAccountRequest) returns (google.protobuf.Empty);
   // Removes one live VLESS account by its native case-insensitive email.
@@ -34,4 +36,20 @@ message CountVLESSAccountsRequest {
 
 message CountVLESSAccountsResponse {
   int64 count = 1;
+}
+
+message SyncUserRequest {
+  string id = 1;
+  string inbound_tag = 2;
+  string email = 3;
+  optional string uuid = 4;
+}
+
+message SyncResult {
+  // confirmed, partial, unknown or not_applied
+  string outcome = 1;
+  uint32 added = 2;
+  uint32 removed = 3;
+  // A fixed failure code. Empty on confirmation.
+  string failure = 4;
 }

@@ -41,6 +41,14 @@ func New(instances activeInstances) *Client {
 }
 
 func (c *Client) Add(ctx context.Context, scope membership.Scope, account membership.Account) error {
+	return c.Edit(ctx, scope, func(edit membership.Editor) error { return edit.Add(account) })
+}
+
+func (c *Client) Remove(ctx context.Context, scope membership.Scope, email string) error {
+	return c.Edit(ctx, scope, func(edit membership.Editor) error { return edit.Remove(email) })
+}
+
+func (c *Client) Edit(ctx context.Context, scope membership.Scope, apply func(membership.Editor) error) error {
 	if !c.mutation.TryLock() {
 		return membership.ErrBusy
 	}
@@ -50,14 +58,39 @@ func (c *Client) Add(ctx context.Context, scope membership.Scope, account member
 	if err != nil {
 		return err
 	}
-	name, id := emailKey(account.Email), effectiveID(account.ID)
-	if _, exists := entry.names[name]; exists {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if !c.current(scope.InstanceID, state.conn) {
+		return membership.ErrUnavailable
+	}
+	return apply(&editor{client: c, ctx: ctx, scope: scope, state: state, entry: entry})
+}
+
+type editor struct {
+	client *Client
+	ctx    context.Context
+	scope  membership.Scope
+	state  *inventory
+	entry  *inboundAccounts
+}
+
+func (e *editor) Lookup(email string) (membership.IDKey, bool) {
+	id, found := e.entry.names[membership.NameKey(email)]
+	return id, found
+}
+
+func (e *editor) HasID(id membership.IDKey) bool {
+	_, found := e.entry.ids[id]
+	return found
+}
+
+func (e *editor) Add(account membership.Account) error {
+	name, id := membership.NameKey(account.Email), account.ID.Key()
+	if _, exists := e.entry.names[name]; exists || e.HasID(id) {
 		return membership.ErrExists
 	}
-	if _, exists := entry.ids[id]; exists {
-		return membership.ErrExists
-	}
-	if state.size >= maxAccounts {
+	if e.state.size >= maxAccounts {
 		return membership.ErrTooLarge
 	}
 
@@ -71,27 +104,18 @@ func (c *Client) Add(ctx context.Context, scope membership.Scope, account member
 	if err != nil {
 		return err
 	}
-	if err := c.alter(ctx, scope, state.conn, entry, operation); err != nil {
+	if err := e.client.alter(e.ctx, e.scope, e.state.conn, e.entry, operation); err != nil {
 		return err
 	}
-	entry.names[name] = id
-	entry.ids[id] = struct{}{}
-	state.size++
+	e.entry.names[name] = id
+	e.entry.ids[id] = struct{}{}
+	e.state.size++
 	return nil
 }
 
-func (c *Client) Remove(ctx context.Context, scope membership.Scope, email string) error {
-	if !c.mutation.TryLock() {
-		return membership.ErrBusy
-	}
-	defer c.mutation.Unlock()
-
-	state, entry, err := c.mutable(ctx, scope)
-	if err != nil {
-		return err
-	}
-	name := emailKey(email)
-	id, exists := entry.names[name]
+func (e *editor) Remove(email string) error {
+	name := membership.NameKey(email)
+	id, exists := e.entry.names[name]
 	if !exists {
 		return membership.ErrAccountMissing
 	}
@@ -100,12 +124,12 @@ func (c *Client) Remove(ctx context.Context, scope membership.Scope, email strin
 	if err != nil {
 		return err
 	}
-	if err := c.alter(ctx, scope, state.conn, entry, operation); err != nil {
+	if err := e.client.alter(e.ctx, e.scope, e.state.conn, e.entry, operation); err != nil {
 		return err
 	}
-	delete(entry.names, name)
-	delete(entry.ids, id)
-	state.size--
+	delete(e.entry.names, name)
+	delete(e.entry.ids, id)
+	e.state.size--
 	return nil
 }
 

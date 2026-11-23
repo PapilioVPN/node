@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.12
 // 	protoc        v7.36.2
-// source: accounts.proto
+// source: internal/engines/xray/accounts/bridge/grpc/proto/v1/accounts.proto
 
 package accountsv1
 
@@ -34,7 +34,7 @@ type AddVLESSAccountRequest struct {
 
 func (x *AddVLESSAccountRequest) Reset() {
 	*x = AddVLESSAccountRequest{}
-	mi := &file_accounts_proto_msgTypes[0]
+	mi := &file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -46,7 +46,7 @@ func (x *AddVLESSAccountRequest) String() string {
 func (*AddVLESSAccountRequest) ProtoMessage() {}
 
 func (x *AddVLESSAccountRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_accounts_proto_msgTypes[0]
+	mi := &file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -59,7 +59,7 @@ func (x *AddVLESSAccountRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddVLESSAccountRequest.ProtoReflect.Descriptor instead.
 func (*AddVLESSAccountRequest) Descriptor() ([]byte, []int) {
-	return file_accounts_proto_rawDescGZIP(), []int{0}
+	return file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *AddVLESSAccountRequest) GetId() string {
@@ -101,7 +101,7 @@ type RemoveVLESSAccountRequest struct {
 
 func (x *RemoveVLESSAccountRequest) Reset() {
 	*x = RemoveVLESSAccountRequest{}
-	mi := &file_accounts_proto_msgTypes[1]
+	mi := &file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -113,7 +113,7 @@ func (x *RemoveVLESSAccountRequest) String() string {
 func (*RemoveVLESSAccountRequest) ProtoMessage() {}
 
 func (x *RemoveVLESSAccountRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_accounts_proto_msgTypes[1]
+	mi := &file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -126,7 +126,7 @@ func (x *RemoveVLESSAccountRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveVLESSAccountRequest.ProtoReflect.Descriptor instead.
 func (*RemoveVLESSAccountRequest) Descriptor() ([]byte, []int) {
-	return file_accounts_proto_rawDescGZIP(), []int{1}
+	return file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *RemoveVLESSAccountRequest) GetId() string {
@@ -160,7 +160,7 @@ type CountVLESSAccountsRequest struct {
 
 func (x *CountVLESSAccountsRequest) Reset() {
 	*x = CountVLESSAccountsRequest{}
-	mi := &file_accounts_proto_msgTypes[2]
+	mi := &file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -172,7 +172,7 @@ func (x *CountVLESSAccountsRequest) String() string {
 func (*CountVLESSAccountsRequest) ProtoMessage() {}
 
 func (x *CountVLESSAccountsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_accounts_proto_msgTypes[2]
+	mi := &file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -185,7 +185,7 @@ func (x *CountVLESSAccountsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CountVLESSAccountsRequest.ProtoReflect.Descriptor instead.
 func (*CountVLESSAccountsRequest) Descriptor() ([]byte, []int) {
-	return file_accounts_proto_rawDescGZIP(), []int{2}
+	return file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *CountVLESSAccountsRequest) GetId() string {
@@ -211,7 +211,7 @@ type CountVLESSAccountsResponse struct {
 
 func (x *CountVLESSAccountsResponse) Reset() {
 	*x = CountVLESSAccountsResponse{}
-	mi := &file_accounts_proto_msgTypes[3]
+	mi := &file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -223,7 +223,7 @@ func (x *CountVLESSAccountsResponse) String() string {
 func (*CountVLESSAccountsResponse) ProtoMessage() {}
 
 func (x *CountVLESSAccountsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_accounts_proto_msgTypes[3]
+	mi := &file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -236,7 +236,7 @@ func (x *CountVLESSAccountsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CountVLESSAccountsResponse.ProtoReflect.Descriptor instead.
 func (*CountVLESSAccountsResponse) Descriptor() ([]byte, []int) {
-	return file_accounts_proto_rawDescGZIP(), []int{3}
+	return file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *CountVLESSAccountsResponse) GetCount() int64 {
@@ -246,11 +246,149 @@ func (x *CountVLESSAccountsResponse) GetCount() int64 {
 	return 0
 }
 
-var File_accounts_proto protoreflect.FileDescriptor
+type SyncUserRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	InboundTag    string                 `protobuf:"bytes,2,opt,name=inbound_tag,json=inboundTag,proto3" json:"inbound_tag,omitempty"`
+	Email         string                 `protobuf:"bytes,3,opt,name=email,proto3" json:"email,omitempty"`
+	Uuid          *string                `protobuf:"bytes,4,opt,name=uuid,proto3,oneof" json:"uuid,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
 
-const file_accounts_proto_rawDesc = "" +
+func (x *SyncUserRequest) Reset() {
+	*x = SyncUserRequest{}
+	mi := &file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SyncUserRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SyncUserRequest) ProtoMessage() {}
+
+func (x *SyncUserRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SyncUserRequest.ProtoReflect.Descriptor instead.
+func (*SyncUserRequest) Descriptor() ([]byte, []int) {
+	return file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *SyncUserRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *SyncUserRequest) GetInboundTag() string {
+	if x != nil {
+		return x.InboundTag
+	}
+	return ""
+}
+
+func (x *SyncUserRequest) GetEmail() string {
+	if x != nil {
+		return x.Email
+	}
+	return ""
+}
+
+func (x *SyncUserRequest) GetUuid() string {
+	if x != nil && x.Uuid != nil {
+		return *x.Uuid
+	}
+	return ""
+}
+
+type SyncResult struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// confirmed, partial, unknown or not_applied
+	Outcome string `protobuf:"bytes,1,opt,name=outcome,proto3" json:"outcome,omitempty"`
+	Added   uint32 `protobuf:"varint,2,opt,name=added,proto3" json:"added,omitempty"`
+	Removed uint32 `protobuf:"varint,3,opt,name=removed,proto3" json:"removed,omitempty"`
+	// A fixed failure code. Empty on confirmation.
+	Failure       string `protobuf:"bytes,4,opt,name=failure,proto3" json:"failure,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SyncResult) Reset() {
+	*x = SyncResult{}
+	mi := &file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SyncResult) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SyncResult) ProtoMessage() {}
+
+func (x *SyncResult) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SyncResult.ProtoReflect.Descriptor instead.
+func (*SyncResult) Descriptor() ([]byte, []int) {
+	return file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *SyncResult) GetOutcome() string {
+	if x != nil {
+		return x.Outcome
+	}
+	return ""
+}
+
+func (x *SyncResult) GetAdded() uint32 {
+	if x != nil {
+		return x.Added
+	}
+	return 0
+}
+
+func (x *SyncResult) GetRemoved() uint32 {
+	if x != nil {
+		return x.Removed
+	}
+	return 0
+}
+
+func (x *SyncResult) GetFailure() string {
+	if x != nil {
+		return x.Failure
+	}
+	return ""
+}
+
+var File_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto protoreflect.FileDescriptor
+
+const file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_rawDesc = "" +
 	"\n" +
-	"\x0eaccounts.proto\x12 papiliovpn.node.xray.accounts.v1\x1a\x1bgoogle/protobuf/empty.proto\"s\n" +
+	"Binternal/engines/xray/accounts/bridge/grpc/proto/v1/accounts.proto\x12 papiliovpn.node.xray.accounts.v1\x1a\x1bgoogle/protobuf/empty.proto\"s\n" +
 	"\x16AddVLESSAccountRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1f\n" +
 	"\vinbound_tag\x18\x02 \x01(\tR\n" +
@@ -267,66 +405,85 @@ const file_accounts_proto_rawDesc = "" +
 	"\vinbound_tag\x18\x02 \x01(\tR\n" +
 	"inboundTag\"2\n" +
 	"\x1aCountVLESSAccountsResponse\x12\x14\n" +
-	"\x05count\x18\x01 \x01(\x03R\x05count2\xf7\x02\n" +
-	"\x13XrayAccountsService\x12c\n" +
+	"\x05count\x18\x01 \x01(\x03R\x05count\"z\n" +
+	"\x0fSyncUserRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1f\n" +
+	"\vinbound_tag\x18\x02 \x01(\tR\n" +
+	"inboundTag\x12\x14\n" +
+	"\x05email\x18\x03 \x01(\tR\x05email\x12\x17\n" +
+	"\x04uuid\x18\x04 \x01(\tH\x00R\x04uuid\x88\x01\x01B\a\n" +
+	"\x05_uuid\"p\n" +
+	"\n" +
+	"SyncResult\x12\x18\n" +
+	"\aoutcome\x18\x01 \x01(\tR\aoutcome\x12\x14\n" +
+	"\x05added\x18\x02 \x01(\rR\x05added\x12\x18\n" +
+	"\aremoved\x18\x03 \x01(\rR\aremoved\x12\x18\n" +
+	"\afailure\x18\x04 \x01(\tR\afailure2\xe4\x03\n" +
+	"\x13XrayAccountsService\x12k\n" +
+	"\bSyncUser\x121.papiliovpn.node.xray.accounts.v1.SyncUserRequest\x1a,.papiliovpn.node.xray.accounts.v1.SyncResult\x12c\n" +
 	"\x0fAddVLESSAccount\x128.papiliovpn.node.xray.accounts.v1.AddVLESSAccountRequest\x1a\x16.google.protobuf.Empty\x12i\n" +
 	"\x12RemoveVLESSAccount\x12;.papiliovpn.node.xray.accounts.v1.RemoveVLESSAccountRequest\x1a\x16.google.protobuf.Empty\x12\x8f\x01\n" +
 	"\x12CountVLESSAccounts\x12;.papiliovpn.node.xray.accounts.v1.CountVLESSAccountsRequest\x1a<.papiliovpn.node.xray.accounts.v1.CountVLESSAccountsResponseB[ZYgithub.com/PapilioVPN/node/internal/engines/xray/accounts/bridge/grpc/proto/v1;accountsv1b\x06proto3"
 
 var (
-	file_accounts_proto_rawDescOnce sync.Once
-	file_accounts_proto_rawDescData []byte
+	file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_rawDescOnce sync.Once
+	file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_rawDescData []byte
 )
 
-func file_accounts_proto_rawDescGZIP() []byte {
-	file_accounts_proto_rawDescOnce.Do(func() {
-		file_accounts_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_accounts_proto_rawDesc), len(file_accounts_proto_rawDesc)))
+func file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_rawDescGZIP() []byte {
+	file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_rawDescOnce.Do(func() {
+		file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_rawDesc), len(file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_rawDesc)))
 	})
-	return file_accounts_proto_rawDescData
+	return file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_rawDescData
 }
 
-var file_accounts_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
-var file_accounts_proto_goTypes = []any{
+var file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_goTypes = []any{
 	(*AddVLESSAccountRequest)(nil),     // 0: papiliovpn.node.xray.accounts.v1.AddVLESSAccountRequest
 	(*RemoveVLESSAccountRequest)(nil),  // 1: papiliovpn.node.xray.accounts.v1.RemoveVLESSAccountRequest
 	(*CountVLESSAccountsRequest)(nil),  // 2: papiliovpn.node.xray.accounts.v1.CountVLESSAccountsRequest
 	(*CountVLESSAccountsResponse)(nil), // 3: papiliovpn.node.xray.accounts.v1.CountVLESSAccountsResponse
-	(*emptypb.Empty)(nil),              // 4: google.protobuf.Empty
+	(*SyncUserRequest)(nil),            // 4: papiliovpn.node.xray.accounts.v1.SyncUserRequest
+	(*SyncResult)(nil),                 // 5: papiliovpn.node.xray.accounts.v1.SyncResult
+	(*emptypb.Empty)(nil),              // 6: google.protobuf.Empty
 }
-var file_accounts_proto_depIdxs = []int32{
-	0, // 0: papiliovpn.node.xray.accounts.v1.XrayAccountsService.AddVLESSAccount:input_type -> papiliovpn.node.xray.accounts.v1.AddVLESSAccountRequest
-	1, // 1: papiliovpn.node.xray.accounts.v1.XrayAccountsService.RemoveVLESSAccount:input_type -> papiliovpn.node.xray.accounts.v1.RemoveVLESSAccountRequest
-	2, // 2: papiliovpn.node.xray.accounts.v1.XrayAccountsService.CountVLESSAccounts:input_type -> papiliovpn.node.xray.accounts.v1.CountVLESSAccountsRequest
-	4, // 3: papiliovpn.node.xray.accounts.v1.XrayAccountsService.AddVLESSAccount:output_type -> google.protobuf.Empty
-	4, // 4: papiliovpn.node.xray.accounts.v1.XrayAccountsService.RemoveVLESSAccount:output_type -> google.protobuf.Empty
-	3, // 5: papiliovpn.node.xray.accounts.v1.XrayAccountsService.CountVLESSAccounts:output_type -> papiliovpn.node.xray.accounts.v1.CountVLESSAccountsResponse
-	3, // [3:6] is the sub-list for method output_type
-	0, // [0:3] is the sub-list for method input_type
+var file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_depIdxs = []int32{
+	4, // 0: papiliovpn.node.xray.accounts.v1.XrayAccountsService.SyncUser:input_type -> papiliovpn.node.xray.accounts.v1.SyncUserRequest
+	0, // 1: papiliovpn.node.xray.accounts.v1.XrayAccountsService.AddVLESSAccount:input_type -> papiliovpn.node.xray.accounts.v1.AddVLESSAccountRequest
+	1, // 2: papiliovpn.node.xray.accounts.v1.XrayAccountsService.RemoveVLESSAccount:input_type -> papiliovpn.node.xray.accounts.v1.RemoveVLESSAccountRequest
+	2, // 3: papiliovpn.node.xray.accounts.v1.XrayAccountsService.CountVLESSAccounts:input_type -> papiliovpn.node.xray.accounts.v1.CountVLESSAccountsRequest
+	5, // 4: papiliovpn.node.xray.accounts.v1.XrayAccountsService.SyncUser:output_type -> papiliovpn.node.xray.accounts.v1.SyncResult
+	6, // 5: papiliovpn.node.xray.accounts.v1.XrayAccountsService.AddVLESSAccount:output_type -> google.protobuf.Empty
+	6, // 6: papiliovpn.node.xray.accounts.v1.XrayAccountsService.RemoveVLESSAccount:output_type -> google.protobuf.Empty
+	3, // 7: papiliovpn.node.xray.accounts.v1.XrayAccountsService.CountVLESSAccounts:output_type -> papiliovpn.node.xray.accounts.v1.CountVLESSAccountsResponse
+	4, // [4:8] is the sub-list for method output_type
+	0, // [0:4] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
 }
 
-func init() { file_accounts_proto_init() }
-func file_accounts_proto_init() {
-	if File_accounts_proto != nil {
+func init() { file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_init() }
+func file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_init() {
+	if File_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto != nil {
 		return
 	}
+	file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_msgTypes[4].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_accounts_proto_rawDesc), len(file_accounts_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_rawDesc), len(file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   4,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_accounts_proto_goTypes,
-		DependencyIndexes: file_accounts_proto_depIdxs,
-		MessageInfos:      file_accounts_proto_msgTypes,
+		GoTypes:           file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_goTypes,
+		DependencyIndexes: file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_depIdxs,
+		MessageInfos:      file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_msgTypes,
 	}.Build()
-	File_accounts_proto = out.File
-	file_accounts_proto_goTypes = nil
-	file_accounts_proto_depIdxs = nil
+	File_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto = out.File
+	file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_goTypes = nil
+	file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_depIdxs = nil
 }
