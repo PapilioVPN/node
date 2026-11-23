@@ -12,10 +12,11 @@ import (
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
-func openNativeConnection(socket string) (*grpc.ClientConn, error) {
+func openNativeConnection(socket string, interceptor grpc.UnaryClientInterceptor) (*grpc.ClientConn, error) {
 	target := url.URL{Scheme: "unix", Path: socket}
 	return grpc.NewClient(target.String(),
 		grpc.WithDisableRetry(),
+		grpc.WithUnaryInterceptor(interceptor),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithConnectParams(grpc.ConnectParams{
 			Backoff: backoff.Config{

@@ -18,6 +18,7 @@ type process struct {
 	command       *exec.Cmd
 	socketPath    string
 	engineVersion string
+	executable    os.FileInfo
 	exited        chan struct{}
 	exit          processExit
 }
@@ -34,6 +35,7 @@ func startProcess(ctx context.Context, config Config, source []byte, logs *live.
 		return nil, err
 	}
 
+	identity, _ := os.Stat(config.Executable)
 	version := executableVersion(ctx, config.Executable)
 	if err := ctx.Err(); err != nil {
 		return nil, errors.Join(err, run.Cleanup())
@@ -48,7 +50,7 @@ func startProcess(ctx context.Context, config Config, source []byte, logs *live.
 	// Linux sends the signal when the creating thread dies. Keep that thread
 	// alive until Wait returns so the runtime cannot end it during normal use.
 	cmd.SysProcAttr = &syscall.SysProcAttr{Pdeathsig: syscall.SIGKILL}
-	p := &process{command: cmd, socketPath: run.Socket, engineVersion: version, exited: make(chan struct{})}
+	p := &process{command: cmd, socketPath: run.Socket, engineVersion: version, executable: identity, exited: make(chan struct{})}
 	started := make(chan error, 1)
 	go func() {
 		runtime.LockOSThread()
@@ -73,6 +75,12 @@ func startProcess(ctx context.Context, config Config, source []byte, logs *live.
 func (process *process) socket() string { return process.socketPath }
 
 func (process *process) version() string { return process.engineVersion }
+
+func (process *process) executableMatches(path string) bool {
+	current, err := os.Stat(path)
+	return err == nil && process.executable != nil && os.SameFile(process.executable, current) &&
+		current.Size() == process.executable.Size() && current.ModTime().Equal(process.executable.ModTime())
+}
 
 func (process *process) wait() processExit {
 	<-process.exited

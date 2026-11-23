@@ -80,6 +80,12 @@ func encodeStatus(result lifecycle.Status) *instancesv1.XrayInstanceStatus {
 		action = instancesv1.XrayStartAction_XRAY_START_ACTION_RESTARTED
 	case lifecycle.Recovered:
 		action = instancesv1.XrayStartAction_XRAY_START_ACTION_RECOVERED
+	case lifecycle.LiveUpdated:
+		action = instancesv1.XrayStartAction_XRAY_START_ACTION_LIVE_UPDATED
+	case lifecycle.RestartedAfterLiveFailure:
+		action = instancesv1.XrayStartAction_XRAY_START_ACTION_RESTARTED_AFTER_LIVE_FAILURE
+	case lifecycle.LiveUpdateFailed:
+		action = instancesv1.XrayStartAction_XRAY_START_ACTION_LIVE_UPDATE_FAILED
 	}
 	observed := &instancesv1.XrayInstanceStatus{Id: result.ID, State: state, XrayVersion: result.XrayVersion,
 		NodeVersion: result.NodeVersion, StartAction: action}
@@ -108,6 +114,8 @@ func startFailureStatus(failure *lifecycle.StartError, observed *instancesv1.Xra
 		reason = instancesv1.XrayStartFailureReason_XRAY_START_FAILURE_REASON_CONFIG_CHECK_FAILED
 	case lifecycle.InitialAccountsFailed:
 		reason = instancesv1.XrayStartFailureReason_XRAY_START_FAILURE_REASON_INITIAL_ACCOUNTS_FAILED
+	case lifecycle.LiveApplyFailed:
+		reason = instancesv1.XrayStartFailureReason_XRAY_START_FAILURE_REASON_LIVE_APPLY_FAILED
 	}
 	base := status.New(code, failure.Error())
 	withDetails, err := base.WithDetails(&instancesv1.XrayStartFailure{

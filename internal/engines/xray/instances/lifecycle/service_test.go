@@ -174,9 +174,10 @@ func newTestChild(t *testing.T) *testChild {
 	return p
 }
 
-func (p *testChild) socket() string  { return "test.sock" }
-func (p *testChild) version() string { return "" }
-func (p *testChild) exit()           { p.once.Do(func() { close(p.exited) }) }
+func (p *testChild) socket() string                { return "test.sock" }
+func (p *testChild) executableMatches(string) bool { return true }
+func (p *testChild) version() string               { return "" }
+func (p *testChild) exit()                         { p.once.Do(func() { close(p.exited) }) }
 func (p *testChild) wait() processExit {
 	<-p.exited
 	return processExit{code: -1}

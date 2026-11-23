@@ -10,13 +10,12 @@ import (
 
 	"github.com/PapilioVPN/node/internal/engines/xray/accounts/membership"
 	"github.com/PapilioVPN/node/internal/engines/xray/configs/runconfig"
-	"github.com/PapilioVPN/node/internal/engines/xray/configs/validation"
 	"google.golang.org/grpc"
 )
 
 const (
-	MaxKeepAliveSeconds  = 24 * 60 * 60
-	MaxInboundSelections = 1000
+	MaxInitialInbounds  = 32
+	MaxExcludedInbounds = 1000
 )
 
 var ErrInvalidStart = errors.New("invalid xray start request")
@@ -49,8 +48,7 @@ func (req StartRequest) selectUsers() ([]InboundUsers, error) {
 	source := bytes.TrimSpace(req.ConfigJSON)
 	if len(req.ConfigJSON) > runconfig.MaxSourceBytes ||
 		(req.ConfigJSON != nil && (len(source) == 0 || source[0] != '{' || !json.Valid(source))) ||
-		len(req.InitialUsers) > MaxInboundSelections || len(req.ExcludedInbounds) > MaxInboundSelections ||
-		(req.KeepAliveSeconds != nil && *req.KeepAliveSeconds > MaxKeepAliveSeconds) {
+		len(req.InitialUsers) > MaxInitialInbounds || len(req.ExcludedInbounds) > MaxExcludedInbounds {
 		return nil, ErrInvalidStart
 	}
 	excluded := make(map[string]struct{}, len(req.ExcludedInbounds))
@@ -102,6 +100,9 @@ func (service *Service) StartWith(ctx context.Context, req StartRequest) (Status
 	defer cancel()
 	unlink := context.AfterFunc(service.shutdown, cancel)
 	defer unlink()
+	if service.shutdown.Err() != nil {
+		cancel()
+	}
 	action, err := service.start(ctx, req)
 	status, _ := service.GetStatus(req.ID)
 	status.StartAction = action
@@ -115,6 +116,9 @@ func (service *Service) StartWith(ctx context.Context, req StartRequest) (Status
 }
 
 func (service *Service) start(ctx context.Context, req StartRequest) (StartAction, error) {
+	if err := ctx.Err(); err != nil {
+		return "", err
+	}
 	users, err := req.selectUsers()
 	if err != nil {
 		return "", err
@@ -152,53 +156,20 @@ func (service *Service) start(ctx context.Context, req StartRequest) (StartActio
 		action = Recovered
 	}
 	if run != nil {
-		healthCtx, cancel := context.WithTimeout(ctx, time.Second)
-		healthErr := service.health(healthCtx, run.conn)
-		cancel()
-		if err := ctx.Err(); err != nil {
-			return "", err
-		}
-		switch {
-		case healthErr != nil:
-			action = Recovered
-		case run.desired.equal(desired):
-			service.mu.Lock()
-			ready := service.run == run && service.state == Ready
-			if ready {
-				service.refreshLeaseLocked(run, keepAlive)
-			}
-			service.mu.Unlock()
-			if ready {
-				return Heartbeat, nil
-			}
-			action = Recovered
-		default:
-			action = Restarted
-		}
-		if !run.desired.equal(desired) {
-			checkCtx, cancel := context.WithTimeout(ctx, 4*time.Second)
-			issue, err := validation.CheckSource(checkCtx, service.config.Executable, service.config.RuntimeDirectory, desired.source)
-			cancel()
-			if ctx.Err() != nil {
-				return "", ctx.Err()
-			}
-			if issue != nil {
-				return "", &StartError{Reason: ConfigRejected, cause: ErrInvalidStart}
-			}
-			if err != nil {
-				return "", &StartError{Reason: ConfigCheckFailed, cause: err}
-			}
+		action, err = service.reconcile(ctx, run, desired, keepAlive)
+		if err != nil || action == Heartbeat || action == LiveUpdated {
+			return action, err
 		}
 		if err := ctx.Err(); err != nil {
-			return "", err
+			return action, err
 		}
 		if err := service.stop(ctx, Stopped); err != nil {
 			return action, err
 		}
 	}
+	return action, service.launchReady(ctx, desired.owned(), users, keepAlive)
+}
 
-	// Own any candidate bytes past the transport request.
-	desired.source = bytes.Clone(desired.source)
-	desired.excluded = slices.Clone(desired.excluded)
-	return action, service.launchReady(ctx, desired, users, keepAlive)
+func (d desiredConfig) owned() desiredConfig {
+	return desiredConfig{source: bytes.Clone(d.source), excluded: slices.Clone(d.excluded)}
 }

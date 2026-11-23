@@ -21,6 +21,7 @@ import (
 	"github.com/PapilioVPN/node/internal/engines/xray/instances"
 	instancesv1 "github.com/PapilioVPN/node/internal/engines/xray/instances/bridge/grpc/proto/v1"
 	"github.com/PapilioVPN/node/internal/engines/xray/logs"
+	"github.com/PapilioVPN/node/internal/engines/xray/routing"
 	"github.com/PapilioVPN/node/internal/settings"
 	"github.com/go-chi/chi/v5"
 	"go.uber.org/fx"
@@ -55,7 +56,11 @@ func TestInstanceVersions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	wantXray := strings.Fields(string(output))[1]
+	fields := strings.Fields(string(output))
+	if len(fields) < 2 || fields[0] != "Xray" {
+		t.Fatalf("unexpected Xray version output %q", output)
+	}
+	wantXray := fields[1]
 	f.expectHTTP(http.MethodPut, "/execution", "ready")
 
 	result, err := f.client.GetStatus(f.ctx, &instancesv1.XrayInstanceRequest{Id: "primary"})
@@ -178,7 +183,7 @@ func newFixtureWithExecutable(t *testing.T, engineConfig, executable string) fix
 		t.Fatal(err)
 	}
 	router, rpcServer := chi.NewRouter(), grpc.NewServer()
-	app := fx.New(fx.NopLogger, instances.Module, logs.Module, accounts.Module,
+	app := fx.New(fx.NopLogger, instances.Module, logs.Module, accounts.Module, routing.Module,
 		fx.Supply(router, rpcServer, settings.Xray{
 			ID: "primary", Executable: executable, ConfigFile: config, RuntimeDirectory: runtimeDir,
 		}))

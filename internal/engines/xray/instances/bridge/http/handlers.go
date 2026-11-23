@@ -7,7 +7,6 @@ import (
 	"net/http"
 
 	"github.com/PapilioVPN/node/internal/engines/xray/accounts/membership"
-
 	"github.com/PapilioVPN/node/internal/engines/xray/instances/lifecycle"
 	"github.com/go-chi/chi/v5"
 )

@@ -32,17 +32,20 @@ func writeResult(w http.ResponseWriter, result lifecycle.Status, err error) {
 	if !result.LeaseExpiresAt.IsZero() {
 		response.LeaseExpiresAt = new(result.LeaseExpiresAt.UTC())
 	}
-	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Cache-Control", "no-store")
 	if err == nil {
+		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(response)
 		return
 	}
 
 	failure, code := publicError(err)
-	if result.ID != "" {
-		failure.Status = &response
+	if result.ID == "" {
+		http.Error(w, failure.Message, code)
+		return
 	}
+	failure.Status = &response
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
 	_ = json.NewEncoder(w).Encode(failure)
 }

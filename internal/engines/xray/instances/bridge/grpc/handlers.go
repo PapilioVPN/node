@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/PapilioVPN/node/internal/engines/xray/accounts/membership"
-
 	instancesv1 "github.com/PapilioVPN/node/internal/engines/xray/instances/bridge/grpc/proto/v1"
 	"github.com/PapilioVPN/node/internal/engines/xray/instances/lifecycle"
 )
@@ -19,8 +18,17 @@ func (h *handlers) GetStatus(_ context.Context, req *instancesv1.XrayInstanceReq
 }
 
 func (h *handlers) Start(ctx context.Context, req *instancesv1.XrayInstanceRequest) (*instancesv1.XrayInstanceStatus, error) {
+	groups := req.GetInitialUsers()
+	if len(groups) > lifecycle.MaxInitialInbounds {
+		return h.invalidStart(req.GetId())
+	}
 	var users []lifecycle.InboundUsers
-	for _, group := range req.GetInitialUsers() {
+	var total int
+	for _, group := range groups {
+		total += len(group.GetAccounts())
+		if total > membership.MaxSyncAccounts {
+			return h.invalidStart(req.GetId())
+		}
 		accounts := make([]membership.AccountInput, 0, len(group.GetAccounts()))
 		for _, account := range group.GetAccounts() {
 			id := account.GetUuid()
@@ -34,6 +42,14 @@ func (h *handlers) Start(ctx context.Context, req *instancesv1.XrayInstanceReque
 		input.KeepAliveSeconds = req.KeepAliveSeconds
 	}
 	return response(h.service.StartWith(ctx, input))
+}
+
+func (h *handlers) invalidStart(id string) (*instancesv1.XrayInstanceStatus, error) {
+	observed, err := h.service.GetStatus(id)
+	if err != nil {
+		return response(observed, err)
+	}
+	return response(observed, lifecycle.ErrInvalidStart)
 }
 
 func (h *handlers) Stop(ctx context.Context, req *instancesv1.XrayInstanceRequest) (*instancesv1.XrayInstanceStatus, error) {

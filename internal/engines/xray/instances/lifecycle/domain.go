@@ -24,6 +24,7 @@ const (
 	ConfigRejected        StartFailureReason = "config_rejected"
 	ConfigCheckFailed     StartFailureReason = "config_check_failed"
 	InitialAccountsFailed StartFailureReason = "initial_accounts_failed"
+	LiveApplyFailed       StartFailureReason = "live_apply_failed"
 )
 
 type StartError struct {
@@ -51,10 +52,13 @@ const (
 type StartAction string
 
 const (
-	Started   StartAction = "started"
-	Heartbeat StartAction = "heartbeat"
-	Restarted StartAction = "restarted"
-	Recovered StartAction = "recovered"
+	Started                   StartAction = "started"
+	Heartbeat                 StartAction = "heartbeat"
+	Restarted                 StartAction = "restarted"
+	Recovered                 StartAction = "recovered"
+	LiveUpdated               StartAction = "live_updated"
+	RestartedAfterLiveFailure StartAction = "restarted_after_live_failure"
+	LiveUpdateFailed          StartAction = "live_update_failed"
 )
 
 type Status struct {

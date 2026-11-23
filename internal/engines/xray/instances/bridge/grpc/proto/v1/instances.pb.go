@@ -83,11 +83,14 @@ func (XrayInstanceState) EnumDescriptor() ([]byte, []int) {
 type XrayStartAction int32
 
 const (
-	XrayStartAction_XRAY_START_ACTION_UNSPECIFIED XrayStartAction = 0
-	XrayStartAction_XRAY_START_ACTION_STARTED     XrayStartAction = 1
-	XrayStartAction_XRAY_START_ACTION_HEARTBEAT   XrayStartAction = 2
-	XrayStartAction_XRAY_START_ACTION_RESTARTED   XrayStartAction = 3
-	XrayStartAction_XRAY_START_ACTION_RECOVERED   XrayStartAction = 4
+	XrayStartAction_XRAY_START_ACTION_UNSPECIFIED                  XrayStartAction = 0
+	XrayStartAction_XRAY_START_ACTION_STARTED                      XrayStartAction = 1
+	XrayStartAction_XRAY_START_ACTION_HEARTBEAT                    XrayStartAction = 2
+	XrayStartAction_XRAY_START_ACTION_RESTARTED                    XrayStartAction = 3
+	XrayStartAction_XRAY_START_ACTION_RECOVERED                    XrayStartAction = 4
+	XrayStartAction_XRAY_START_ACTION_LIVE_UPDATED                 XrayStartAction = 5
+	XrayStartAction_XRAY_START_ACTION_RESTARTED_AFTER_LIVE_FAILURE XrayStartAction = 6
+	XrayStartAction_XRAY_START_ACTION_LIVE_UPDATE_FAILED           XrayStartAction = 7
 )
 
 // Enum value maps for XrayStartAction.
@@ -98,13 +101,19 @@ var (
 		2: "XRAY_START_ACTION_HEARTBEAT",
 		3: "XRAY_START_ACTION_RESTARTED",
 		4: "XRAY_START_ACTION_RECOVERED",
+		5: "XRAY_START_ACTION_LIVE_UPDATED",
+		6: "XRAY_START_ACTION_RESTARTED_AFTER_LIVE_FAILURE",
+		7: "XRAY_START_ACTION_LIVE_UPDATE_FAILED",
 	}
 	XrayStartAction_value = map[string]int32{
-		"XRAY_START_ACTION_UNSPECIFIED": 0,
-		"XRAY_START_ACTION_STARTED":     1,
-		"XRAY_START_ACTION_HEARTBEAT":   2,
-		"XRAY_START_ACTION_RESTARTED":   3,
-		"XRAY_START_ACTION_RECOVERED":   4,
+		"XRAY_START_ACTION_UNSPECIFIED":                  0,
+		"XRAY_START_ACTION_STARTED":                      1,
+		"XRAY_START_ACTION_HEARTBEAT":                    2,
+		"XRAY_START_ACTION_RESTARTED":                    3,
+		"XRAY_START_ACTION_RECOVERED":                    4,
+		"XRAY_START_ACTION_LIVE_UPDATED":                 5,
+		"XRAY_START_ACTION_RESTARTED_AFTER_LIVE_FAILURE": 6,
+		"XRAY_START_ACTION_LIVE_UPDATE_FAILED":           7,
 	}
 )
 
@@ -146,6 +155,7 @@ const (
 	XrayStartFailureReason_XRAY_START_FAILURE_REASON_CONFIG_REJECTED         XrayStartFailureReason = 5
 	XrayStartFailureReason_XRAY_START_FAILURE_REASON_CONFIG_CHECK_FAILED     XrayStartFailureReason = 6
 	XrayStartFailureReason_XRAY_START_FAILURE_REASON_INITIAL_ACCOUNTS_FAILED XrayStartFailureReason = 7
+	XrayStartFailureReason_XRAY_START_FAILURE_REASON_LIVE_APPLY_FAILED       XrayStartFailureReason = 8
 )
 
 // Enum value maps for XrayStartFailureReason.
@@ -159,6 +169,7 @@ var (
 		5: "XRAY_START_FAILURE_REASON_CONFIG_REJECTED",
 		6: "XRAY_START_FAILURE_REASON_CONFIG_CHECK_FAILED",
 		7: "XRAY_START_FAILURE_REASON_INITIAL_ACCOUNTS_FAILED",
+		8: "XRAY_START_FAILURE_REASON_LIVE_APPLY_FAILED",
 	}
 	XrayStartFailureReason_value = map[string]int32{
 		"XRAY_START_FAILURE_REASON_UNSPECIFIED":             0,
@@ -169,6 +180,7 @@ var (
 		"XRAY_START_FAILURE_REASON_CONFIG_REJECTED":         5,
 		"XRAY_START_FAILURE_REASON_CONFIG_CHECK_FAILED":     6,
 		"XRAY_START_FAILURE_REASON_INITIAL_ACCOUNTS_FAILED": 7,
+		"XRAY_START_FAILURE_REASON_LIVE_APPLY_FAILED":       8,
 	}
 )
 
@@ -568,13 +580,16 @@ const file_proto_v1_instances_proto_rawDesc = "" +
 	"\x1cXRAY_INSTANCE_STATE_STARTING\x10\x02\x12\x1d\n" +
 	"\x19XRAY_INSTANCE_STATE_READY\x10\x03\x12 \n" +
 	"\x1cXRAY_INSTANCE_STATE_STOPPING\x10\x04\x12\x1e\n" +
-	"\x1aXRAY_INSTANCE_STATE_FAILED\x10\x05*\xb6\x01\n" +
+	"\x1aXRAY_INSTANCE_STATE_FAILED\x10\x05*\xb8\x02\n" +
 	"\x0fXrayStartAction\x12!\n" +
 	"\x1dXRAY_START_ACTION_UNSPECIFIED\x10\x00\x12\x1d\n" +
 	"\x19XRAY_START_ACTION_STARTED\x10\x01\x12\x1f\n" +
 	"\x1bXRAY_START_ACTION_HEARTBEAT\x10\x02\x12\x1f\n" +
 	"\x1bXRAY_START_ACTION_RESTARTED\x10\x03\x12\x1f\n" +
-	"\x1bXRAY_START_ACTION_RECOVERED\x10\x04*\x9d\x03\n" +
+	"\x1bXRAY_START_ACTION_RECOVERED\x10\x04\x12\"\n" +
+	"\x1eXRAY_START_ACTION_LIVE_UPDATED\x10\x05\x122\n" +
+	".XRAY_START_ACTION_RESTARTED_AFTER_LIVE_FAILURE\x10\x06\x12(\n" +
+	"$XRAY_START_ACTION_LIVE_UPDATE_FAILED\x10\a*\xce\x03\n" +
 	"\x16XrayStartFailureReason\x12)\n" +
 	"%XRAY_START_FAILURE_REASON_UNSPECIFIED\x10\x00\x12+\n" +
 	"'XRAY_START_FAILURE_REASON_LAUNCH_FAILED\x10\x01\x121\n" +
@@ -583,7 +598,8 @@ const file_proto_v1_instances_proto_rawDesc = "" +
 	"*XRAY_START_FAILURE_REASON_READINESS_FAILED\x10\x04\x12-\n" +
 	")XRAY_START_FAILURE_REASON_CONFIG_REJECTED\x10\x05\x121\n" +
 	"-XRAY_START_FAILURE_REASON_CONFIG_CHECK_FAILED\x10\x06\x125\n" +
-	"1XRAY_START_FAILURE_REASON_INITIAL_ACCOUNTS_FAILED\x10\a2\xa7\x02\n" +
+	"1XRAY_START_FAILURE_REASON_INITIAL_ACCOUNTS_FAILED\x10\a\x12/\n" +
+	"+XRAY_START_FAILURE_REASON_LIVE_APPLY_FAILED\x10\b2\xa7\x02\n" +
 	"\x14XrayInstancesService\x12X\n" +
 	"\x05Start\x12'.papiliovpn.node.v1.XrayInstanceRequest\x1a&.papiliovpn.node.v1.XrayInstanceStatus\x12\\\n" +
 	"\tGetStatus\x12'.papiliovpn.node.v1.XrayInstanceRequest\x1a&.papiliovpn.node.v1.XrayInstanceStatus\x12W\n" +

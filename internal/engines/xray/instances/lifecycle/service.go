@@ -23,22 +23,25 @@ type Config struct {
 type child interface {
 	socket() string
 	version() string
+	executableMatches(string) bool
 	wait() processExit
 	terminate() error
 	kill() error
 }
 
 type execution struct {
-	child      child
-	logs       *live.Execution
-	done       chan struct{}
-	finalState State
-	exit       processExit
-	exited     bool
-	conn       *grpc.ClientConn
-	desired    desiredConfig
-	keepAlive  time.Duration
-	expiresAt  time.Time
+	child            child
+	logs             *live.Execution
+	done             chan struct{}
+	finalState       State
+	exit             processExit
+	exited           bool
+	conn             *grpc.ClientConn
+	desired          desiredConfig
+	keepAlive        time.Duration
+	expiresAt        time.Time
+	routingWrites    *semaphore.Weighted
+	routingUncertain bool // protected by routingWrites
 }
 
 type Service struct {
@@ -132,7 +135,8 @@ func (service *Service) launchReady(ctx context.Context, desired desiredConfig, 
 		return &StartError{Reason: LaunchFailed, cause: err}
 	}
 
-	run := &execution{child: process, logs: logs, done: make(chan struct{}), finalState: Failed, desired: desired}
+	run := &execution{child: process, logs: logs, done: make(chan struct{}), finalState: Failed, desired: desired,
+		routingWrites: semaphore.NewWeighted(1)}
 	service.mu.Lock()
 	service.run = run
 	service.mu.Unlock()
@@ -141,7 +145,7 @@ func (service *Service) launchReady(ctx context.Context, desired desiredConfig, 
 	var conn *grpc.ClientConn
 	probeErr := startCtx.Err()
 	if probeErr == nil {
-		conn, probeErr = openNativeConnection(process.socket())
+		conn, probeErr = openNativeConnection(process.socket(), run.serializeRoutingWrites)
 		if probeErr == nil {
 			probeErr = service.probe(startCtx, conn)
 		}
