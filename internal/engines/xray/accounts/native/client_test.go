@@ -123,7 +123,7 @@ func TestInventoryIncludesConfiguredAnonymousIDs(t *testing.T) {
 	}
 	entry := state.inbounds["vless"]
 	collision, _ := membership.ParseUUID("303fcd60-a8d5-7fff-8b71-9a76ad9bda21")
-	if entry.ambiguous || len(entry.names) != 0 || entry.insert("new-user", collision.Key()) {
+	if entry.ambiguous || len(entry.names) != 0 || entry.insert("new-user", membership.Key{Identity: collision.Key()}) {
 		t.Fatal("configured anonymous account did not reserve its effective VLESS ID")
 	}
 }

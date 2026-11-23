@@ -43,20 +43,30 @@ func New(instances activeInstances) *Client {
 }
 
 func (c *Client) Add(ctx context.Context, scope membership.Scope, account membership.Account) error {
-	return c.Edit(ctx, scope, func(edit membership.Editor) error { return edit.Add(account) })
+	return c.edit(ctx, scope, true, func(e *editor) error {
+		prepared, err := e.Prepare(account.Email, membership.Credential{Protocol: membership.VLESS, UUID: account.ID.String()})
+		if err != nil {
+			return err
+		}
+		return e.Add(prepared)
+	})
 }
 
 func (c *Client) Remove(ctx context.Context, scope membership.Scope, email string) error {
-	return c.Edit(ctx, scope, func(edit membership.Editor) error { return edit.Remove(email) })
+	return c.edit(ctx, scope, true, func(e *editor) error { return e.Remove(membership.NameKey(email)) })
 }
 
 func (c *Client) Edit(ctx context.Context, scope membership.Scope, apply func(membership.Editor) error) error {
+	return c.edit(ctx, scope, false, func(e *editor) error { return apply(e) })
+}
+
+func (c *Client) edit(ctx context.Context, scope membership.Scope, vlessOnly bool, apply func(*editor) error) error {
 	if !c.mutation.TryLock() {
 		return membership.ErrBusy
 	}
 	defer c.mutation.Unlock()
 
-	state, entry, err := c.mutable(ctx, scope)
+	state, entry, err := c.mutable(ctx, scope, vlessOnly)
 	if err != nil {
 		return err
 	}
@@ -77,15 +87,15 @@ type editor struct {
 	entry  *inboundAccounts
 }
 
-func (e *editor) Named() iter.Seq2[string, membership.IDKey] {
-	return maps.All(e.entry.names)
-}
+func (e *editor) Name(email string) (string, error) { return e.entry.name(email) }
+
+func (e *editor) Named() iter.Seq2[string, membership.Key] { return maps.All(e.entry.names) }
 
 func (e *editor) Capacity() int { return maxAccounts - e.state.size }
 
-func (e *editor) Lookup(email string) (membership.IDKey, bool) {
-	id, found := e.entry.names[membership.NameKey(email)]
-	return id, found
+func (e *editor) Lookup(name string) (membership.Key, bool) {
+	key, found := e.entry.names[name]
+	return key, found
 }
 
 func (e *editor) HasID(id membership.IDKey) bool {
@@ -93,21 +103,19 @@ func (e *editor) HasID(id membership.IDKey) bool {
 	return found
 }
 
-func (e *editor) Add(account membership.Account) error {
-	name, id := membership.NameKey(account.Email), account.ID.Key()
-	if _, exists := e.entry.names[name]; exists || e.HasID(id) {
+func (e *editor) Prepare(email string, c membership.Credential) (membership.PreparedAccount, error) {
+	return e.entry.prepare(email, c)
+}
+
+func (e *editor) Add(account membership.PreparedAccount) error {
+	if _, exists := e.entry.names[account.Name]; exists || e.HasID(account.Identity) {
 		return membership.ErrExists
 	}
 	if e.state.size >= maxAccounts {
 		return membership.ErrTooLarge
 	}
-
-	vless, err := pack(vlessAccountType, &VlessAccount{Id: account.ID.String()})
-	if err != nil {
-		return err
-	}
 	operation, err := pack(AddUserOperationType, &AddUserOperation{
-		User: &User{Email: account.Email, Account: vless},
+		User: &User{Email: account.Email, Account: &TypedMessage{Type: e.entry.layout.accountType, Value: account.Value}},
 	})
 	if err != nil {
 		return err
@@ -115,20 +123,19 @@ func (e *editor) Add(account membership.Account) error {
 	if err := e.client.alter(e.ctx, e.scope, e.state.conn, e.entry, operation); err != nil {
 		return err
 	}
-	e.entry.names[name] = id
-	e.entry.ids[id] = struct{}{}
+	e.entry.names[account.Name] = account.Key
+	e.entry.ids[account.Identity] = struct{}{}
 	e.state.size++
 	return nil
 }
 
-func (e *editor) Remove(email string) error {
-	name := membership.NameKey(email)
-	id, exists := e.entry.names[name]
+func (e *editor) Remove(name string) error {
+	key, exists := e.entry.names[name]
 	if !exists {
 		return membership.ErrAccountMissing
 	}
 
-	operation, err := pack(RemoveUserOperationType, &RemoveUserOperation{Email: email})
+	operation, err := pack(RemoveUserOperationType, &RemoveUserOperation{Email: name})
 	if err != nil {
 		return err
 	}
@@ -136,7 +143,7 @@ func (e *editor) Remove(email string) error {
 		return err
 	}
 	delete(e.entry.names, name)
-	delete(e.entry.ids, id)
+	delete(e.entry.ids, key.Identity)
 	e.state.size--
 	return nil
 }
@@ -146,7 +153,7 @@ func (c *Client) Count(ctx context.Context, scope membership.Scope) (int64, erro
 	if err != nil {
 		return 0, err
 	}
-	if _, err := state.vless(scope.InboundTag); err != nil {
+	if _, err := state.selectInbound(scope.InboundTag, true); err != nil {
 		return 0, err
 	}
 	var result GetInboundUsersCountResponse
@@ -161,12 +168,12 @@ func (c *Client) Count(ctx context.Context, scope membership.Scope) (int64, erro
 	return result.Count, nil
 }
 
-func (c *Client) mutable(ctx context.Context, scope membership.Scope) (*inventory, *inboundAccounts, error) {
+func (c *Client) mutable(ctx context.Context, scope membership.Scope, vlessOnly bool) (*inventory, *inboundAccounts, error) {
 	state, err := c.inventory(ctx, scope.InstanceID)
 	if err != nil {
 		return nil, nil, err
 	}
-	entry, err := state.vless(scope.InboundTag)
+	entry, err := state.selectInbound(scope.InboundTag, vlessOnly)
 	if err != nil {
 		return nil, nil, err
 	}

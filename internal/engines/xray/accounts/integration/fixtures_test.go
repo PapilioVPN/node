@@ -46,9 +46,6 @@ func startFixture(t *testing.T, accounts ...configuredAccount) fixture {
 	if executable == "" {
 		t.Skip("set NODE_TEST_XRAY to the absolute path of Xray v26.11.9")
 	}
-	dir, err := os.MkdirTemp("", "node-accounts-")
-	require(t, err)
-	t.Cleanup(func() { require(t, os.RemoveAll(dir)) })
 	port, otherPort := freePorts(t)
 	if accounts == nil {
 		accounts = []configuredAccount{}
@@ -64,6 +61,16 @@ func startFixture(t *testing.T, accounts ...configuredAccount) fixture {
 		],
 		"outbounds": [{"tag":"direct","protocol":"freedom","settings":{"finalRules":[{"action":"allow","ip":["127.0.0.1/32"]}]}}]
 	}`, port, clients, otherPort)
+	f := startSourceFixture(t, executable, source)
+	f.inboundPort = port
+	return f
+}
+
+func startSourceFixture(t *testing.T, executable, source string) fixture {
+	t.Helper()
+	dir, err := os.MkdirTemp("", "node-accounts-")
+	require(t, err)
+	t.Cleanup(func() { require(t, os.RemoveAll(dir)) })
 	file := filepath.Join(dir, "xray.json")
 	require(t, os.WriteFile(file, []byte(source), 0600))
 
@@ -98,7 +105,7 @@ func startFixture(t *testing.T, accounts ...configuredAccount) fixture {
 		}))
 	require(t, err)
 	t.Cleanup(func() { require(t, conn.Close()) })
-	return fixture{http: httpServer, inboundPort: port, grpc: accountsv1.NewXrayAccountsServiceClient(conn), instance: instance}
+	return fixture{http: httpServer, grpc: accountsv1.NewXrayAccountsServiceClient(conn), instance: instance}
 }
 
 func freePorts(t *testing.T) (int, int) {

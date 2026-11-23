@@ -1,4 +1,4 @@
-// Package membership manages live Xray VLESS accounts.
+// Package membership manages live Xray inbound accounts.
 package membership
 
 import (
@@ -16,9 +16,9 @@ var (
 	ErrInstanceMissing = errors.New("Xray instance not found")
 	ErrInboundMissing  = errors.New("Xray inbound not found")
 	ErrAccountMissing  = errors.New("Xray account not found")
-	ErrProtocol        = errors.New("Xray inbound is not VLESS")
-	ErrExists          = errors.New("Xray account email or VLESS ID already exists")
-	ErrAmbiguous       = errors.New("Xray inbound has conflicting configured VLESS accounts")
+	ErrProtocol        = errors.New("Xray inbound does not support the requested account protocol")
+	ErrExists          = errors.New("Xray account email or authentication identity already exists")
+	ErrAmbiguous       = errors.New("Xray inbound has conflicting configured accounts")
 	ErrBusy            = errors.New("Xray account operation capacity reached")
 	ErrTooLarge        = errors.New("Xray account inventory exceeds the supported limit")
 	ErrUnavailable     = errors.New("Xray account operation unavailable")

@@ -6,9 +6,9 @@ option go_package = "github.com/PapilioVPN/node/internal/engines/xray/accounts/b
 import "google/protobuf/empty.proto";
 
 service XrayAccountsService {
-  // Reconciles one account by email. Absent uuid requests removal.
+  // Reconciles one account by email. Absent credentials request removal.
   rpc SyncUser(SyncUserRequest) returns (SyncResult);
-  // Replaces the complete named membership of one VLESS inbound.
+  // Replaces the complete named membership of the selected inbound.
   rpc SyncUsers(SyncUsersRequest) returns (SyncResult);
   // Applies explicit deltas after the final chunk and a clean client half-close.
   rpc SyncUsersChunked(stream UsersChunk) returns (SyncResult);
@@ -47,6 +47,8 @@ message SyncUserRequest {
   string inbound_tag = 2;
   string email = 3;
   optional string uuid = 4;
+  optional string flow = 5;
+  Credential credential = 6;
 }
 
 message SyncResult {
@@ -61,6 +63,8 @@ message SyncResult {
 message VLESSAccount {
   string email = 1;
   optional string uuid = 2;
+  optional string flow = 3;
+  Credential credential = 4;
 }
 
 message VLESSAccounts {
@@ -81,6 +85,24 @@ message UsersChunk {
   // Consecutive indices starting at zero.
   uint32 index = 3;
   bool last = 4;
-  // An absent uuid removes only that named account.
+  // An absent credential and uuid remove only that named account.
   repeated VLESSAccount accounts = 5;
+}
+
+message Credential {
+  string protocol = 1;
+  string uuid = 2;
+  optional string flow = 3;
+  string password = 4;
+  string method = 5;
+  string key = 6;
+  string auth = 7;
+  WireGuardPeer peer = 8;
+}
+
+message WireGuardPeer {
+  string public_key = 1;
+  string pre_shared_key = 2;
+  repeated string allowed_ips = 3;
+  uint32 keep_alive = 4;
 }

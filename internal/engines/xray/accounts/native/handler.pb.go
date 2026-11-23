@@ -137,6 +137,7 @@ func (x *User) GetAccount() *TypedMessage {
 type VlessAccount struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Flow          string                 `protobuf:"bytes,2,opt,name=flow,proto3" json:"flow,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -174,6 +175,13 @@ func (*VlessAccount) Descriptor() ([]byte, []int) {
 func (x *VlessAccount) GetId() string {
 	if x != nil {
 		return x.Id
+	}
+	return ""
+}
+
+func (x *VlessAccount) GetFlow() string {
+	if x != nil {
+		return x.Flow
 	}
 	return ""
 }
@@ -590,6 +598,214 @@ func (x *GetInboundUsersCountResponse) GetCount() int64 {
 	return 0
 }
 
+type PasswordAccount struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Password      string                 `protobuf:"bytes,1,opt,name=password,proto3" json:"password,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PasswordAccount) Reset() {
+	*x = PasswordAccount{}
+	mi := &file_handler_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PasswordAccount) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PasswordAccount) ProtoMessage() {}
+
+func (x *PasswordAccount) ProtoReflect() protoreflect.Message {
+	mi := &file_handler_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PasswordAccount.ProtoReflect.Descriptor instead.
+func (*PasswordAccount) Descriptor() ([]byte, []int) {
+	return file_handler_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *PasswordAccount) GetPassword() string {
+	if x != nil {
+		return x.Password
+	}
+	return ""
+}
+
+type ShadowsocksAccount struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Password      string                 `protobuf:"bytes,1,opt,name=password,proto3" json:"password,omitempty"`
+	CipherType    uint32                 `protobuf:"varint,2,opt,name=cipher_type,json=cipherType,proto3" json:"cipher_type,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ShadowsocksAccount) Reset() {
+	*x = ShadowsocksAccount{}
+	mi := &file_handler_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ShadowsocksAccount) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ShadowsocksAccount) ProtoMessage() {}
+
+func (x *ShadowsocksAccount) ProtoReflect() protoreflect.Message {
+	mi := &file_handler_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ShadowsocksAccount.ProtoReflect.Descriptor instead.
+func (*ShadowsocksAccount) Descriptor() ([]byte, []int) {
+	return file_handler_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *ShadowsocksAccount) GetPassword() string {
+	if x != nil {
+		return x.Password
+	}
+	return ""
+}
+
+func (x *ShadowsocksAccount) GetCipherType() uint32 {
+	if x != nil {
+		return x.CipherType
+	}
+	return 0
+}
+
+type WireGuardAccount struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	PublicKey     string                 `protobuf:"bytes,1,opt,name=public_key,json=publicKey,proto3" json:"public_key,omitempty"`
+	PreSharedKey  string                 `protobuf:"bytes,2,opt,name=pre_shared_key,json=preSharedKey,proto3" json:"pre_shared_key,omitempty"`
+	KeepAlive     string                 `protobuf:"bytes,4,opt,name=keep_alive,json=keepAlive,proto3" json:"keep_alive,omitempty"`
+	AllowedIps    []string               `protobuf:"bytes,5,rep,name=allowed_ips,json=allowedIps,proto3" json:"allowed_ips,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *WireGuardAccount) Reset() {
+	*x = WireGuardAccount{}
+	mi := &file_handler_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WireGuardAccount) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WireGuardAccount) ProtoMessage() {}
+
+func (x *WireGuardAccount) ProtoReflect() protoreflect.Message {
+	mi := &file_handler_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WireGuardAccount.ProtoReflect.Descriptor instead.
+func (*WireGuardAccount) Descriptor() ([]byte, []int) {
+	return file_handler_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *WireGuardAccount) GetPublicKey() string {
+	if x != nil {
+		return x.PublicKey
+	}
+	return ""
+}
+
+func (x *WireGuardAccount) GetPreSharedKey() string {
+	if x != nil {
+		return x.PreSharedKey
+	}
+	return ""
+}
+
+func (x *WireGuardAccount) GetKeepAlive() string {
+	if x != nil {
+		return x.KeepAlive
+	}
+	return ""
+}
+
+func (x *WireGuardAccount) GetAllowedIps() []string {
+	if x != nil {
+		return x.AllowedIps
+	}
+	return nil
+}
+
+type GetInboundUserResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Users         []*User                `protobuf:"bytes,1,rep,name=users,proto3" json:"users,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetInboundUserResponse) Reset() {
+	*x = GetInboundUserResponse{}
+	mi := &file_handler_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetInboundUserResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetInboundUserResponse) ProtoMessage() {}
+
+func (x *GetInboundUserResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_handler_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetInboundUserResponse.ProtoReflect.Descriptor instead.
+func (*GetInboundUserResponse) Descriptor() ([]byte, []int) {
+	return file_handler_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *GetInboundUserResponse) GetUsers() []*User {
+	if x != nil {
+		return x.Users
+	}
+	return nil
+}
+
 var File_handler_proto protoreflect.FileDescriptor
 
 const file_handler_proto_rawDesc = "" +
@@ -601,9 +817,10 @@ const file_handler_proto_rawDesc = "" +
 	"\x04User\x12\x14\n" +
 	"\x05level\x18\x01 \x01(\rR\x05level\x12\x14\n" +
 	"\x05email\x18\x02 \x01(\tR\x05email\x12L\n" +
-	"\aaccount\x18\x03 \x01(\v22.papiliovpn.node.xray.accounts.native.TypedMessageR\aaccount\"\x1e\n" +
+	"\aaccount\x18\x03 \x01(\v22.papiliovpn.node.xray.accounts.native.TypedMessageR\aaccount\"2\n" +
 	"\fVlessAccount\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"P\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
+	"\x04flow\x18\x02 \x01(\tR\x04flow\"P\n" +
 	"\fVlessInbound\x12@\n" +
 	"\x05users\x18\x01 \x03(\v2*.papiliovpn.node.xray.accounts.native.UserR\x05users\"y\n" +
 	"\x13AlterInboundRequest\x12\x10\n" +
@@ -624,7 +841,23 @@ const file_handler_proto_rawDesc = "" +
 	"\x15GetInboundUserRequest\x12\x10\n" +
 	"\x03tag\x18\x01 \x01(\tR\x03tag\"4\n" +
 	"\x1cGetInboundUsersCountResponse\x12\x14\n" +
-	"\x05count\x18\x01 \x01(\x03R\x05countBBZ@github.com/PapilioVPN/node/internal/engines/xray/accounts/nativeb\x06proto3"
+	"\x05count\x18\x01 \x01(\x03R\x05count\"-\n" +
+	"\x0fPasswordAccount\x12\x1a\n" +
+	"\bpassword\x18\x01 \x01(\tR\bpassword\"Q\n" +
+	"\x12ShadowsocksAccount\x12\x1a\n" +
+	"\bpassword\x18\x01 \x01(\tR\bpassword\x12\x1f\n" +
+	"\vcipher_type\x18\x02 \x01(\rR\n" +
+	"cipherType\"\x97\x01\n" +
+	"\x10WireGuardAccount\x12\x1d\n" +
+	"\n" +
+	"public_key\x18\x01 \x01(\tR\tpublicKey\x12$\n" +
+	"\x0epre_shared_key\x18\x02 \x01(\tR\fpreSharedKey\x12\x1d\n" +
+	"\n" +
+	"keep_alive\x18\x04 \x01(\tR\tkeepAlive\x12\x1f\n" +
+	"\vallowed_ips\x18\x05 \x03(\tR\n" +
+	"allowedIps\"Z\n" +
+	"\x16GetInboundUserResponse\x12@\n" +
+	"\x05users\x18\x01 \x03(\v2*.papiliovpn.node.xray.accounts.native.UserR\x05usersBBZ@github.com/PapilioVPN/node/internal/engines/xray/accounts/nativeb\x06proto3"
 
 var (
 	file_handler_proto_rawDescOnce sync.Once
@@ -638,7 +871,7 @@ func file_handler_proto_rawDescGZIP() []byte {
 	return file_handler_proto_rawDescData
 }
 
-var file_handler_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
+var file_handler_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
 var file_handler_proto_goTypes = []any{
 	(*TypedMessage)(nil),                 // 0: papiliovpn.node.xray.accounts.native.TypedMessage
 	(*User)(nil),                         // 1: papiliovpn.node.xray.accounts.native.User
@@ -652,6 +885,10 @@ var file_handler_proto_goTypes = []any{
 	(*Inbound)(nil),                      // 9: papiliovpn.node.xray.accounts.native.Inbound
 	(*GetInboundUserRequest)(nil),        // 10: papiliovpn.node.xray.accounts.native.GetInboundUserRequest
 	(*GetInboundUsersCountResponse)(nil), // 11: papiliovpn.node.xray.accounts.native.GetInboundUsersCountResponse
+	(*PasswordAccount)(nil),              // 12: papiliovpn.node.xray.accounts.native.PasswordAccount
+	(*ShadowsocksAccount)(nil),           // 13: papiliovpn.node.xray.accounts.native.ShadowsocksAccount
+	(*WireGuardAccount)(nil),             // 14: papiliovpn.node.xray.accounts.native.WireGuardAccount
+	(*GetInboundUserResponse)(nil),       // 15: papiliovpn.node.xray.accounts.native.GetInboundUserResponse
 }
 var file_handler_proto_depIdxs = []int32{
 	0, // 0: papiliovpn.node.xray.accounts.native.User.account:type_name -> papiliovpn.node.xray.accounts.native.TypedMessage
@@ -660,11 +897,12 @@ var file_handler_proto_depIdxs = []int32{
 	1, // 3: papiliovpn.node.xray.accounts.native.AddUserOperation.user:type_name -> papiliovpn.node.xray.accounts.native.User
 	9, // 4: papiliovpn.node.xray.accounts.native.ListInboundsResponse.inbounds:type_name -> papiliovpn.node.xray.accounts.native.Inbound
 	0, // 5: papiliovpn.node.xray.accounts.native.Inbound.proxy_settings:type_name -> papiliovpn.node.xray.accounts.native.TypedMessage
-	6, // [6:6] is the sub-list for method output_type
-	6, // [6:6] is the sub-list for method input_type
-	6, // [6:6] is the sub-list for extension type_name
-	6, // [6:6] is the sub-list for extension extendee
-	0, // [0:6] is the sub-list for field type_name
+	1, // 6: papiliovpn.node.xray.accounts.native.GetInboundUserResponse.users:type_name -> papiliovpn.node.xray.accounts.native.User
+	7, // [7:7] is the sub-list for method output_type
+	7, // [7:7] is the sub-list for method input_type
+	7, // [7:7] is the sub-list for extension type_name
+	7, // [7:7] is the sub-list for extension extendee
+	0, // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_handler_proto_init() }
@@ -678,7 +916,7 @@ func file_handler_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_handler_proto_rawDesc), len(file_handler_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   12,
+			NumMessages:   16,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

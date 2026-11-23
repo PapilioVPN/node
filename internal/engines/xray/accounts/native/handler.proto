@@ -17,6 +17,7 @@ message User {
 
 message VlessAccount {
   string id = 1;
+  string flow = 2;
 }
 
 message VlessInbound {
@@ -55,4 +56,24 @@ message GetInboundUserRequest {
 
 message GetInboundUsersCountResponse {
   int64 count = 1;
+}
+
+message PasswordAccount {
+  string password = 1;
+}
+
+message ShadowsocksAccount {
+  string password = 1;
+  uint32 cipher_type = 2;
+}
+
+message WireGuardAccount {
+  string public_key = 1;
+  string pre_shared_key = 2;
+  string keep_alive = 4;
+  repeated string allowed_ips = 5;
+}
+
+message GetInboundUserResponse {
+  repeated User users = 1;
 }

@@ -5,6 +5,7 @@ import (
 
 	"github.com/PapilioVPN/node/internal/engines/xray/accounts/membership"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/encoding/protowire"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -16,11 +17,12 @@ const (
 )
 
 type inboundAccounts struct {
-	vless     bool
-	ambiguous bool
+	layout        accountLayout
+	ss2022KeySize int
+	ambiguous     bool
 
 	// The mutation lock protects the live membership and the outcome fence.
-	names     map[string]membership.IDKey
+	names     map[string]membership.Key
 	ids       map[membership.IDKey]struct{}
 	uncertain bool
 }
@@ -83,32 +85,26 @@ func buildInventory(conn *grpc.ClientConn, inbounds []*Inbound) (*inventory, err
 		entry := new(inboundAccounts)
 		result.inbounds[tag] = entry
 		settings := raw.GetProxySettings()
-		if settings.GetType() != vlessInboundType {
+		entry.layout = accountLayouts[settings.GetType()]
+		if entry.layout.protocol == "" {
 			continue
 		}
-		entry.vless = true
-
-		var config VlessInbound
-		decoder := proto.UnmarshalOptions{DiscardUnknown: true}
-		if err := decoder.Unmarshal(settings.Value, &config); err != nil {
+		users, valid := entry.configuredUsers(settings.GetValue())
+		if !valid {
 			entry.ambiguous = true
 			continue
 		}
-		result.size += len(config.Users)
+		result.size += len(users)
 		if result.size > maxAccounts {
 			return nil, membership.ErrTooLarge
 		}
-		entry.names = make(map[string]membership.IDKey, len(config.Users))
-		entry.ids = make(map[membership.IDKey]struct{}, len(config.Users))
-		for _, user := range config.Users {
-			var account VlessAccount
+		entry.names = make(map[string]membership.Key, len(users))
+		entry.ids = make(map[membership.IDKey]struct{}, len(users))
+		for _, user := range users {
 			wire := user.GetAccount()
-			if wire.GetType() != vlessAccountType || decoder.Unmarshal(wire.Value, &account) != nil {
-				entry.ambiguous = true
-				break
-			}
-			id, valid := membership.ParseUUID(account.Id)
-			if !valid || !entry.insert(user.GetEmail(), id.Key()) {
+			name, nameErr := entry.name(user.GetEmail())
+			key, keyErr := entry.key(name, wire.GetValue())
+			if nameErr != nil || wire.GetType() != entry.layout.accountType || keyErr != nil || !entry.insert(name, key) {
 				entry.ambiguous = true
 				break
 			}
@@ -117,28 +113,70 @@ func buildInventory(conn *grpc.ClientConn, inbounds []*Inbound) (*inventory, err
 	return result, nil
 }
 
-func (i *inventory) vless(tag string) (*inboundAccounts, error) {
+func (entry *inboundAccounts) configuredUsers(data []byte) ([]*User, bool) {
+	var users []*User
+	for len(data) > 0 {
+		number, kind, tagLen := protowire.ConsumeTag(data)
+		if tagLen < 0 {
+			return nil, false
+		}
+		data = data[tagLen:]
+		fieldLen := protowire.ConsumeFieldValue(number, kind, data)
+		if fieldLen < 0 {
+			return nil, false
+		}
+		switch {
+		case int(number) == entry.layout.usersField:
+			if kind != protowire.BytesType || len(users) == maxAccounts {
+				return nil, false
+			}
+			raw, _ := protowire.ConsumeBytes(data)
+			user := new(User)
+			if proto.Unmarshal(raw, user) != nil {
+				return nil, false
+			}
+			users = append(users, user)
+		case number == 1 && entry.layout.protocol == membership.SS2022 && kind == protowire.BytesType:
+			method, _ := protowire.ConsumeString(data)
+			switch method {
+			case "2022-blake3-aes-128-gcm":
+				entry.ss2022KeySize = 16
+			case "2022-blake3-aes-256-gcm":
+				entry.ss2022KeySize = 32
+			}
+		case number == 8 && entry.layout.protocol == membership.WireGuard && kind == protowire.VarintType:
+			client, _ := protowire.ConsumeVarint(data)
+			if client != 0 {
+				entry.layout = accountLayout{}
+				return nil, true
+			}
+		}
+		data = data[fieldLen:]
+	}
+	return users, entry.layout.protocol != membership.SS2022 || entry.ss2022KeySize != 0
+}
+
+func (i *inventory) selectInbound(tag string, vlessOnly bool) (*inboundAccounts, error) {
 	entry, exists := i.inbounds[tag]
 	if !exists {
 		return nil, membership.ErrInboundMissing
 	}
-	if !entry.vless {
+	if entry.layout.protocol == "" || (vlessOnly && entry.layout.protocol != membership.VLESS) {
 		return nil, membership.ErrProtocol
 	}
 	return entry, nil
 }
 
-func (entry *inboundAccounts) insert(email string, id membership.IDKey) bool {
-	if _, exists := entry.ids[id]; exists {
+func (entry *inboundAccounts) insert(name string, key membership.Key) bool {
+	if _, exists := entry.ids[key.Identity]; exists {
 		return false
 	}
-	if email != "" {
-		name := membership.NameKey(email)
+	if name != "" {
 		if _, exists := entry.names[name]; exists {
 			return false
 		}
-		entry.names[name] = id
+		entry.names[name] = key
 	}
-	entry.ids[id] = struct{}{}
+	entry.ids[key.Identity] = struct{}{}
 	return true
 }

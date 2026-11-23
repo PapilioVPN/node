@@ -15,12 +15,9 @@ import (
 )
 
 type streamFrame struct {
-	Index    *uint32 `json:"index"`
-	Last     bool    `json:"last"`
-	Accounts []struct {
-		Email string          `json:"email"`
-		UUID  json.RawMessage `json:"uuid"`
-	} `json:"accounts"`
+	Index    *uint32        `json:"index"`
+	Last     bool           `json:"last"`
+	Accounts []accountInput `json:"accounts"`
 }
 
 func syncUsersChunked(service *membership.Service) http.HandlerFunc {
@@ -78,14 +75,6 @@ func readFrame(scanner *bufio.Scanner, inbound membership.Scope) (membership.Use
 	if err := decoder.Decode(&extra); err != io.EOF {
 		return membership.UsersChunk{}, membership.ErrInvalid
 	}
-	chunk := membership.UsersChunk{Scope: inbound, Index: *input.Index, Last: input.Last,
-		Accounts: make([]membership.AccountInput, len(input.Accounts))}
-	for i, account := range input.Accounts {
-		uuid, err := optionalUUID(account.UUID)
-		if err != nil {
-			return membership.UsersChunk{}, err
-		}
-		chunk.Accounts[i] = membership.AccountInput{Email: account.Email, UUID: uuid}
-	}
-	return chunk, nil
+	accounts, err := decodeAccounts(input.Accounts)
+	return membership.UsersChunk{Scope: inbound, Index: *input.Index, Last: input.Last, Accounts: accounts}, err
 }

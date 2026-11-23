@@ -20,12 +20,6 @@ type UsersChunk struct {
 	Accounts []AccountInput
 }
 
-type accountDelta struct {
-	account Account
-	key     IDKey
-	present bool
-}
-
 // SyncUsersChunked applies explicit deltas after the final marker and clean EOF.
 func (s *Service) SyncUsersChunked(ctx context.Context, receive func() (UsersChunk, error)) (SyncResult, error) {
 	select {
@@ -39,16 +33,12 @@ func (s *Service) SyncUsersChunked(ctx context.Context, receive func() (UsersChu
 	if err != nil {
 		return SyncResult{}, err
 	}
-	return s.sync(ctx, scope, batchTimeout, func(editor Editor, result *SyncResult) error {
-		return applyDeltas(editor, result, changes)
-	})
+	return s.reconcile(ctx, scope, batchTimeout, changes, false)
 }
 
-func collectDeltas(ctx context.Context, receive func() (UsersChunk, error)) (Scope, []accountDelta, error) {
+func collectDeltas(ctx context.Context, receive func() (UsersChunk, error)) (Scope, []change, error) {
 	var scope Scope
-	var changes []accountDelta
-	names := make(map[string]struct{})
-	ids := make(map[IDKey]struct{})
+	var changes []change
 	var last bool
 	for index := uint32(0); ; index++ {
 		if err := ctx.Err(); err != nil {
@@ -74,61 +64,13 @@ func collectDeltas(ctx context.Context, receive func() (UsersChunk, error)) (Sco
 		} else if scope != chunk.Scope {
 			return Scope{}, nil, ErrInvalid
 		}
-		for _, input := range chunk.Accounts {
-			if !validName(input.Email, 1024) {
-				return Scope{}, nil, ErrInvalid
+		if len(chunk.Accounts) > 0 {
+			items, err := changesFrom(chunk.Accounts, false)
+			if err != nil {
+				return Scope{}, nil, err
 			}
-			name := NameKey(input.Email)
-			if _, exists := names[name]; exists {
-				return Scope{}, nil, ErrInvalid
-			}
-			names[name] = struct{}{}
-			change := accountDelta{account: Account{Email: input.Email}}
-			if input.UUID != nil {
-				id, valid := ParseUUID(*input.UUID)
-				if !valid {
-					return Scope{}, nil, ErrInvalid
-				}
-				key := id.Key()
-				if _, exists := ids[key]; exists {
-					return Scope{}, nil, ErrInvalid
-				}
-				ids[key] = struct{}{}
-				change.account.ID, change.key, change.present = id, key, true
-			}
-			changes = append(changes, change)
+			changes = append(changes, items...)
 		}
 		last = chunk.Last
 	}
-}
-
-func applyDeltas(editor Editor, result *SyncResult, changes []accountDelta) error {
-	var removals []string
-	released := make(map[IDKey]struct{})
-	var additions []accountDelta
-	for _, change := range changes {
-		email := change.account.Email
-		current, exists := editor.Lookup(email)
-		if change.present && exists && current == change.key {
-			continue
-		}
-		if exists {
-			removals = append(removals, email)
-			released[current] = struct{}{}
-		}
-		if change.present {
-			additions = append(additions, change)
-		}
-	}
-	if len(additions)-len(removals) > editor.Capacity() {
-		return ErrTooLarge
-	}
-	accounts := make([]Account, 0, len(additions))
-	for _, change := range additions {
-		if _, free := released[change.key]; !free && editor.HasID(change.key) {
-			return ErrExists
-		}
-		accounts = append(accounts, change.account)
-	}
-	return applyPlan(editor, result, removals, accounts)
 }

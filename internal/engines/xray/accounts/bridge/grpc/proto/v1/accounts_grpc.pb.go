@@ -32,9 +32,9 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type XrayAccountsServiceClient interface {
-	// Reconciles one account by email. Absent uuid requests removal.
+	// Reconciles one account by email. Absent credentials request removal.
 	SyncUser(ctx context.Context, in *SyncUserRequest, opts ...grpc.CallOption) (*SyncResult, error)
-	// Replaces the complete named membership of one VLESS inbound.
+	// Replaces the complete named membership of the selected inbound.
 	SyncUsers(ctx context.Context, in *SyncUsersRequest, opts ...grpc.CallOption) (*SyncResult, error)
 	// Applies explicit deltas after the final chunk and a clean client half-close.
 	SyncUsersChunked(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[UsersChunk, SyncResult], error)
@@ -121,9 +121,9 @@ func (c *xrayAccountsServiceClient) CountVLESSAccounts(ctx context.Context, in *
 // All implementations must embed UnimplementedXrayAccountsServiceServer
 // for forward compatibility.
 type XrayAccountsServiceServer interface {
-	// Reconciles one account by email. Absent uuid requests removal.
+	// Reconciles one account by email. Absent credentials request removal.
 	SyncUser(context.Context, *SyncUserRequest) (*SyncResult, error)
-	// Replaces the complete named membership of one VLESS inbound.
+	// Replaces the complete named membership of the selected inbound.
 	SyncUsers(context.Context, *SyncUsersRequest) (*SyncResult, error)
 	// Applies explicit deltas after the final chunk and a clean client half-close.
 	SyncUsersChunked(grpc.ClientStreamingServer[UsersChunk, SyncResult]) error

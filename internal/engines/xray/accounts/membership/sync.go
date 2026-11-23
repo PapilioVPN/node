@@ -10,9 +10,11 @@ import (
 )
 
 type SyncUserRequest struct {
-	Scope Scope
-	Email string
-	UUID  *string // Absent means the named account should be absent.
+	Scope      Scope
+	Email      string
+	UUID       *string
+	Flow       *string
+	Credential *Credential
 }
 
 type Outcome string
@@ -42,49 +44,48 @@ func (id UUID) Key() IDKey {
 
 func NameKey(email string) string { return strings.ToLower(email) }
 
+// Key separates the native authentication index from the requested settings.
+type Key struct {
+	Identity IDKey
+	Version  IDKey
+}
+
+type PreparedAccount struct {
+	Email string
+	Name  string
+	Key
+	KeepVersion bool
+	Value       []byte
+}
+
 // Editor is valid only inside Engine.Edit. Its mutations share one execution
 // and reuse the same native effects and acknowledgement fence as Add/Remove.
 type Editor interface {
-	Named() iter.Seq2[string, IDKey]
+	Name(email string) (string, error)
+	Named() iter.Seq2[string, Key]
 	Capacity() int
-	Lookup(email string) (IDKey, bool)
+	Lookup(name string) (Key, bool)
 	HasID(IDKey) bool
-	Add(Account) error
-	Remove(email string) error
+	Prepare(email string, credential Credential) (PreparedAccount, error)
+	Add(PreparedAccount) error
+	Remove(name string) error
 }
 
 func (s *Service) SyncUser(ctx context.Context, req SyncUserRequest) (SyncResult, error) {
-	if !validName(req.Email, 1024) {
-		return SyncResult{}, ErrInvalid
+	changes, err := changesFrom([]AccountInput{{Email: req.Email, UUID: req.UUID, Flow: req.Flow, Credential: req.Credential}}, false)
+	if err != nil {
+		return SyncResult{}, err
 	}
-	var id UUID
-	if req.UUID != nil {
-		var valid bool
-		id, valid = ParseUUID(*req.UUID)
-		if !valid {
-			return SyncResult{}, ErrInvalid
+	return s.reconcile(ctx, req.Scope, time.Second, changes, false)
+}
+
+func (s *Service) reconcile(ctx context.Context, scope Scope, timeout time.Duration, changes []change, full bool) (SyncResult, error) {
+	return s.sync(ctx, scope, timeout, func(editor Editor, result *SyncResult) error {
+		plan, err := preparePlan(editor, changes, full)
+		if err != nil {
+			return err
 		}
-	}
-	return s.sync(ctx, req.Scope, time.Second, func(editor Editor, result *SyncResult) error {
-		current, exists := editor.Lookup(req.Email)
-		if req.UUID != nil {
-			key := id.Key()
-			if exists && current == key {
-				return nil
-			}
-			if editor.HasID(key) {
-				return ErrExists
-			}
-		}
-		if exists {
-			if err := result.remove(editor, req.Email); err != nil {
-				return err
-			}
-		}
-		if req.UUID != nil {
-			return result.add(editor, Account{Email: req.Email, ID: id})
-		}
-		return nil
+		return plan.apply(editor, result)
 	})
 }
 
@@ -97,6 +98,9 @@ func (s *Service) sync(ctx context.Context, scope Scope, timeout time.Duration, 
 	if err == nil {
 		defer done()
 		err = s.engine.Edit(ctx, scope, func(editor Editor) error { return apply(editor, &result) })
+	}
+	if errors.Is(err, ErrInvalid) {
+		return SyncResult{}, err
 	}
 	switch {
 	case err == nil:
@@ -114,7 +118,7 @@ func (s *Service) sync(ctx context.Context, scope Scope, timeout time.Duration, 
 	return result, nil
 }
 
-func (r *SyncResult) add(editor Editor, account Account) error {
+func (r *SyncResult) add(editor Editor, account PreparedAccount) error {
 	if err := editor.Add(account); err != nil {
 		return err
 	}

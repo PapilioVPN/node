@@ -252,6 +252,8 @@ type SyncUserRequest struct {
 	InboundTag    string                 `protobuf:"bytes,2,opt,name=inbound_tag,json=inboundTag,proto3" json:"inbound_tag,omitempty"`
 	Email         string                 `protobuf:"bytes,3,opt,name=email,proto3" json:"email,omitempty"`
 	Uuid          *string                `protobuf:"bytes,4,opt,name=uuid,proto3,oneof" json:"uuid,omitempty"`
+	Flow          *string                `protobuf:"bytes,5,opt,name=flow,proto3,oneof" json:"flow,omitempty"`
+	Credential    *Credential            `protobuf:"bytes,6,opt,name=credential,proto3" json:"credential,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -312,6 +314,20 @@ func (x *SyncUserRequest) GetUuid() string {
 		return *x.Uuid
 	}
 	return ""
+}
+
+func (x *SyncUserRequest) GetFlow() string {
+	if x != nil && x.Flow != nil {
+		return *x.Flow
+	}
+	return ""
+}
+
+func (x *SyncUserRequest) GetCredential() *Credential {
+	if x != nil {
+		return x.Credential
+	}
+	return nil
 }
 
 type SyncResult struct {
@@ -388,6 +404,8 @@ type VLESSAccount struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Email         string                 `protobuf:"bytes,1,opt,name=email,proto3" json:"email,omitempty"`
 	Uuid          *string                `protobuf:"bytes,2,opt,name=uuid,proto3,oneof" json:"uuid,omitempty"`
+	Flow          *string                `protobuf:"bytes,3,opt,name=flow,proto3,oneof" json:"flow,omitempty"`
+	Credential    *Credential            `protobuf:"bytes,4,opt,name=credential,proto3" json:"credential,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -434,6 +452,20 @@ func (x *VLESSAccount) GetUuid() string {
 		return *x.Uuid
 	}
 	return ""
+}
+
+func (x *VLESSAccount) GetFlow() string {
+	if x != nil && x.Flow != nil {
+		return *x.Flow
+	}
+	return ""
+}
+
+func (x *VLESSAccount) GetCredential() *Credential {
+	if x != nil {
+		return x.Credential
+	}
+	return nil
 }
 
 type VLESSAccounts struct {
@@ -549,7 +581,7 @@ type UsersChunk struct {
 	// Consecutive indices starting at zero.
 	Index uint32 `protobuf:"varint,3,opt,name=index,proto3" json:"index,omitempty"`
 	Last  bool   `protobuf:"varint,4,opt,name=last,proto3" json:"last,omitempty"`
-	// An absent uuid removes only that named account.
+	// An absent credential and uuid remove only that named account.
 	Accounts      []*VLESSAccount `protobuf:"bytes,5,rep,name=accounts,proto3" json:"accounts,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -620,6 +652,174 @@ func (x *UsersChunk) GetAccounts() []*VLESSAccount {
 	return nil
 }
 
+type Credential struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Protocol      string                 `protobuf:"bytes,1,opt,name=protocol,proto3" json:"protocol,omitempty"`
+	Uuid          string                 `protobuf:"bytes,2,opt,name=uuid,proto3" json:"uuid,omitempty"`
+	Flow          *string                `protobuf:"bytes,3,opt,name=flow,proto3,oneof" json:"flow,omitempty"`
+	Password      string                 `protobuf:"bytes,4,opt,name=password,proto3" json:"password,omitempty"`
+	Method        string                 `protobuf:"bytes,5,opt,name=method,proto3" json:"method,omitempty"`
+	Key           string                 `protobuf:"bytes,6,opt,name=key,proto3" json:"key,omitempty"`
+	Auth          string                 `protobuf:"bytes,7,opt,name=auth,proto3" json:"auth,omitempty"`
+	Peer          *WireGuardPeer         `protobuf:"bytes,8,opt,name=peer,proto3" json:"peer,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Credential) Reset() {
+	*x = Credential{}
+	mi := &file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Credential) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Credential) ProtoMessage() {}
+
+func (x *Credential) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Credential.ProtoReflect.Descriptor instead.
+func (*Credential) Descriptor() ([]byte, []int) {
+	return file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *Credential) GetProtocol() string {
+	if x != nil {
+		return x.Protocol
+	}
+	return ""
+}
+
+func (x *Credential) GetUuid() string {
+	if x != nil {
+		return x.Uuid
+	}
+	return ""
+}
+
+func (x *Credential) GetFlow() string {
+	if x != nil && x.Flow != nil {
+		return *x.Flow
+	}
+	return ""
+}
+
+func (x *Credential) GetPassword() string {
+	if x != nil {
+		return x.Password
+	}
+	return ""
+}
+
+func (x *Credential) GetMethod() string {
+	if x != nil {
+		return x.Method
+	}
+	return ""
+}
+
+func (x *Credential) GetKey() string {
+	if x != nil {
+		return x.Key
+	}
+	return ""
+}
+
+func (x *Credential) GetAuth() string {
+	if x != nil {
+		return x.Auth
+	}
+	return ""
+}
+
+func (x *Credential) GetPeer() *WireGuardPeer {
+	if x != nil {
+		return x.Peer
+	}
+	return nil
+}
+
+type WireGuardPeer struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	PublicKey     string                 `protobuf:"bytes,1,opt,name=public_key,json=publicKey,proto3" json:"public_key,omitempty"`
+	PreSharedKey  string                 `protobuf:"bytes,2,opt,name=pre_shared_key,json=preSharedKey,proto3" json:"pre_shared_key,omitempty"`
+	AllowedIps    []string               `protobuf:"bytes,3,rep,name=allowed_ips,json=allowedIps,proto3" json:"allowed_ips,omitempty"`
+	KeepAlive     uint32                 `protobuf:"varint,4,opt,name=keep_alive,json=keepAlive,proto3" json:"keep_alive,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *WireGuardPeer) Reset() {
+	*x = WireGuardPeer{}
+	mi := &file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WireGuardPeer) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WireGuardPeer) ProtoMessage() {}
+
+func (x *WireGuardPeer) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WireGuardPeer.ProtoReflect.Descriptor instead.
+func (*WireGuardPeer) Descriptor() ([]byte, []int) {
+	return file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *WireGuardPeer) GetPublicKey() string {
+	if x != nil {
+		return x.PublicKey
+	}
+	return ""
+}
+
+func (x *WireGuardPeer) GetPreSharedKey() string {
+	if x != nil {
+		return x.PreSharedKey
+	}
+	return ""
+}
+
+func (x *WireGuardPeer) GetAllowedIps() []string {
+	if x != nil {
+		return x.AllowedIps
+	}
+	return nil
+}
+
+func (x *WireGuardPeer) GetKeepAlive() uint32 {
+	if x != nil {
+		return x.KeepAlive
+	}
+	return 0
+}
+
 var File_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto protoreflect.FileDescriptor
 
 const file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_rawDesc = "" +
@@ -641,24 +841,34 @@ const file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_ra
 	"\vinbound_tag\x18\x02 \x01(\tR\n" +
 	"inboundTag\"2\n" +
 	"\x1aCountVLESSAccountsResponse\x12\x14\n" +
-	"\x05count\x18\x01 \x01(\x03R\x05count\"z\n" +
+	"\x05count\x18\x01 \x01(\x03R\x05count\"\xea\x01\n" +
 	"\x0fSyncUserRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1f\n" +
 	"\vinbound_tag\x18\x02 \x01(\tR\n" +
 	"inboundTag\x12\x14\n" +
 	"\x05email\x18\x03 \x01(\tR\x05email\x12\x17\n" +
-	"\x04uuid\x18\x04 \x01(\tH\x00R\x04uuid\x88\x01\x01B\a\n" +
-	"\x05_uuid\"p\n" +
+	"\x04uuid\x18\x04 \x01(\tH\x00R\x04uuid\x88\x01\x01\x12\x17\n" +
+	"\x04flow\x18\x05 \x01(\tH\x01R\x04flow\x88\x01\x01\x12L\n" +
+	"\n" +
+	"credential\x18\x06 \x01(\v2,.papiliovpn.node.xray.accounts.v1.CredentialR\n" +
+	"credentialB\a\n" +
+	"\x05_uuidB\a\n" +
+	"\x05_flow\"p\n" +
 	"\n" +
 	"SyncResult\x12\x18\n" +
 	"\aoutcome\x18\x01 \x01(\tR\aoutcome\x12\x14\n" +
 	"\x05added\x18\x02 \x01(\rR\x05added\x12\x18\n" +
 	"\aremoved\x18\x03 \x01(\rR\aremoved\x12\x18\n" +
-	"\afailure\x18\x04 \x01(\tR\afailure\"F\n" +
+	"\afailure\x18\x04 \x01(\tR\afailure\"\xb6\x01\n" +
 	"\fVLESSAccount\x12\x14\n" +
 	"\x05email\x18\x01 \x01(\tR\x05email\x12\x17\n" +
-	"\x04uuid\x18\x02 \x01(\tH\x00R\x04uuid\x88\x01\x01B\a\n" +
-	"\x05_uuid\"[\n" +
+	"\x04uuid\x18\x02 \x01(\tH\x00R\x04uuid\x88\x01\x01\x12\x17\n" +
+	"\x04flow\x18\x03 \x01(\tH\x01R\x04flow\x88\x01\x01\x12L\n" +
+	"\n" +
+	"credential\x18\x04 \x01(\v2,.papiliovpn.node.xray.accounts.v1.CredentialR\n" +
+	"credentialB\a\n" +
+	"\x05_uuidB\a\n" +
+	"\x05_flow\"[\n" +
 	"\rVLESSAccounts\x12J\n" +
 	"\baccounts\x18\x01 \x03(\v2..papiliovpn.node.xray.accounts.v1.VLESSAccountR\baccounts\"\x90\x01\n" +
 	"\x10SyncUsersRequest\x12\x0e\n" +
@@ -673,7 +883,26 @@ const file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_ra
 	"inboundTag\x12\x14\n" +
 	"\x05index\x18\x03 \x01(\rR\x05index\x12\x12\n" +
 	"\x04last\x18\x04 \x01(\bR\x04last\x12J\n" +
-	"\baccounts\x18\x05 \x03(\v2..papiliovpn.node.xray.accounts.v1.VLESSAccountR\baccounts2\xc5\x05\n" +
+	"\baccounts\x18\x05 \x03(\v2..papiliovpn.node.xray.accounts.v1.VLESSAccountR\baccounts\"\xfd\x01\n" +
+	"\n" +
+	"Credential\x12\x1a\n" +
+	"\bprotocol\x18\x01 \x01(\tR\bprotocol\x12\x12\n" +
+	"\x04uuid\x18\x02 \x01(\tR\x04uuid\x12\x17\n" +
+	"\x04flow\x18\x03 \x01(\tH\x00R\x04flow\x88\x01\x01\x12\x1a\n" +
+	"\bpassword\x18\x04 \x01(\tR\bpassword\x12\x16\n" +
+	"\x06method\x18\x05 \x01(\tR\x06method\x12\x10\n" +
+	"\x03key\x18\x06 \x01(\tR\x03key\x12\x12\n" +
+	"\x04auth\x18\a \x01(\tR\x04auth\x12C\n" +
+	"\x04peer\x18\b \x01(\v2/.papiliovpn.node.xray.accounts.v1.WireGuardPeerR\x04peerB\a\n" +
+	"\x05_flow\"\x94\x01\n" +
+	"\rWireGuardPeer\x12\x1d\n" +
+	"\n" +
+	"public_key\x18\x01 \x01(\tR\tpublicKey\x12$\n" +
+	"\x0epre_shared_key\x18\x02 \x01(\tR\fpreSharedKey\x12\x1f\n" +
+	"\vallowed_ips\x18\x03 \x03(\tR\n" +
+	"allowedIps\x12\x1d\n" +
+	"\n" +
+	"keep_alive\x18\x04 \x01(\rR\tkeepAlive2\xc5\x05\n" +
 	"\x13XrayAccountsService\x12k\n" +
 	"\bSyncUser\x121.papiliovpn.node.xray.accounts.v1.SyncUserRequest\x1a,.papiliovpn.node.xray.accounts.v1.SyncResult\x12m\n" +
 	"\tSyncUsers\x122.papiliovpn.node.xray.accounts.v1.SyncUsersRequest\x1a,.papiliovpn.node.xray.accounts.v1.SyncResult\x12p\n" +
@@ -694,7 +923,7 @@ func file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_raw
 	return file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_rawDescData
 }
 
-var file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
+var file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
 var file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_goTypes = []any{
 	(*AddVLESSAccountRequest)(nil),     // 0: papiliovpn.node.xray.accounts.v1.AddVLESSAccountRequest
 	(*RemoveVLESSAccountRequest)(nil),  // 1: papiliovpn.node.xray.accounts.v1.RemoveVLESSAccountRequest
@@ -706,29 +935,34 @@ var file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_goTy
 	(*VLESSAccounts)(nil),              // 7: papiliovpn.node.xray.accounts.v1.VLESSAccounts
 	(*SyncUsersRequest)(nil),           // 8: papiliovpn.node.xray.accounts.v1.SyncUsersRequest
 	(*UsersChunk)(nil),                 // 9: papiliovpn.node.xray.accounts.v1.UsersChunk
-	(*emptypb.Empty)(nil),              // 10: google.protobuf.Empty
+	(*Credential)(nil),                 // 10: papiliovpn.node.xray.accounts.v1.Credential
+	(*WireGuardPeer)(nil),              // 11: papiliovpn.node.xray.accounts.v1.WireGuardPeer
+	(*emptypb.Empty)(nil),              // 12: google.protobuf.Empty
 }
 var file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_depIdxs = []int32{
-	6,  // 0: papiliovpn.node.xray.accounts.v1.VLESSAccounts.accounts:type_name -> papiliovpn.node.xray.accounts.v1.VLESSAccount
-	7,  // 1: papiliovpn.node.xray.accounts.v1.SyncUsersRequest.snapshot:type_name -> papiliovpn.node.xray.accounts.v1.VLESSAccounts
-	6,  // 2: papiliovpn.node.xray.accounts.v1.UsersChunk.accounts:type_name -> papiliovpn.node.xray.accounts.v1.VLESSAccount
-	4,  // 3: papiliovpn.node.xray.accounts.v1.XrayAccountsService.SyncUser:input_type -> papiliovpn.node.xray.accounts.v1.SyncUserRequest
-	8,  // 4: papiliovpn.node.xray.accounts.v1.XrayAccountsService.SyncUsers:input_type -> papiliovpn.node.xray.accounts.v1.SyncUsersRequest
-	9,  // 5: papiliovpn.node.xray.accounts.v1.XrayAccountsService.SyncUsersChunked:input_type -> papiliovpn.node.xray.accounts.v1.UsersChunk
-	0,  // 6: papiliovpn.node.xray.accounts.v1.XrayAccountsService.AddVLESSAccount:input_type -> papiliovpn.node.xray.accounts.v1.AddVLESSAccountRequest
-	1,  // 7: papiliovpn.node.xray.accounts.v1.XrayAccountsService.RemoveVLESSAccount:input_type -> papiliovpn.node.xray.accounts.v1.RemoveVLESSAccountRequest
-	2,  // 8: papiliovpn.node.xray.accounts.v1.XrayAccountsService.CountVLESSAccounts:input_type -> papiliovpn.node.xray.accounts.v1.CountVLESSAccountsRequest
-	5,  // 9: papiliovpn.node.xray.accounts.v1.XrayAccountsService.SyncUser:output_type -> papiliovpn.node.xray.accounts.v1.SyncResult
-	5,  // 10: papiliovpn.node.xray.accounts.v1.XrayAccountsService.SyncUsers:output_type -> papiliovpn.node.xray.accounts.v1.SyncResult
-	5,  // 11: papiliovpn.node.xray.accounts.v1.XrayAccountsService.SyncUsersChunked:output_type -> papiliovpn.node.xray.accounts.v1.SyncResult
-	10, // 12: papiliovpn.node.xray.accounts.v1.XrayAccountsService.AddVLESSAccount:output_type -> google.protobuf.Empty
-	10, // 13: papiliovpn.node.xray.accounts.v1.XrayAccountsService.RemoveVLESSAccount:output_type -> google.protobuf.Empty
-	3,  // 14: papiliovpn.node.xray.accounts.v1.XrayAccountsService.CountVLESSAccounts:output_type -> papiliovpn.node.xray.accounts.v1.CountVLESSAccountsResponse
-	9,  // [9:15] is the sub-list for method output_type
-	3,  // [3:9] is the sub-list for method input_type
-	3,  // [3:3] is the sub-list for extension type_name
-	3,  // [3:3] is the sub-list for extension extendee
-	0,  // [0:3] is the sub-list for field type_name
+	10, // 0: papiliovpn.node.xray.accounts.v1.SyncUserRequest.credential:type_name -> papiliovpn.node.xray.accounts.v1.Credential
+	10, // 1: papiliovpn.node.xray.accounts.v1.VLESSAccount.credential:type_name -> papiliovpn.node.xray.accounts.v1.Credential
+	6,  // 2: papiliovpn.node.xray.accounts.v1.VLESSAccounts.accounts:type_name -> papiliovpn.node.xray.accounts.v1.VLESSAccount
+	7,  // 3: papiliovpn.node.xray.accounts.v1.SyncUsersRequest.snapshot:type_name -> papiliovpn.node.xray.accounts.v1.VLESSAccounts
+	6,  // 4: papiliovpn.node.xray.accounts.v1.UsersChunk.accounts:type_name -> papiliovpn.node.xray.accounts.v1.VLESSAccount
+	11, // 5: papiliovpn.node.xray.accounts.v1.Credential.peer:type_name -> papiliovpn.node.xray.accounts.v1.WireGuardPeer
+	4,  // 6: papiliovpn.node.xray.accounts.v1.XrayAccountsService.SyncUser:input_type -> papiliovpn.node.xray.accounts.v1.SyncUserRequest
+	8,  // 7: papiliovpn.node.xray.accounts.v1.XrayAccountsService.SyncUsers:input_type -> papiliovpn.node.xray.accounts.v1.SyncUsersRequest
+	9,  // 8: papiliovpn.node.xray.accounts.v1.XrayAccountsService.SyncUsersChunked:input_type -> papiliovpn.node.xray.accounts.v1.UsersChunk
+	0,  // 9: papiliovpn.node.xray.accounts.v1.XrayAccountsService.AddVLESSAccount:input_type -> papiliovpn.node.xray.accounts.v1.AddVLESSAccountRequest
+	1,  // 10: papiliovpn.node.xray.accounts.v1.XrayAccountsService.RemoveVLESSAccount:input_type -> papiliovpn.node.xray.accounts.v1.RemoveVLESSAccountRequest
+	2,  // 11: papiliovpn.node.xray.accounts.v1.XrayAccountsService.CountVLESSAccounts:input_type -> papiliovpn.node.xray.accounts.v1.CountVLESSAccountsRequest
+	5,  // 12: papiliovpn.node.xray.accounts.v1.XrayAccountsService.SyncUser:output_type -> papiliovpn.node.xray.accounts.v1.SyncResult
+	5,  // 13: papiliovpn.node.xray.accounts.v1.XrayAccountsService.SyncUsers:output_type -> papiliovpn.node.xray.accounts.v1.SyncResult
+	5,  // 14: papiliovpn.node.xray.accounts.v1.XrayAccountsService.SyncUsersChunked:output_type -> papiliovpn.node.xray.accounts.v1.SyncResult
+	12, // 15: papiliovpn.node.xray.accounts.v1.XrayAccountsService.AddVLESSAccount:output_type -> google.protobuf.Empty
+	12, // 16: papiliovpn.node.xray.accounts.v1.XrayAccountsService.RemoveVLESSAccount:output_type -> google.protobuf.Empty
+	3,  // 17: papiliovpn.node.xray.accounts.v1.XrayAccountsService.CountVLESSAccounts:output_type -> papiliovpn.node.xray.accounts.v1.CountVLESSAccountsResponse
+	12, // [12:18] is the sub-list for method output_type
+	6,  // [6:12] is the sub-list for method input_type
+	6,  // [6:6] is the sub-list for extension type_name
+	6,  // [6:6] is the sub-list for extension extendee
+	0,  // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_init() }
@@ -738,13 +972,14 @@ func file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_ini
 	}
 	file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_msgTypes[4].OneofWrappers = []any{}
 	file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_msgTypes[6].OneofWrappers = []any{}
+	file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_msgTypes[10].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_rawDesc), len(file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   10,
+			NumMessages:   12,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

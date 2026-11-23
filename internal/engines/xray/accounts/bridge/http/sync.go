@@ -10,20 +10,17 @@ import (
 func syncUser(service *membership.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
-		var input struct {
-			Email string          `json:"email"`
-			UUID  json.RawMessage `json:"uuid"`
-		}
+		var input accountInput
 		if !readBody(w, r, &input) {
 			return
 		}
-		uuid, err := optionalUUID(input.UUID)
+		account, err := input.account()
 		if err != nil {
 			writeError(w, err)
 			return
 		}
 		result, err := service.SyncUser(r.Context(), membership.SyncUserRequest{
-			Scope: scope(r), Email: input.Email, UUID: uuid,
+			Scope: scope(r), Email: account.Email, UUID: account.UUID, Flow: account.Flow, Credential: account.Credential,
 		})
 		writeSync(w, result, err)
 	}
@@ -42,12 +39,17 @@ func syncUsers(service *membership.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
 		var input struct {
-			Accounts []membership.AccountInput `json:"accounts"`
+			Accounts []accountInput `json:"accounts"`
 		}
 		if !readLimitedBody(w, r, &input, 2<<20) {
 			return
 		}
-		result, err := service.SyncUsers(r.Context(), membership.SyncUsersRequest{Scope: scope(r), Accounts: input.Accounts})
+		accounts, err := decodeAccounts(input.Accounts)
+		if err != nil {
+			writeError(w, err)
+			return
+		}
+		result, err := service.SyncUsers(r.Context(), membership.SyncUsersRequest{Scope: scope(r), Accounts: accounts})
 		writeSync(w, result, err)
 	}
 }
@@ -61,4 +63,31 @@ func optionalUUID(raw json.RawMessage) (*string, error) {
 		return nil, membership.ErrInvalid
 	}
 	return uuid, nil
+}
+
+type accountInput struct {
+	Email      string                 `json:"email"`
+	UUID       json.RawMessage        `json:"uuid"`
+	Flow       *string                `json:"flow"`
+	Credential *membership.Credential `json:"credential"`
+}
+
+func (input accountInput) account() (membership.AccountInput, error) {
+	uuid, err := optionalUUID(input.UUID)
+	return membership.AccountInput{Email: input.Email, UUID: uuid, Flow: input.Flow, Credential: input.Credential}, err
+}
+
+func decodeAccounts(inputs []accountInput) ([]membership.AccountInput, error) {
+	if inputs == nil || len(inputs) > membership.MaxSyncAccounts {
+		return nil, membership.ErrInvalid
+	}
+	result := make([]membership.AccountInput, len(inputs))
+	for i, input := range inputs {
+		account, err := input.account()
+		if err != nil {
+			return nil, err
+		}
+		result[i] = account
+	}
+	return result, nil
 }
