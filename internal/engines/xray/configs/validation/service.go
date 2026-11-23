@@ -4,6 +4,7 @@ package validation
 import (
 	"context"
 	"fmt"
+	"sync/atomic"
 	"time"
 )
 
@@ -15,13 +16,13 @@ type Config struct {
 }
 
 type Service struct {
-	config Config
-	slot   chan struct{}
-	run    func(context.Context, Config) (*Issue, error)
+	config     Config
+	validating atomic.Bool
+	run        func(context.Context, Config) (*Issue, error)
 }
 
 func New(config Config) *Service {
-	return &Service{config: config, slot: make(chan struct{}, 1), run: runNative}
+	return &Service{config: config, run: runNative}
 }
 
 func (service *Service) Validate(ctx context.Context, id string) (Result, error) {
@@ -31,12 +32,10 @@ func (service *Service) Validate(ctx context.Context, id string) (Result, error)
 	if err := ctx.Err(); err != nil {
 		return Result{}, err
 	}
-	select {
-	case service.slot <- struct{}{}:
-		defer func() { <-service.slot }()
-	default:
+	if !service.validating.CompareAndSwap(false, true) {
 		return Result{}, ErrBusy
 	}
+	defer service.validating.Store(false)
 
 	ctx, cancel := context.WithTimeout(ctx, 4*time.Second)
 	defer cancel()

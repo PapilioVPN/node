@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/PapilioVPN/node/internal/engines/xray/stats/native"
+	"golang.org/x/sync/semaphore"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
@@ -35,7 +36,7 @@ type readRequest struct {
 type Service struct {
 	instances instances
 	read      func(context.Context, *grpc.ClientConn) (Snapshot, error)
-	native    chan struct{}
+	native    *semaphore.Weighted
 	queue     chan readRequest
 	stop      context.CancelFunc
 	ctx       context.Context
@@ -49,7 +50,7 @@ func New(instances instances) *Service {
 func newService(instances instances, read func(context.Context, *grpc.ClientConn) (Snapshot, error)) *Service {
 	ctx, stop := context.WithCancel(context.Background())
 	service := &Service{
-		instances: instances, read: read, native: make(chan struct{}, 1),
+		instances: instances, read: read, native: semaphore.NewWeighted(1),
 		queue: make(chan readRequest, queueSize),
 		ctx:   ctx, stop: stop, done: make(chan struct{}),
 	}
@@ -71,15 +72,13 @@ func (service *Service) GetRuntimeStats(ctx context.Context, id string) (Snapsho
 
 	ctx, cancel := context.WithTimeout(ctx, readTimeout)
 	defer cancel()
-	select {
-	case service.native <- struct{}{}:
-		defer func() { <-service.native }()
+	if service.native.TryAcquire(1) {
+		defer service.native.Release(1)
 		if service.ctx.Err() != nil {
 			return Snapshot{}, ErrUnavailable
 		}
 		result := service.sample(ctx, id, conn)
 		return result.snapshot, result.err
-	default:
 	}
 	reply := make(chan readResult, 1)
 	select {
@@ -105,13 +104,11 @@ func (service *Service) Close(ctx context.Context) error {
 	case <-ctx.Done():
 		return ctx.Err()
 	}
-	select {
-	case service.native <- struct{}{}:
-		<-service.native
-		return nil
-	case <-ctx.Done():
-		return ctx.Err()
+	if err := service.native.Acquire(ctx, 1); err != nil {
+		return err
 	}
+	service.native.Release(1)
+	return nil
 }
 
 func (service *Service) collect() {
@@ -123,10 +120,8 @@ func (service *Service) collect() {
 			return
 		case group[0] = <-service.queue:
 		}
-		select {
-		case <-service.ctx.Done():
+		if err := service.native.Acquire(service.ctx, 1); err != nil {
 			return
-		case service.native <- struct{}{}:
 		}
 		// Cut the group before the native read begins, so late arrivals get a
 		// fresh sample of their own.
@@ -135,7 +130,7 @@ func (service *Service) collect() {
 			group[i] = <-service.queue
 		}
 		service.collectGroup(group[:count])
-		<-service.native
+		service.native.Release(1)
 		clear(group[:count])
 	}
 }

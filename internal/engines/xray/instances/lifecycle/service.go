@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"golang.org/x/sync/semaphore"
 	"google.golang.org/grpc"
 )
 
@@ -38,7 +39,7 @@ type Service struct {
 	launch func(Config) (child, error)
 	probe  func(context.Context, grpc.ClientConnInterface) error
 
-	control  chan struct{}
+	control  *semaphore.Weighted
 	shutdown context.Context
 	cancel   context.CancelFunc
 
@@ -51,7 +52,7 @@ func New(config Config) *Service {
 	shutdown, cancel := context.WithCancel(context.Background())
 	return &Service{
 		config: config, launch: startProcess, probe: waitForReadiness,
-		control: make(chan struct{}, 1), shutdown: shutdown, cancel: cancel, state: Stopped,
+		control: semaphore.NewWeighted(1), shutdown: shutdown, cancel: cancel, state: Stopped,
 	}
 }
 
@@ -189,22 +190,18 @@ func (service *Service) Stop(ctx context.Context, id string) (Status, error) {
 // Close rejects new mutations and joins any child still owned by the service.
 func (service *Service) Close(ctx context.Context) error {
 	service.cancel()
-	select {
-	case service.control <- struct{}{}:
-		defer service.release()
-		return service.stop(ctx)
-	case <-ctx.Done():
-		return ctx.Err()
+	if err := service.control.Acquire(ctx, 1); err != nil {
+		return err
 	}
+	defer service.release()
+	return service.stop(ctx)
 }
 
 func (service *Service) admit(ctx context.Context, id string) error {
 	if service.config.ID == "" || id != service.config.ID {
 		return ErrNotFound
 	}
-	select {
-	case service.control <- struct{}{}:
-	default:
+	if !service.control.TryAcquire(1) {
 		return ErrBusy
 	}
 	if service.shutdown.Err() != nil {
@@ -218,7 +215,7 @@ func (service *Service) admit(ctx context.Context, id string) error {
 	return nil
 }
 
-func (service *Service) release() { <-service.control }
+func (service *Service) release() { service.control.Release(1) }
 
 func (service *Service) wait(run *execution, cancelStart context.CancelFunc) {
 	exit := run.child.wait()
