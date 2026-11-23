@@ -44,6 +44,32 @@ cat > "$work/xray.json" <<'JSON'
   "outbounds": [{"tag":"direct","protocol":"freedom"}]
 }
 JSON
+if [[ ${XRAY_BENCH_TRAFFIC_NAMES:-0} != 0 ]]; then
+  python3 - "${XRAY_BENCH_TRAFFIC_NAMES}" > "$work/xray.json" <<'PYTHON'
+import json
+import sys
+
+names = int(sys.argv[1])
+if not 1 <= names <= 10000:
+    raise SystemExit("expected 1 to 10000 traffic accounts")
+json.dump({
+    "log": {"loglevel": "none"},
+    "stats": {},
+    "policy": {
+        "levels": {"0": {"statsUserUplink": True, "statsUserDownlink": True}},
+        "system": {
+            "statsInboundUplink": True, "statsInboundDownlink": True,
+            "statsOutboundUplink": True, "statsOutboundDownlink": True,
+        },
+    },
+    "inbounds": [{
+        "tag": "fixture", "listen": "127.0.0.1", "port": 24440, "protocol": "http",
+        "settings": {"accounts": [{"user": f"account-{i:04}", "pass": "fixture"} for i in range(names)]},
+    }],
+    "outbounds": [{"tag": "direct", "protocol": "freedom"}],
+}, sys.stdout)
+PYTHON
+fi
 cat > "$work/node.yml" <<YAML
 management:
   http_address: '127.0.0.1:20881'
@@ -61,14 +87,23 @@ YAML
 
 export GOMAXPROCS=1
 benchmark_args=()
-if [[ ${XRAY_BENCH_RUNTIME_STATS:-0} == 1 ]]; then
+if [[ ${XRAY_BENCH_TRAFFIC_NAMES:-0} != 0 ]]; then
+  benchmark_args+=(-traffic-names "$XRAY_BENCH_TRAFFIC_NAMES" -traffic-case "${XRAY_BENCH_TRAFFIC_CASE:-}"
+    -runtime-stats-clients "${XRAY_BENCH_TRAFFIC_CLIENTS:-1,8}"
+    -runtime-stats-window "${XRAY_BENCH_TRAFFIC_WINDOW:-300ms}")
+elif [[ ${XRAY_BENCH_RUNTIME_STATS:-0} == 1 ]]; then
   benchmark_args+=(-runtime-stats
     -runtime-stats-clients "${XRAY_BENCH_RUNTIME_STATS_CLIENTS:-1,8}"
     -runtime-stats-window "${XRAY_BENCH_RUNTIME_STATS_WINDOW:-450ms}")
 fi
 taskset -c "${XRAY_BENCH_SERVER_CPU:-2}" "$node" -config "$work/node.yml" >"$work/node.log" 2>&1 &
 node_pid=$!
-for protocol in http grpc; do
+IFS=, read -r -a protocols <<< "${XRAY_BENCH_TRANSPORTS:-http,grpc}"
+for protocol in "${protocols[@]}"; do
+  if [[ $protocol != http && $protocol != grpc ]]; then
+    echo "Unknown benchmark transport: $protocol" >&2
+    exit 2
+  fi
   service_protocol=$protocol
   node_port=20882
   if [[ $protocol == http ]]; then
@@ -96,7 +131,7 @@ for protocol in http grpc; do
     -reference-pid "$reference_pid" -cert "$work/cert.pem" -reference-proto "$descriptor" \
     -config "$work/xray.json" -rounds "${XRAY_BENCH_ROUNDS:-5}" -cycles "${XRAY_BENCH_CYCLES:-30}" \
     -reads "${XRAY_BENCH_READS:-12}" > "$output/$protocol.csv"; then
-    tail -30 "$work/node.log" "$work/reference.log" >&2
+    tail -n 30 "$work/node.log" "$work/reference.log" >&2
     exit 1
   fi
   kill "$reference_pid"

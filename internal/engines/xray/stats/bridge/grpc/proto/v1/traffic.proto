@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package papiliovpn.node.v1;
+
+option go_package = "github.com/PapilioVPN/node/internal/engines/xray/stats/bridge/grpc/proto/v1;statsv1";
+
+enum XrayTrafficScope {
+  XRAY_TRAFFIC_SCOPE_UNSPECIFIED = 0;
+  XRAY_TRAFFIC_SCOPE_USER = 1;
+  XRAY_TRAFFIC_SCOPE_INBOUND = 2;
+  XRAY_TRAFFIC_SCOPE_OUTBOUND = 3;
+}
+
+message XrayTrafficRequest {
+  string id = 1;
+  XrayTrafficScope scope = 2;
+  string name = 3;
+}
+
+message XrayTrafficListRequest {
+  string id = 1;
+  XrayTrafficScope scope = 2;
+}
+
+message XrayTrafficUsage {
+  string name = 1;
+  optional int64 uplink_bytes = 2;
+  optional int64 downlink_bytes = 3;
+}
+
+message XrayTrafficList {
+  repeated XrayTrafficUsage entries = 1;
+}

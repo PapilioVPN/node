@@ -139,6 +139,147 @@ func (x *SysStatsResponse) GetUptime() uint32 {
 	return 0
 }
 
+// Wire projection for QueryStats. Leaving reset absent makes the read non-destructive.
+type QueryStatsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Pattern       string                 `protobuf:"bytes,1,opt,name=pattern,proto3" json:"pattern,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *QueryStatsRequest) Reset() {
+	*x = QueryStatsRequest{}
+	mi := &file_stats_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *QueryStatsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*QueryStatsRequest) ProtoMessage() {}
+
+func (x *QueryStatsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_stats_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use QueryStatsRequest.ProtoReflect.Descriptor instead.
+func (*QueryStatsRequest) Descriptor() ([]byte, []int) {
+	return file_stats_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *QueryStatsRequest) GetPattern() string {
+	if x != nil {
+		return x.Pattern
+	}
+	return ""
+}
+
+type TrafficCounter struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Value         int64                  `protobuf:"varint,2,opt,name=value,proto3" json:"value,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TrafficCounter) Reset() {
+	*x = TrafficCounter{}
+	mi := &file_stats_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TrafficCounter) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TrafficCounter) ProtoMessage() {}
+
+func (x *TrafficCounter) ProtoReflect() protoreflect.Message {
+	mi := &file_stats_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TrafficCounter.ProtoReflect.Descriptor instead.
+func (*TrafficCounter) Descriptor() ([]byte, []int) {
+	return file_stats_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *TrafficCounter) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *TrafficCounter) GetValue() int64 {
+	if x != nil {
+		return x.Value
+	}
+	return 0
+}
+
+type QueryStatsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Stats         []*TrafficCounter      `protobuf:"bytes,1,rep,name=stats,proto3" json:"stats,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *QueryStatsResponse) Reset() {
+	*x = QueryStatsResponse{}
+	mi := &file_stats_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *QueryStatsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*QueryStatsResponse) ProtoMessage() {}
+
+func (x *QueryStatsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_stats_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use QueryStatsResponse.ProtoReflect.Descriptor instead.
+func (*QueryStatsResponse) Descriptor() ([]byte, []int) {
+	return file_stats_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *QueryStatsResponse) GetStats() []*TrafficCounter {
+	if x != nil {
+		return x.Stats
+	}
+	return nil
+}
+
 var File_stats_proto protoreflect.FileDescriptor
 
 const file_stats_proto_rawDesc = "" +
@@ -156,7 +297,14 @@ const file_stats_proto_rawDesc = "" +
 	"\flive_objects\x18\b \x01(\x04R\vliveObjects\x12$\n" +
 	"\x0epause_total_ns\x18\t \x01(\x04R\fpauseTotalNs\x12\x16\n" +
 	"\x06uptime\x18\n" +
-	" \x01(\rR\x06uptimeB?Z=github.com/PapilioVPN/node/internal/engines/xray/stats/nativeb\x06proto3"
+	" \x01(\rR\x06uptime\"-\n" +
+	"\x11QueryStatsRequest\x12\x18\n" +
+	"\apattern\x18\x01 \x01(\tR\apattern\":\n" +
+	"\x0eTrafficCounter\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\x03R\x05value\"R\n" +
+	"\x12QueryStatsResponse\x12<\n" +
+	"\x05stats\x18\x01 \x03(\v2&.papiliovpn.xray.native.TrafficCounterR\x05statsB?Z=github.com/PapilioVPN/node/internal/engines/xray/stats/nativeb\x06proto3"
 
 var (
 	file_stats_proto_rawDescOnce sync.Once
@@ -170,16 +318,20 @@ func file_stats_proto_rawDescGZIP() []byte {
 	return file_stats_proto_rawDescData
 }
 
-var file_stats_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
+var file_stats_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_stats_proto_goTypes = []any{
-	(*SysStatsResponse)(nil), // 0: papiliovpn.xray.native.SysStatsResponse
+	(*SysStatsResponse)(nil),   // 0: papiliovpn.xray.native.SysStatsResponse
+	(*QueryStatsRequest)(nil),  // 1: papiliovpn.xray.native.QueryStatsRequest
+	(*TrafficCounter)(nil),     // 2: papiliovpn.xray.native.TrafficCounter
+	(*QueryStatsResponse)(nil), // 3: papiliovpn.xray.native.QueryStatsResponse
 }
 var file_stats_proto_depIdxs = []int32{
-	0, // [0:0] is the sub-list for method output_type
-	0, // [0:0] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	2, // 0: papiliovpn.xray.native.QueryStatsResponse.stats:type_name -> papiliovpn.xray.native.TrafficCounter
+	1, // [1:1] is the sub-list for method output_type
+	1, // [1:1] is the sub-list for method input_type
+	1, // [1:1] is the sub-list for extension type_name
+	1, // [1:1] is the sub-list for extension extendee
+	0, // [0:1] is the sub-list for field type_name
 }
 
 func init() { file_stats_proto_init() }
@@ -193,7 +345,7 @@ func file_stats_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_stats_proto_rawDesc), len(file_stats_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   1,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

@@ -1,6 +1,6 @@
 package grpc
 
-//go:generate protoc -I . --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative proto/v1/runtime_stats.proto
+//go:generate protoc -I . --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative proto/v1/runtime_stats.proto proto/v1/traffic.proto
 
 import (
 	"context"

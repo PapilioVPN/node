@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package benchmark;
+
+option go_package = "github.com/PapilioVPN/node/benchmarks/xray;main";
+
+// Wire projection for PasarGuard GetStats at the pinned benchmark revision.
+message ReferenceTrafficRequest {
+  string name = 1;
+  int32 type = 3;
+}
+
+message ReferenceTrafficStat {
+  string name = 1;
+  string type = 2;
+  string link = 3;
+  int64 value = 4;
+}
+
+message ReferenceTrafficResponse {
+  repeated ReferenceTrafficStat stats = 1;
+}

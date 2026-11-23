@@ -68,6 +68,7 @@ docker run --rm --network=host --read-only --cap-drop ALL \
 | نمونهٔ Xray | راه‌اندازی، خواندن وضعیت و توقف یک نمونهٔ تنظیم‌شده از طریق HTTP و gRPC، همراه با جزئیات خطای راه‌اندازی. |
 | اعتبارسنجی کانفیگ Xray | بررسی فایل JSON تنظیم‌شده از HTTP و gRPC پیش از راه‌اندازی دوبارهٔ نمونه. |
 | آمار اجرای Xray | خواندن زمان کارکرد، تخصیص حافظه، goroutineها و شمارنده‌های GC نمونهٔ فعال از HTTP و gRPC. |
+| شمارنده‌های ترافیک Xray | بایت آپلود و دانلود یک یا همهٔ حساب‌ها، ورودی‌ها یا خروجی‌ها را با HTTP و gRPC بخوان. |
 
 <a name="management"></a>
 
@@ -92,6 +93,8 @@ docker run --rm --network=host --read-only --cap-drop ALL \
 با بدنهٔ خالی به `POST /v1/xray/instances/{id}/config-validations` درخواست بفرست یا `XrayConfigsService.ValidateConfig` را با شناسهٔ نمونه صدا بزن. Node فایل تنظیم‌شده را با همان گزینه‌های راه‌اندازی بررسی می‌کند. فایل نامعتبر با `valid: false` و کد ایراد برمی‌گردد. اگر Xray خط و ستون را گزارش کرده باشد، در پاسخ می‌آیند. شکست اجرای آزمون خطای API دارد. [قرارداد gRPC](internal/engines/xray/configs/bridge/grpc/proto/v1/configs.proto)
 
 از `GET /v1/xray/instances/{id}/stats/runtime` یا `XrayStatsService.GetRuntimeStats` استفاده کن. هر پاسخ از نمونه‌ای تازه از اجرای فعال Xray استفاده می‌کند. درخواست‌های هم‌زمان می‌توانند نمونهٔ بعدی را مشترک بخوانند. واحد حافظه بایت، زمان کارکرد ثانیهٔ کامل از آغاز سرویس آمار Xray و مجموع مکث GC نانوثانیه است. اگر نمونهٔ تنظیم‌شده در دسترس نباشد، HTTP پاسخ `503` و gRPC وضعیت `UNAVAILABLE` می‌دهد. صف انتظار ظرفیت ۱۲۸ درخواست دارد. اگر صف پر باشد، درخواست در HTTP پاسخ `429` و در gRPC وضعیت `RESOURCE_EXHAUSTED` می‌گیرد. [قرارداد gRPC](internal/engines/xray/stats/bridge/grpc/proto/v1/runtime_stats.proto) · [بنچمارک و نتایج خام](benchmarks/README.md#xray-runtime-statistics-after-the-rewrite)
+
+از `GET /v1/xray/instances/{id}/stats/traffic/{scope}` با `user`، `inbound` یا `outbound` استفاده کن. برای یک حساب یا تگ، `?name=...` را اضافه کن. متدهای gRPC، `XrayStatsService.GetTraffic` و `ListTraffic` هستند. خواندن، شمارنده‌ها را تغییر نمی‌دهد. جهت غایب در پاسخ نمی‌آید و مقدار صفر به‌صورت صفر برمی‌گردد. اگر نام پیدا نشود، HTTP پاسخ `404` و gRPC وضعیت `NOT_FOUND` می‌دهد. فهرست ترتیب ثابتی ندارد. آمار ترافیک محدودهٔ موردنیاز را در سیاست Xray فعال کن. [قرارداد gRPC](internal/engines/xray/stats/bridge/grpc/proto/v1/traffic.proto)
 
 در نمونه، هر دو listener روی loopback باز می‌شوند. درخواست HTTP به `GET /healthz` هنگام آمادگی پاسخ `204 No Content` دارد. سرویس health در gRPC روی پورت 8081 برای نام سرویس خالی وضعیت `SERVING` را می‌دهد. برای فعال‌کردن TLS، فیلدهای `management.tls.cert_file` و `management.tls.key_file` را تنظیم کن. فیلد `management.tls.client_ca_file` برای mTLS و `management.api_key` برای هدر یا متادیتای `x-api-key` اختیاری‌اند.
 

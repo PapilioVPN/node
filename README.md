@@ -63,6 +63,7 @@ docker run --rm --network=host --read-only --cap-drop ALL \
 | Xray instance | Start, read lifecycle state, and stop one configured instance over HTTP and gRPC, with typed startup failures. |
 | Xray config validation | Check the configured Xray JSON over HTTP and gRPC before restarting the instance. |
 | Xray runtime statistics | Read the active instance’s uptime, memory allocation, goroutines, and garbage collection counters over HTTP and gRPC. |
+| Xray traffic counters | Read upload and download bytes for one or all accounts, inbound tags, or outbound tags over HTTP and gRPC. |
 
 <a name="management"></a>
 
@@ -87,6 +88,8 @@ A startup failure returns HTTP `503` with a JSON `reason` or gRPC `UNAVAILABLE` 
 Send an empty `POST /v1/xray/instances/{id}/config-validations` or call `XrayConfigsService.ValidateConfig` with the instance ID. Node tests the configured file with the same options used for startup. An invalid file returns `valid: false` and an issue code, with a line and column when Xray reports them. An execution failure returns an API error. [gRPC contract](internal/engines/xray/configs/bridge/grpc/proto/v1/configs.proto)
 
 Use `GET /v1/xray/instances/{id}/stats/runtime` or `XrayStatsService.GetRuntimeStats`. Each response uses a fresh sample from the active Xray execution. Overlapping reads can share the next native sample. Memory fields report bytes, uptime counts whole seconds since the Xray stats service started, and cumulative GC pause is in nanoseconds. A configured instance that is unavailable returns HTTP `503` or gRPC `UNAVAILABLE`. The pending-read buffer holds 128 requests. When it is full, reads return HTTP `429` or gRPC `RESOURCE_EXHAUSTED`. [gRPC contract](internal/engines/xray/stats/bridge/grpc/proto/v1/runtime_stats.proto) · [Benchmark and raw results](benchmarks/README.md#xray-runtime-statistics-after-the-rewrite)
+
+Use `GET /v1/xray/instances/{id}/stats/traffic/{scope}` with `user`, `inbound`, or `outbound`. Add `?name=...` for one account or tag. The gRPC methods are `XrayStatsService.GetTraffic` and `ListTraffic`. Reads leave the counters intact. A missing direction is omitted and a stored zero is returned as zero. A missing named entry returns HTTP `404` or gRPC `NOT_FOUND`. List order is unspecified. Enable traffic statistics in the Xray policy for the selected scope. [gRPC contract](internal/engines/xray/stats/bridge/grpc/proto/v1/traffic.proto)
 
 The example binds both listeners to loopback. HTTP `GET /healthz` returns `204 No Content` when ready. The gRPC health service on port 8081 reports `SERVING` for the empty service name. Set `management.tls.cert_file` and `management.tls.key_file` to enable TLS. Optionally configure `management.tls.client_ca_file` for mutual TLS and `management.api_key` for the `x-api-key` header or metadata.
 

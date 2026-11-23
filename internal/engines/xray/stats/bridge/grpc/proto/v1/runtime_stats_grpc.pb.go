@@ -20,6 +20,8 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	XrayStatsService_GetRuntimeStats_FullMethodName = "/papiliovpn.node.v1.XrayStatsService/GetRuntimeStats"
+	XrayStatsService_GetTraffic_FullMethodName      = "/papiliovpn.node.v1.XrayStatsService/GetTraffic"
+	XrayStatsService_ListTraffic_FullMethodName     = "/papiliovpn.node.v1.XrayStatsService/ListTraffic"
 )
 
 // XrayStatsServiceClient is the client API for XrayStatsService service.
@@ -28,6 +30,8 @@ const (
 type XrayStatsServiceClient interface {
 	// Reads runtime statistics from the active Xray instance.
 	GetRuntimeStats(ctx context.Context, in *XrayRuntimeStatsRequest, opts ...grpc.CallOption) (*XrayRuntimeStats, error)
+	GetTraffic(ctx context.Context, in *XrayTrafficRequest, opts ...grpc.CallOption) (*XrayTrafficUsage, error)
+	ListTraffic(ctx context.Context, in *XrayTrafficListRequest, opts ...grpc.CallOption) (*XrayTrafficList, error)
 }
 
 type xrayStatsServiceClient struct {
@@ -48,12 +52,34 @@ func (c *xrayStatsServiceClient) GetRuntimeStats(ctx context.Context, in *XrayRu
 	return out, nil
 }
 
+func (c *xrayStatsServiceClient) GetTraffic(ctx context.Context, in *XrayTrafficRequest, opts ...grpc.CallOption) (*XrayTrafficUsage, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(XrayTrafficUsage)
+	err := c.cc.Invoke(ctx, XrayStatsService_GetTraffic_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *xrayStatsServiceClient) ListTraffic(ctx context.Context, in *XrayTrafficListRequest, opts ...grpc.CallOption) (*XrayTrafficList, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(XrayTrafficList)
+	err := c.cc.Invoke(ctx, XrayStatsService_ListTraffic_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // XrayStatsServiceServer is the server API for XrayStatsService service.
 // All implementations must embed UnimplementedXrayStatsServiceServer
 // for forward compatibility.
 type XrayStatsServiceServer interface {
 	// Reads runtime statistics from the active Xray instance.
 	GetRuntimeStats(context.Context, *XrayRuntimeStatsRequest) (*XrayRuntimeStats, error)
+	GetTraffic(context.Context, *XrayTrafficRequest) (*XrayTrafficUsage, error)
+	ListTraffic(context.Context, *XrayTrafficListRequest) (*XrayTrafficList, error)
 	mustEmbedUnimplementedXrayStatsServiceServer()
 }
 
@@ -66,6 +92,12 @@ type UnimplementedXrayStatsServiceServer struct{}
 
 func (UnimplementedXrayStatsServiceServer) GetRuntimeStats(context.Context, *XrayRuntimeStatsRequest) (*XrayRuntimeStats, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetRuntimeStats not implemented")
+}
+func (UnimplementedXrayStatsServiceServer) GetTraffic(context.Context, *XrayTrafficRequest) (*XrayTrafficUsage, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetTraffic not implemented")
+}
+func (UnimplementedXrayStatsServiceServer) ListTraffic(context.Context, *XrayTrafficListRequest) (*XrayTrafficList, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListTraffic not implemented")
 }
 func (UnimplementedXrayStatsServiceServer) mustEmbedUnimplementedXrayStatsServiceServer() {}
 func (UnimplementedXrayStatsServiceServer) testEmbeddedByValue()                          {}
@@ -106,6 +138,42 @@ func _XrayStatsService_GetRuntimeStats_Handler(srv interface{}, ctx context.Cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _XrayStatsService_GetTraffic_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(XrayTrafficRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(XrayStatsServiceServer).GetTraffic(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: XrayStatsService_GetTraffic_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(XrayStatsServiceServer).GetTraffic(ctx, req.(*XrayTrafficRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _XrayStatsService_ListTraffic_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(XrayTrafficListRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(XrayStatsServiceServer).ListTraffic(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: XrayStatsService_ListTraffic_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(XrayStatsServiceServer).ListTraffic(ctx, req.(*XrayTrafficListRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // XrayStatsService_ServiceDesc is the grpc.ServiceDesc for XrayStatsService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -116,6 +184,14 @@ var XrayStatsService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetRuntimeStats",
 			Handler:    _XrayStatsService_GetRuntimeStats_Handler,
+		},
+		{
+			MethodName: "GetTraffic",
+			Handler:    _XrayStatsService_GetTraffic_Handler,
+		},
+		{
+			MethodName: "ListTraffic",
+			Handler:    _XrayStatsService_ListTraffic_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

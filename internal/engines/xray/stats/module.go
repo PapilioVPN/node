@@ -5,7 +5,9 @@ import (
 	"github.com/PapilioVPN/node/internal/engines/xray/instances/lifecycle"
 	"github.com/PapilioVPN/node/internal/engines/xray/stats/bridge/grpc"
 	"github.com/PapilioVPN/node/internal/engines/xray/stats/bridge/http"
+	"github.com/PapilioVPN/node/internal/engines/xray/stats/native"
 	"github.com/PapilioVPN/node/internal/engines/xray/stats/runtime"
+	"github.com/PapilioVPN/node/internal/engines/xray/stats/traffic"
 	"github.com/PapilioVPN/node/internal/settings"
 	"github.com/go-chi/chi/v5"
 	"go.uber.org/fx"
@@ -21,5 +23,7 @@ func register(life fx.Lifecycle, config settings.Xray, instance *lifecycle.Servi
 	service := runtime.New(instance)
 	life.Append(fx.Hook{OnStop: service.Close})
 	http.Register(router, service)
-	grpc.Register(server, service)
+	trafficService := traffic.New(native.NewTraffic(instance))
+	http.RegisterTraffic(router, trafficService)
+	grpc.Register(server, service, trafficService)
 }

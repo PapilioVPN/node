@@ -225,3 +225,150 @@ from the lifecycle fixture.
 GOTOOLCHAIN=go1.27.3 CGO_ENABLED=0 go build -trimpath -o "$work/components" ./benchmarks/xray/components
 GOMAXPROCS=1 taskset -c "${XRAY_BENCH_SERVER_CPU:-2}" "$work/components" "$work/xray/xray"
 ```
+
+## Xray traffic counters
+
+The two nodes used the lifecycle fixture's pinned PasarGuard revision and Xray
+v26.11.9 binary, TLS settings, Go toolchain, and CPU affinity. The fixture uses
+one authenticated loopback HTTP proxy inbound and one direct outbound. It sends
+real requests through the proxy under each of 1 or 512 accounts before measuring.
+The client verifies both directions of every expected fixture entry. It runs
+one outstanding request per client with 1 or 8 clients, 325 ms polling windows,
+and three rounds with alternating server order. Results report the median of
+per-round successful responses per second and of per-round latency percentiles.
+Latencies are in milliseconds. HTTP uses the products' respective JSON and
+protobuf representations and gRPC uses protobuf for both.
+
+Both nodes use one Xray `QueryStats` scan per operation to fetch both directions
+or the full scope. PapilioVPN narrows the search string for named resources and
+checks the exact name after decoding. A list scan visits the engine's counters
+once and groups directions by resource name. Go reuses the backing values of
+the list entries during response encoding. The measurements use non-destructive
+reads on populated counters. The PasarGuard inbound list additionally contains
+counters from its private `API_INBOUND` management tunnel. Those list rows are
+reported separately from the equivalent results. [PasarGuard API configuration](https://github.com/PasarGuard/node/blob/739eab94a9343d9f0035baf7162796844109f4c4/backend/xray/config.go#L950-L1010)
+
+### Main sweep
+
+Each cell shows PapilioVPN / PasarGuard. Both nodes reported zero
+capacity rejections in the sweep. The summary counts better medians among the
+ten equivalent cases per transport and account count.
+
+| Accounts | Transport | Higher success/s | Lower p50 | Lower p95 |
+| ---: | --- | ---: | ---: | ---: |
+| 1 | HTTP | 10/10 | 10/10 | 9/10 |
+| 1 | gRPC | 9/10 | 9/10 | 9/10 |
+| 512 | HTTP | 3/10 | 3/10 | 3/10 |
+| 512 | gRPC | 9/10 | 10/10 | 10/10 |
+
+[HTTP rounds](xray/results/2026-11-23-traffic-http.csv) · [gRPC rounds](xray/results/2026-11-23-traffic-grpc.csv)
+
+#### 1 account
+
+| Transport | Scope | Selection | Clients | Success/s | p50 ms | p95 ms |
+| --- | --- | --- | ---: | ---: | ---: | ---: |
+| HTTP | user | one | 1 | 1271 / 1138 | 0.704 / 0.790 | 1.471 / 1.633 |
+| HTTP | user | one | 8 | 3969 / 3662 | 1.796 / 1.905 | 4.079 / 4.702 |
+| HTTP | user | list | 1 | 1315 / 1227 | 0.661 / 0.714 | 1.488 / 1.797 |
+| HTTP | user | list | 8 | 4022 / 3710 | 1.767 / 1.922 | 4.019 / 4.482 |
+| HTTP | inbound | one | 1 | 1250 / 1083 | 0.685 / 0.786 | 1.656 / 2.139 |
+| HTTP | inbound | one | 8 | 3955 / 3711 | 1.712 / 1.897 | 4.259 / 4.377 |
+| HTTP | outbound | one | 1 | 1145 / 1143 | 0.707 / 0.726 | 2.223 / 1.725 |
+| HTTP | outbound | one | 8 | 3974 / 3814 | 1.793 / 1.851 | 3.990 / 4.116 |
+| HTTP | outbound | list | 1 | 1320 / 1162 | 0.645 / 0.756 | 1.604 / 1.833 |
+| HTTP | outbound | list | 8 | 3909 / 3534 | 1.804 / 1.949 | 3.982 / 4.458 |
+| gRPC | user | one | 1 | 529 / 611 | 1.534 / 1.361 | 4.014 / 3.540 |
+| gRPC | user | one | 8 | 2697 / 2215 | 2.683 / 3.149 | 5.410 / 6.797 |
+| gRPC | user | list | 1 | 605 / 490 | 1.287 / 1.419 | 3.927 / 4.590 |
+| gRPC | user | list | 8 | 2673 / 2132 | 2.664 / 3.265 | 5.194 / 7.986 |
+| gRPC | inbound | one | 1 | 802 / 594 | 1.040 / 1.351 | 3.055 / 3.792 |
+| gRPC | inbound | one | 8 | 2745 / 2396 | 2.559 / 2.905 | 5.374 / 6.201 |
+| gRPC | outbound | one | 1 | 632 / 492 | 1.204 / 1.517 | 3.950 / 4.232 |
+| gRPC | outbound | one | 8 | 2769 / 2187 | 2.503 / 3.128 | 5.032 / 6.455 |
+| gRPC | outbound | list | 1 | 642 / 472 | 1.206 / 1.607 | 3.320 / 4.323 |
+| gRPC | outbound | list | 8 | 2510 / 2418 | 2.737 / 2.864 | 5.914 / 6.089 |
+
+#### 512 accounts
+
+| Transport | Scope | Selection | Clients | Success/s | p50 ms | p95 ms |
+| --- | --- | --- | ---: | ---: | ---: | ---: |
+| HTTP | user | one | 1 | 774 / 737 | 1.138 / 1.208 | 2.747 / 3.128 |
+| HTTP | user | one | 8 | 2777 / 2399 | 2.660 / 3.069 | 5.322 / 5.783 |
+| HTTP | user | list | 1 | 159 / 208 | 5.959 / 4.558 | 10.115 / 7.293 |
+| HTTP | user | list | 8 | 339 / 306 | 22.961 / 26.252 | 34.512 / 37.011 |
+| HTTP | inbound | one | 1 | 503 / 663 | 1.512 / 1.263 | 4.304 / 3.327 |
+| HTTP | inbound | one | 8 | 1743 / 2093 | 4.045 / 3.533 | 8.257 / 7.077 |
+| HTTP | outbound | one | 1 | 479 / 819 | 1.489 / 1.086 | 5.118 / 2.268 |
+| HTTP | outbound | one | 8 | 2271 / 2422 | 3.221 / 2.975 | 5.995 / 5.936 |
+| HTTP | outbound | list | 1 | 642 / 688 | 1.264 / 1.215 | 3.421 / 3.108 |
+| HTTP | outbound | list | 8 | 2296 / 2420 | 3.217 / 3.074 | 6.020 / 5.472 |
+| gRPC | user | one | 1 | 1011 / 452 | 0.900 / 1.525 | 2.101 / 5.162 |
+| gRPC | user | one | 8 | 2739 / 2347 | 2.700 / 3.144 | 4.747 / 6.016 |
+| gRPC | user | list | 1 | 294 / 172 | 3.155 / 5.452 | 5.546 / 8.776 |
+| gRPC | user | list | 8 | 427 / 232 | 18.149 / 33.962 | 29.410 / 61.625 |
+| gRPC | inbound | one | 1 | 581 / 614 | 1.324 / 1.405 | 3.356 / 3.440 |
+| gRPC | inbound | one | 8 | 2874 / 1946 | 2.518 / 3.783 | 4.942 / 6.171 |
+| gRPC | outbound | one | 1 | 707 / 565 | 1.249 / 1.494 | 3.170 / 3.888 |
+| gRPC | outbound | one | 8 | 2434 / 2068 | 2.941 / 3.649 | 5.410 / 7.116 |
+| gRPC | outbound | list | 1 | 928 / 716 | 0.963 / 1.233 | 2.423 / 2.900 |
+| gRPC | outbound | list | 8 | 3041 / 2689 | 2.360 / 2.642 | 4.699 / 5.500 |
+
+#### Inbound lists
+
+| Accounts | Transport | Scope | Selection | Clients | Success/s | p50 ms | p95 ms |
+| ---: | --- | --- | --- | ---: | ---: | ---: | ---: |
+| 1 | HTTP | inbound | list | 1 | 1251 / 1099 | 0.672 / 0.787 | 1.817 / 1.822 |
+| 1 | HTTP | inbound | list | 8 | 3940 / 3702 | 1.770 / 1.946 | 3.992 / 4.271 |
+| 1 | gRPC | inbound | list | 1 | 612 / 621 | 1.197 / 1.252 | 4.262 / 3.819 |
+| 1 | gRPC | inbound | list | 8 | 2661 / 2455 | 2.742 / 2.891 | 5.094 / 6.078 |
+| 512 | HTTP | inbound | list | 1 | 491 / 805 | 1.555 / 1.099 | 4.048 / 2.264 |
+| 512 | HTTP | inbound | list | 8 | 2096 / 2352 | 3.515 / 3.048 | 6.410 / 6.249 |
+| 512 | gRPC | inbound | list | 1 | 824 / 690 | 1.114 / 1.263 | 2.460 / 2.672 |
+| 512 | gRPC | inbound | list | 8 | 2622 / 1919 | 2.809 / 3.642 | 5.166 / 8.416 |
+
+### Repeated workloads
+
+The repeat runs used the final binaries and the same fixture. With 512 accounts,
+HTTP results varied across runs. In the repeat, PapilioVPN had higher throughput
+for eight-client user lists, inbound reads, and outbound reads and lists. Its
+single-client outbound list throughput remained lower.
+
+The 512-account HTTP repeat ran all six operations for five 500 ms rounds. The
+focused single-account runs used seven 600 ms rounds with one client. The
+initial HTTP row used the earlier response encoder that allocated new values
+for each entry.
+
+| Workload | Success/s | p50 ms | p95 ms |
+| --- | ---: | ---: | ---: |
+| Initial HTTP user list, one account and one client | 1010 / 1243 | 0.812 / 0.682 | 2.759 / 1.761 |
+| Focused HTTP user list, one account and one client | 1124 / 1110 | 0.743 / 0.759 | 1.924 / 1.948 |
+| Focused gRPC user read, one account and one client | 1237 / 1074 | 0.718 / 0.799 | 1.656 / 1.904 |
+| HTTP user list, 512 accounts and one client | 266 / 254 | 3.547 / 3.683 | 5.563 / 5.844 |
+| HTTP user list, 512 accounts and eight clients | 414 / 355 | 18.433 / 22.562 | 27.555 / 31.745 |
+| HTTP inbound read, 512 accounts and one client | 1086 / 1040 | 0.817 / 0.880 | 1.825 / 1.779 |
+| HTTP inbound read, 512 accounts and eight clients | 3330 / 2706 | 2.217 / 2.640 | 4.273 / 5.346 |
+| HTTP outbound read, 512 accounts and one client | 1126 / 995 | 0.773 / 0.899 | 1.817 / 2.011 |
+| HTTP outbound read, 512 accounts and eight clients | 3297 / 3095 | 2.205 / 2.362 | 4.431 / 4.674 |
+| HTTP outbound list, 512 accounts and one client | 1027 / 1068 | 0.836 / 0.824 | 1.969 / 2.037 |
+| HTTP outbound list, 512 accounts and eight clients | 3254 / 3117 | 2.225 / 2.308 | 4.377 / 4.755 |
+
+[Initial HTTP sweep](xray/results/2026-11-23-traffic-initial-http.csv) · [Focused HTTP rounds](xray/results/2026-11-23-traffic-focus-http.csv) · [512-account HTTP repeat](xray/results/2026-11-23-traffic-repeat-http.csv) · [Focused gRPC rounds](xray/results/2026-11-23-traffic-repeat-grpc.csv)
+
+### Reproduce the traffic measurements
+
+Build the two nodes, client and descriptor using the lifecycle steps. Use the
+same runner and a separate output directory for each row of settings.
+
+| Workload | Accounts | Clients | Window | Rounds | Transports | Case |
+| --- | ---: | --- | --- | ---: | --- | --- |
+| Main sweep, small fixture | 1 | 1,8 | 325ms | 3 | http,grpc | all |
+| Main sweep, large fixture | 512 | 1,8 | 325ms | 3 | http,grpc | all |
+| Focused HTTP user list | 1 | 1 | 600ms | 7 | http | user/list |
+| Focused gRPC user read | 1 | 1 | 600ms | 7 | grpc | user/one |
+| Large HTTP repeat | 512 | 1,8 | 500ms | 5 | http | all |
+
+Set `XRAY_BENCH_TRAFFIC_NAMES`, `XRAY_BENCH_TRAFFIC_CLIENTS`,
+`XRAY_BENCH_TRAFFIC_WINDOW`, `XRAY_BENCH_ROUNDS` and `XRAY_BENCH_TRANSPORTS`
+to the chosen row. For a focused workload, set `XRAY_BENCH_TRAFFIC_CASE` to the
+listed case. Leave it unset for all cases. The runner needs Python 3 to
+construct the proxy fixture.

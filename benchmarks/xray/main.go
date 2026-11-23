@@ -45,17 +45,18 @@ const (
 var operations = [3]string{"start", "status", "stop"}
 
 type target struct {
-	name  string
-	pid   string
-	call  func(context.Context, operation) error
-	stats func(context.Context) (uint32, error)
+	name    string
+	pid     string
+	call    func(context.Context, operation) error
+	stats   func(context.Context) (uint32, error)
+	traffic func(trafficRead) trafficCall
 }
 
 func main() {
 	var protocol, node, nodePID, reference, referencePID, cert, descriptor, config string
-	var rounds, cycles, reads int
+	var rounds, cycles, reads, trafficNames int
 	var runtimeStats bool
-	var runtimeStatsClients string
+	var runtimeStatsClients, trafficCase string
 	var runtimeStatsWindow time.Duration
 	flag.StringVar(&protocol, "transport", "", "http or grpc")
 	flag.StringVar(&node, "node", "", "PapilioVPN Node address")
@@ -71,12 +72,17 @@ func main() {
 	flag.BoolVar(&runtimeStats, "runtime-stats", false, "measure backend runtime statistics")
 	flag.StringVar(&runtimeStatsClients, "runtime-stats-clients", "1,8", "comma-separated client counts for runtime statistics")
 	flag.DurationVar(&runtimeStatsWindow, "runtime-stats-window", 450*time.Millisecond, "polling window for each runtime statistics measurement")
+	flag.StringVar(&trafficCase, "traffic-case", "", "run only a traffic case such as user/list")
+	flag.IntVar(&trafficNames, "traffic-names", 0, "seed and measure traffic for this many benchmark accounts")
 	flag.Parse()
 	if (protocol != "http" && protocol != "grpc") || rounds < 1 || cycles < 1 || reads < 1 {
 		log.Fatal("specify http or grpc and positive workloads")
 	}
 	var clientCounts []int
-	if runtimeStats {
+	if trafficNames < 0 || trafficNames > 10000 || (trafficNames > 0 && runtimeStats) {
+		log.Fatal("select one benchmark and a traffic account count from 1 to 10000")
+	}
+	if runtimeStats || trafficNames > 0 {
 		if runtimeStatsWindow <= 0 {
 			log.Fatal("runtime statistics window must be positive")
 		}
@@ -105,7 +111,7 @@ func main() {
 	switch protocol {
 	case "http":
 		transport := &http.Transport{TLSClientConfig: tlsConfig}
-		if runtimeStats {
+		if runtimeStats || trafficNames > 0 {
 			transport.MaxIdleConnsPerHost = slices.Max(clientCounts)
 		}
 		defer transport.CloseIdleConnections()
@@ -120,6 +126,9 @@ func main() {
 		if runtimeStats {
 			targets[0].stats = runtimeStatsHTTP(client, node, "/v1/xray/instances/primary/stats/runtime", decodeNodeStats)
 			targets[1].stats = runtimeStatsHTTP(client, reference, "/stats/backend", decodeReferenceStats)
+		}
+		if trafficNames > 0 {
+			targets[0].traffic, targets[1].traffic = trafficHTTP(client, node, reference)
 		}
 	case "grpc":
 		nodeConn, err := grpc.NewClient(node, grpc.WithTransportCredentials(credentials.NewTLS(tlsConfig)))
@@ -166,8 +175,15 @@ func main() {
 		if runtimeStats {
 			targets[0].stats, targets[1].stats = runtimeStatsGRPC(nodeConn, refConn)
 		}
+		if trafficNames > 0 {
+			targets[0].traffic, targets[1].traffic = trafficGRPC(nodeConn, refConn)
+		}
 	}
 
+	if trafficNames > 0 {
+		benchmarkTraffic(protocol, targets, rounds, clientCounts, trafficNames, runtimeStatsWindow, trafficCase)
+		return
+	}
 	if runtimeStats {
 		benchmarkRuntimeStats(protocol, targets, rounds, clientCounts, runtimeStatsWindow)
 		return

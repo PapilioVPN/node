@@ -66,6 +66,7 @@ docker run --rm --network=host --read-only --cap-drop ALL \
 | Xray 实例 | 通过 HTTP 和 gRPC 启动、查询状态和停止一个已配置的实例，并返回结构化启动错误。 |
 | Xray 配置验证 | 通过 HTTP 和 gRPC 在重启实例之前验证已配置的 JSON。 |
 | Xray 运行统计 | 通过 HTTP 和 gRPC 查询活动实例的运行时间、内存分配、goroutine 和垃圾回收计数。 |
+| Xray 流量计数器 | 通过 HTTP 和 gRPC 读取单个或全部账户、入站标签或出站标签的上行与下行字节数。 |
 
 <a name="management"></a>
 
@@ -90,6 +91,8 @@ HTTP `GET /v1/host/stats` 和 gRPC `HostService.GetSystemStats` 返回 `uptime_s
 发送空请求体的 `POST /v1/xray/instances/{id}/config-validations`，或使用实例 ID 调用 `XrayConfigsService.ValidateConfig`。Node 使用与启动时相同的选项验证配置文件。无效配置返回 `valid: false` 和问题代码，并在 Xray 提供时返回行号和列号。验证执行失败时返回 API 错误。[gRPC 接口](internal/engines/xray/configs/bridge/grpc/proto/v1/configs.proto)
 
 使用 `GET /v1/xray/instances/{id}/stats/runtime` 或 `XrayStatsService.GetRuntimeStats`。每个响应都使用正在运行的 Xray 实例的新样本。并发请求可以共享下一次采样结果。内存以字节计，运行时间以 Xray 统计服务启动后的整秒计，GC 累计暂停以纳秒计。实例不可用时，HTTP 返回 `503`，gRPC 返回 `UNAVAILABLE`。等待读取的缓冲区可容纳 128 个请求。缓冲区满时，HTTP 返回 `429`，gRPC 返回 `RESOURCE_EXHAUSTED`。[gRPC 接口](internal/engines/xray/stats/bridge/grpc/proto/v1/runtime_stats.proto) · [基准测试和原始结果](benchmarks/README.md#xray-runtime-statistics-after-the-rewrite)
+
+使用 `GET /v1/xray/instances/{id}/stats/traffic/{scope}`，范围为 `user`、`inbound` 或 `outbound`。添加 `?name=...` 可读取单个账户或标签。gRPC 方法为 `XrayStatsService.GetTraffic` 和 `ListTraffic`。读取时保留原计数值。缺少某个方向时省略对应字段，零值仍返回零。找不到指定名称时，HTTP 返回 `404`，gRPC 返回 `NOT_FOUND`。列表顺序不固定。请在 Xray 策略中启用相应范围的流量统计。[gRPC 接口](internal/engines/xray/stats/bridge/grpc/proto/v1/traffic.proto)
 
 示例中的两个监听端口都绑定到环回地址。Node 就绪时，HTTP `GET /healthz` 返回 `204 No Content`。端口 8081 上的 gRPC 健康检查对空服务名返回 `SERVING`。设置 `management.tls.cert_file` 和 `management.tls.key_file` 可启用 TLS。可选项 `management.tls.client_ca_file` 启用 mTLS，`management.api_key` 用于 `x-api-key` 请求头或元数据。
 

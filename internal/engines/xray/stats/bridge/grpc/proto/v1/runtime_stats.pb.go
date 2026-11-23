@@ -185,7 +185,7 @@ var File_proto_v1_runtime_stats_proto protoreflect.FileDescriptor
 
 const file_proto_v1_runtime_stats_proto_rawDesc = "" +
 	"\n" +
-	"\x1cproto/v1/runtime_stats.proto\x12\x12papiliovpn.node.v1\")\n" +
+	"\x1cproto/v1/runtime_stats.proto\x12\x12papiliovpn.node.v1\x1a\x16proto/v1/traffic.proto\")\n" +
 	"\x17XrayRuntimeStatsRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"\x8d\x03\n" +
 	"\x10XrayRuntimeStats\x12\x1e\n" +
@@ -201,9 +201,12 @@ const file_proto_v1_runtime_stats_proto_rawDesc = "" +
 	"\flive_objects\x18\b \x01(\x04R\vliveObjects\x12;\n" +
 	"\x1agc_pause_total_nanoseconds\x18\t \x01(\x04R\x17gcPauseTotalNanoseconds\x12%\n" +
 	"\x0euptime_seconds\x18\n" +
-	" \x01(\rR\ruptimeSeconds2x\n" +
+	" \x01(\rR\ruptimeSeconds2\xb4\x02\n" +
 	"\x10XrayStatsService\x12d\n" +
-	"\x0fGetRuntimeStats\x12+.papiliovpn.node.v1.XrayRuntimeStatsRequest\x1a$.papiliovpn.node.v1.XrayRuntimeStatsBUZSgithub.com/PapilioVPN/node/internal/engines/xray/stats/bridge/grpc/proto/v1;statsv1b\x06proto3"
+	"\x0fGetRuntimeStats\x12+.papiliovpn.node.v1.XrayRuntimeStatsRequest\x1a$.papiliovpn.node.v1.XrayRuntimeStats\x12Z\n" +
+	"\n" +
+	"GetTraffic\x12&.papiliovpn.node.v1.XrayTrafficRequest\x1a$.papiliovpn.node.v1.XrayTrafficUsage\x12^\n" +
+	"\vListTraffic\x12*.papiliovpn.node.v1.XrayTrafficListRequest\x1a#.papiliovpn.node.v1.XrayTrafficListBUZSgithub.com/PapilioVPN/node/internal/engines/xray/stats/bridge/grpc/proto/v1;statsv1b\x06proto3"
 
 var (
 	file_proto_v1_runtime_stats_proto_rawDescOnce sync.Once
@@ -221,12 +224,20 @@ var file_proto_v1_runtime_stats_proto_msgTypes = make([]protoimpl.MessageInfo, 2
 var file_proto_v1_runtime_stats_proto_goTypes = []any{
 	(*XrayRuntimeStatsRequest)(nil), // 0: papiliovpn.node.v1.XrayRuntimeStatsRequest
 	(*XrayRuntimeStats)(nil),        // 1: papiliovpn.node.v1.XrayRuntimeStats
+	(*XrayTrafficRequest)(nil),      // 2: papiliovpn.node.v1.XrayTrafficRequest
+	(*XrayTrafficListRequest)(nil),  // 3: papiliovpn.node.v1.XrayTrafficListRequest
+	(*XrayTrafficUsage)(nil),        // 4: papiliovpn.node.v1.XrayTrafficUsage
+	(*XrayTrafficList)(nil),         // 5: papiliovpn.node.v1.XrayTrafficList
 }
 var file_proto_v1_runtime_stats_proto_depIdxs = []int32{
 	0, // 0: papiliovpn.node.v1.XrayStatsService.GetRuntimeStats:input_type -> papiliovpn.node.v1.XrayRuntimeStatsRequest
-	1, // 1: papiliovpn.node.v1.XrayStatsService.GetRuntimeStats:output_type -> papiliovpn.node.v1.XrayRuntimeStats
-	1, // [1:2] is the sub-list for method output_type
-	0, // [0:1] is the sub-list for method input_type
+	2, // 1: papiliovpn.node.v1.XrayStatsService.GetTraffic:input_type -> papiliovpn.node.v1.XrayTrafficRequest
+	3, // 2: papiliovpn.node.v1.XrayStatsService.ListTraffic:input_type -> papiliovpn.node.v1.XrayTrafficListRequest
+	1, // 3: papiliovpn.node.v1.XrayStatsService.GetRuntimeStats:output_type -> papiliovpn.node.v1.XrayRuntimeStats
+	4, // 4: papiliovpn.node.v1.XrayStatsService.GetTraffic:output_type -> papiliovpn.node.v1.XrayTrafficUsage
+	5, // 5: papiliovpn.node.v1.XrayStatsService.ListTraffic:output_type -> papiliovpn.node.v1.XrayTrafficList
+	3, // [3:6] is the sub-list for method output_type
+	0, // [0:3] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
@@ -237,6 +248,7 @@ func file_proto_v1_runtime_stats_proto_init() {
 	if File_proto_v1_runtime_stats_proto != nil {
 		return
 	}
+	file_proto_v1_traffic_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
