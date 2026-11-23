@@ -29,6 +29,7 @@ func (s *Service) SyncUsers(ctx context.Context, req SyncUsersRequest) (SyncResu
 type plan struct {
 	removals  []string
 	additions []PreparedAccount
+	targets   []PlannedMember
 }
 
 func preparePlan(editor Editor, changes []change, full bool) (plan, error) {
@@ -44,6 +45,7 @@ func preparePlan(editor Editor, changes []change, full bool) (plan, error) {
 		}
 		names[name] = true
 		current, exists := editor.Lookup(name)
+		target := PlannedMember{Name: name}
 		if change.credential != nil {
 			account, err := editor.Prepare(change.email, *change.credential)
 			if err != nil {
@@ -53,11 +55,15 @@ func preparePlan(editor Editor, changes []change, full bool) (plan, error) {
 				return plan, ErrInvalid
 			}
 			ids[account.Identity] = true
-			if exists && current == account.Key || exists && account.KeepVersion && current.Identity == account.Identity {
+			if exists && (current == account.Key || account.KeepVersion && current.Identity == account.Identity) {
+				target.Keep = true
+				plan.targets = append(plan.targets, target)
 				continue
 			}
+			target.Replacement = &account
 			plan.additions = append(plan.additions, account)
 		}
+		plan.targets = append(plan.targets, target)
 		if exists {
 			plan.removals = append(plan.removals, name)
 			released[current.Identity] = true
@@ -80,7 +86,8 @@ func preparePlan(editor Editor, changes []change, full bool) (plan, error) {
 	return plan, nil
 }
 
-func applyPlans(editors []Editor, groups [][]change, full bool, result *SyncResult) error {
+func applyPlans(session EditSession, groups [][]change, full bool, result *SyncResult) error {
+	editors := session.Inbounds()
 	plans := make([]plan, len(editors))
 	var growth int
 	for i, editor := range editors {
@@ -88,11 +95,17 @@ func applyPlans(editors []Editor, groups [][]change, full bool, result *SyncResu
 		if err != nil {
 			return err
 		}
+		if err := editor.Stage(full, plan.targets); err != nil {
+			return err
+		}
 		plans[i] = plan
 		growth += len(plan.additions) - len(plan.removals)
 	}
 	if growth > editors[0].Capacity() {
 		return ErrTooLarge
+	}
+	if err := session.CheckStaged(); err != nil {
+		return err
 	}
 	for i, plan := range plans {
 		for _, name := range plan.removals {

@@ -9,8 +9,8 @@ type InboundSnapshot = struct {
 }
 
 type Assignment struct {
-	InboundTag string
-	Credential Credential
+	InboundTag string     `json:"inbound_tag"`
+	Credential Credential `json:"credential"`
 }
 
 type selection struct {

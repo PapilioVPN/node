@@ -5,7 +5,6 @@ import (
 	"errors"
 	"iter"
 	"maps"
-	"sync"
 	"sync/atomic"
 
 	"github.com/PapilioVPN/node/internal/engines/xray/accounts/membership"
@@ -35,11 +34,12 @@ type Client struct {
 	instances activeInstances
 	loading   *semaphore.Weighted
 	cached    atomic.Pointer[inventory]
-	mutation  sync.Mutex
+	mutation  *semaphore.Weighted
+	accepted  atomic.Pointer[acceptedMembership]
 }
 
 func New(instances activeInstances) *Client {
-	return &Client{instances: instances, loading: semaphore.NewWeighted(1)}
+	return &Client{instances: instances, loading: semaphore.NewWeighted(1), mutation: semaphore.NewWeighted(1)}
 }
 
 func (c *Client) Add(ctx context.Context, scope membership.Scope, account membership.Account) error {
@@ -56,20 +56,20 @@ func (c *Client) Remove(ctx context.Context, scope membership.Scope, email strin
 	return c.edit(ctx, scope, true, func(e *editor) error { return e.Remove(membership.NameKey(email)) })
 }
 
-func (c *Client) Edit(ctx context.Context, instanceID string, tags []string, apply func([]membership.Editor) error) error {
+func (c *Client) Edit(ctx context.Context, instanceID string, tags []string, apply func(membership.EditSession) error) error {
 	return c.editInbounds(ctx, instanceID, tags, false, apply)
 }
 
 func (c *Client) edit(ctx context.Context, scope membership.Scope, vlessOnly bool, apply func(*editor) error) error {
 	return c.editInbounds(ctx, scope.InstanceID, []string{scope.InboundTag}, vlessOnly,
-		func(editors []membership.Editor) error { return apply(editors[0].(*editor)) })
+		func(session membership.EditSession) error { return apply(session.Inbounds()[0].(*editor)) })
 }
 
-func (c *Client) editInbounds(ctx context.Context, instanceID string, tags []string, vlessOnly bool, apply func([]membership.Editor) error) error {
-	if !c.mutation.TryLock() {
+func (c *Client) editInbounds(ctx context.Context, instanceID string, tags []string, vlessOnly bool, apply func(membership.EditSession) error) error {
+	if !c.mutation.TryAcquire(1) {
 		return membership.ErrBusy
 	}
-	defer c.mutation.Unlock()
+	defer c.mutation.Release(1)
 
 	state, err := c.inventory(ctx, instanceID)
 	if err != nil {
@@ -81,22 +81,39 @@ func (c *Client) editInbounds(ctx context.Context, instanceID string, tags []str
 	if !c.current(instanceID, state.conn) {
 		return membership.ErrUnavailable
 	}
-	editors := make([]membership.Editor, 0, len(tags))
+	session := &editSession{editors: make([]membership.Editor, 0, len(tags))}
+	if !vlessOnly {
+		session.staged = c.accepted.Load().clone()
+	}
 	for _, tag := range tags {
-		entry, err := state.selectInbound(tag, vlessOnly)
+		e, err := c.openEditor(ctx, state, membership.Scope{InstanceID: instanceID, InboundTag: tag}, vlessOnly)
 		if err != nil {
 			return err
 		}
-		if entry.ambiguous {
-			return membership.ErrAmbiguous
-		}
-		if entry.uncertain {
-			return membership.ErrFenced
-		}
-		scope := membership.Scope{InstanceID: instanceID, InboundTag: tag}
-		editors = append(editors, &editor{client: c, ctx: ctx, scope: scope, state: state, entry: entry})
+		e.staged = session.staged
+		session.editors = append(session.editors, e)
 	}
-	return apply(editors)
+	if err := apply(session); err != nil {
+		return err
+	}
+	if session.staged != nil {
+		c.accepted.Store(session.staged)
+	}
+	return nil
+}
+
+func (c *Client) openEditor(ctx context.Context, state *inventory, scope membership.Scope, vlessOnly bool) (*editor, error) {
+	entry, err := state.selectInbound(scope.InboundTag, vlessOnly)
+	if err != nil {
+		return nil, err
+	}
+	if entry.ambiguous {
+		return nil, membership.ErrAmbiguous
+	}
+	if entry.uncertain {
+		return nil, membership.ErrFenced
+	}
+	return &editor{client: c, ctx: ctx, scope: scope, state: state, entry: entry}, nil
 }
 
 type editor struct {
@@ -105,6 +122,7 @@ type editor struct {
 	scope  membership.Scope
 	state  *inventory
 	entry  *inboundAccounts
+	staged *acceptedMembership
 }
 
 func (e *editor) Name(email string) (string, error) { return e.entry.name(email) }
@@ -134,9 +152,8 @@ func (e *editor) Add(account membership.PreparedAccount) error {
 	if e.state.size >= maxAccounts {
 		return membership.ErrTooLarge
 	}
-	operation, err := pack(AddUserOperationType, &AddUserOperation{
-		User: &User{Email: account.Email, Account: &TypedMessage{Type: e.entry.layout.accountType, Value: account.Value}},
-	})
+	user := e.user(account)
+	operation, err := pack(AddUserOperationType, &AddUserOperation{User: user})
 	if err != nil {
 		return err
 	}
@@ -144,6 +161,7 @@ func (e *editor) Add(account membership.PreparedAccount) error {
 		return err
 	}
 	e.entry.names[account.Name] = account.Key
+	e.entry.records[account.Name] = user
 	e.entry.ids[account.Identity] = struct{}{}
 	e.state.size++
 	return nil
@@ -155,7 +173,7 @@ func (e *editor) Remove(name string) error {
 		return membership.ErrAccountMissing
 	}
 
-	operation, err := pack(RemoveUserOperationType, &RemoveUserOperation{Email: name})
+	operation, err := pack(RemoveUserOperationType, &RemoveUserOperation{Email: e.entry.records[name].Email})
 	if err != nil {
 		return err
 	}
@@ -163,6 +181,7 @@ func (e *editor) Remove(name string) error {
 		return err
 	}
 	delete(e.entry.names, name)
+	delete(e.entry.records, name)
 	delete(e.entry.ids, key.Identity)
 	e.state.size--
 	return nil

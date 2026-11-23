@@ -23,6 +23,7 @@ type inboundAccounts struct {
 
 	// The mutation lock protects the live membership and the outcome fence.
 	names     map[string]membership.Key
+	records   map[string]*User
 	ids       map[membership.IDKey]struct{}
 	uncertain bool
 }
@@ -99,6 +100,7 @@ func buildInventory(conn *grpc.ClientConn, inbounds []*Inbound) (*inventory, err
 			return nil, membership.ErrTooLarge
 		}
 		entry.names = make(map[string]membership.Key, len(users))
+		entry.records = make(map[string]*User, len(users))
 		entry.ids = make(map[membership.IDKey]struct{}, len(users))
 		for _, user := range users {
 			wire := user.GetAccount()
@@ -107,6 +109,9 @@ func buildInventory(conn *grpc.ClientConn, inbounds []*Inbound) (*inventory, err
 			if nameErr != nil || wire.GetType() != entry.layout.accountType || keyErr != nil || !entry.insert(name, key) {
 				entry.ambiguous = true
 				break
+			}
+			if name != "" {
+				entry.records[name] = user
 			}
 		}
 	}

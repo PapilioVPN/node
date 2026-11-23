@@ -53,11 +53,25 @@ type Key struct {
 }
 
 type PreparedAccount struct {
+	Level uint32
 	Email string
 	Name  string
 	Key
 	KeepVersion bool
 	Value       []byte
+}
+
+// PlannedMember describes the accepted membership of a named account after a plan.
+type PlannedMember struct {
+	Name        string
+	Keep        bool
+	Replacement *PreparedAccount
+}
+
+// EditSession stages accepted membership across all selected inbounds.
+type EditSession interface {
+	Inbounds() []Editor
+	CheckStaged() error
 }
 
 // Editor is valid only inside Engine.Edit. Its mutations share one execution
@@ -69,6 +83,7 @@ type Editor interface {
 	Lookup(name string) (Key, bool)
 	HasID(IDKey) bool
 	Prepare(email string, credential Credential) (PreparedAccount, error)
+	Stage(full bool, members []PlannedMember) error
 	Add(PreparedAccount) error
 	Remove(name string) error
 }
@@ -97,8 +112,8 @@ func (s *Service) reconcile(ctx context.Context, scope Scope, tags []string, tim
 	ctx, done, err := s.beginWithin(ctx, Scope{InstanceID: selected.instanceID, InboundTag: selected.tags[0]}, timeout)
 	if err == nil {
 		defer done()
-		err = s.engine.Edit(ctx, selected.instanceID, selected.tags, func(editors []Editor) error {
-			return applyPlans(editors, groups, full, &result)
+		err = s.engine.Edit(ctx, selected.instanceID, selected.tags, func(session EditSession) error {
+			return applyPlans(session, groups, full, &result)
 		})
 	}
 	if errors.Is(err, ErrInvalid) {

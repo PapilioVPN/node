@@ -133,7 +133,20 @@ func TestSyncNativeAccountProtocols(t *testing.T) {
 			}
 
 			invalid := proto.Clone(input).(*accountsv1.SyncUserRequest)
-			invalid.Credential.Protocol = "invalid"
+			switch tc.name {
+			case "vmess":
+				invalid.Credential.Uuid = "malformed"
+			case "trojan", "masque":
+				invalid.Credential.Password = ""
+			case "shadowsocks":
+				invalid.Credential.Method = "unsupported-cipher"
+			case "shadowsocks2022":
+				invalid.Credential.Key = "YWJjZA=="
+			case "hysteria":
+				invalid.Credential.Auth = ""
+			case "wireguard":
+				invalid.Credential.Peer.AllowedIps = []string{"invalid prefix"}
+			}
 			if _, err := f.grpc.SyncUser(t.Context(), invalid); status.Code(err) != codes.InvalidArgument {
 				t.Fatal("invalid credential was accepted")
 			}
