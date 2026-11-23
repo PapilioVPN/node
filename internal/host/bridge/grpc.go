@@ -31,6 +31,9 @@ func registerGRPC(server *grpc.Server, sampler *services.CPUSampler, storagePath
 	if err := bridgegrpc.HandleUnary(router, "GetStorage", getStorage(storagePath)); err != nil {
 		return err
 	}
+	if err := bridgegrpc.HandleUnary(router, "GetSystemStats", getSystemStats(sampler, storagePath)); err != nil {
+		return err
+	}
 	return bridgegrpc.Setup(server, router)
 }
 
@@ -43,13 +46,7 @@ func getStorage(path string) func(context.Context, *emptypb.Empty) (*nodev1.Stor
 			}
 			return nil, status.Error(codes.Unavailable, "host storage is unavailable")
 		}
-		return &nodev1.StorageSnapshot{
-			Path:           snapshot.Path,
-			TotalBytes:     snapshot.TotalBytes,
-			UsedBytes:      snapshot.UsedBytes,
-			AvailableBytes: snapshot.AvailableBytes,
-			ReadOnly:       snapshot.ReadOnly,
-		}, nil
+		return storageMessage(snapshot), nil
 	}
 }
 
@@ -59,15 +56,7 @@ func getCPU(sampler *services.CPUSampler) func(context.Context, *emptypb.Empty) 
 		if !ok {
 			return nil, status.Error(codes.Unavailable, "host CPU sample is unavailable")
 		}
-		snapshot := &nodev1.CPUSnapshot{
-			BusyPercent:        sample.BusyPercent,
-			WindowMilliseconds: uint64(sample.Window.Milliseconds()),
-			ObservedAt:         timestamppb.New(sample.ObservedAt),
-		}
-		if sample.HasSteal {
-			snapshot.StealPercent = &sample.StealPercent
-		}
-		return snapshot, nil
+		return cpuMessage(sample), nil
 	}
 }
 
@@ -90,10 +79,59 @@ func getMemory(ctx context.Context, _ *emptypb.Empty) (*nodev1.MemorySnapshot, e
 		}
 		return nil, status.Error(codes.Internal, "host memory is unavailable")
 	}
+	return memoryMessage(snapshot), nil
+}
+
+func getSystemStats(sampler *services.CPUSampler, storagePath string) func(context.Context, *emptypb.Empty) (*nodev1.SystemSnapshot, error) {
+	return func(ctx context.Context, _ *emptypb.Empty) (*nodev1.SystemSnapshot, error) {
+		snapshot, err := services.SystemStats(ctx, sampler, storagePath)
+		if err != nil {
+			if cause := ctx.Err(); cause != nil {
+				return nil, status.FromContextError(cause).Err()
+			}
+			return nil, status.Error(codes.Unavailable, "host system stats are unavailable")
+		}
+		response := &nodev1.SystemSnapshot{UptimeSeconds: snapshot.UptimeSeconds}
+		if snapshot.CPU != nil {
+			response.Cpu = cpuMessage(*snapshot.CPU)
+		}
+		if snapshot.Memory != nil {
+			response.Memory = memoryMessage(*snapshot.Memory)
+		}
+		if snapshot.Storage != nil {
+			response.Storage = storageMessage(*snapshot.Storage)
+		}
+		return response, nil
+	}
+}
+
+func cpuMessage(sample services.CPUSample) *nodev1.CPUSnapshot {
+	message := &nodev1.CPUSnapshot{
+		BusyPercent:        sample.BusyPercent,
+		WindowMilliseconds: uint64(sample.Window.Milliseconds()),
+		ObservedAt:         timestamppb.New(sample.ObservedAt),
+	}
+	if sample.HasSteal {
+		message.StealPercent = &sample.StealPercent
+	}
+	return message
+}
+
+func memoryMessage(snapshot services.MemorySnapshot) *nodev1.MemorySnapshot {
 	return &nodev1.MemorySnapshot{
 		TotalBytes:     snapshot.TotalBytes,
 		AvailableBytes: snapshot.AvailableBytes,
 		SwapTotalBytes: snapshot.SwapTotalBytes,
 		SwapFreeBytes:  snapshot.SwapFreeBytes,
-	}, nil
+	}
+}
+
+func storageMessage(snapshot services.StorageSnapshot) *nodev1.StorageSnapshot {
+	return &nodev1.StorageSnapshot{
+		Path:           snapshot.Path,
+		TotalBytes:     snapshot.TotalBytes,
+		UsedBytes:      snapshot.UsedBytes,
+		AvailableBytes: snapshot.AvailableBytes,
+		ReadOnly:       snapshot.ReadOnly,
+	}
 }

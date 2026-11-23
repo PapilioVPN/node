@@ -127,6 +127,7 @@ func TestRunServesAndStopsBothListeners(t *testing.T) {
 			verifyHostStorage(t, verifyCtx, httpClient, scheme+"://"+httpAddress, config.APIKey, storagePath, connection)
 			if !mode.secure {
 				verifyHostCPU(t, verifyCtx, httpClient, scheme+"://"+httpAddress, connection)
+				verifySystemStats(t, verifyCtx, httpClient, scheme+"://"+httpAddress, storagePath, connection)
 			}
 
 			if mode.mutual {
@@ -363,6 +364,45 @@ func verifyHostStorage(t *testing.T, ctx context.Context, client *http.Client, b
 	if rpcSnapshot.Path != path || rpcSnapshot.TotalBytes != total || rpcSnapshot.ReadOnly != readOnly ||
 		rpcSnapshot.UsedBytes > total || rpcSnapshot.AvailableBytes > total {
 		t.Fatalf("invalid gRPC storage sample: %v", &rpcSnapshot)
+	}
+}
+
+func verifySystemStats(t *testing.T, ctx context.Context, client *http.Client, baseURL, path string, connection *grpc.ClientConn) {
+	t.Helper()
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, baseURL+"/v1/host/stats", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	response, err := client.Do(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("HTTP system stats status = %d", response.StatusCode)
+	}
+	var observed struct {
+		UptimeSeconds *uint64 `json:"uptime_seconds"`
+		CPU           *struct {
+			ObservedAt time.Time `json:"observed_at"`
+		} `json:"cpu"`
+		Memory  *nodev1.MemorySnapshot  `json:"memory"`
+		Storage *nodev1.StorageSnapshot `json:"storage"`
+	}
+	if err := json.NewDecoder(response.Body).Decode(&observed); err != nil {
+		t.Fatal(err)
+	}
+	if observed.UptimeSeconds == nil || observed.CPU == nil || observed.CPU.ObservedAt.IsZero() ||
+		observed.Memory.GetTotalBytes() == 0 || observed.Storage.GetPath() != path {
+		t.Fatalf("incomplete HTTP system stats: %+v", observed)
+	}
+	var snapshot nodev1.SystemSnapshot
+	if err := connection.Invoke(ctx, "/papiliovpn.node.v1.HostService/GetSystemStats", &emptypb.Empty{}, &snapshot); err != nil {
+		t.Fatal(err)
+	}
+	if snapshot.UptimeSeconds == nil || snapshot.GetCpu().GetObservedAt() == nil ||
+		snapshot.GetMemory().GetTotalBytes() != observed.Memory.GetTotalBytes() || snapshot.GetStorage().GetPath() != path {
+		t.Fatalf("incomplete gRPC system stats: %v", &snapshot)
 	}
 }
 

@@ -61,6 +61,7 @@ docker run --rm --network=host --read-only --cap-drop ALL \
 | Память хоста | Общий и доступный объём ОЗУ, а также общий и свободный объём swap, в байтах по HTTP и gRPC. |
 | Процессор хоста | Суммарная загрузка CPU по HTTP и gRPC. |
 | Хранилище хоста | Объём и режим чтения файловой системы для настроенного пути. |
+| Сводка хоста | Время работы, загрузка CPU, память и хранилище в одном ответе. |
 
 <a name="management"></a>
 
@@ -73,6 +74,8 @@ HTTP-запрос `GET /v1/host/memory` и метод gRPC `HostService.GetMemor
 HTTP-запрос `GET /v1/host/cpu` и метод gRPC `HostService.GetCPU` возвращают общий замер загрузки процессора Linux, обновляемый примерно раз в секунду. Ответ содержит `busy_percent`, `window_milliseconds`, `observed_at` и `steal_percent`, если его сообщает Linux. Время ожидания ввода-вывода и время, отнятое гипервизором, не входят в загрузку. Пока корректного замера нет, HTTP возвращает `503`, а gRPC возвращает `UNAVAILABLE`.
 
 HTTP-запрос `GET /v1/host/storage` и метод gRPC `HostService.GetStorage` возвращают `path`, `total_bytes`, `used_bytes`, `available_bytes` и `read_only`. В `available_bytes` не входит пространство, зарезервированное для привилегированных пользователей. Укажите в `host.storage_path` абсолютный путь на нужном томе. По умолчанию используется `/` в пространстве имён монтирования Node. В Docker укажите путь, видимый внутри контейнера. Если проверить путь невозможно, HTTP возвращает `503`, а gRPC возвращает `UNAVAILABLE`.
+
+HTTP-запрос `GET /v1/host/stats` и метод gRPC `HostService.GetSystemStats` возвращают `uptime_seconds`, `cpu`, `memory` и `storage` с теми же данными и единицами, что и отдельные операции. Недоступные поля пропускаются. Поле `cpu` появляется после первого корректного замера.
 
 В примере оба интерфейса привязаны к loopback. HTTP-запрос `GET /healthz` возвращает `204 No Content`, когда Node готов. Служба проверки gRPC на порту 8081 возвращает `SERVING` для пустого имени службы. Для TLS укажите `management.tls.cert_file` и `management.tls.key_file`. Необязательный параметр `management.tls.client_ca_file` включает mTLS, а `management.api_key` задаёт ключ для заголовка или метаданных `x-api-key`.
 

@@ -21,6 +21,9 @@ service HostService {
 
   // Returns capacity for the filesystem backing Node's configured storage path.
   rpc GetStorage(google.protobuf.Empty) returns (StorageSnapshot);
+
+  // Returns all available host observations. Unavailable sections are absent.
+  rpc GetSystemStats(google.protobuf.Empty) returns (SystemSnapshot);
 }
 
 message MemorySnapshot {
@@ -47,4 +50,11 @@ message StorageSnapshot {
   // Free space available to unprivileged users, excluding reserved blocks.
   uint64 available_bytes = 4;
   bool read_only = 5;
+}
+
+message SystemSnapshot {
+  optional uint64 uptime_seconds = 1;
+  CPUSnapshot cpu = 2;
+  MemorySnapshot memory = 3;
+  StorageSnapshot storage = 4;
 }

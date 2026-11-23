@@ -58,6 +58,7 @@ docker run --rm --network=host --read-only --cap-drop ALL \
 | Host memory | Read total and available RAM, plus total and free swap, in bytes over HTTP and gRPC. |
 | Host CPU | Read aggregate CPU utilization over HTTP and gRPC. |
 | Host storage | Check space and read-only status for the filesystem backing a configured path. |
+| Host system stats | Fetch uptime, CPU, memory and storage in one response. |
 
 <a name="management"></a>
 
@@ -70,6 +71,8 @@ HTTP `GET /v1/host/memory` and gRPC `HostService.GetMemory` read the Linux `/pro
 HTTP `GET /v1/host/cpu` and gRPC `HostService.GetCPU` serve one shared aggregate Linux CPU sample, updated about once per second. It includes `busy_percent`, `window_milliseconds`, `observed_at`, and `steal_percent` when Linux reports it. I/O wait and stolen time are excluded from busy time. While a valid interval is unavailable, HTTP returns `503` and gRPC returns `UNAVAILABLE`.
 
 HTTP `GET /v1/host/storage` and gRPC `HostService.GetStorage` report `path`, `total_bytes`, `used_bytes`, `available_bytes`, and `read_only`. `available_bytes` excludes space reserved for privileged use. Set `host.storage_path` to an absolute path on the volume you want to monitor. The default is `/` in Node's mount namespace. In Docker, use the path visible inside the container. When the configured path cannot be inspected, HTTP returns `503` and gRPC returns `UNAVAILABLE`.
+
+HTTP `GET /v1/host/stats` and gRPC `HostService.GetSystemStats` return `uptime_seconds`, `cpu`, `memory`, and `storage` using the individual operations' data and units. Unavailable fields are omitted, including `cpu` during its initial sample window.
 
 The example binds both listeners to loopback. HTTP `GET /healthz` returns `204 No Content` when ready. The gRPC health service on port 8081 reports `SERVING` for the empty service name. Set `management.tls.cert_file` and `management.tls.key_file` to enable TLS. Optionally configure `management.tls.client_ca_file` for mutual TLS and `management.api_key` for the `x-api-key` header or metadata.
 

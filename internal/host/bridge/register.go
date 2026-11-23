@@ -15,5 +15,6 @@ func Register(httpRouter *chi.Mux, grpcServer *grpc.Server, sampler *services.CP
 	httpRouter.Get("/v1/host/memory", handleMemory)
 	httpRouter.Get("/v1/host/cpu", handleCPU(sampler))
 	httpRouter.Get("/v1/host/storage", handleStorage(storagePath))
+	httpRouter.Get("/v1/host/stats", handleSystemStats(sampler, storagePath))
 	return nil
 }
