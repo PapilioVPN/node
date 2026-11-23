@@ -1,4 +1,4 @@
-package host
+package services
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-func readUptime(ctx context.Context) (uint64, error) {
+func Uptime(ctx context.Context) (uint64, error) {
 	if err := ctx.Err(); err != nil {
 		return 0, err
 	}

@@ -1,4 +1,4 @@
-package host
+package services
 
 import (
 	"bytes"
@@ -10,28 +10,28 @@ import (
 	"strconv"
 )
 
-type memorySnapshot struct {
-	totalBytes     uint64
-	availableBytes *uint64
-	swapTotalBytes uint64
-	swapFreeBytes  uint64
+type MemorySnapshot struct {
+	TotalBytes     uint64
+	AvailableBytes *uint64
+	SwapTotalBytes uint64
+	SwapFreeBytes  uint64
 }
 
-func readMemory(ctx context.Context) (memorySnapshot, error) {
+func Memory(ctx context.Context) (MemorySnapshot, error) {
 	if err := ctx.Err(); err != nil {
-		return memorySnapshot{}, err
+		return MemorySnapshot{}, err
 	}
 	data, err := os.ReadFile("/proc/meminfo")
 	if err != nil {
-		return memorySnapshot{}, fmt.Errorf("read Linux meminfo: %w", err)
+		return MemorySnapshot{}, fmt.Errorf("read Linux meminfo: %w", err)
 	}
 	if err := ctx.Err(); err != nil {
-		return memorySnapshot{}, err
+		return MemorySnapshot{}, err
 	}
 	return parseMemory(data)
 }
 
-func parseMemory(data []byte) (memorySnapshot, error) {
+func parseMemory(data []byte) (MemorySnapshot, error) {
 	type meminfoField struct {
 		bytes   uint64
 		present bool
@@ -56,33 +56,33 @@ func parseMemory(data []byte) (memorySnapshot, error) {
 			continue
 		}
 		if field.present {
-			return memorySnapshot{}, fmt.Errorf("duplicate %s in Linux meminfo", name)
+			return MemorySnapshot{}, fmt.Errorf("duplicate %s in Linux meminfo", name)
 		}
 		parts := bytes.Fields(value)
 		if len(parts) != 2 || string(parts[1]) != "kB" {
-			return memorySnapshot{}, fmt.Errorf("invalid %s unit in Linux meminfo", name)
+			return MemorySnapshot{}, fmt.Errorf("invalid %s unit in Linux meminfo", name)
 		}
 		kib, err := strconv.ParseUint(string(parts[0]), 10, 64)
 		if err != nil {
-			return memorySnapshot{}, fmt.Errorf("parse %s: %w", name, err)
+			return MemorySnapshot{}, fmt.Errorf("parse %s: %w", name, err)
 		}
 		if kib > math.MaxUint64/1024 {
-			return memorySnapshot{}, fmt.Errorf("%s overflows a byte count", name)
+			return MemorySnapshot{}, fmt.Errorf("%s overflows a byte count", name)
 		}
 		field.bytes = kib * 1024
 		field.present = true
 	}
 
 	if !total.present || !swapTotal.present || !swapFree.present {
-		return memorySnapshot{}, errors.New("missing MemTotal, SwapTotal, or SwapFree in Linux meminfo")
+		return MemorySnapshot{}, errors.New("missing MemTotal, SwapTotal, or SwapFree in Linux meminfo")
 	}
-	snapshot := memorySnapshot{
-		totalBytes:     total.bytes,
-		swapTotalBytes: swapTotal.bytes,
-		swapFreeBytes:  swapFree.bytes,
+	snapshot := MemorySnapshot{
+		TotalBytes:     total.bytes,
+		SwapTotalBytes: swapTotal.bytes,
+		SwapFreeBytes:  swapFree.bytes,
 	}
 	if available.present {
-		snapshot.availableBytes = &available.bytes
+		snapshot.AvailableBytes = &available.bytes
 	}
 	return snapshot, nil
 }

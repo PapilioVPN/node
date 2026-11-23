@@ -1,10 +1,11 @@
-package host
+package bridge
 
 import (
 	"context"
 
 	bridgegrpc "github.com/PapilioVPN/go-bridge/api/grpc/server"
 	nodev1 "github.com/PapilioVPN/node/api/v1"
+	"github.com/PapilioVPN/node/internal/host/services"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -27,7 +28,7 @@ func registerGRPC(server *grpc.Server) error {
 }
 
 func getUptime(ctx context.Context, _ *emptypb.Empty) (*wrapperspb.UInt64Value, error) {
-	seconds, err := readUptime(ctx)
+	seconds, err := services.Uptime(ctx)
 	if err != nil {
 		if cause := ctx.Err(); cause != nil {
 			return nil, status.FromContextError(cause).Err()
@@ -38,7 +39,7 @@ func getUptime(ctx context.Context, _ *emptypb.Empty) (*wrapperspb.UInt64Value, 
 }
 
 func getMemory(ctx context.Context, _ *emptypb.Empty) (*nodev1.MemorySnapshot, error) {
-	snapshot, err := readMemory(ctx)
+	snapshot, err := services.Memory(ctx)
 	if err != nil {
 		if cause := ctx.Err(); cause != nil {
 			return nil, status.FromContextError(cause).Err()
@@ -46,9 +47,9 @@ func getMemory(ctx context.Context, _ *emptypb.Empty) (*nodev1.MemorySnapshot, e
 		return nil, status.Error(codes.Internal, "host memory is unavailable")
 	}
 	return &nodev1.MemorySnapshot{
-		TotalBytes:     snapshot.totalBytes,
-		AvailableBytes: snapshot.availableBytes,
-		SwapTotalBytes: snapshot.swapTotalBytes,
-		SwapFreeBytes:  snapshot.swapFreeBytes,
+		TotalBytes:     snapshot.TotalBytes,
+		AvailableBytes: snapshot.AvailableBytes,
+		SwapTotalBytes: snapshot.SwapTotalBytes,
+		SwapFreeBytes:  snapshot.SwapFreeBytes,
 	}, nil
 }

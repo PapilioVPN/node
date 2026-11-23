@@ -1,4 +1,4 @@
-package host
+package services
 
 import "testing"
 
@@ -8,22 +8,22 @@ func TestParseMemoryConvertsLinuxKilobytes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if snapshot.totalBytes != 2048*1024 || snapshot.swapTotalBytes != 512*1024 || snapshot.swapFreeBytes != 123*1024 {
+	if snapshot.TotalBytes != 2048*1024 || snapshot.SwapTotalBytes != 512*1024 || snapshot.SwapFreeBytes != 123*1024 {
 		t.Fatalf("unexpected memory snapshot: %#v", snapshot)
 	}
-	if snapshot.availableBytes == nil || *snapshot.availableBytes != 400*1024 {
-		t.Fatalf("available RAM = %v, want %d bytes", snapshot.availableBytes, 400*1024)
+	if snapshot.AvailableBytes == nil || *snapshot.AvailableBytes != 400*1024 {
+		t.Fatalf("available RAM = %v, want %d bytes", snapshot.AvailableBytes, 400*1024)
 	}
 }
 
 func TestParseMemoryPreservesAbsentAndZeroAvailability(t *testing.T) {
 	const base = "MemTotal: 1024 kB\nSwapTotal: 0 kB\nSwapFree: 0 kB\n"
 	absent, err := parseMemory([]byte(base))
-	if err != nil || absent.availableBytes != nil || absent.swapTotalBytes != 0 || absent.swapFreeBytes != 0 {
+	if err != nil || absent.AvailableBytes != nil || absent.SwapTotalBytes != 0 || absent.SwapFreeBytes != 0 {
 		t.Fatalf("snapshot without availability or swap = %#v, %v", absent, err)
 	}
 	zero, err := parseMemory([]byte(base + "MemAvailable: 0 kB\n"))
-	if err != nil || zero.availableBytes == nil || *zero.availableBytes != 0 {
+	if err != nil || zero.AvailableBytes == nil || *zero.AvailableBytes != 0 {
 		t.Fatalf("snapshot with zero availability = %#v, %v", zero, err)
 	}
 }
@@ -54,8 +54,8 @@ func FuzzParseMemory(f *testing.F) {
 			t.Skip()
 		}
 		snapshot, err := parseMemory(data)
-		if err == nil && (snapshot.totalBytes%1024 != 0 || snapshot.swapTotalBytes%1024 != 0 ||
-			snapshot.swapFreeBytes%1024 != 0 || (snapshot.availableBytes != nil && *snapshot.availableBytes%1024 != 0)) {
+		if err == nil && (snapshot.TotalBytes%1024 != 0 || snapshot.SwapTotalBytes%1024 != 0 ||
+			snapshot.SwapFreeBytes%1024 != 0 || (snapshot.AvailableBytes != nil && *snapshot.AvailableBytes%1024 != 0)) {
 			t.Fatalf("sample contains a byte count that did not originate in Linux kB: %#v", snapshot)
 		}
 	})
