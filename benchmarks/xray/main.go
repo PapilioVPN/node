@@ -51,12 +51,14 @@ type target struct {
 	stats   func(context.Context) (uint32, error)
 	traffic func(trafficRead) trafficCall
 	routing routingReads
+	health  func(string) trafficCall
 }
 
 func main() {
 	var protocol, node, nodePID, reference, referencePID, cert, descriptor, config string
 	var rounds, cycles, reads, trafficNames int
-	var runtimeStats bool
+	var runtimeStats, outboundHealth bool
+	var outboundCase, outboundSamples string
 	var routing routingWorkload
 	var routingConfig string
 	var runtimeStatsClients, trafficCase, referenceTrafficConfig string
@@ -83,15 +85,18 @@ func main() {
 	flag.StringVar(&routing.runtimeDir, "routing-runtime-dir", "", "fixture Node runtime directory")
 	flag.StringVar(&routing.sampleFile, "routing-samples", "", "write individual successful routing latencies to this CSV")
 	flag.StringVar(&routingConfig, "routing-reference-config", "", "equivalent Xray configuration before PasarGuard injects its management rule")
+	flag.BoolVar(&outboundHealth, "outbound-health", false, "measure ordinary Observatory reads")
+	flag.StringVar(&outboundCase, "outbound-health-case", "", "run only one or all outbound observations")
+	flag.StringVar(&outboundSamples, "outbound-health-samples", "", "path for compressed per-request outbound health CSV")
 	flag.Parse()
 	if (protocol != "http" && protocol != "grpc") || rounds < 1 || cycles < 1 || reads < 1 {
 		log.Fatal("specify http or grpc and positive workloads")
 	}
 	var clientCounts []int
-	if trafficNames < 0 || trafficNames > 10000 || (trafficNames > 0 && runtimeStats) {
+	if trafficNames < 0 || trafficNames > 10000 || (trafficNames > 0 && runtimeStats) || (outboundHealth && (runtimeStats || trafficNames > 0)) {
 		log.Fatal("select one benchmark and a traffic account count from 1 to 10000")
 	}
-	if runtimeStats || trafficNames > 0 || routing.rules > 0 {
+	if runtimeStats || trafficNames > 0 || routing.rules > 0 || outboundHealth {
 		if runtimeStatsWindow <= 0 {
 			log.Fatal("runtime statistics window must be positive")
 		}
@@ -100,7 +105,7 @@ func main() {
 		clientCounts = counts
 	}
 
-	if routing.rules != 0 && (routing.rules < 2 || runtimeStats || trafficNames != 0 || routingConfig == "" || routing.runtimeDir == "" ||
+	if routing.rules != 0 && (routing.rules < 2 || runtimeStats || outboundHealth || trafficNames != 0 || routingConfig == "" || routing.runtimeDir == "" ||
 		(routing.operation != "" && routing.operation != "list" && routing.operation != "balancer")) {
 		log.Fatal("routing comparison requires at least two rules, its fixture paths and an optional list or balancer operation")
 	}
@@ -134,7 +139,7 @@ func main() {
 	switch protocol {
 	case "http":
 		transport := &http.Transport{TLSClientConfig: tlsConfig}
-		if runtimeStats || trafficNames > 0 || routing.rules > 0 {
+		if runtimeStats || trafficNames > 0 || routing.rules > 0 || outboundHealth {
 			transport.MaxIdleConnsPerHost = slices.Max(clientCounts)
 		}
 		defer transport.CloseIdleConnections()
@@ -153,6 +158,9 @@ func main() {
 		if runtimeStats {
 			targets[0].stats = runtimeStatsHTTP(client, node, "/v1/xray/instances/primary/stats/runtime", decodeNodeStats)
 			targets[1].stats = runtimeStatsHTTP(client, reference, "/stats/backend", decodeReferenceStats)
+		}
+		if outboundHealth {
+			targets[0].health, targets[1].health = outboundHealthHTTP(client, node, reference)
 		}
 		if trafficNames > 0 {
 			targets[0].traffic, targets[1].traffic = trafficHTTP(client, node, reference)
@@ -206,6 +214,9 @@ func main() {
 		if runtimeStats {
 			targets[0].stats, targets[1].stats = runtimeStatsGRPC(nodeConn, refConn)
 		}
+		if outboundHealth {
+			targets[0].health, targets[1].health = outboundHealthGRPC(nodeConn, refConn)
+		}
 		if trafficNames > 0 {
 			targets[0].traffic, targets[1].traffic = trafficGRPC(nodeConn, refConn)
 		}
@@ -216,6 +227,10 @@ func main() {
 		routing.clients = clientCounts
 		routing.window = runtimeStatsWindow
 		benchmarkRouting(protocol, targets, routing)
+		return
+	}
+	if outboundHealth {
+		benchmarkOutboundHealth(protocol, targets, rounds, clientCounts, runtimeStatsWindow, outboundCase, outboundSamples)
 		return
 	}
 	if trafficNames > 0 {

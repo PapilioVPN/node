@@ -76,6 +76,26 @@ directory = Path(sys.argv[2])
 rules.insert(0, {"type": "field", "inboundTag": ["API_INBOUND"], "outboundTag": "API"})
 (directory / "xray.json").write_text(json.dumps(config))
 PYTHON
+elif [[ ${XRAY_BENCH_OUTBOUND_HEALTH:-0} == 1 ]]; then
+  python3 - "$work/xray.json" <<'PYTHON'
+import json
+import sys
+
+outbounds = [{"tag": f"sample-{i:02}", "protocol": "freedom"} for i in range(16)]
+outbounds[-1]["settings"] = {"redirect": "127.0.0.1:24443"}
+outbounds.append({"tag": "unobserved", "protocol": "freedom"})
+with open(sys.argv[1], "w") as output:
+    json.dump({
+        "log": {"loglevel": "none"},
+        "observatory": {
+            "subjectSelector": ["sample-"],
+            "probeURL": "http://127.0.0.1:24442/health",
+            "probeInterval": "1h",
+            "enableConcurrency": True,
+        },
+        "outbounds": outbounds,
+    }, output)
+PYTHON
 elif [[ ${XRAY_BENCH_TRAFFIC_NAMES:-0} != 0 ]]; then
   python3 - "${XRAY_BENCH_TRAFFIC_NAMES}" "$work" "${XRAY_BENCH_TRAFFIC_CASE:-}" <<'PYTHON'
 import json
@@ -131,6 +151,10 @@ if [[ ${XRAY_BENCH_ROUTING_RULES:-0} != 0 ]]; then
     -routing-runtime-dir "$work/run" -routing-operation "${XRAY_BENCH_ROUTING_OPERATION:-}"
     -runtime-stats-clients "${XRAY_BENCH_ROUTING_CLIENTS:-1,8}"
     -runtime-stats-window "${XRAY_BENCH_ROUTING_WINDOW:-450ms}")
+elif [[ ${XRAY_BENCH_OUTBOUND_HEALTH:-0} == 1 ]]; then
+  benchmark_args+=(-outbound-health -outbound-health-case "${XRAY_BENCH_OUTBOUND_CASE:-}"
+    -runtime-stats-clients "${XRAY_BENCH_OUTBOUND_CLIENTS:-1,8}"
+    -runtime-stats-window "${XRAY_BENCH_OUTBOUND_WINDOW:-550ms}")
 elif [[ ${XRAY_BENCH_TRAFFIC_NAMES:-0} != 0 ]]; then
   benchmark_args+=(-traffic-names "$XRAY_BENCH_TRAFFIC_NAMES" -traffic-reference-config "$work/reference-xray.json"
     -traffic-case "${XRAY_BENCH_TRAFFIC_CASE:-}"
@@ -174,6 +198,8 @@ for protocol in "${protocols[@]}"; do
   samples=()
   if [[ ${XRAY_BENCH_ROUTING_RULES:-0} != 0 ]]; then
     samples+=(-routing-samples "$output/$protocol-samples.csv")
+  elif [[ ${XRAY_BENCH_OUTBOUND_HEALTH:-0} == 1 ]]; then
+    samples+=(-outbound-health-samples "$output/$protocol-samples.csv.gz")
   fi
   if ! taskset -c "${XRAY_BENCH_CLIENT_CPU:-4}" "$client" "${benchmark_args[@]}" "${samples[@]}" -transport "$protocol" \
     -node "127.0.0.1:$node_port" -node-pid "$node_pid" -reference 127.0.0.1:20883 \
