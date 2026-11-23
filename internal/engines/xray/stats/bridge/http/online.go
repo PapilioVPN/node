@@ -35,6 +35,25 @@ func RegisterOnline(router chi.Router, service *online.Service) {
 		}
 		return onlineIPs{Name: name, LastSeenUnixSeconds: ips}, err
 	}))
+	router.Get(base+"/users", listOnlineUsers(service))
+}
+
+func listOnlineUsers(service *online.Service) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-store")
+		names, err := service.Users(r.Context(), chi.URLParam(r, "id"))
+		if err != nil {
+			writeOnlineError(w, err)
+			return
+		}
+		if names == nil {
+			names = []string{}
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(struct {
+			Names []string `json:"names"`
+		}{Names: names})
+	}
 }
 
 func readOnline[T any](query func(context.Context, string, string) (T, error)) http.HandlerFunc {

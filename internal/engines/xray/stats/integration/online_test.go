@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"slices"
 	"testing"
 	"time"
 
@@ -47,6 +48,28 @@ func verifyOnlineIPs(t *testing.T, ctx context.Context, router http.Handler, cli
 		t.Fatalf("missing online IPs: %v", err)
 	}
 
+	assertUsers := func(want []string) {
+		t.Helper()
+		body := get("users", http.StatusOK)
+		var result struct {
+			Names []string `json:"names"`
+		}
+		require(t, json.Unmarshal(body, &result))
+		if result.Names == nil || !slices.Equal(result.Names, want) {
+			t.Fatalf("HTTP online accounts: received %s, want %q", body, want)
+		}
+		reply, err := client.ListOnlineUsers(ctx, &statsv1.XrayOnlineUsersRequest{Id: "primary"})
+		require(t, err)
+		if !slices.Equal(reply.GetNames(), want) {
+			t.Fatalf("gRPC online accounts: received %q, want %q", reply.GetNames(), want)
+		}
+	}
+	assertUsers(nil)
+	_, err = client.ListOnlineUsers(ctx, &statsv1.XrayOnlineUsersRequest{Id: "absent"})
+	if status.Code(err) != codes.NotFound {
+		t.Fatalf("unknown instance: %v", err)
+	}
+
 	before := time.Now().Unix()
 	first := connectProxy(t, ctx, proxy, target, source, name)
 	second := connectProxy(t, ctx, proxy, target, source, name)
@@ -71,6 +94,8 @@ func verifyOnlineIPs(t *testing.T, ctx context.Context, router http.Handler, cli
 		t.Fatalf("expected one distinct IP for two connections, received %v", count)
 	}
 
+	assertUsers([]string{name})
+
 	query := "?name=" + url.QueryEscape(name)
 	var httpCount statsv1.XrayOnlineCount
 	require(t, json.Unmarshal(get("count"+query, http.StatusOK), &httpCount))
@@ -89,6 +114,7 @@ func verifyOnlineIPs(t *testing.T, ctx context.Context, router http.Handler, cli
 	if count.GetCount() != 1 {
 		t.Fatalf("expected the remaining connection to preserve the IP, received %v", count)
 	}
+	assertUsers([]string{name})
 	require(t, second.Close())
 	deadline = time.Now().Add(2 * time.Second)
 	for {
@@ -102,6 +128,7 @@ func verifyOnlineIPs(t *testing.T, ctx context.Context, router http.Handler, cli
 		}
 		time.Sleep(5 * time.Millisecond)
 	}
+	assertUsers(nil)
 	body := get("ips"+query, http.StatusOK)
 	var empty struct {
 		IPs map[string]int64 `json:"last_seen_unix_seconds"`

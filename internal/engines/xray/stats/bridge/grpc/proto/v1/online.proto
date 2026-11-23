@@ -18,3 +18,12 @@ message XrayOnlineIPs {
   // Source IPs currently tracked by Xray and their last-seen Unix seconds.
   map<string, int64> last_seen_unix_seconds = 2;
 }
+
+message XrayOnlineUsersRequest {
+  string id = 1;
+}
+
+message XrayOnlineUsers {
+  // Accounts with at least one tracked source IP, in unspecified order.
+  repeated string names = 1;
+}

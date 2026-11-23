@@ -67,7 +67,7 @@ docker run --rm --network=host --read-only --cap-drop ALL \
 | Проверка конфигурации Xray | Проверка настроенного JSON по HTTP и gRPC перед перезапуском экземпляра. |
 | Статистика Xray | Время работы, выделение памяти, количество горутин и счётчики сборки мусора активного экземпляра по HTTP и gRPC. |
 | Счётчики трафика Xray | Чтение входящих и исходящих байтов для одной или всех учётных записей, входящих или исходящих тегов через HTTP и gRPC. |
-| Онлайн-IP в Xray | Подсчитать уникальные IP-адреса источников и получить время их последнего обнаружения для одной учётной записи по HTTP и gRPC. |
+| Онлайн-аккаунты и IP в Xray | Получить список онлайн-аккаунтов, число уникальных IP или время их последнего обнаружения по HTTP и gRPC. |
 
 <a name="management"></a>
 
@@ -96,6 +96,8 @@ HTTP-запрос `GET /v1/host/stats` и метод gRPC `HostService.GetSystem
 Используйте `GET /v1/xray/instances/{id}/stats/traffic/{scope}` с `user`, `inbound` или `outbound`. Добавьте `?name=...` для одной учётной записи или тега. Методы gRPC — `XrayStatsService.GetTraffic` и `ListTraffic`. Чтение сохраняет значения счётчиков. Отсутствующее направление пропускается, а значение ноль возвращается как ноль. Для отсутствующего имени HTTP возвращает `404`, а gRPC — `NOT_FOUND`. Порядок списка не задан. Включите статистику трафика для нужной области в политике Xray. [Контракт gRPC](internal/engines/xray/stats/bridge/grpc/proto/v1/traffic.proto)
 
 Используйте `GET /v1/xray/instances/{id}/stats/online/count?name=...` для подсчёта и `/stats/online/ips?name=...` для списка в том же экземпляре. Методы gRPC — `XrayStatsService.GetOnlineIPCount` и `ListOnlineIPs`. Включите `statsUserOnline` на уровне политики учётной записи. Время указано в секундах Unix. Пустая карта отслеживаемых IP даёт ноль или пустую карту. При отсутствии наблюдения HTTP возвращает `404`, а gRPC — `NOT_FOUND`. [Контракт gRPC](internal/engines/xray/stats/bridge/grpc/proto/v1/online.proto)
+
+Используйте `GET /v1/xray/instances/{id}/stats/online/users` или `XrayStatsService.ListOnlineUsers`, чтобы получить имена аккаунтов, для которых Xray отслеживает хотя бы один IP-адрес источника. Порядок списка не задан. Когда онлайн-аккаунтов нет, HTTP возвращает `{"names":[]}`.
 
 В примере оба интерфейса привязаны к loopback. HTTP-запрос `GET /healthz` возвращает `204 No Content`, когда Node готов. Служба проверки gRPC на порту 8081 возвращает `SERVING` для пустого имени службы. Для TLS укажите `management.tls.cert_file` и `management.tls.key_file`. Необязательный параметр `management.tls.client_ca_file` включает mTLS, а `management.api_key` задаёт ключ для заголовка или метаданных `x-api-key`.
 

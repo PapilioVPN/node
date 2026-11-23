@@ -64,7 +64,7 @@ docker run --rm --network=host --read-only --cap-drop ALL \
 | Xray config validation | Check the configured Xray JSON over HTTP and gRPC before restarting the instance. |
 | Xray runtime statistics | Read the active instance’s uptime, memory allocation, goroutines, and garbage collection counters over HTTP and gRPC. |
 | Xray traffic counters | Read upload and download bytes for one or all accounts, inbound tags, or outbound tags over HTTP and gRPC. |
-| Xray online IPs | Count distinct source IPs and read their last-seen times for one account over HTTP and gRPC. |
+| Xray online accounts and IPs | List online accounts, count distinct source IPs, or read their last-seen times over HTTP and gRPC. |
 
 <a name="management"></a>
 
@@ -93,6 +93,8 @@ Use `GET /v1/xray/instances/{id}/stats/runtime` or `XrayStatsService.GetRuntimeS
 Use `GET /v1/xray/instances/{id}/stats/traffic/{scope}` with `user`, `inbound`, or `outbound`. Add `?name=...` for one account or tag. The gRPC methods are `XrayStatsService.GetTraffic` and `ListTraffic`. Reads leave the counters intact. A missing direction is omitted and a stored zero is returned as zero. A missing named entry returns HTTP `404` or gRPC `NOT_FOUND`. List order is unspecified. Enable traffic statistics in the Xray policy for the selected scope. [gRPC contract](internal/engines/xray/stats/bridge/grpc/proto/v1/traffic.proto)
 
 Use `GET /v1/xray/instances/{id}/stats/online/count?name=...` or `/stats/online/ips?name=...` under the same instance path. The gRPC methods are `XrayStatsService.GetOnlineIPCount` and `ListOnlineIPs`. Enable `statsUserOnline` at the account's policy level. Timestamps are Unix seconds. An account with an empty tracked IP map returns zero or an empty map. A missing observation returns HTTP `404` or gRPC `NOT_FOUND`. [gRPC contract](internal/engines/xray/stats/bridge/grpc/proto/v1/online.proto)
+
+Use `GET /v1/xray/instances/{id}/stats/online/users` or `XrayStatsService.ListOnlineUsers` to list account names with at least one source IP currently tracked by Xray. The list has no guaranteed order. When there are no online accounts, HTTP returns `{"names":[]}`.
 
 The example binds both listeners to loopback. HTTP `GET /healthz` returns `204 No Content` when ready. The gRPC health service on port 8081 reports `SERVING` for the empty service name. Set `management.tls.cert_file` and `management.tls.key_file` to enable TLS. Optionally configure `management.tls.client_ca_file` for mutual TLS and `management.api_key` for the `x-api-key` header or metadata.
 

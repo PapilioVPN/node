@@ -13,6 +13,7 @@ service XrayStatsService {
   rpc ListTraffic(XrayTrafficListRequest) returns (XrayTrafficList);
   rpc GetOnlineIPCount(XrayOnlineRequest) returns (XrayOnlineCount);
   rpc ListOnlineIPs(XrayOnlineRequest) returns (XrayOnlineIPs);
+  rpc ListOnlineUsers(XrayOnlineUsersRequest) returns (XrayOnlineUsers);
 }
 
 message XrayRuntimeStatsRequest {

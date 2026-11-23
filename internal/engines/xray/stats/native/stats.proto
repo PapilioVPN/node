@@ -45,3 +45,8 @@ message OnlineIPsResponse {
   string name = 1;
   map<string, int64> ips = 2;
 }
+
+// Wire projection for GetAllOnlineUsers.
+message OnlineUsersResponse {
+  repeated string users = 1;
+}

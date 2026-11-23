@@ -27,6 +27,14 @@ func (h *handlers) ListOnlineIPs(ctx context.Context, req *statsv1.XrayOnlineReq
 	return &statsv1.XrayOnlineIPs{Name: req.GetName(), LastSeenUnixSeconds: ips}, nil
 }
 
+func (h *handlers) ListOnlineUsers(ctx context.Context, req *statsv1.XrayOnlineUsersRequest) (*statsv1.XrayOnlineUsers, error) {
+	names, err := h.online.Users(ctx, req.GetId())
+	if err != nil {
+		return nil, onlineError(err)
+	}
+	return &statsv1.XrayOnlineUsers{Names: names}, nil
+}
+
 func onlineError(err error) error {
 	switch {
 	case errors.Is(err, lifecycle.ErrNotFound), errors.Is(err, online.ErrNotFound):

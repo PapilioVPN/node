@@ -421,6 +421,51 @@ func (x *OnlineIPsResponse) GetIps() map[string]int64 {
 	return nil
 }
 
+// Wire projection for GetAllOnlineUsers.
+type OnlineUsersResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Users         []string               `protobuf:"bytes,1,rep,name=users,proto3" json:"users,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *OnlineUsersResponse) Reset() {
+	*x = OnlineUsersResponse{}
+	mi := &file_stats_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OnlineUsersResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OnlineUsersResponse) ProtoMessage() {}
+
+func (x *OnlineUsersResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_stats_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OnlineUsersResponse.ProtoReflect.Descriptor instead.
+func (*OnlineUsersResponse) Descriptor() ([]byte, []int) {
+	return file_stats_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *OnlineUsersResponse) GetUsers() []string {
+	if x != nil {
+		return x.Users
+	}
+	return nil
+}
+
 var File_stats_proto protoreflect.FileDescriptor
 
 const file_stats_proto_rawDesc = "" +
@@ -455,7 +500,9 @@ const file_stats_proto_rawDesc = "" +
 	"\x03ips\x18\x02 \x03(\v22.papiliovpn.xray.native.OnlineIPsResponse.IpsEntryR\x03ips\x1a6\n" +
 	"\bIpsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\x03R\x05value:\x028\x01B?Z=github.com/PapilioVPN/node/internal/engines/xray/stats/nativeb\x06proto3"
+	"\x05value\x18\x02 \x01(\x03R\x05value:\x028\x01\"+\n" +
+	"\x13OnlineUsersResponse\x12\x14\n" +
+	"\x05users\x18\x01 \x03(\tR\x05usersB?Z=github.com/PapilioVPN/node/internal/engines/xray/stats/nativeb\x06proto3"
 
 var (
 	file_stats_proto_rawDescOnce sync.Once
@@ -469,7 +516,7 @@ func file_stats_proto_rawDescGZIP() []byte {
 	return file_stats_proto_rawDescData
 }
 
-var file_stats_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_stats_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_stats_proto_goTypes = []any{
 	(*SysStatsResponse)(nil),    // 0: papiliovpn.xray.native.SysStatsResponse
 	(*QueryStatsRequest)(nil),   // 1: papiliovpn.xray.native.QueryStatsRequest
@@ -478,12 +525,13 @@ var file_stats_proto_goTypes = []any{
 	(*OnlineRequest)(nil),       // 4: papiliovpn.xray.native.OnlineRequest
 	(*OnlineCountResponse)(nil), // 5: papiliovpn.xray.native.OnlineCountResponse
 	(*OnlineIPsResponse)(nil),   // 6: papiliovpn.xray.native.OnlineIPsResponse
-	nil,                         // 7: papiliovpn.xray.native.OnlineIPsResponse.IpsEntry
+	(*OnlineUsersResponse)(nil), // 7: papiliovpn.xray.native.OnlineUsersResponse
+	nil,                         // 8: papiliovpn.xray.native.OnlineIPsResponse.IpsEntry
 }
 var file_stats_proto_depIdxs = []int32{
 	2, // 0: papiliovpn.xray.native.QueryStatsResponse.stats:type_name -> papiliovpn.xray.native.TrafficCounter
 	2, // 1: papiliovpn.xray.native.OnlineCountResponse.stat:type_name -> papiliovpn.xray.native.TrafficCounter
-	7, // 2: papiliovpn.xray.native.OnlineIPsResponse.ips:type_name -> papiliovpn.xray.native.OnlineIPsResponse.IpsEntry
+	8, // 2: papiliovpn.xray.native.OnlineIPsResponse.ips:type_name -> papiliovpn.xray.native.OnlineIPsResponse.IpsEntry
 	3, // [3:3] is the sub-list for method output_type
 	3, // [3:3] is the sub-list for method input_type
 	3, // [3:3] is the sub-list for extension type_name
@@ -502,7 +550,7 @@ func file_stats_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_stats_proto_rawDesc), len(file_stats_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   8,
+			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

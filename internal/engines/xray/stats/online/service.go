@@ -1,4 +1,4 @@
-// Package online reads the active Xray execution's per-account IP observations.
+// Package online reads the active Xray execution's online account and IP observations.
 package online
 
 import (
@@ -12,13 +12,14 @@ var (
 	ErrInvalid     = errors.New("invalid Xray online statistics request")
 	ErrNotFound    = errors.New("Xray online IP observation not found")
 	ErrBusy        = errors.New("too many Xray online statistics requests")
-	ErrTooLarge    = errors.New("Xray online IP list exceeds the response limit")
+	ErrTooLarge    = errors.New("Xray online statistics list exceeds the response limit")
 	ErrUnavailable = errors.New("Xray online statistics unavailable")
 )
 
 type reader interface {
 	Count(context.Context, string, string) (int64, error)
 	IPs(context.Context, string, string) (map[string]int64, error)
+	Users(context.Context, string) ([]string, error)
 }
 
 type Service struct {
@@ -32,17 +33,38 @@ func New(reader reader) *Service {
 }
 
 func (service *Service) Count(ctx context.Context, id, name string) (int64, error) {
-	return read(ctx, id, name, &service.counts, 128, service.reader.Count)
+	if !validName(name) {
+		return 0, ErrInvalid
+	}
+	return read(ctx, id, &service.counts, 128, func(ctx context.Context) (int64, error) {
+		return service.reader.Count(ctx, id, name)
+	})
 }
 
 // IPs returns each tracked source IP and its last-seen Unix timestamp in seconds.
 func (service *Service) IPs(ctx context.Context, id, name string) (map[string]int64, error) {
-	return read(ctx, id, name, &service.lists, 16, service.reader.IPs)
+	if !validName(name) {
+		return nil, ErrInvalid
+	}
+	return read(ctx, id, &service.lists, 16, func(ctx context.Context) (map[string]int64, error) {
+		return service.reader.IPs(ctx, id, name)
+	})
 }
 
-func read[T any](ctx context.Context, id, name string, active *atomic.Int32, limit int32, query func(context.Context, string, string) (T, error)) (T, error) {
+// Users returns the account names with at least one tracked source IP.
+func (service *Service) Users(ctx context.Context, id string) ([]string, error) {
+	return read(ctx, id, &service.lists, 16, func(ctx context.Context) ([]string, error) {
+		return service.reader.Users(ctx, id)
+	})
+}
+
+func validName(name string) bool {
+	return len(name) > 0 && len(name) <= 4096
+}
+
+func read[T any](ctx context.Context, id string, active *atomic.Int32, limit int32, query func(context.Context) (T, error)) (T, error) {
 	var zero T
-	if id == "" || len(name) == 0 || len(name) > 4096 {
+	if id == "" {
 		return zero, ErrInvalid
 	}
 	if err := ctx.Err(); err != nil {
@@ -59,5 +81,5 @@ func read[T any](ctx context.Context, id, name string, active *atomic.Int32, lim
 	defer active.Add(-1)
 	ctx, cancel := context.WithTimeout(ctx, time.Second)
 	defer cancel()
-	return query(ctx, id, name)
+	return query(ctx)
 }

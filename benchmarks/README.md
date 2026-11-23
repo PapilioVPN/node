@@ -602,3 +602,47 @@ For the focused repeat, use `XRAY_BENCH_TRAFFIC_CASE=online-count/one` and
 `XRAY_BENCH_TRAFFIC_WINDOW=550ms`. Run once with
 `XRAY_BENCH_TRANSPORTS=http` and `XRAY_BENCH_TRAFFIC_CLIENTS=8`, and once with
 `XRAY_BENCH_TRANSPORTS=grpc` and `XRAY_BENCH_TRAFFIC_CLIENTS=1`.
+
+## Xray online account list
+
+`ListOnlineUsers` returns the account names with at least one tracked source
+IP. Each request uses one native `GetAllOnlineUsers` call. Node bounds the
+native response at 1 MiB and shares a 16-read admission limit with the per-account
+IP list. Xray walks its registered online maps once and only emits entries with
+a positive IP count. Node strips the key prefix and suffix in place and keeps
+the response order unspecified.
+
+The fixture used one Xray v26.11.9 execution with 1,000 configured accounts and
+0, 100, or 1,000 established CONNECT tunnels. It checked the exact account set
+before timing and checked the account count on every timed read. All paths used
+the same instance. The direct baseline called Xray over its Unix socket. The
+other paths included the extra loopback hop, API-key validation, TLS and response
+encoding and decoding. The client, Node handlers and Xray were pinned to logical
+CPU 2 with `GOMAXPROCS=1`. The host ran Linux 6.17 on an AMD Ryzen 7 3750H and
+the fixture client and Node used Go 1.27.3.
+
+Cells show median p50 µs / p95 µs / successful reads per second across five
+350 ms rounds. No requests were rejected. The pinned PasarGuard presence APIs
+operate on one named account, so the direct Xray results give the native cost
+for this workload.
+
+| Active accounts | Clients | Native Xray | Node HTTP | Node gRPC |
+| ---: | ---: | ---: | ---: | ---: |
+| 0 | 1 | 173 / 476 / 4375 | 731 / 1235 / 1293 | 675 / 1192 / 1408 |
+| 0 | 8 | 670 / 1264 / 10564 | 2283 / 4353 / 3284 | 1642 / 3710 / 4299 |
+| 100 | 1 | 279 / 569 / 2771 | 703 / 1154 / 1320 | 744 / 1375 / 1236 |
+| 100 | 8 | 1074 / 3371 / 6328 | 3311 / 7578 / 2106 | 2652 / 5776 / 2715 |
+| 1000 | 1 | 643 / 1321 / 1328 | 1458 / 2918 / 616 | 1271 / 2036 / 698 |
+| 1000 | 8 | 3268 / 9106 / 1936 | 8425 / 15605 / 877 | 6831 / 14225 / 1062 |
+
+[Per-round measurements](xray/results/2026-11-23-online-users.csv) · [Fixture source](xray/online_users_test.go)
+
+Set `XRAY_BINARY` to the absolute path of the pinned executable and run on
+an available logical CPU.
+
+```sh
+work=$(mktemp -d)
+GOTOOLCHAIN=go1.27.3 CGO_ENABLED=0 go test -c -trimpath -o "$work/bench" ./benchmarks/xray
+GOMAXPROCS=1 XRAY_BENCH_ONLINE_USERS="$XRAY_BINARY" \
+  taskset -c "${XRAY_BENCH_SERVER_CPU:-2}" "$work/bench" -test.run '^TestMeasureOnlineUsers$' -test.v
+```
