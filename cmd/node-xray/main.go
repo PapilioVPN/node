@@ -20,9 +20,15 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	if err := run(ctx, os.Args[1:]); err != nil {
-		log.Fatal(err)
+		log.Print(err)
+		if errors.Is(err, errConfigRejected) {
+			os.Exit(23)
+		}
+		os.Exit(1)
 	}
 }
+
+var errConfigRejected = errors.New("xray configuration rejected")
 
 func run(ctx context.Context, args []string) (err error) {
 	if len(args) == 1 && (args[0] == "version" || args[0] == "-version") {
@@ -31,8 +37,11 @@ func run(ctx context.Context, args []string) (err error) {
 		}
 		return nil
 	}
+	if len(args) > 0 && args[0] == "convert" {
+		return convertConfig(args[1:])
+	}
 	if len(args) == 0 || args[0] != "run" {
-		return errors.New("expected node-xray run or node-xray version")
+		return errors.New("expected node-xray run, version, or convert pb")
 	}
 	flags := flag.NewFlagSet("run", flag.ContinueOnError)
 	var sources cmdarg.Arg
@@ -48,14 +57,14 @@ func run(ctx context.Context, args []string) (err error) {
 	}
 	config, err := core.LoadConfig(*format, sources)
 	if err != nil {
-		return err
+		return errors.Join(errConfigRejected, err)
 	}
 	if err := engine.EnableScopeReset(config); err != nil {
-		return err
+		return errors.Join(errConfigRejected, err)
 	}
 	instance, err := core.New(config)
 	if err != nil {
-		return err
+		return errors.Join(errConfigRejected, err)
 	}
 	defer func() { err = errors.Join(err, instance.Close()) }()
 	if *test {
