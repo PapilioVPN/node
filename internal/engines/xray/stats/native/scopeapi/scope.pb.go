@@ -222,6 +222,111 @@ func (x *Counter) GetPreviousBytes() int64 {
 	return 0
 }
 
+type PairResetRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Scope         string                 `protobuf:"bytes,1,opt,name=scope,proto3" json:"scope,omitempty"`
+	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PairResetRequest) Reset() {
+	*x = PairResetRequest{}
+	mi := &file_scope_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PairResetRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PairResetRequest) ProtoMessage() {}
+
+func (x *PairResetRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_scope_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PairResetRequest.ProtoReflect.Descriptor instead.
+func (*PairResetRequest) Descriptor() ([]byte, []int) {
+	return file_scope_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *PairResetRequest) GetScope() string {
+	if x != nil {
+		return x.Scope
+	}
+	return ""
+}
+
+func (x *PairResetRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+type PairResetResult struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// An absent value means the direction had no registered counter.
+	PreviousUplink   *int64 `protobuf:"varint,1,opt,name=previous_uplink,json=previousUplink,proto3,oneof" json:"previous_uplink,omitempty"`
+	PreviousDownlink *int64 `protobuf:"varint,2,opt,name=previous_downlink,json=previousDownlink,proto3,oneof" json:"previous_downlink,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *PairResetResult) Reset() {
+	*x = PairResetResult{}
+	mi := &file_scope_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PairResetResult) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PairResetResult) ProtoMessage() {}
+
+func (x *PairResetResult) ProtoReflect() protoreflect.Message {
+	mi := &file_scope_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PairResetResult.ProtoReflect.Descriptor instead.
+func (*PairResetResult) Descriptor() ([]byte, []int) {
+	return file_scope_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *PairResetResult) GetPreviousUplink() int64 {
+	if x != nil && x.PreviousUplink != nil {
+		return *x.PreviousUplink
+	}
+	return 0
+}
+
+func (x *PairResetResult) GetPreviousDownlink() int64 {
+	if x != nil && x.PreviousDownlink != nil {
+		return *x.PreviousDownlink
+	}
+	return 0
+}
+
 var File_scope_proto protoreflect.FileDescriptor
 
 const file_scope_proto_rawDesc = "" +
@@ -237,10 +342,19 @@ const file_scope_proto_rawDesc = "" +
 	"\aCounter\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1a\n" +
 	"\bdownlink\x18\x02 \x01(\bR\bdownlink\x12%\n" +
-	"\x0eprevious_bytes\x18\x03 \x01(\x03R\rpreviousBytes2u\n" +
+	"\x0eprevious_bytes\x18\x03 \x01(\x03R\rpreviousBytes\"<\n" +
+	"\x10PairResetRequest\x12\x14\n" +
+	"\x05scope\x18\x01 \x01(\tR\x05scope\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\"\x9b\x01\n" +
+	"\x0fPairResetResult\x12,\n" +
+	"\x0fprevious_uplink\x18\x01 \x01(\x03H\x00R\x0epreviousUplink\x88\x01\x01\x120\n" +
+	"\x11previous_downlink\x18\x02 \x01(\x03H\x01R\x10previousDownlink\x88\x01\x01B\x12\n" +
+	"\x10_previous_uplinkB\x14\n" +
+	"\x12_previous_downlink2\xd9\x01\n" +
 	"\fExactTraffic\x12e\n" +
 	"\n" +
-	"ResetScope\x12+.papiliovpn.xray.scope.v1.ScopeResetRequest\x1a*.papiliovpn.xray.scope.v1.ScopeResetResultBHZFgithub.com/PapilioVPN/node/internal/engines/xray/stats/native/scopeapib\x06proto3"
+	"ResetScope\x12+.papiliovpn.xray.scope.v1.ScopeResetRequest\x1a*.papiliovpn.xray.scope.v1.ScopeResetResult\x12b\n" +
+	"\tResetPair\x12*.papiliovpn.xray.scope.v1.PairResetRequest\x1a).papiliovpn.xray.scope.v1.PairResetResultBHZFgithub.com/PapilioVPN/node/internal/engines/xray/stats/native/scopeapib\x06proto3"
 
 var (
 	file_scope_proto_rawDescOnce sync.Once
@@ -254,19 +368,23 @@ func file_scope_proto_rawDescGZIP() []byte {
 	return file_scope_proto_rawDescData
 }
 
-var file_scope_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_scope_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_scope_proto_goTypes = []any{
 	(*Config)(nil),            // 0: papiliovpn.xray.scope.v1.Config
 	(*ScopeResetRequest)(nil), // 1: papiliovpn.xray.scope.v1.ScopeResetRequest
 	(*ScopeResetResult)(nil),  // 2: papiliovpn.xray.scope.v1.ScopeResetResult
 	(*Counter)(nil),           // 3: papiliovpn.xray.scope.v1.Counter
+	(*PairResetRequest)(nil),  // 4: papiliovpn.xray.scope.v1.PairResetRequest
+	(*PairResetResult)(nil),   // 5: papiliovpn.xray.scope.v1.PairResetResult
 }
 var file_scope_proto_depIdxs = []int32{
 	3, // 0: papiliovpn.xray.scope.v1.ScopeResetResult.counters:type_name -> papiliovpn.xray.scope.v1.Counter
 	1, // 1: papiliovpn.xray.scope.v1.ExactTraffic.ResetScope:input_type -> papiliovpn.xray.scope.v1.ScopeResetRequest
-	2, // 2: papiliovpn.xray.scope.v1.ExactTraffic.ResetScope:output_type -> papiliovpn.xray.scope.v1.ScopeResetResult
-	2, // [2:3] is the sub-list for method output_type
-	1, // [1:2] is the sub-list for method input_type
+	4, // 2: papiliovpn.xray.scope.v1.ExactTraffic.ResetPair:input_type -> papiliovpn.xray.scope.v1.PairResetRequest
+	2, // 3: papiliovpn.xray.scope.v1.ExactTraffic.ResetScope:output_type -> papiliovpn.xray.scope.v1.ScopeResetResult
+	5, // 4: papiliovpn.xray.scope.v1.ExactTraffic.ResetPair:output_type -> papiliovpn.xray.scope.v1.PairResetResult
+	3, // [3:5] is the sub-list for method output_type
+	1, // [1:3] is the sub-list for method input_type
 	1, // [1:1] is the sub-list for extension type_name
 	1, // [1:1] is the sub-list for extension extendee
 	0, // [0:1] is the sub-list for field type_name
@@ -277,13 +395,14 @@ func file_scope_proto_init() {
 	if File_scope_proto != nil {
 		return
 	}
+	file_scope_proto_msgTypes[5].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_scope_proto_rawDesc), len(file_scope_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   4,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

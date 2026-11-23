@@ -57,6 +57,30 @@ func (service *exactTraffic) Register(server *grpc.Server) {
 	scopeapi.RegisterExactTrafficServer(server, service)
 }
 
+func (service *exactTraffic) ResetPair(ctx context.Context, request *scopeapi.PairResetRequest) (*scopeapi.PairResetResult, error) {
+	scope, name := traffic.Scope(request.GetScope()), request.GetName()
+	if !scope.Valid() || name == "" || len(name) > traffic.MaxCounterNameBytes || !utf8.ValidString(name) {
+		return nil, status.Error(codes.InvalidArgument, "invalid traffic pair selector")
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, status.FromContextError(err).Err()
+	}
+	prefix := string(scope) + ">>>" + name + ">>>traffic>>>"
+	result := &scopeapi.PairResetResult{}
+	if counter := service.manager.GetCounter(prefix + "uplink"); counter != nil {
+		previous := counter.Set(0)
+		result.PreviousUplink = &previous
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, status.FromContextError(err).Err()
+	}
+	if counter := service.manager.GetCounter(prefix + "downlink"); counter != nil {
+		previous := counter.Set(0)
+		result.PreviousDownlink = &previous
+	}
+	return result, nil
+}
+
 func (service *exactTraffic) ResetScope(ctx context.Context, request *scopeapi.ScopeResetRequest) (*scopeapi.ScopeResetResult, error) {
 	scope, limit := traffic.Scope(request.GetScope()), int(request.GetMaxCounters())
 	if !scope.Valid() || limit < 1 || limit > traffic.MaxScopeResetCounters {

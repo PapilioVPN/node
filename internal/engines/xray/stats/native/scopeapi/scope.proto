@@ -5,6 +5,7 @@ option go_package = "github.com/PapilioVPN/node/internal/engines/xray/stats/nati
 
 service ExactTraffic {
   rpc ResetScope(ScopeResetRequest) returns (ScopeResetResult);
+  rpc ResetPair(PairResetRequest) returns (PairResetResult);
 }
 
 message Config {}
@@ -24,4 +25,15 @@ message Counter {
   string name = 1;
   bool downlink = 2;
   int64 previous_bytes = 3;
+}
+
+message PairResetRequest {
+  string scope = 1;
+  string name = 2;
+}
+
+message PairResetResult {
+  // An absent value means the direction had no registered counter.
+  optional int64 previous_uplink = 1;
+  optional int64 previous_downlink = 2;
 }

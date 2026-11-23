@@ -155,12 +155,12 @@ xray:
 YAML
 if [[ ${XRAY_BENCH_TRAFFIC_CASE:-} == reset-pair/one || ${XRAY_BENCH_TRAFFIC_CASE:-} == reset-scope/list ]]; then
   printf '  reset_engine_stats: true\n' >> "$work/node.yml"
-fi
-if [[ ${XRAY_BENCH_TRAFFIC_CASE:-} == reset-scope/list ]]; then
-  printf '  reset_scope_concurrency: %d\n' "${XRAY_BENCH_SCOPE_RESET_CONCURRENCY:-1}" >> "$work/node.yml"
   if [[ ${XRAY_BENCH_NATIVE_SCOPE_RESET:-0} == 1 ]]; then
     printf '  native_scope_reset: true\n' >> "$work/node.yml"
   fi
+fi
+if [[ ${XRAY_BENCH_TRAFFIC_CASE:-} == reset-scope/list ]]; then
+  printf '  reset_scope_concurrency: %d\n' "${XRAY_BENCH_SCOPE_RESET_CONCURRENCY:-1}" >> "$work/node.yml"
 fi
 
 export GOMAXPROCS=1

@@ -763,6 +763,49 @@ GOMAXPROCS=1 XRAY_BENCH_NATIVE_PAIR_RESET="$XRAY_BINARY" \
   taskset -c 2 go test ./benchmarks/xray -run '^TestMeasureNativePairReset$' -count=1 -v
 ```
 
+
+### One-call pair reset with the bundled Xray
+
+With `xray.native_scope_reset: true`, `node-xray` handles both exact
+directions in one RPC. It returns the previous signed values separately
+and preserves the distinction between absent and zero. A lost reply
+leaves both directions unconfirmed. The stock executable retains two
+targeted calls. If an older companion returns `Unimplemented` before
+dispatch, Node uses the two-call path on the same active connection.
+
+The stock baseline and first paired comparison used three 500 ms
+windows. The confirmation used five 650 ms windows per case. Node and
+PasarGuard used the same Xray v26.11.9 source pin, with the bundled binary
+on Node and the official release binary on PasarGuard in one-call runs.
+Both nodes and the driver used Go 1.27.4. The server and child used CPU 2
+and the driver CPU 6. The seeded counters and the exact directional
+response checks match the earlier fixture. There were zero rejections.
+Cells show Node / PasarGuard.
+
+| Accounts | Transport | Clients | p50 µs | p95 µs | Success/s |
+| ---: | --- | ---: | ---: | ---: | ---: |
+| 1 | http | 1 | 345.0 / 347.4 | 610.6 / 570.6 | 2496.2 / 2540.9 |
+| 1 | http | 8 | 984.6 / 1157.2 | 2544.8 / 2799.3 | 7164.0 / 6090.6 |
+| 1 | grpc | 1 | 362.1 / 417.6 | 561.4 / 672.0 | 2460.4 / 2148.5 |
+| 1 | grpc | 8 | 1139.9 / 1193.7 | 2501.6 / 2677.9 | 6365.3 / 5947.7 |
+| 512 | http | 1 | 327.1 / 402.3 | 533.7 / 705.2 | 2687.2 / 2131.3 |
+| 512 | http | 8 | 971.6 / 1395.4 | 2557.3 / 3124.1 | 6930.0 / 5118.3 |
+| 512 | grpc | 1 | 370.0 / 458.0 | 577.7 / 739.9 | 2506.4 / 1923.6 |
+| 512 | grpc | 8 | 1139.8 / 1594.6 | 2500.6 / 3206.1 | 6315.7 / 4607.7 |
+
+The first comparison led on all three metrics in eight cases. The
+confirmation led in seven. HTTP at one account and one client had a
+similar median and a higher p95 for Node. This fixture compares the same
+two counters with unambiguous names. Node uses exact keys and PasarGuard
+uses substring selection.
+
+Reproduce with `XRAY_BENCH_TRAFFIC_CASE=reset-pair/one`,
+`XRAY_BENCH_TRAFFIC_NAMES=1` or `512`, `XRAY_BENCH_NATIVE_SCOPE_RESET=1`,
+`XRAY_BENCH_REFERENCE_XRAY="$work/xray/xray"`, and
+`XRAY_BENCH_TRAFFIC_CLIENTS=1,8`. Use the bundled binary as the third
+argument to [the runner](xray/run.sh).
+[Per-round data](xray/results/2026-11-23-traffic-reset-pair-bundled.csv)
+
 ## Xray integration performance recheck
 
 The baseline `a51a787` combines the routing controls, VLESS account operations,

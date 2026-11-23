@@ -20,6 +20,7 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	ExactTraffic_ResetScope_FullMethodName = "/papiliovpn.xray.scope.v1.ExactTraffic/ResetScope"
+	ExactTraffic_ResetPair_FullMethodName  = "/papiliovpn.xray.scope.v1.ExactTraffic/ResetPair"
 )
 
 // ExactTrafficClient is the client API for ExactTraffic service.
@@ -27,6 +28,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ExactTrafficClient interface {
 	ResetScope(ctx context.Context, in *ScopeResetRequest, opts ...grpc.CallOption) (*ScopeResetResult, error)
+	ResetPair(ctx context.Context, in *PairResetRequest, opts ...grpc.CallOption) (*PairResetResult, error)
 }
 
 type exactTrafficClient struct {
@@ -47,11 +49,22 @@ func (c *exactTrafficClient) ResetScope(ctx context.Context, in *ScopeResetReque
 	return out, nil
 }
 
+func (c *exactTrafficClient) ResetPair(ctx context.Context, in *PairResetRequest, opts ...grpc.CallOption) (*PairResetResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PairResetResult)
+	err := c.cc.Invoke(ctx, ExactTraffic_ResetPair_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ExactTrafficServer is the server API for ExactTraffic service.
 // All implementations must embed UnimplementedExactTrafficServer
 // for forward compatibility.
 type ExactTrafficServer interface {
 	ResetScope(context.Context, *ScopeResetRequest) (*ScopeResetResult, error)
+	ResetPair(context.Context, *PairResetRequest) (*PairResetResult, error)
 	mustEmbedUnimplementedExactTrafficServer()
 }
 
@@ -64,6 +77,9 @@ type UnimplementedExactTrafficServer struct{}
 
 func (UnimplementedExactTrafficServer) ResetScope(context.Context, *ScopeResetRequest) (*ScopeResetResult, error) {
 	return nil, status.Error(codes.Unimplemented, "method ResetScope not implemented")
+}
+func (UnimplementedExactTrafficServer) ResetPair(context.Context, *PairResetRequest) (*PairResetResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method ResetPair not implemented")
 }
 func (UnimplementedExactTrafficServer) mustEmbedUnimplementedExactTrafficServer() {}
 func (UnimplementedExactTrafficServer) testEmbeddedByValue()                      {}
@@ -104,6 +120,24 @@ func _ExactTraffic_ResetScope_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ExactTraffic_ResetPair_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PairResetRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ExactTrafficServer).ResetPair(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ExactTraffic_ResetPair_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ExactTrafficServer).ResetPair(ctx, req.(*PairResetRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ExactTraffic_ServiceDesc is the grpc.ServiceDesc for ExactTraffic service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -114,6 +148,10 @@ var ExactTraffic_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ResetScope",
 			Handler:    _ExactTraffic_ResetScope_Handler,
+		},
+		{
+			MethodName: "ResetPair",
+			Handler:    _ExactTraffic_ResetPair_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

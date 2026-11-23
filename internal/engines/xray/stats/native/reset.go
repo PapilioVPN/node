@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/PapilioVPN/node/internal/engines/xray/stats/native/scopeapi"
 	"github.com/PapilioVPN/node/internal/engines/xray/stats/traffic"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -31,6 +32,15 @@ func (client *Traffic) ResetPair(ctx context.Context, pair traffic.CounterPair) 
 	if err := ctx.Err(); err != nil {
 		return traffic.PairReset{}, err
 	}
+	if client.scopeBatch {
+		result, err := resetNativePair(ctx, conn, pair)
+		if status.Code(err) != codes.Unimplemented {
+			return result, err
+		}
+		if err := client.checkConnection(pair.ID, conn); err != nil {
+			return traffic.PairReset{}, err
+		}
+	}
 	prefix := string(pair.Scope) + ">>>" + pair.Name + ">>>traffic>>>"
 	result := traffic.PairReset{Downlink: traffic.DirectionReset{Effect: traffic.ResetNotAttempted}}
 	result.Uplink, err = resetDirection(ctx, conn, prefix+"uplink")
@@ -45,6 +55,28 @@ func (client *Traffic) ResetPair(ctx context.Context, pair traffic.CounterPair) 
 	}
 	result.Downlink, err = resetDirection(ctx, conn, prefix+"downlink")
 	return result, err
+}
+
+func resetNativePair(ctx context.Context, conn *grpc.ClientConn, pair traffic.CounterPair) (traffic.PairReset, error) {
+	result, err := scopeapi.NewExactTrafficClient(conn).ResetPair(ctx, &scopeapi.PairResetRequest{
+		Scope: string(pair.Scope), Name: pair.Name,
+	}, grpc.MaxCallRecvMsgSize(1024))
+	if status.Code(err) == codes.Unimplemented {
+		// An older companion never dispatched the reset. Use the stock path.
+		return traffic.PairReset{}, err
+	}
+	if err != nil {
+		unknown := traffic.DirectionReset{Effect: traffic.ResetUnknown}
+		return traffic.PairReset{Uplink: unknown, Downlink: unknown}, errors.Join(traffic.ErrResetUnknown, err, ctx.Err())
+	}
+	return traffic.PairReset{Uplink: confirmedDirection(result.PreviousUplink), Downlink: confirmedDirection(result.PreviousDownlink)}, nil
+}
+
+func confirmedDirection(previous *int64) traffic.DirectionReset {
+	if previous == nil {
+		return traffic.DirectionReset{Effect: traffic.ResetMissing}
+	}
+	return traffic.DirectionReset{Effect: traffic.ResetAcknowledged, PreviousBytes: *previous}
 }
 
 func resetDirection(ctx context.Context, conn *grpc.ClientConn, key string) (traffic.DirectionReset, error) {
