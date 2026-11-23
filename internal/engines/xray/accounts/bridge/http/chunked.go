@@ -15,9 +15,10 @@ import (
 )
 
 type streamFrame struct {
-	Index    *uint32        `json:"index"`
-	Last     bool           `json:"last"`
-	Accounts []accountInput `json:"accounts"`
+	Index       *uint32        `json:"index"`
+	Last        bool           `json:"last"`
+	Accounts    []accountInput `json:"accounts"`
+	InboundTags []string       `json:"inbound_tags"`
 }
 
 func syncUsersChunked(service *membership.Service) http.HandlerFunc {
@@ -76,5 +77,5 @@ func readFrame(scanner *bufio.Scanner, inbound membership.Scope) (membership.Use
 		return membership.UsersChunk{}, membership.ErrInvalid
 	}
 	accounts, err := decodeAccounts(input.Accounts)
-	return membership.UsersChunk{Scope: inbound, Index: *input.Index, Last: input.Last, Accounts: accounts}, err
+	return membership.UsersChunk{Scope: inbound, InboundTags: input.InboundTags, Index: *input.Index, Last: input.Last, Accounts: accounts}, err
 }

@@ -11,13 +11,14 @@ import (
 )
 
 func (h *handlers) SyncUser(ctx context.Context, req *accountsv1.SyncUserRequest) (*accountsv1.SyncResult, error) {
-	credential, err := credentialInput(req.GetCredential())
+	input, err := decodeAccount(req.GetEmail(), req.Uuid, req.Flow, req.GetCredential(), req.GetAssignments())
 	if err != nil {
 		return nil, accountError(err)
 	}
 	result, err := h.service.SyncUser(ctx, membership.SyncUserRequest{
-		Scope: membership.Scope{InstanceID: req.GetId(), InboundTag: req.GetInboundTag()},
-		Email: req.GetEmail(), UUID: req.Uuid, Flow: req.Flow, Credential: credential,
+		Scope:       membership.Scope{InstanceID: req.GetId(), InboundTag: req.GetInboundTag()},
+		InboundTags: req.InboundTags, Email: input.Email, UUID: input.UUID, Flow: input.Flow,
+		Credential: input.Credential, Assignments: input.Assignments,
 	})
 	return syncResponse(result, err)
 }
@@ -40,7 +41,7 @@ func (h *handlers) SyncUsers(ctx context.Context, req *accountsv1.SyncUsersReque
 		return nil, accountError(err)
 	}
 	result, err := h.service.SyncUsers(ctx, membership.SyncUsersRequest{
-		Scope: membership.Scope{InstanceID: req.GetId(), InboundTag: req.GetInboundTag()}, Accounts: accounts,
+		Scope: membership.Scope{InstanceID: req.GetId(), InboundTag: req.GetInboundTag()}, InboundTags: req.InboundTags, Accounts: accounts,
 	})
 	return syncResponse(result, err)
 }
@@ -54,11 +55,11 @@ func accountInputs(accounts []*accountsv1.VLESSAccount) ([]membership.AccountInp
 		if account == nil {
 			return nil, membership.ErrInvalid
 		}
-		credential, err := credentialInput(account.GetCredential())
+		input, err := decodeAccount(account.GetEmail(), account.Uuid, account.Flow, account.GetCredential(), account.GetAssignments())
 		if err != nil {
 			return nil, err
 		}
-		result[i] = membership.AccountInput{Email: account.GetEmail(), UUID: account.Uuid, Flow: account.Flow, Credential: credential}
+		result[i] = input
 	}
 	return result, nil
 }
@@ -79,8 +80,8 @@ func (h *handlers) SyncUsersChunked(stream accountsv1.XrayAccountsService_SyncUs
 		}
 		accounts, err := accountInputs(req.GetAccounts())
 		return membership.UsersChunk{
-			Scope: membership.Scope{InstanceID: req.GetId(), InboundTag: req.GetInboundTag()},
-			Index: req.GetIndex(), Last: req.GetLast(), Accounts: accounts,
+			Scope:       membership.Scope{InstanceID: req.GetId(), InboundTag: req.GetInboundTag()},
+			InboundTags: req.InboundTags, Index: req.GetIndex(), Last: req.GetLast(), Accounts: accounts,
 		}, err
 	})
 	switch status.Code(err) {
@@ -116,4 +117,21 @@ func credentialInput(input *accountsv1.Credential) (*membership.Credential, erro
 		}
 	}
 	return value, nil
+}
+
+func decodeAccount(email string, uuid, flow *string, credential *accountsv1.Credential, assignments []*accountsv1.Assignment) (membership.AccountInput, error) {
+	input := membership.AccountInput{Email: email, UUID: uuid, Flow: flow}
+	var err error
+	input.Credential, err = credentialInput(credential)
+	if err != nil || len(assignments) > membership.MaxSyncInbounds {
+		return input, membership.ErrInvalid
+	}
+	for _, assignment := range assignments {
+		value, err := credentialInput(assignment.GetCredential())
+		if err != nil || value == nil {
+			return input, membership.ErrInvalid
+		}
+		input.Assignments = append(input.Assignments, membership.Assignment{InboundTag: assignment.GetInboundTag(), Credential: *value})
+	}
+	return input, nil
 }

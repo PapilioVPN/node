@@ -35,10 +35,11 @@ type Credential struct {
 }
 
 type AccountInput struct {
-	Email      string
-	UUID       *string
-	Flow       *string
-	Credential *Credential
+	Email       string
+	UUID        *string
+	Flow        *string
+	Credential  *Credential
+	Assignments []Assignment
 }
 
 func (a AccountInput) selected() (*Credential, error) {

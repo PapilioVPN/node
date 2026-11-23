@@ -56,27 +56,47 @@ func (c *Client) Remove(ctx context.Context, scope membership.Scope, email strin
 	return c.edit(ctx, scope, true, func(e *editor) error { return e.Remove(membership.NameKey(email)) })
 }
 
-func (c *Client) Edit(ctx context.Context, scope membership.Scope, apply func(membership.Editor) error) error {
-	return c.edit(ctx, scope, false, func(e *editor) error { return apply(e) })
+func (c *Client) Edit(ctx context.Context, instanceID string, tags []string, apply func([]membership.Editor) error) error {
+	return c.editInbounds(ctx, instanceID, tags, false, apply)
 }
 
 func (c *Client) edit(ctx context.Context, scope membership.Scope, vlessOnly bool, apply func(*editor) error) error {
+	return c.editInbounds(ctx, scope.InstanceID, []string{scope.InboundTag}, vlessOnly,
+		func(editors []membership.Editor) error { return apply(editors[0].(*editor)) })
+}
+
+func (c *Client) editInbounds(ctx context.Context, instanceID string, tags []string, vlessOnly bool, apply func([]membership.Editor) error) error {
 	if !c.mutation.TryLock() {
 		return membership.ErrBusy
 	}
 	defer c.mutation.Unlock()
 
-	state, entry, err := c.mutable(ctx, scope, vlessOnly)
+	state, err := c.inventory(ctx, instanceID)
 	if err != nil {
 		return err
 	}
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	if !c.current(scope.InstanceID, state.conn) {
+	if !c.current(instanceID, state.conn) {
 		return membership.ErrUnavailable
 	}
-	return apply(&editor{client: c, ctx: ctx, scope: scope, state: state, entry: entry})
+	editors := make([]membership.Editor, 0, len(tags))
+	for _, tag := range tags {
+		entry, err := state.selectInbound(tag, vlessOnly)
+		if err != nil {
+			return err
+		}
+		if entry.ambiguous {
+			return membership.ErrAmbiguous
+		}
+		if entry.uncertain {
+			return membership.ErrFenced
+		}
+		scope := membership.Scope{InstanceID: instanceID, InboundTag: tag}
+		editors = append(editors, &editor{client: c, ctx: ctx, scope: scope, state: state, entry: entry})
+	}
+	return apply(editors)
 }
 
 type editor struct {
@@ -166,24 +186,6 @@ func (c *Client) Count(ctx context.Context, scope membership.Scope) (int64, erro
 		return 0, membership.ErrUnavailable
 	}
 	return result.Count, nil
-}
-
-func (c *Client) mutable(ctx context.Context, scope membership.Scope, vlessOnly bool) (*inventory, *inboundAccounts, error) {
-	state, err := c.inventory(ctx, scope.InstanceID)
-	if err != nil {
-		return nil, nil, err
-	}
-	entry, err := state.selectInbound(scope.InboundTag, vlessOnly)
-	if err != nil {
-		return nil, nil, err
-	}
-	if entry.ambiguous {
-		return nil, nil, membership.ErrAmbiguous
-	}
-	if entry.uncertain {
-		return nil, nil, membership.ErrFenced
-	}
-	return state, entry, nil
 }
 
 func (c *Client) alter(ctx context.Context, scope membership.Scope, conn *grpc.ClientConn, entry *inboundAccounts, operation *TypedMessage) error {

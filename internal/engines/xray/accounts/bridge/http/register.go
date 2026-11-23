@@ -30,6 +30,10 @@ func Register(router chi.Router, service *membership.Service) {
 	router.Put(base, syncUsers(service))
 	router.Put(base+"/membership", syncUser(service))
 	router.Put(base+"/membership/stream", syncUsersChunked(service))
+	const instance = "/v1/xray/instances/{id}/accounts"
+	router.Put(instance, syncUsers(service))
+	router.Put(instance+"/membership", syncUser(service))
+	router.Put(instance+"/membership/stream", syncUsersChunked(service))
 	router.Post(base, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
 		var input addAccount

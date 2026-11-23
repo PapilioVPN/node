@@ -76,7 +76,7 @@ type Account struct {
 }
 
 type engine interface {
-	Edit(context.Context, Scope, func(Editor) error) error
+	Edit(context.Context, string, []string, func([]Editor) error) error
 	Add(context.Context, Scope, Account) error
 	Remove(context.Context, Scope, string) error
 	Count(context.Context, Scope) (int64, error)

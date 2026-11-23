@@ -12,8 +12,9 @@ const (
 )
 
 type SyncUsersRequest struct {
-	Scope    Scope
-	Accounts []AccountInput
+	Scope       Scope
+	InboundTags []string
+	Accounts    []AccountInput
 }
 
 type change struct {
@@ -21,27 +22,8 @@ type change struct {
 	credential *Credential
 }
 
-func changesFrom(accounts []AccountInput, full bool) ([]change, error) {
-	if accounts == nil || len(accounts) > MaxSyncAccounts {
-		return nil, ErrInvalid
-	}
-	changes := make([]change, 0, len(accounts))
-	for _, input := range accounts {
-		credential, err := input.selected()
-		if err != nil || (full && credential == nil) {
-			return nil, ErrInvalid
-		}
-		changes = append(changes, change{input.Email, credential})
-	}
-	return changes, nil
-}
-
 func (s *Service) SyncUsers(ctx context.Context, req SyncUsersRequest) (SyncResult, error) {
-	changes, err := changesFrom(req.Accounts, true)
-	if err != nil {
-		return SyncResult{}, err
-	}
-	return s.reconcile(ctx, req.Scope, batchTimeout, changes, true)
+	return s.reconcile(ctx, req.Scope, req.InboundTags, batchTimeout, req.Accounts, true)
 }
 
 type plan struct {
@@ -90,9 +72,6 @@ func preparePlan(editor Editor, changes []change, full bool) (plan, error) {
 		}
 		slices.Sort(plan.removals)
 	}
-	if len(plan.additions)-len(plan.removals) > editor.Capacity() {
-		return plan, ErrTooLarge
-	}
 	for _, account := range plan.additions {
 		if !released[account.Identity] && editor.HasID(account.Identity) {
 			return plan, ErrExists
@@ -101,15 +80,32 @@ func preparePlan(editor Editor, changes []change, full bool) (plan, error) {
 	return plan, nil
 }
 
-func (p plan) apply(editor Editor, result *SyncResult) error {
-	for _, name := range p.removals {
-		if err := result.remove(editor, name); err != nil {
+func applyPlans(editors []Editor, groups [][]change, full bool, result *SyncResult) error {
+	plans := make([]plan, len(editors))
+	var growth int
+	for i, editor := range editors {
+		plan, err := preparePlan(editor, groups[i], full)
+		if err != nil {
 			return err
 		}
+		plans[i] = plan
+		growth += len(plan.additions) - len(plan.removals)
 	}
-	for _, account := range p.additions {
-		if err := result.add(editor, account); err != nil {
-			return err
+	if growth > editors[0].Capacity() {
+		return ErrTooLarge
+	}
+	for i, plan := range plans {
+		for _, name := range plan.removals {
+			if err := result.remove(editors[i], name); err != nil {
+				return err
+			}
+		}
+	}
+	for i, plan := range plans {
+		for _, account := range plan.additions {
+			if err := result.add(editors[i], account); err != nil {
+				return err
+			}
 		}
 	}
 	return nil

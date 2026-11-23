@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"slices"
 	"time"
 )
 
@@ -14,10 +15,11 @@ const (
 )
 
 type UsersChunk struct {
-	Scope    Scope
-	Index    uint32
-	Last     bool
-	Accounts []AccountInput
+	Scope       Scope
+	InboundTags []string
+	Index       uint32
+	Last        bool
+	Accounts    []AccountInput
 }
 
 // SyncUsersChunked applies explicit deltas after the final marker and clean EOF.
@@ -29,48 +31,47 @@ func (s *Service) SyncUsersChunked(ctx context.Context, receive func() (UsersChu
 		return SyncResult{Outcome: NotApplied, Failure: syncFailure(ErrBusy)}, nil
 	}
 
-	scope, changes, err := collectDeltas(ctx, receive)
+	scope, tags, accounts, err := collectDeltas(ctx, receive)
 	if err != nil {
 		return SyncResult{}, err
 	}
-	return s.reconcile(ctx, scope, batchTimeout, changes, false)
+	return s.reconcile(ctx, scope, tags, batchTimeout, accounts, false)
 }
 
-func collectDeltas(ctx context.Context, receive func() (UsersChunk, error)) (Scope, []change, error) {
+func collectDeltas(ctx context.Context, receive func() (UsersChunk, error)) (Scope, []string, []AccountInput, error) {
 	var scope Scope
-	var changes []change
+	var tags []string
+	accounts := make([]AccountInput, 0)
 	var last bool
 	for index := uint32(0); ; index++ {
 		if err := ctx.Err(); err != nil {
-			return Scope{}, nil, err
+			return Scope{}, nil, nil, err
 		}
 		chunk, err := receive()
 		if errors.Is(err, io.EOF) && last {
-			return scope, changes, ctx.Err()
+			return scope, tags, accounts, ctx.Err()
 		}
 		if err != nil && !errors.Is(err, io.EOF) {
-			return Scope{}, nil, err
+			return Scope{}, nil, nil, err
 		}
 		if err != nil || last || index >= maxChunks || chunk.Index != index ||
-			len(chunk.Accounts) > MaxChunkAccounts || len(chunk.Accounts)+len(changes) > MaxSyncAccounts ||
+			len(chunk.Accounts) > MaxChunkAccounts || len(chunk.Accounts)+len(accounts) > MaxSyncAccounts ||
 			(len(chunk.Accounts) == 0 && !chunk.Last) {
-			return Scope{}, nil, ErrInvalid
+			return Scope{}, nil, nil, ErrInvalid
 		}
 		if index == 0 {
-			scope = chunk.Scope
-			if !validScope(scope) {
-				return Scope{}, nil, ErrInvalid
+			scope, tags = chunk.Scope, chunk.InboundTags
+			if _, err := selectInbounds(scope, tags); err != nil {
+				return Scope{}, nil, nil, err
 			}
-		} else if scope != chunk.Scope {
-			return Scope{}, nil, ErrInvalid
+		} else if scope != chunk.Scope || !sameTags(tags, chunk.InboundTags) {
+			return Scope{}, nil, nil, ErrInvalid
 		}
-		if len(chunk.Accounts) > 0 {
-			items, err := changesFrom(chunk.Accounts, false)
-			if err != nil {
-				return Scope{}, nil, err
-			}
-			changes = append(changes, items...)
-		}
+		accounts = append(accounts, chunk.Accounts...)
 		last = chunk.Last
 	}
+}
+
+func sameTags(a, b []string) bool {
+	return (a == nil) == (b == nil) && slices.Equal(a, b)
 }

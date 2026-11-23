@@ -10,11 +10,13 @@ import (
 )
 
 type SyncUserRequest struct {
-	Scope      Scope
-	Email      string
-	UUID       *string
-	Flow       *string
-	Credential *Credential
+	Scope       Scope
+	InboundTags []string
+	Email       string
+	UUID        *string
+	Flow        *string
+	Credential  *Credential
+	Assignments []Assignment
 }
 
 type Outcome string
@@ -71,33 +73,33 @@ type Editor interface {
 	Remove(name string) error
 }
 
+func (req SyncUserRequest) account() AccountInput {
+	return AccountInput{
+		Email: req.Email, UUID: req.UUID, Flow: req.Flow, Credential: req.Credential, Assignments: req.Assignments,
+	}
+}
+
 func (s *Service) SyncUser(ctx context.Context, req SyncUserRequest) (SyncResult, error) {
-	changes, err := changesFrom([]AccountInput{{Email: req.Email, UUID: req.UUID, Flow: req.Flow, Credential: req.Credential}}, false)
+	return s.reconcile(ctx, req.Scope, req.InboundTags, time.Second, []AccountInput{req.account()}, false)
+}
+
+func (s *Service) reconcile(ctx context.Context, scope Scope, tags []string, timeout time.Duration, accounts []AccountInput, full bool) (SyncResult, error) {
+	selected, err := selectInbounds(scope, tags)
 	if err != nil {
 		return SyncResult{}, err
 	}
-	return s.reconcile(ctx, req.Scope, time.Second, changes, false)
-}
-
-func (s *Service) reconcile(ctx context.Context, scope Scope, timeout time.Duration, changes []change, full bool) (SyncResult, error) {
-	return s.sync(ctx, scope, timeout, func(editor Editor, result *SyncResult) error {
-		plan, err := preparePlan(editor, changes, full)
-		if err != nil {
-			return err
-		}
-		return plan.apply(editor, result)
-	})
-}
-
-func (s *Service) sync(ctx context.Context, scope Scope, timeout time.Duration, apply func(Editor, *SyncResult) error) (SyncResult, error) {
-	var result SyncResult
-	ctx, done, err := s.beginWithin(ctx, scope, timeout)
-	if errors.Is(err, ErrInvalid) {
-		return result, err
+	groups, err := selected.changes(accounts, full)
+	if err != nil {
+		return SyncResult{}, err
 	}
+
+	var result SyncResult
+	ctx, done, err := s.beginWithin(ctx, Scope{InstanceID: selected.instanceID, InboundTag: selected.tags[0]}, timeout)
 	if err == nil {
 		defer done()
-		err = s.engine.Edit(ctx, scope, func(editor Editor) error { return apply(editor, &result) })
+		err = s.engine.Edit(ctx, selected.instanceID, selected.tags, func(editors []Editor) error {
+			return applyPlans(editors, groups, full, &result)
+		})
 	}
 	if errors.Is(err, ErrInvalid) {
 		return SyncResult{}, err

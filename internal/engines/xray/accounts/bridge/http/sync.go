@@ -1,6 +1,7 @@
 package http
 
 import (
+	"bytes"
 	"encoding/json"
 	"net/http"
 
@@ -10,8 +11,16 @@ import (
 func syncUser(service *membership.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
-		var input accountInput
-		if !readBody(w, r, &input) {
+		var input struct {
+			accountInput
+			InboundTags []string `json:"inbound_tags"`
+		}
+		inbound := scope(r)
+		var limit int64 = 8 << 10
+		if inbound.InboundTag == "" {
+			limit = 160 << 10
+		}
+		if !readLimitedBody(w, r, &input, limit) {
 			return
 		}
 		account, err := input.account()
@@ -20,7 +29,7 @@ func syncUser(service *membership.Service) http.HandlerFunc {
 			return
 		}
 		result, err := service.SyncUser(r.Context(), membership.SyncUserRequest{
-			Scope: scope(r), Email: account.Email, UUID: account.UUID, Flow: account.Flow, Credential: account.Credential,
+			Scope: inbound, InboundTags: input.InboundTags, Email: account.Email, UUID: account.UUID, Flow: account.Flow, Credential: account.Credential, Assignments: account.Assignments,
 		})
 		writeSync(w, result, err)
 	}
@@ -39,7 +48,8 @@ func syncUsers(service *membership.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
 		var input struct {
-			Accounts []accountInput `json:"accounts"`
+			Accounts    []accountInput `json:"accounts"`
+			InboundTags []string       `json:"inbound_tags"`
 		}
 		if !readLimitedBody(w, r, &input, 2<<20) {
 			return
@@ -49,7 +59,7 @@ func syncUsers(service *membership.Service) http.HandlerFunc {
 			writeError(w, err)
 			return
 		}
-		result, err := service.SyncUsers(r.Context(), membership.SyncUsersRequest{Scope: scope(r), Accounts: accounts})
+		result, err := service.SyncUsers(r.Context(), membership.SyncUsersRequest{Scope: scope(r), InboundTags: input.InboundTags, Accounts: accounts})
 		writeSync(w, result, err)
 	}
 }
@@ -66,15 +76,37 @@ func optionalUUID(raw json.RawMessage) (*string, error) {
 }
 
 type accountInput struct {
-	Email      string                 `json:"email"`
-	UUID       json.RawMessage        `json:"uuid"`
-	Flow       *string                `json:"flow"`
-	Credential *membership.Credential `json:"credential"`
+	Email       string          `json:"email"`
+	UUID        json.RawMessage `json:"uuid"`
+	Flow        json.RawMessage `json:"flow"`
+	Credential  json.RawMessage `json:"credential"`
+	Assignments []struct {
+		InboundTag string                 `json:"inbound_tag"`
+		Credential *membership.Credential `json:"credential"`
+	} `json:"assignments"`
 }
 
 func (input accountInput) account() (membership.AccountInput, error) {
 	uuid, err := optionalUUID(input.UUID)
-	return membership.AccountInput{Email: input.Email, UUID: uuid, Flow: input.Flow, Credential: input.Credential}, err
+	flow, flowErr := optionalUUID(input.Flow)
+	account := membership.AccountInput{Email: input.Email, UUID: uuid, Flow: flow}
+	if err != nil || flowErr != nil || len(input.Assignments) > membership.MaxSyncInbounds {
+		return account, membership.ErrInvalid
+	}
+	if input.Credential != nil {
+		decoder := json.NewDecoder(bytes.NewReader(input.Credential))
+		decoder.DisallowUnknownFields()
+		if err := decoder.Decode(&account.Credential); err != nil || account.Credential == nil {
+			return account, membership.ErrInvalid
+		}
+	}
+	for _, assignment := range input.Assignments {
+		if assignment.Credential == nil {
+			return account, membership.ErrInvalid
+		}
+		account.Assignments = append(account.Assignments, membership.Assignment{InboundTag: assignment.InboundTag, Credential: *assignment.Credential})
+	}
+	return account, nil
 }
 
 func decodeAccounts(inputs []accountInput) ([]membership.AccountInput, error) {
