@@ -16,6 +16,15 @@ type Run struct {
 }
 
 func Prepare(configFile, runtimeDirectory string) (Run, error) {
+	return prepare(configFile, nil, runtimeDirectory)
+}
+
+// PrepareSource runs the exact bytes selected by Start, using a private file.
+func PrepareSource(source []byte, runtimeDirectory string) (Run, error) {
+	return prepare("", source, runtimeDirectory)
+}
+
+func prepare(configFile string, source []byte, runtimeDirectory string) (Run, error) {
 	dir, err := os.MkdirTemp(runtimeDirectory, "node-xray-")
 	if err != nil {
 		return Run{}, err
@@ -24,6 +33,13 @@ func Prepare(configFile, runtimeDirectory string) (Run, error) {
 	// Linux sockaddr_un has 108 bytes including the terminating NUL.
 	if len(socket) >= 108 {
 		return Run{}, errors.Join(errors.New("xray readiness socket path is too long"), os.RemoveAll(dir))
+	}
+
+	if configFile == "" {
+		configFile = filepath.Join(dir, "input.json")
+		if err := os.WriteFile(configFile, source, 0600); err != nil {
+			return Run{}, errors.Join(err, os.RemoveAll(dir))
+		}
 	}
 
 	// Xray applies the last API block when merging configs.

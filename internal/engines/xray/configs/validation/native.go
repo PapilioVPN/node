@@ -22,7 +22,7 @@ const rejectedExitCode = 23
 // Only numeric source locations are retained from native diagnostics.
 var location = regexp.MustCompile(` > infra/conf/serial: failed to read config file at line ([0-9]{1,9}) char ([0-9]{1,9}) >`)
 
-func runNative(ctx context.Context, config Config) (issue *Issue, err error) {
+func runNative(ctx context.Context, config Config) (*Issue, error) {
 	file, err := os.OpenFile(config.ConfigFile, os.O_RDONLY|syscall.O_NONBLOCK, 0)
 	if err != nil {
 		return nil, err
@@ -39,12 +39,25 @@ func runNative(ctx context.Context, config Config) (issue *Issue, err error) {
 	if err != nil {
 		return nil, err
 	}
+	return check(ctx, config.Executable, run)
+}
+
+// CheckSource validates an exact Start candidate with the executable that would run it.
+func CheckSource(ctx context.Context, executable, runtimeDirectory string, source []byte) (*Issue, error) {
+	run, err := runconfig.PrepareSource(source, runtimeDirectory)
+	if err != nil {
+		return nil, err
+	}
+	return check(ctx, executable, run)
+}
+
+func check(ctx context.Context, executable string, run runconfig.Run) (issue *Issue, err error) {
 	defer func() {
 		if cleanupErr := run.Cleanup(); cleanupErr != nil {
 			err = errors.Join(err, fmt.Errorf("remove validation runtime directory: %w", cleanupErr))
 		}
 	}()
-	cmd := exec.CommandContext(ctx, config.Executable, append(run.Args, "-test")...)
+	cmd := exec.CommandContext(ctx, executable, append(run.Args, "-test")...)
 	cmd.Stdin = bytes.NewReader(run.Overlay)
 	var output diagnostics
 	cmd.Stdout, cmd.Stderr = &output, &output
