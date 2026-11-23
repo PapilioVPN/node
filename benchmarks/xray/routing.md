@@ -141,6 +141,57 @@ verified requests. They recorded zero admission rejections.
 [Per-round CSV](results/2026-11-23-routing-rounds.csv) ·
 [Encoding CSV](results/2026-11-23-routing-encoding.csv)
 
+## Bounded response buffers and focused repeat
+
+The integrated baseline was `dcd48fd`. The updated HTTP rule handler reuses
+response buffers up to 64 KiB. The routing adapter uses a local deadline and
+still cancels the native stream. The pinned rule and balancer reads continue
+their work independently of the server deadline. [Native methods](https://github.com/XTLS/Xray-core/blob/676eaf66f8f05d4d558ee7a74b4736623d3feeb9/app/router/command/command.go#L21-L80)
+
+The single-client comparisons used seven 500 ms rounds before and after the
+change, with the same TLS connections, fixture and pins as above. The
+updated 512-rule comparison used five 400 ms rounds with eight clients on
+each transport. The final single-client repeat used seven one-second
+rounds. Cells give PapilioVPN / PasarGuard. Latencies are in
+microseconds. No requests were rejected.
+
+| Build | Transport | Operation | Clients | p50 µs | p95 µs | Success/s |
+| --- | --- | --- | ---: | ---: | ---: | ---: |
+| Before | HTTP | List 512 | 1 | 1207.6 / 1176.8 | 2797.5 / 2756.5 | 729.1 / 738.0 |
+| Before | HTTP | Balancer | 1 | 360.4 / 378.4 | 692.4 / 740.9 | 2338.0 / 2151.7 |
+| After | HTTP | List 512 | 1 | 1286.1 / 1224.4 | 3013.9 / 2920.8 | 678.4 / 692.3 |
+| After | HTTP | Balancer | 1 | 404.6 / 436.2 | 888.4 / 900.6 | 2064.2 / 1958.0 |
+| After | HTTP | List 512 | 8 | 5983.9 / 7157.6 | 11172.3 / 12822.4 | 1284.9 / 1055.8 |
+| After | gRPC | List 512 | 8 | 5554.1 / 6632.0 | 9710.1 / 11908.3 | 1385.6 / 1157.5 |
+| After, longer rounds | HTTP | List 512 | 1 | 1185.2 / 1218.9 | 3056.8 / 3218.7 | 722.8 / 650.2 |
+
+The single-client balancer p95 gap from the earlier run did not reproduce on
+the integrated baseline or the updated build. The 512-rule list led on all
+three metrics at eight clients on both transports. At one HTTP client, it
+trailed in the 500 ms rounds and led in the one-second repeat. In the
+500 ms run, measured management CPU
+per read was 543 / 671 µs, Xray CPU was 402 / 408 µs and client CPU was
+743 / 582 µs. The client uses JSON for PapilioVPN and protobuf for PasarGuard.
+These process CPU figures include warmup and measure the whole client path.
+
+The encoding measurement uses five 170 ms runs under Go 1.26.11 on CPU 0.
+It gives median Go benchmark values with the same rule tags and output.
+The pooled path is the HTTP handler's writer. The direct path allocates
+a fresh output buffer.
+
+| Rules | Writer | µs/op | B/op | Allocations/op |
+| ---: | --- | ---: | ---: | ---: |
+| 4 | direct | 0.275 | 208 | 1 |
+| 4 | pooled | 0.149 | 0 | 0 |
+| 512 | direct | 22.024 | 24576 | 1 |
+| 512 | pooled | 13.998 | 0 | 0 |
+
+Use the fixture command below with `XRAY_BENCH_ROUTING_RULES=512`,
+`XRAY_BENCH_ROUTING_OPERATION=list`, `XRAY_BENCH_ROUTING_CLIENTS=1`, and
+`XRAY_BENCH_ROUTING_WINDOW=1s` to reproduce the longer comparison.
+
+[Focused round CSV](results/2026-11-23-routing-buffer-tune.csv) · [Encoding CSV](results/2026-11-23-routing-buffer-encoding.csv)
+
 ## Verification
 
 `go vet ./...`, `go test -race ./...` with the stock Xray executable,

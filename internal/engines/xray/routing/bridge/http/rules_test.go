@@ -36,7 +36,9 @@ func TestEncodeRulesPreservesTags(t *testing.T) {
 	for _, rows := range [][]state.Rule{nil, rows} {
 		var standard bytes.Buffer
 		writeStandardRules(&standard, rows)
-		if got, want := encodeRules(rows), standard.Bytes(); !slices.Equal(got, want) {
+		var actual bytes.Buffer
+		writeRules(&actual, rows)
+		if got, want := actual.Bytes(), standard.Bytes(); !slices.Equal(got, want) {
 			t.Fatalf("got %q, want %q", got, want)
 		}
 	}
@@ -55,7 +57,8 @@ func BenchmarkRoutingRuleEncoding(b *testing.B) {
 			write func(io.Writer, []state.Rule)
 		}{
 			{"standard", writeStandardRules},
-			{"direct", func(w io.Writer, rows []state.Rule) { _, _ = w.Write(encodeRules(rows)) }},
+			{"direct", func(w io.Writer, rows []state.Rule) { _, _ = w.Write(appendRules(nil, rows)) }},
+			{"pooled", writeRules},
 		} {
 			b.Run(fmt.Sprintf("%d/%s", size, method.name), func(b *testing.B) {
 				b.ReportAllocs()

@@ -32,7 +32,7 @@ func Register(router chi.Router, service *state.Service) {
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write(encodeRules(rules))
+		writeRules(w, rules)
 	})
 	router.Get(base+"/balancer", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")

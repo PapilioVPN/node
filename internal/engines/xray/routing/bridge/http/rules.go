@@ -2,12 +2,31 @@ package http
 
 import (
 	"encoding/json"
+	"io"
+	"slices"
+	"sync"
 	"unicode/utf8"
 
 	"github.com/PapilioVPN/node/internal/engines/xray/routing/state"
 )
 
-func encodeRules(rules []state.Rule) []byte {
+const maxReusableRulesBuffer = 64 << 10
+
+var rulesBuffers = sync.Pool{New: func() any { return new([]byte) }}
+
+func writeRules(w io.Writer, rules []state.Rule) {
+	buffer := rulesBuffers.Get().(*[]byte)
+	body := appendRules((*buffer)[:0], rules)
+	_, _ = w.Write(body)
+	if cap(body) <= maxReusableRulesBuffer {
+		*buffer = body[:0]
+	} else {
+		*buffer = nil
+	}
+	rulesBuffers.Put(buffer)
+}
+
+func appendRules(body []byte, rules []state.Rule) []byte {
 	const (
 		start       = `{"rules":[`
 		ruleTag     = `{"rule_tag":`
@@ -20,7 +39,7 @@ func encodeRules(rules []state.Rule) []byte {
 		size += len(rule.RuleTag) + len(rule.OutboundTag)
 	}
 
-	body := make([]byte, 0, size)
+	body = slices.Grow(body, size)
 	body = append(body, start...)
 	for i, rule := range rules {
 		if i != 0 {

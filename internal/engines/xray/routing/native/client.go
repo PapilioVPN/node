@@ -4,6 +4,7 @@ package native
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/PapilioVPN/node/internal/engines/xray/routing/state"
 	"google.golang.org/grpc"
@@ -67,12 +68,18 @@ func (client *Client) GetBalancerInfo(ctx context.Context, id, tag string) (stat
 	return info, nil
 }
 
+// The pinned ListRule and GetBalancerInfo handlers do not use the server
+// deadline to interrupt their work. The client still cancels the stream.
+type readContext struct{ context.Context }
+
+func (readContext) Deadline() (time.Time, bool) { return time.Time{}, false }
+
 func (client *Client) invoke(ctx context.Context, id, method string, request, response any, options []grpc.CallOption) error {
 	conn, err := client.instances.NativeConnection(id)
 	if err != nil {
 		return err
 	}
-	err = conn.Invoke(ctx, method, request, response, options...)
+	err = conn.Invoke(readContext{ctx}, method, request, response, options...)
 	if cause := ctx.Err(); cause != nil {
 		return cause
 	}
