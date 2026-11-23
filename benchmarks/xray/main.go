@@ -45,13 +45,14 @@ const (
 var operations = [3]string{"start", "status", "stop"}
 
 type target struct {
-	name    string
-	pid     string
-	call    func(context.Context, operation) error
-	stats   func(context.Context) (uint32, error)
-	traffic func(trafficRead) trafficCall
-	routing routingReads
-	health  func(string) trafficCall
+	name     string
+	pid      string
+	call     func(context.Context, operation) error
+	stats    func(context.Context) (uint32, error)
+	traffic  func(trafficRead) trafficCall
+	routing  routingReads
+	health   func(string) trafficCall
+	accounts accountCalls
 }
 
 func main() {
@@ -60,6 +61,7 @@ func main() {
 	var runtimeStats, outboundHealth bool
 	var outboundCase, outboundSamples string
 	var routing routingWorkload
+	var accounts accountWorkload
 	var routingConfig string
 	var runtimeStatsClients, trafficCase, referenceTrafficConfig string
 	var runtimeStatsWindow time.Duration
@@ -88,6 +90,10 @@ func main() {
 	flag.BoolVar(&outboundHealth, "outbound-health", false, "measure ordinary Observatory reads")
 	flag.StringVar(&outboundCase, "outbound-health-case", "", "run only one or all outbound observations")
 	flag.StringVar(&outboundSamples, "outbound-health-samples", "", "path for compressed per-request outbound health CSV")
+	flag.StringVar(&accounts.runtimeDir, "account-runtime-dir", "", "measure VLESS accounts on the execution in this runtime directory")
+	flag.StringVar(&accounts.generated, "account-reference-generated", "", "PasarGuard's generated fixture config")
+	flag.StringVar(&accounts.samples, "account-samples", "", "write successful account operation latencies to this compressed CSV")
+	flag.IntVar(&accounts.mutations, "account-mutations", 256, "accounts added and removed per measurement round")
 	flag.Parse()
 	if (protocol != "http" && protocol != "grpc") || rounds < 1 || cycles < 1 || reads < 1 {
 		log.Fatal("specify http or grpc and positive workloads")
@@ -96,7 +102,7 @@ func main() {
 	if trafficNames < 0 || trafficNames > 10000 || (trafficNames > 0 && runtimeStats) || (outboundHealth && (runtimeStats || trafficNames > 0)) {
 		log.Fatal("select one benchmark and a traffic account count from 1 to 10000")
 	}
-	if runtimeStats || trafficNames > 0 || routing.rules > 0 || outboundHealth {
+	if runtimeStats || trafficNames > 0 || routing.rules > 0 || outboundHealth || accounts.runtimeDir != "" {
 		if runtimeStatsWindow <= 0 {
 			log.Fatal("runtime statistics window must be positive")
 		}
@@ -113,6 +119,10 @@ func main() {
 		log.Fatal("routing rule mutations use exactly one client")
 	}
 
+	if accounts.runtimeDir != "" && (runtimeStats || outboundHealth || trafficNames != 0 || routing.rules != 0 ||
+		accounts.generated == "" || accounts.mutations < 1 || accounts.mutations > 10000) {
+		log.Fatal("account comparison requires its fixture paths, 1 to 10000 mutations, and no other benchmark")
+	}
 	tlsConfig := &tls.Config{RootCAs: x509.NewCertPool(), MinVersion: tls.VersionTLS13}
 	if !tlsConfig.RootCAs.AppendCertsFromPEM(read(cert)) {
 		log.Fatal("invalid fixture certificate")
@@ -142,7 +152,7 @@ func main() {
 	switch protocol {
 	case "http":
 		transport := &http.Transport{TLSClientConfig: tlsConfig}
-		if runtimeStats || trafficNames > 0 || routing.rules > 0 || outboundHealth {
+		if runtimeStats || trafficNames > 0 || routing.rules > 0 || outboundHealth || accounts.runtimeDir != "" {
 			transport.MaxIdleConnsPerHost = slices.Max(clientCounts)
 		}
 		defer transport.CloseIdleConnections()
@@ -161,6 +171,9 @@ func main() {
 		if runtimeStats {
 			targets[0].stats = runtimeStatsHTTP(client, node, "/v1/xray/instances/primary/stats/runtime", decodeNodeStats)
 			targets[1].stats = runtimeStatsHTTP(client, reference, "/stats/backend", decodeReferenceStats)
+		}
+		if accounts.runtimeDir != "" {
+			targets[0].accounts, targets[1].accounts = accountHTTP(client, node, reference)
 		}
 		if outboundHealth {
 			targets[0].health, targets[1].health = outboundHealthHTTP(client, node, reference)
@@ -217,6 +230,9 @@ func main() {
 		if runtimeStats {
 			targets[0].stats, targets[1].stats = runtimeStatsGRPC(nodeConn, refConn)
 		}
+		if accounts.runtimeDir != "" {
+			targets[0].accounts, targets[1].accounts = accountGRPC(nodeConn, refConn)
+		}
 		if outboundHealth {
 			targets[0].health, targets[1].health = outboundHealthGRPC(nodeConn, refConn)
 		}
@@ -232,6 +248,11 @@ func main() {
 		benchmarkRouting(protocol, targets, routing)
 		return
 	}
+	if accounts.runtimeDir != "" {
+		benchmarkAccounts(protocol, targets, rounds, clientCounts, runtimeStatsWindow, accounts)
+		return
+	}
+
 	if outboundHealth {
 		benchmarkOutboundHealth(protocol, targets, rounds, clientCounts, runtimeStatsWindow, outboundCase, outboundSamples)
 		return

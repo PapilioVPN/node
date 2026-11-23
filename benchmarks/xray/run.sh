@@ -44,7 +44,16 @@ cat > "$work/xray.json" <<'JSON'
   "outbounds": [{"tag":"direct","protocol":"freedom"}]
 }
 JSON
-if [[ ${XRAY_BENCH_ROUTING_RULES:-0} != 0 ]]; then
+if [[ ${XRAY_BENCH_VLESS_ACCOUNTS:-0} == 1 ]]; then
+  cat > "$work/xray.json" <<'JSON'
+{
+  "log":{"loglevel":"none"},
+  "inbounds":[{"tag":"vless","listen":"127.0.0.1","port":24440,"protocol":"vless",
+    "settings":{"clients":[],"decryption":"none"}}],
+  "outbounds":[{"tag":"direct","protocol":"freedom"}]
+}
+JSON
+elif [[ ${XRAY_BENCH_ROUTING_RULES:-0} != 0 ]]; then
   python3 - "$XRAY_BENCH_ROUTING_RULES" "$work" <<'PYTHON'
 import json
 from pathlib import Path
@@ -149,7 +158,12 @@ fi
 
 export GOMAXPROCS=1
 benchmark_args=()
-if [[ ${XRAY_BENCH_ROUTING_RULES:-0} != 0 ]]; then
+if [[ ${XRAY_BENCH_VLESS_ACCOUNTS:-0} == 1 ]]; then
+  benchmark_args+=(-account-runtime-dir "$work/run" -account-reference-generated "$work/generated/xray.json"
+    -account-mutations "${XRAY_BENCH_ACCOUNT_MUTATIONS:-256}"
+    -runtime-stats-clients "${XRAY_BENCH_ACCOUNT_COUNT_CLIENTS:-1,8}"
+    -runtime-stats-window "${XRAY_BENCH_ACCOUNT_COUNT_WINDOW:-550ms}")
+elif [[ ${XRAY_BENCH_ROUTING_RULES:-0} != 0 ]]; then
   benchmark_args+=(-routing-rules "$XRAY_BENCH_ROUTING_RULES" -routing-reference-config "$work/reference-xray.json"
     -routing-runtime-dir "$work/run" -routing-operation "${XRAY_BENCH_ROUTING_OPERATION:-}"
     -runtime-stats-clients "${XRAY_BENCH_ROUTING_CLIENTS:-1,8}"
@@ -182,7 +196,11 @@ for protocol in "${protocols[@]}"; do
     service_protocol=rest
     node_port=20881
   fi
-  NODE_HOST=127.0.0.1 SERVICE_PORT=20883 SERVICE_PROTOCOL=$service_protocol API_KEY=$key \
+  reference_env=()
+  if [[ ${XRAY_BENCH_VLESS_ACCOUNTS:-0} == 1 ]]; then
+    reference_env+=(DEBUG=true)
+  fi
+  env "${reference_env[@]}" NODE_HOST=127.0.0.1 SERVICE_PORT=20883 SERVICE_PROTOCOL=$service_protocol API_KEY=$key \
     SSL_CERT_FILE="$work/cert.pem" SSL_KEY_FILE="$work/key.pem" \
     XRAY_EXECUTABLE_PATH="$work/xray" XRAY_ASSETS_PATH="$(dirname "$xray")" GENERATED_CONFIG_PATH="$work/generated" \
     taskset -c "${XRAY_BENCH_SERVER_CPU:-2}" "$reference" >"$work/reference.log" 2>&1 &
@@ -199,7 +217,9 @@ for protocol in "${protocols[@]}"; do
     fi
   done
   samples=()
-  if [[ ${XRAY_BENCH_ROUTING_RULES:-0} != 0 ]]; then
+  if [[ ${XRAY_BENCH_VLESS_ACCOUNTS:-0} == 1 ]]; then
+    samples+=(-account-samples "$output/$protocol-samples.csv.gz")
+  elif [[ ${XRAY_BENCH_ROUTING_RULES:-0} != 0 ]]; then
     samples+=(-routing-samples "$output/$protocol-samples.csv")
   elif [[ ${XRAY_BENCH_OUTBOUND_HEALTH:-0} == 1 ]]; then
     samples+=(-outbound-health-samples "$output/$protocol-samples.csv.gz")
