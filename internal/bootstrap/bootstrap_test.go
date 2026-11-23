@@ -117,6 +117,9 @@ func TestRunServesAndStopsBothListeners(t *testing.T) {
 			}
 			verifyHostUptime(t, verifyCtx, httpClient, scheme+"://"+httpAddress, config.APIKey, connection)
 			verifyHostMemory(t, verifyCtx, httpClient, scheme+"://"+httpAddress, config.APIKey, connection)
+			if !mode.secure {
+				verifyHostCPU(t, verifyCtx, httpClient, scheme+"://"+httpAddress, connection)
+			}
 
 			if mode.mutual {
 				serverOnlyTLS := grpcConfig.TLS.Clone()
@@ -245,6 +248,62 @@ func verifyHostMemory(t *testing.T, ctx context.Context, client *http.Client, ba
 	err = connection.Invoke(ctx, "/papiliovpn.node.v1.HostService/GetMemory", &emptypb.Empty{}, &grpcSnapshot)
 	if err != nil || grpcSnapshot.GetTotalBytes() != ram*1024 || grpcSnapshot.GetSwapTotalBytes() != swap*1024 {
 		t.Errorf("gRPC memory = %v, %v, want RAM %d bytes and swap %d bytes", &grpcSnapshot, err, ram*1024, swap*1024)
+	}
+}
+
+func verifyHostCPU(t *testing.T, ctx context.Context, client *http.Client, baseURL string, connection *grpc.ClientConn) {
+	t.Helper()
+	var sample struct {
+		BusyPercent        *float64  `json:"busy_percent"`
+		StealPercent       *float64  `json:"steal_percent"`
+		WindowMilliseconds uint64    `json:"window_milliseconds"`
+		ObservedAt         time.Time `json:"observed_at"`
+	}
+	for {
+		request, err := http.NewRequestWithContext(ctx, http.MethodGet, baseURL+"/v1/host/cpu", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		response, err := client.Do(request)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if response.StatusCode == http.StatusOK {
+			err := json.NewDecoder(response.Body).Decode(&sample)
+			response.Body.Close()
+			if err != nil {
+				t.Fatal(err)
+			}
+			break
+		}
+		response.Body.Close()
+		if response.StatusCode != http.StatusServiceUnavailable {
+			t.Fatalf("HTTP CPU status = %d", response.StatusCode)
+		}
+		select {
+		case <-ctx.Done():
+			t.Fatal("CPU sample did not become available")
+		case <-time.After(50 * time.Millisecond):
+		}
+	}
+	if sample.BusyPercent == nil || *sample.BusyPercent < 0 || *sample.BusyPercent > 100 ||
+		sample.WindowMilliseconds == 0 || sample.ObservedAt.IsZero() {
+		t.Fatalf("invalid HTTP CPU sample: %+v", sample)
+	}
+	var rpcSample nodev1.CPUSnapshot
+	if err := connection.Invoke(ctx, "/papiliovpn.node.v1.HostService/GetCPU", &emptypb.Empty{}, &rpcSample); err != nil {
+		t.Fatal(err)
+	}
+	if rpcSample.BusyPercent < 0 || rpcSample.BusyPercent > 100 || rpcSample.WindowMilliseconds == 0 ||
+		rpcSample.ObservedAt == nil || !rpcSample.ObservedAt.IsValid() {
+		t.Fatalf("invalid gRPC CPU sample: %v", &rpcSample)
+	}
+	if sample.ObservedAt.Equal(rpcSample.ObservedAt.AsTime()) {
+		if *sample.BusyPercent != rpcSample.BusyPercent || sample.WindowMilliseconds != rpcSample.WindowMilliseconds ||
+			(sample.StealPercent == nil) != (rpcSample.StealPercent == nil) ||
+			(sample.StealPercent != nil && *sample.StealPercent != rpcSample.GetStealPercent()) {
+			t.Fatalf("different CPU readings for the same timestamp: HTTP %+v, gRPC %v", sample, &rpcSample)
+		}
 	}
 }
 

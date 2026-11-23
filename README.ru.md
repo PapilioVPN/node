@@ -59,6 +59,7 @@ docker run --rm --network=host --read-only --cap-drop ALL \
 | Готовность Node | Проверка готовности интерфейсов управления Node по HTTP и gRPC. |
 | Время работы хоста | Время с момента загрузки Linux в целых секундах по HTTP и gRPC. |
 | Память хоста | Общий и доступный объём ОЗУ, а также общий и свободный объём swap, в байтах по HTTP и gRPC. |
+| Процессор хоста | Суммарная загрузка CPU по HTTP и gRPC. |
 
 <a name="management"></a>
 
@@ -67,6 +68,8 @@ docker run --rm --network=host --read-only --cap-drop ALL \
 HTTP-запрос `GET /v1/host/uptime` возвращает поле `uptime_seconds`. В gRPC метод `HostService.GetUptime` возвращает ту же величину согласно [контракту API хоста](api/v1/host.proto). Оба метода используют часы загрузки из пространства имён времени Linux, доступного Node.
 
 HTTP-запрос `GET /v1/host/memory` и метод gRPC `HostService.GetMemory` читают доступный Node файл Linux `/proc/meminfo`. Значения указаны в байтах. Поле `available_bytes` содержит оценку доступной без подкачки памяти и присутствует, когда ядро сообщает это значение.
+
+HTTP-запрос `GET /v1/host/cpu` и метод gRPC `HostService.GetCPU` возвращают общий замер загрузки процессора Linux, обновляемый примерно раз в секунду. Ответ содержит `busy_percent`, `window_milliseconds`, `observed_at` и `steal_percent`, если его сообщает Linux. Время ожидания ввода-вывода и время, отнятое гипервизором, не входят в загрузку. Пока корректного замера нет, HTTP возвращает `503`, а gRPC возвращает `UNAVAILABLE`.
 
 В примере оба интерфейса привязаны к loopback. HTTP-запрос `GET /healthz` возвращает `204 No Content`, когда Node готов. Служба проверки gRPC на порту 8081 возвращает `SERVING` для пустого имени службы. Для TLS укажите `management.tls.cert_file` и `management.tls.key_file`. Необязательный параметр `management.tls.client_ca_file` включает mTLS, а `management.api_key` задаёт ключ для заголовка или метаданных `x-api-key`.
 

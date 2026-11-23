@@ -10,6 +10,7 @@ import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
 	reflect "reflect"
 	sync "sync"
@@ -92,21 +93,99 @@ func (x *MemorySnapshot) GetSwapFreeBytes() uint64 {
 	return 0
 }
 
+type CPUSnapshot struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Percentage of CPU time spent executing work, in the range [0, 100].
+	BusyPercent float64 `protobuf:"fixed64,1,opt,name=busy_percent,json=busyPercent,proto3" json:"busy_percent,omitempty"`
+	// Percentage of CPU time taken by the hypervisor, when reported by Linux.
+	StealPercent       *float64               `protobuf:"fixed64,2,opt,name=steal_percent,json=stealPercent,proto3,oneof" json:"steal_percent,omitempty"`
+	WindowMilliseconds uint64                 `protobuf:"varint,3,opt,name=window_milliseconds,json=windowMilliseconds,proto3" json:"window_milliseconds,omitempty"`
+	ObservedAt         *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=observed_at,json=observedAt,proto3" json:"observed_at,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *CPUSnapshot) Reset() {
+	*x = CPUSnapshot{}
+	mi := &file_api_v1_host_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CPUSnapshot) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CPUSnapshot) ProtoMessage() {}
+
+func (x *CPUSnapshot) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_host_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CPUSnapshot.ProtoReflect.Descriptor instead.
+func (*CPUSnapshot) Descriptor() ([]byte, []int) {
+	return file_api_v1_host_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *CPUSnapshot) GetBusyPercent() float64 {
+	if x != nil {
+		return x.BusyPercent
+	}
+	return 0
+}
+
+func (x *CPUSnapshot) GetStealPercent() float64 {
+	if x != nil && x.StealPercent != nil {
+		return *x.StealPercent
+	}
+	return 0
+}
+
+func (x *CPUSnapshot) GetWindowMilliseconds() uint64 {
+	if x != nil {
+		return x.WindowMilliseconds
+	}
+	return 0
+}
+
+func (x *CPUSnapshot) GetObservedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ObservedAt
+	}
+	return nil
+}
+
 var File_api_v1_host_proto protoreflect.FileDescriptor
 
 const file_api_v1_host_proto_rawDesc = "" +
 	"\n" +
-	"\x11api/v1/host.proto\x12\x12papiliovpn.node.v1\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1egoogle/protobuf/wrappers.proto\"\xc5\x01\n" +
+	"\x11api/v1/host.proto\x12\x12papiliovpn.node.v1\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1egoogle/protobuf/wrappers.proto\"\xc5\x01\n" +
 	"\x0eMemorySnapshot\x12\x1f\n" +
 	"\vtotal_bytes\x18\x01 \x01(\x04R\n" +
 	"totalBytes\x12,\n" +
 	"\x0favailable_bytes\x18\x02 \x01(\x04H\x00R\x0eavailableBytes\x88\x01\x01\x12(\n" +
 	"\x10swap_total_bytes\x18\x03 \x01(\x04R\x0eswapTotalBytes\x12&\n" +
 	"\x0fswap_free_bytes\x18\x04 \x01(\x04R\rswapFreeBytesB\x12\n" +
-	"\x10_available_bytes2\x99\x01\n" +
+	"\x10_available_bytes\"\xda\x01\n" +
+	"\vCPUSnapshot\x12!\n" +
+	"\fbusy_percent\x18\x01 \x01(\x01R\vbusyPercent\x12(\n" +
+	"\rsteal_percent\x18\x02 \x01(\x01H\x00R\fstealPercent\x88\x01\x01\x12/\n" +
+	"\x13window_milliseconds\x18\x03 \x01(\x04R\x12windowMilliseconds\x12;\n" +
+	"\vobserved_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
+	"observedAtB\x10\n" +
+	"\x0e_steal_percent2\xdc\x01\n" +
 	"\vHostService\x12A\n" +
 	"\tGetUptime\x12\x16.google.protobuf.Empty\x1a\x1c.google.protobuf.UInt64Value\x12G\n" +
-	"\tGetMemory\x12\x16.google.protobuf.Empty\x1a\".papiliovpn.node.v1.MemorySnapshotB*Z(github.com/PapilioVPN/node/api/v1;nodev1b\x06proto3"
+	"\tGetMemory\x12\x16.google.protobuf.Empty\x1a\".papiliovpn.node.v1.MemorySnapshot\x12A\n" +
+	"\x06GetCPU\x12\x16.google.protobuf.Empty\x1a\x1f.papiliovpn.node.v1.CPUSnapshotB*Z(github.com/PapilioVPN/node/api/v1;nodev1b\x06proto3"
 
 var (
 	file_api_v1_host_proto_rawDescOnce sync.Once
@@ -120,22 +199,27 @@ func file_api_v1_host_proto_rawDescGZIP() []byte {
 	return file_api_v1_host_proto_rawDescData
 }
 
-var file_api_v1_host_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
+var file_api_v1_host_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
 var file_api_v1_host_proto_goTypes = []any{
 	(*MemorySnapshot)(nil),         // 0: papiliovpn.node.v1.MemorySnapshot
-	(*emptypb.Empty)(nil),          // 1: google.protobuf.Empty
-	(*wrapperspb.UInt64Value)(nil), // 2: google.protobuf.UInt64Value
+	(*CPUSnapshot)(nil),            // 1: papiliovpn.node.v1.CPUSnapshot
+	(*timestamppb.Timestamp)(nil),  // 2: google.protobuf.Timestamp
+	(*emptypb.Empty)(nil),          // 3: google.protobuf.Empty
+	(*wrapperspb.UInt64Value)(nil), // 4: google.protobuf.UInt64Value
 }
 var file_api_v1_host_proto_depIdxs = []int32{
-	1, // 0: papiliovpn.node.v1.HostService.GetUptime:input_type -> google.protobuf.Empty
-	1, // 1: papiliovpn.node.v1.HostService.GetMemory:input_type -> google.protobuf.Empty
-	2, // 2: papiliovpn.node.v1.HostService.GetUptime:output_type -> google.protobuf.UInt64Value
-	0, // 3: papiliovpn.node.v1.HostService.GetMemory:output_type -> papiliovpn.node.v1.MemorySnapshot
-	2, // [2:4] is the sub-list for method output_type
-	0, // [0:2] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	2, // 0: papiliovpn.node.v1.CPUSnapshot.observed_at:type_name -> google.protobuf.Timestamp
+	3, // 1: papiliovpn.node.v1.HostService.GetUptime:input_type -> google.protobuf.Empty
+	3, // 2: papiliovpn.node.v1.HostService.GetMemory:input_type -> google.protobuf.Empty
+	3, // 3: papiliovpn.node.v1.HostService.GetCPU:input_type -> google.protobuf.Empty
+	4, // 4: papiliovpn.node.v1.HostService.GetUptime:output_type -> google.protobuf.UInt64Value
+	0, // 5: papiliovpn.node.v1.HostService.GetMemory:output_type -> papiliovpn.node.v1.MemorySnapshot
+	1, // 6: papiliovpn.node.v1.HostService.GetCPU:output_type -> papiliovpn.node.v1.CPUSnapshot
+	4, // [4:7] is the sub-list for method output_type
+	1, // [1:4] is the sub-list for method input_type
+	1, // [1:1] is the sub-list for extension type_name
+	1, // [1:1] is the sub-list for extension extendee
+	0, // [0:1] is the sub-list for field type_name
 }
 
 func init() { file_api_v1_host_proto_init() }
@@ -144,13 +228,14 @@ func file_api_v1_host_proto_init() {
 		return
 	}
 	file_api_v1_host_proto_msgTypes[0].OneofWrappers = []any{}
+	file_api_v1_host_proto_msgTypes[1].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_api_v1_host_proto_rawDesc), len(file_api_v1_host_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   1,
+			NumMessages:   2,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

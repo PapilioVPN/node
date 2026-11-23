@@ -41,7 +41,8 @@ container=$(docker run -d --read-only --cap-drop ALL \
 address=$(docker port "$container" 8080/tcp)
 ready=false
 for ((attempt = 0; attempt < 50; attempt++)); do
-  if curl -fs --max-time 1 "http://$address/healthz" >/dev/null; then
+  if curl -fs --max-time 1 "http://$address/healthz" >/dev/null &&
+    curl -fs --max-time 1 "http://$address/v1/host/cpu" >/dev/null; then
     ready=true
     break
   fi

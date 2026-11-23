@@ -10,10 +10,11 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
-func registerGRPC(server *grpc.Server) error {
+func registerGRPC(server *grpc.Server, sampler *services.CPUSampler) error {
 	router, err := bridgegrpc.NewRouter("papiliovpn.node.v1.HostService")
 	if err != nil {
 		return err
@@ -24,7 +25,28 @@ func registerGRPC(server *grpc.Server) error {
 	if err := bridgegrpc.HandleUnary(router, "GetMemory", getMemory); err != nil {
 		return err
 	}
+	if err := bridgegrpc.HandleUnary(router, "GetCPU", getCPU(sampler)); err != nil {
+		return err
+	}
 	return bridgegrpc.Setup(server, router)
+}
+
+func getCPU(sampler *services.CPUSampler) func(context.Context, *emptypb.Empty) (*nodev1.CPUSnapshot, error) {
+	return func(_ context.Context, _ *emptypb.Empty) (*nodev1.CPUSnapshot, error) {
+		sample, ok := sampler.Latest()
+		if !ok {
+			return nil, status.Error(codes.Unavailable, "host CPU sample is unavailable")
+		}
+		snapshot := &nodev1.CPUSnapshot{
+			BusyPercent:        sample.BusyPercent,
+			WindowMilliseconds: uint64(sample.Window.Milliseconds()),
+			ObservedAt:         timestamppb.New(sample.ObservedAt),
+		}
+		if sample.HasSteal {
+			snapshot.StealPercent = &sample.StealPercent
+		}
+		return snapshot, nil
+	}
 }
 
 func getUptime(ctx context.Context, _ *emptypb.Empty) (*wrapperspb.UInt64Value, error) {

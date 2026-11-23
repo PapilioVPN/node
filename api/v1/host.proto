@@ -5,6 +5,7 @@ package papiliovpn.node.v1;
 option go_package = "github.com/PapilioVPN/node/api/v1;nodev1";
 
 import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
 import "google/protobuf/wrappers.proto";
 
 service HostService {
@@ -13,6 +14,10 @@ service HostService {
 
   // Returns a memory snapshot from the Linux procfs visible to Node.
   rpc GetMemory(google.protobuf.Empty) returns (MemorySnapshot);
+
+  // Returns the latest valid interval from the aggregate Linux CPU counters.
+  // The operation returns UNAVAILABLE while no valid interval is available.
+  rpc GetCPU(google.protobuf.Empty) returns (CPUSnapshot);
 }
 
 message MemorySnapshot {
@@ -21,4 +26,13 @@ message MemorySnapshot {
   optional uint64 available_bytes = 2;
   uint64 swap_total_bytes = 3;
   uint64 swap_free_bytes = 4;
+}
+
+message CPUSnapshot {
+  // Percentage of CPU time spent executing work, in the range [0, 100].
+  double busy_percent = 1;
+  // Percentage of CPU time taken by the hypervisor, when reported by Linux.
+  optional double steal_percent = 2;
+  uint64 window_milliseconds = 3;
+  google.protobuf.Timestamp observed_at = 4;
 }
