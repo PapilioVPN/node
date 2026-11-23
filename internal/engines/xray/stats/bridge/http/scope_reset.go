@@ -46,7 +46,9 @@ func resetTrafficScope(service *traffic.Service) http.HandlerFunc {
 }
 
 func appendScopeReport(outcome string, report []traffic.CounterReset) []byte {
-	size := 40 + len(report)*86
+	// Reserve enough for the longest direction and a signed int64 acknowledgement.
+	const counterOverhead = len(`{"name":"","direction":"downlink","result":{"effect":"acknowledged","previous_bytes":-9223372036854775808}},`)
+	size := 40 + len(report)*counterOverhead
 	for i := range report {
 		size += len(report[i].Name)
 	}

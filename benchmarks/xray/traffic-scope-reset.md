@@ -212,3 +212,24 @@ p50 at 5.175 ms before and 4.045 ms after. Node p95 went from 8.410 ms to
 6.799 ms. The reference in the tuned run measured 3.064 ms p50 and
 5.129 ms p95. Both servers had zero rejections in all windows.
 [Per-round data](results/2026-11-23-xray-http-encoding-repeat.csv)
+
+#### Allocation and client decoding
+
+A profile of the HTTP benchmark for 1000 zero-valued counters separated
+the time to receive the response body from client decoding and validation.
+Node's JSON body was 100,036 bytes and PasarGuard's protobuf body was
+34,000 bytes. Their median body-receipt times were 1.944 and 1.979 ms.
+Decoding and validation took 1.764 and 0.732 ms respectively.
+
+The previous capacity estimate grew the response buffer at the end.
+Reserving space for signed acknowledgements reduced the test case from
+221,184 to 122,880 allocated bytes per report, with one allocation
+instead of two. Run the allocator measurement with
+`go test ./internal/engines/xray/stats/bridge/http -run '^$' -bench BenchmarkScopeReportJSON -benchmem`.
+
+The bundled HTTP repeat used 500 accounts, one client, five 700 ms
+windows, server CPU 0 and client CPU 4. The driver retained the phase
+instrumentation for both builds. Node p50/p95 went from 3.577/5.379 ms
+to 3.006/4.891 ms. PasarGuard measured 2.650/4.065 ms in the tuned run.
+Both products processed all requests without rejections.
+[Per-round data](results/2026-11-23-scope-http-allocation.csv)

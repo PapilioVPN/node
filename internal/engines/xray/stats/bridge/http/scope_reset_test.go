@@ -1,6 +1,7 @@
 package http
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/PapilioVPN/node/internal/engines/xray/stats/traffic"
@@ -19,5 +20,24 @@ func TestScopeReportJSON(t *testing.T) {
 	}
 	if got := string(appendScopeReport("complete", nil)); got != "{\"outcome\":\"complete\",\"counters\":[]}\n" {
 		t.Fatalf("empty report: %s", got)
+	}
+}
+
+func BenchmarkScopeReportJSON(b *testing.B) {
+	report := make([]traffic.CounterReset, 1000)
+	for i := range report {
+		row := &report[i]
+		row.Name = fmt.Sprintf("account-%04d", i/2)
+		row.Direction = traffic.Uplink
+		if i%2 != 0 {
+			row.Direction = traffic.Downlink
+		}
+		row.Effect = traffic.ResetAcknowledged
+	}
+	b.ReportAllocs()
+	for b.Loop() {
+		if body := appendScopeReport("complete", report); len(body) != 100036 {
+			b.Fatalf("unexpected report size %d", len(body))
+		}
 	}
 }
