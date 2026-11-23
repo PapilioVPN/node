@@ -2,7 +2,8 @@
 package host
 
 import (
-	"github.com/PapilioVPN/node/internal/host/bridge"
+	hostgrpc "github.com/PapilioVPN/node/internal/host/bridge/grpc"
+	hosthttp "github.com/PapilioVPN/node/internal/host/bridge/http"
 	"github.com/PapilioVPN/node/internal/host/services"
 	"github.com/PapilioVPN/node/internal/settings"
 	"github.com/go-chi/chi/v5"
@@ -20,7 +21,11 @@ func register(httpRouter *chi.Mux, grpcServer *grpc.Server, sampler *services.CP
 	if path == "" {
 		path = "/"
 	}
-	return bridge.Register(httpRouter, grpcServer, sampler, path)
+	if err := hostgrpc.Register(grpcServer, sampler, path); err != nil {
+		return err
+	}
+	hosthttp.Register(httpRouter, sampler, path)
+	return nil
 }
 
 func registerCPUSampler(lifecycle fx.Lifecycle, sampler *services.CPUSampler) {

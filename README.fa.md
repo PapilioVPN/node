@@ -70,7 +70,7 @@ docker run --rm --network=host --read-only --cap-drop ALL \
 
 ## رابط‌های مدیریتی
 
-درخواست HTTP به `GET /v1/host/uptime` فیلد `uptime_seconds` را برمی‌گرداند. عملیات gRPC یعنی `HostService.GetUptime` همین مقدار را مطابق [قرارداد API میزبان](api/v1/host.proto) می‌دهد. هر دو ساعت بوت قابل مشاهده در فضای زمانی لینوکسِ Node را می‌خوانند.
+درخواست HTTP به `GET /v1/host/uptime` فیلد `uptime_seconds` را برمی‌گرداند. عملیات gRPC یعنی `HostService.GetUptime` همین مقدار را مطابق [قرارداد API میزبان](internal/host/bridge/grpc/proto/v1/host.proto) می‌دهد. هر دو ساعت بوت قابل مشاهده در فضای زمانی لینوکسِ Node را می‌خوانند.
 
 درخواست `GET /v1/host/memory` و عملیات `HostService.GetMemory` از `/proc/meminfo` قابل مشاهده برای Node می‌خوانند. همهٔ مقادیر به بایت هستند. فیلد `available_bytes` برآورد کرنل از RAM قابل استفاده بدون swap است و هر وقت کرنل آن را گزارش کند در پاسخ می‌آید.
 
@@ -97,4 +97,10 @@ docker run --rm --network=host --read-only --cap-drop ALL \
 ```bash
 bash scripts/ci/check.sh
 bash scripts/ci/package.sh
+```
+
+بعد از تغییر `host.proto`، پکیج عمومی Go در `api/v1` را دوباره تولید کن. `protoc` نسخهٔ 36.2 و `protoc-gen-go` نسخهٔ v1.36.12 را در `PATH` بگذار و دستور را از ریشهٔ ریپو اجرا کن.
+
+```bash
+go generate ./internal/host/bridge/grpc
 ```

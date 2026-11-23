@@ -1,34 +1,11 @@
-package bridge
+package http
 
 import (
 	"encoding/json"
 	"net/http"
-	"time"
 
 	"github.com/PapilioVPN/node/internal/host/services"
 )
-
-type cpuResponse struct {
-	BusyPercent        float64   `json:"busy_percent"`
-	StealPercent       *float64  `json:"steal_percent,omitempty"`
-	WindowMilliseconds uint64    `json:"window_milliseconds"`
-	ObservedAt         time.Time `json:"observed_at"`
-}
-
-type memoryResponse struct {
-	TotalBytes     uint64  `json:"total_bytes"`
-	AvailableBytes *uint64 `json:"available_bytes,omitempty"`
-	SwapTotalBytes uint64  `json:"swap_total_bytes"`
-	SwapFreeBytes  uint64  `json:"swap_free_bytes"`
-}
-
-type storageResponse struct {
-	Path           string `json:"path"`
-	TotalBytes     uint64 `json:"total_bytes"`
-	UsedBytes      uint64 `json:"used_bytes"`
-	AvailableBytes uint64 `json:"available_bytes"`
-	ReadOnly       bool   `json:"read_only"`
-}
 
 func handleUptime(w http.ResponseWriter, request *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")
@@ -38,9 +15,7 @@ func handleUptime(w http.ResponseWriter, request *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(struct {
-		UptimeSeconds uint64 `json:"uptime_seconds"`
-	}{UptimeSeconds: seconds})
+	_ = json.NewEncoder(w).Encode(uptimeResponse{UptimeSeconds: seconds})
 }
 
 func handleCPU(sampler *services.CPUSampler) http.HandlerFunc {
@@ -88,33 +63,7 @@ func handleSystemStats(sampler *services.CPUSampler, storagePath string) http.Ha
 			http.Error(w, "host system stats are unavailable", http.StatusServiceUnavailable)
 			return
 		}
-		response := struct {
-			UptimeSeconds *uint64          `json:"uptime_seconds,omitempty"`
-			CPU           *cpuResponse     `json:"cpu,omitempty"`
-			Memory        *memoryResponse  `json:"memory,omitempty"`
-			Storage       *storageResponse `json:"storage,omitempty"`
-		}{
-			UptimeSeconds: snapshot.UptimeSeconds,
-			Memory:        (*memoryResponse)(snapshot.Memory),
-			Storage:       (*storageResponse)(snapshot.Storage),
-		}
-		if snapshot.CPU != nil {
-			cpu := cpuHTTPResponse(*snapshot.CPU)
-			response.CPU = &cpu
-		}
 		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(response)
+		_ = json.NewEncoder(w).Encode(systemHTTPResponse(snapshot))
 	}
-}
-
-func cpuHTTPResponse(sample services.CPUSample) cpuResponse {
-	response := cpuResponse{
-		BusyPercent:        sample.BusyPercent,
-		WindowMilliseconds: uint64(sample.Window.Milliseconds()),
-		ObservedAt:         sample.ObservedAt.UTC(),
-	}
-	if sample.HasSteal {
-		response.StealPercent = &sample.StealPercent
-	}
-	return response
 }

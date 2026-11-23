@@ -68,7 +68,7 @@ docker run --rm --network=host --read-only --cap-drop ALL \
 
 ## API управления
 
-HTTP-запрос `GET /v1/host/uptime` возвращает поле `uptime_seconds`. В gRPC метод `HostService.GetUptime` возвращает ту же величину согласно [контракту API хоста](api/v1/host.proto). Оба метода используют часы загрузки из пространства имён времени Linux, доступного Node.
+HTTP-запрос `GET /v1/host/uptime` возвращает поле `uptime_seconds`. В gRPC метод `HostService.GetUptime` возвращает ту же величину согласно [контракту API хоста](internal/host/bridge/grpc/proto/v1/host.proto). Оба метода используют часы загрузки из пространства имён времени Linux, доступного Node.
 
 HTTP-запрос `GET /v1/host/memory` и метод gRPC `HostService.GetMemory` читают доступный Node файл Linux `/proc/meminfo`. Значения указаны в байтах. Поле `available_bytes` содержит оценку доступной без подкачки памяти и присутствует, когда ядро сообщает это значение.
 
@@ -95,4 +95,10 @@ HTTP-запрос `GET /v1/host/stats` и метод gRPC `HostService.GetSystem
 ```bash
 bash scripts/ci/check.sh
 bash scripts/ci/package.sh
+```
+
+После изменения `host.proto` заново сгенерируйте публичный Go-пакет в `api/v1`. Добавьте `protoc` 36.2 и `protoc-gen-go` v1.36.12 в `PATH` и выполните команду из корня репозитория.
+
+```bash
+go generate ./internal/host/bridge/grpc
 ```

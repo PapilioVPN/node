@@ -1,0 +1,65 @@
+package http
+
+import (
+	"time"
+
+	"github.com/PapilioVPN/node/internal/host/services"
+)
+
+type uptimeResponse struct {
+	UptimeSeconds uint64 `json:"uptime_seconds"`
+}
+
+type cpuResponse struct {
+	BusyPercent        float64   `json:"busy_percent"`
+	StealPercent       *float64  `json:"steal_percent,omitempty"`
+	WindowMilliseconds uint64    `json:"window_milliseconds"`
+	ObservedAt         time.Time `json:"observed_at"`
+}
+
+type memoryResponse struct {
+	TotalBytes     uint64  `json:"total_bytes"`
+	AvailableBytes *uint64 `json:"available_bytes,omitempty"`
+	SwapTotalBytes uint64  `json:"swap_total_bytes"`
+	SwapFreeBytes  uint64  `json:"swap_free_bytes"`
+}
+
+type storageResponse struct {
+	Path           string `json:"path"`
+	TotalBytes     uint64 `json:"total_bytes"`
+	UsedBytes      uint64 `json:"used_bytes"`
+	AvailableBytes uint64 `json:"available_bytes"`
+	ReadOnly       bool   `json:"read_only"`
+}
+
+type systemResponse struct {
+	UptimeSeconds *uint64          `json:"uptime_seconds,omitempty"`
+	CPU           *cpuResponse     `json:"cpu,omitempty"`
+	Memory        *memoryResponse  `json:"memory,omitempty"`
+	Storage       *storageResponse `json:"storage,omitempty"`
+}
+
+func cpuHTTPResponse(sample services.CPUSample) cpuResponse {
+	response := cpuResponse{
+		BusyPercent:        sample.BusyPercent,
+		WindowMilliseconds: uint64(sample.Window.Milliseconds()),
+		ObservedAt:         sample.ObservedAt.UTC(),
+	}
+	if sample.HasSteal {
+		response.StealPercent = &sample.StealPercent
+	}
+	return response
+}
+
+func systemHTTPResponse(snapshot services.SystemSnapshot) systemResponse {
+	response := systemResponse{
+		UptimeSeconds: snapshot.UptimeSeconds,
+		Memory:        (*memoryResponse)(snapshot.Memory),
+		Storage:       (*storageResponse)(snapshot.Storage),
+	}
+	if snapshot.CPU != nil {
+		cpu := cpuHTTPResponse(*snapshot.CPU)
+		response.CPU = &cpu
+	}
+	return response
+}

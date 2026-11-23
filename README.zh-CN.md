@@ -68,7 +68,7 @@ docker run --rm --network=host --read-only --cap-drop ALL \
 
 ## 管理 API
 
-HTTP `GET /v1/host/uptime` 返回 `uptime_seconds`。gRPC `HostService.GetUptime` 按照[主机 API 契约](api/v1/host.proto)返回相同的值。两者均读取 Node 所在 Linux 时间命名空间可见的启动时钟。
+HTTP `GET /v1/host/uptime` 返回 `uptime_seconds`。gRPC `HostService.GetUptime` 按照[主机 API 契约](internal/host/bridge/grpc/proto/v1/host.proto)返回相同的值。两者均读取 Node 所在 Linux 时间命名空间可见的启动时钟。
 
 HTTP `GET /v1/host/memory` 和 gRPC `HostService.GetMemory` 读取 Node 可见的 Linux `/proc/meminfo`。所有数值均以字节为单位。`available_bytes` 是内核估算的无需使用交换空间即可使用的内存，只在内核提供该值时返回。
 
@@ -95,4 +95,10 @@ HTTP `GET /v1/host/stats` 和 gRPC `HostService.GetSystemStats` 返回 `uptime_s
 ```bash
 bash scripts/ci/check.sh
 bash scripts/ci/package.sh
+```
+
+修改 `host.proto` 后，重新生成 `api/v1` 中的公共 Go 包。将 `protoc` 36.2 和 `protoc-gen-go` v1.36.12 加入 `PATH`，然后在仓库根目录执行以下命令。
+
+```bash
+go generate ./internal/host/bridge/grpc
 ```

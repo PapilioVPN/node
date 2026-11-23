@@ -65,7 +65,7 @@ docker run --rm --network=host --read-only --cap-drop ALL \
 
 ## Management APIs
 
-HTTP `GET /v1/host/uptime` returns `uptime_seconds`. gRPC `HostService.GetUptime` returns the same quantity using the [Host API contract](api/v1/host.proto). Both read the boot clock visible to Node's Linux time namespace.
+HTTP `GET /v1/host/uptime` returns `uptime_seconds`. gRPC `HostService.GetUptime` returns the same quantity using the [Host API contract](internal/host/bridge/grpc/proto/v1/host.proto). Both read the boot clock visible to Node's Linux time namespace.
 
 HTTP `GET /v1/host/memory` and gRPC `HostService.GetMemory` read the Linux `/proc/meminfo` visible to Node. Counts are in bytes. `available_bytes` is the kernel's estimate of RAM available without swapping and is present when the kernel reports it.
 
@@ -88,4 +88,10 @@ Run the checks with Go 1.26.11 or newer. The packaging command also requires Doc
 ```bash
 bash scripts/ci/check.sh
 bash scripts/ci/package.sh
+```
+
+After editing `host.proto`, regenerate the public Go package in `api/v1`. Use `protoc` 36.2 and `protoc-gen-go` v1.36.12 on `PATH`, then run this command from the repository root.
+
+```bash
+go generate ./internal/host/bridge/grpc
 ```
