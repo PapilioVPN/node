@@ -1,6 +1,6 @@
 module github.com/PapilioVPN/node
 
-go 1.27.3
+go 1.27.4
 
 require (
 	github.com/PapilioVPN/go-bridge v0.0.0-20261122084329-c33340406215

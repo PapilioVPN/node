@@ -34,16 +34,20 @@ write returns HTTP 204 or an empty gRPC acknowledgement.
   Attribute patterns are checked before dispatch because the native router
   compiles them using `regexp.MustCompile` when constructing its conditions.
 - The official SDK pin is `676eaf66f8f0` from Xray 26.11.9. Node's Go pin is
-  1.27.3 to meet the SDK's Go requirement. The rule compiler is linked into
-  Node and the live Xray router still runs in the supervised child process. The
-  measured Linux amd64 executable grew from 21.8 MB to 48.5 MB with the SDK.
+  1.27.4 to meet the SDK's Go requirement and include a standard-library fix.
+  The rule compiler is linked into Node and the live Xray router runs in the
+  supervised child process. The measured Linux amd64 executable grew from
+  21.8 MB to 48.5 MB with the SDK.
+  [Go security fix](https://pkg.go.dev/vuln/GO-2026-6859) ·
   [Pinned CLI compiler](https://github.com/XTLS/Xray-core/blob/676eaf66f8f05d4d558ee7a74b4736623d3feeb9/main/commands/all/api/rules_add.go) ·
   [Pinned router](https://github.com/XTLS/Xray-core/blob/676eaf66f8f05d4d558ee7a74b4736623d3feeb9/app/router/router.go)
 
 ## Verification
 
 The branch passed `go vet ./...`, `go test -race ./...` with stock Xray
-26.11.9, module verification and a Linux amd64 build. The real fixture
+26.11.9, module verification and a Linux amd64 build with Go 1.27.4. The
+local Go vulnerability database reported no reachable issues with this
+toolchain. The real fixture
 checks append precedence, explicit confirmation, replace effects, duplicate
 rejection and present/absent removal on both management APIs. Controlled
 gRPC tests cover a lost acknowledgement, cross-operation fencing and
@@ -51,8 +55,9 @@ serialization.
 
 ## Paired benchmark
 
-Use the [routing read fixture setup](routing.md#reproduce) to build with Go
-1.27.3 and run against PasarGuard 739eab9. Both sides use the same stock
+The initial matrix and optimization runs below use Go 1.27.3. Use the
+[routing read fixture setup](routing.md#reproduce) to build with the same
+toolchain on both sides and run against PasarGuard 739eab9. Both sides use the same stock
 Xray 26.11.9 executable, rule source, order, TLS 1.3, API key and CPU affinity.
 PasarGuard compiles rule JSON via its own pinned Xray SDK. On HTTP it wraps the
 source in protobuf while Node uses an embedded JSON object. The reference has
@@ -139,3 +144,50 @@ Set `XRAY_BENCH_ROUTING_RULES=4`, `XRAY_BENCH_ROUTING_CLIENTS=1` and
 Run the harness once for each value. Set `XRAY_BENCH_TRANSPORTS` to
 isolate a transport. The harness writes individual successful-request samples
 next to the per-round CSV.
+
+
+## Final toolchain comparison
+
+For this rerun, build the two management binaries and the client with Go
+1.27.4. The stock Xray executable and the reference revision stay pinned.
+The patched sweep uses five 500 ms windows. Each focused repeat uses five
+650 ms windows for one operation, one API and one client count. Throughput
+for rule edits excludes fixture re-arming, as in the initial comparison.
+The rules column is zero for operations that do not vary the rule count.
+Cells show PapilioVPN / PasarGuard.
+
+| Phase | API | Operation | Rules | Clients | p50 µs | p95 µs | Success/s |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: |
+| patched | grpc | append | 4 | 1 | 482.8 / 516.0 | 811.8 / 894.0 | 1941.3 / 1697.2 |
+| patched | grpc | clear | 0 | 1 | 335.9 / 416.1 | 576.5 / 721.9 | 2627.4 / 2189.9 |
+| patched | grpc | override | 0 | 1 | 344.8 / 399.6 | 593.4 / 596.6 | 2535.2 / 2314.5 |
+| patched | grpc | remove | 5 | 1 | 418.6 / 445.5 | 686.8 / 760.8 | 2102.2 / 2003.0 |
+| patched | grpc | remove-absent | 4 | 1 | 407.4 / 505.1 | 797.0 / 1004.6 | 2155.4 / 1743.9 |
+| patched | grpc | replace | 1 | 1 | 379.1 / 420.0 | 578.7 / 672.2 | 2488.2 / 2156.5 |
+| patched | grpc | test | 0 | 1 | 481.4 / 482.6 | 715.2 / 804.8 | 1929.3 / 1854.7 |
+| patched | grpc | test | 0 | 8 | 1349.9 / 1316.9 | 3098.1 / 3232.8 | 5251.1 / 5305.7 |
+| patched | http | append | 4 | 1 | 437.5 / 460.5 | 809.3 / 800.6 | 1957.1 / 1930.6 |
+| patched | http | clear | 0 | 1 | 346.9 / 427.5 | 620.8 / 737.7 | 2464.4 / 2033.5 |
+| patched | http | override | 0 | 1 | 799.9 / 751.3 | 1771.4 / 1611.8 | 1111.2 / 1175.8 |
+| patched | http | remove | 5 | 1 | 299.1 / 393.1 | 494.9 / 627.5 | 2993.4 / 2322.5 |
+| patched | http | remove-absent | 4 | 1 | 331.9 / 444.9 | 694.2 / 818.8 | 2483.6 / 1990.4 |
+| patched | http | replace | 1 | 1 | 341.3 / 382.1 | 580.0 / 639.8 | 2520.0 / 2271.8 |
+| patched | http | test | 0 | 1 | 438.5 / 428.3 | 732.1 / 718.0 | 2036.4 / 2076.7 |
+| patched | http | test | 0 | 8 | 1215.9 / 1253.4 | 3032.8 / 2943.7 | 5800.5 / 5606.7 |
+| focus | grpc | test | 0 | 8 | 1275.1 / 1291.0 | 2790.3 / 2921.3 | 5680.7 / 5462.2 |
+| focus | http | append | 4 | 1 | 473.7 / 611.0 | 1043.0 / 1409.7 | 1789.3 / 1376.6 |
+| focus | http | override | 0 | 1 | 314.4 / 344.2 | 548.8 / 606.7 | 2755.2 / 2506.7 |
+| focus | http | test | 0 | 1 | 426.8 / 381.4 | 673.9 / 668.6 | 2103.9 / 2275.2 |
+| focus | http | test | 0 | 8 | 1099.8 / 1117.1 | 2934.8 / 2883.5 | 6237.6 / 6242.3 |
+
+210 windows and 285,405 samples, 0 rejections.
+
+PapilioVPN led on all three metrics in 11 of 16 workloads in the full sweep.
+The focused repeats recovered gRPC TestRoute at eight clients, HTTP append,
+and HTTP override. HTTP TestRoute still trailed on p95 and goodput in both
+focused client counts. In the single-client repeat its management CPU was
+256 / 223 µs per request, while the full sweep measured 245 / 256 µs.
+At eight clients the repeated management CPU was 116 / 116 µs. These shifts
+limit attribution of the HTTP probe differences to a component.
+
+[Go 1.27.4 per-round CSV](results/2026-11-23-routing-go1274-rounds.csv)

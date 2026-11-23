@@ -79,3 +79,7 @@ instructions and set `XRAY_BENCH_ROUTING_RULES=4`,
 Set `XRAY_BENCH_TRANSPORTS` to isolate a transport and
 `XRAY_BENCH_ROUTING_WINDOW` to select the sampling window. The harness saves
 individual successful latency samples next to the per-round CSV.
+
+The [Go 1.27.4 comparison](routing-rule-writes.md#final-toolchain-comparison)
+covers these operations on the final toolchain pin and repeats its lagging
+cases. This page retains the original Go 1.27.3 measurements.
