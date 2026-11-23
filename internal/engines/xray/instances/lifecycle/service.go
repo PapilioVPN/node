@@ -6,6 +6,8 @@ import (
 	"errors"
 	"sync"
 	"time"
+
+	"google.golang.org/grpc"
 )
 
 type Config struct {
@@ -27,12 +29,14 @@ type execution struct {
 	done       chan struct{}
 	finalState State
 	exit       processExit
+	exited     bool
+	conn       *grpc.ClientConn
 }
 
 type Service struct {
 	config Config
 	launch func(Config) (child, error)
-	probe  func(context.Context, string) error
+	probe  func(context.Context, grpc.ClientConnInterface) error
 
 	control  chan struct{}
 	shutdown context.Context
@@ -58,6 +62,20 @@ func (service *Service) GetStatus(id string) (Status, error) {
 	service.mu.RLock()
 	defer service.mu.RUnlock()
 	return Status{ID: id, State: service.state}, nil
+}
+
+// NativeConnection returns the current execution's connection. The lifecycle
+// owner closes it after the process exits.
+func (service *Service) NativeConnection(id string) (*grpc.ClientConn, error) {
+	if service.config.ID == "" || id != service.config.ID {
+		return nil, ErrNotFound
+	}
+	service.mu.RLock()
+	defer service.mu.RUnlock()
+	if service.state != Ready {
+		return nil, ErrNotReady
+	}
+	return service.run.conn, nil
 }
 
 func (service *Service) Start(ctx context.Context, id string) (Status, error) {
@@ -100,20 +118,25 @@ func (service *Service) Start(ctx context.Context, id string) (Status, error) {
 	service.mu.Unlock()
 	go service.wait(run, cancel)
 
+	var conn *grpc.ClientConn
 	probeErr := startCtx.Err()
 	if probeErr == nil {
-		probeErr = service.probe(startCtx, process.socket())
+		conn, probeErr = openNativeConnection(process.socket())
+		if probeErr == nil {
+			probeErr = service.probe(startCtx, conn)
+		}
 	}
 	service.mu.Lock()
 	startErr := startCtx.Err()
-	if probeErr == nil && startErr == nil && service.run == run {
+	if probeErr == nil && startErr == nil && !run.exited {
+		run.conn = conn
 		service.state = Ready
 		service.mu.Unlock()
 		return Status{ID: id, State: Ready}, nil
 	}
 	var failure StartError
 	var exitErr error
-	exited := service.run != run
+	exited := run.exited
 	if exited {
 		failure.Reason = ExitedBeforeReady
 		exitErr = run.exit.err
@@ -134,6 +157,9 @@ func (service *Service) Start(ctx context.Context, id string) (Status, error) {
 	var killErr error
 	if !exited {
 		killErr = process.kill()
+	}
+	if conn != nil {
+		killErr = errors.Join(killErr, conn.Close())
 	}
 	cleanupCtx, cleanupCancel := context.WithTimeout(context.Background(), time.Second)
 	defer cleanupCancel()
@@ -199,9 +225,17 @@ func (service *Service) wait(run *execution, cancelStart context.CancelFunc) {
 	service.mu.Lock()
 	defer service.mu.Unlock()
 	run.exit = exit
+	run.exited = true
+	if run.conn != nil {
+		service.state = Stopping
+		service.mu.Unlock()
+		closeErr := run.conn.Close()
+		service.mu.Lock()
+		run.exit.cleanupErr = errors.Join(exit.cleanupErr, closeErr)
+	}
 	service.run = nil
 	service.state = run.finalState
-	if exit.cleanupErr != nil {
+	if run.exit.cleanupErr != nil {
 		service.state = Failed
 	}
 	close(run.done)

@@ -45,14 +45,16 @@ const (
 var operations = [3]string{"start", "status", "stop"}
 
 type target struct {
-	name string
-	pid  string
-	call func(context.Context, operation) error
+	name  string
+	pid   string
+	call  func(context.Context, operation) error
+	stats func(context.Context) (uint32, error)
 }
 
 func main() {
 	var protocol, node, nodePID, reference, referencePID, cert, descriptor, config string
 	var rounds, cycles, reads int
+	var runtimeStats bool
 	flag.StringVar(&protocol, "transport", "", "http or grpc")
 	flag.StringVar(&node, "node", "", "PapilioVPN Node address")
 	flag.StringVar(&nodePID, "node-pid", "", "PapilioVPN Node PID in this namespace")
@@ -64,6 +66,7 @@ func main() {
 	flag.IntVar(&rounds, "rounds", 5, "alternating rounds")
 	flag.IntVar(&cycles, "cycles", 30, "lifecycle cycles per node per round")
 	flag.IntVar(&reads, "reads", 12, "status reads per running instance per cycle")
+	flag.BoolVar(&runtimeStats, "runtime-stats", false, "measure backend runtime statistics")
 	flag.Parse()
 	if (protocol != "http" && protocol != "grpc") || rounds < 1 || cycles < 1 || reads < 1 {
 		log.Fatal("specify http or grpc and positive workloads")
@@ -98,6 +101,10 @@ func main() {
 			[3]string{"/start", "/info", "/stop"}, payload, func(op operation, data []byte) error {
 				return verifyReference(op, methods.ByName("GetBaseInfo").Output(), data)
 			})
+		if runtimeStats {
+			targets[0].stats = runtimeStatsHTTP(client, node, "/v1/xray/instances/primary/stats/runtime", decodeNodeStats)
+			targets[1].stats = runtimeStatsHTTP(client, reference, "/stats/backend", decodeReferenceStats)
+		}
 	case "grpc":
 		nodeConn, err := grpc.NewClient(node, grpc.WithTransportCredentials(credentials.NewTLS(tlsConfig)))
 		check(err)
@@ -140,6 +147,14 @@ func main() {
 			}
 			return nil
 		}
+		if runtimeStats {
+			targets[0].stats, targets[1].stats = runtimeStatsGRPC(nodeConn, refConn)
+		}
+	}
+
+	if runtimeStats {
+		benchmarkRuntimeStats(protocol, targets, rounds)
+		return
 	}
 
 	output := csv.NewWriter(os.Stdout)

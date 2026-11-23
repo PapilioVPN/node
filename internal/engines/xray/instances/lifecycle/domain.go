@@ -5,6 +5,7 @@ import "errors"
 var (
 	ErrNotFound    = errors.New("xray instance not found")
 	ErrBusy        = errors.New("xray instance is changing state")
+	ErrNotReady    = errors.New("xray instance is not ready")
 	ErrUnavailable = errors.New("xray instance manager is shutting down")
 	ErrStartFailed = errors.New("xray failed to start")
 	ErrStopFailed  = errors.New("xray failed to stop")

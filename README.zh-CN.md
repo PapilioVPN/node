@@ -65,6 +65,7 @@ docker run --rm --network=host --read-only --cap-drop ALL \
 | 主机概览 | 在一次响应中获取运行时间、CPU、内存和存储信息。 |
 | Xray 实例 | 通过 HTTP 和 gRPC 启动、查询状态和停止一个已配置的实例，并返回结构化启动错误。 |
 | Xray 配置验证 | 通过 HTTP 和 gRPC 在重启实例之前验证已配置的 JSON。 |
+| Xray 运行统计 | 通过 HTTP 和 gRPC 查询活动实例的运行时间、内存分配、goroutine 和垃圾回收计数。 |
 
 <a name="management"></a>
 
@@ -87,6 +88,8 @@ HTTP `GET /v1/host/stats` 和 gRPC `HostService.GetSystemStats` 返回 `uptime_s
 启动失败时，HTTP 返回 `503` 和 JSON `reason` 字段，gRPC 返回 `UNAVAILABLE` 和 `XrayStartFailure` 详情。原因包括 `launch_failed`、`exited_before_ready`、`readiness_timeout` 和 `readiness_failed`。如果 Xray 在就绪前退出并返回退出码，响应会包含 `exit_code`。
 
 发送空请求体的 `POST /v1/xray/instances/{id}/config-validations`，或使用实例 ID 调用 `XrayConfigsService.ValidateConfig`。Node 使用与启动时相同的选项验证配置文件。无效配置返回 `valid: false` 和问题代码，并在 Xray 提供时返回行号和列号。验证执行失败时返回 API 错误。[gRPC 接口](internal/engines/xray/configs/bridge/grpc/proto/v1/configs.proto)
+
+使用 `GET /v1/xray/instances/{id}/stats/runtime` 或 `XrayStatsService.GetRuntimeStats`。每个响应都直接读取正在运行的 Xray 实例。内存以字节计，运行时间以 Xray 统计服务启动后的整秒计，GC 累计暂停以纳秒计。实例不可用时，HTTP 返回 `503`，gRPC 返回 `UNAVAILABLE`。最多允许 32 个并发读取。超过上限时，HTTP 返回 `429`，gRPC 返回 `RESOURCE_EXHAUSTED`。[gRPC 接口](internal/engines/xray/stats/bridge/grpc/proto/v1/runtime_stats.proto)
 
 示例中的两个监听端口都绑定到环回地址。Node 就绪时，HTTP `GET /healthz` 返回 `204 No Content`。端口 8081 上的 gRPC 健康检查对空服务名返回 `SERVING`。设置 `management.tls.cert_file` 和 `management.tls.key_file` 可启用 TLS。可选项 `management.tls.client_ca_file` 启用 mTLS，`management.api_key` 用于 `x-api-key` 请求头或元数据。
 

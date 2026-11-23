@@ -6,12 +6,14 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"google.golang.org/grpc"
 )
 
 func TestStatusDuringStartAndConflictingMutations(t *testing.T) {
 	process := newTestChild(t)
 	probing, ready := make(chan struct{}), make(chan struct{})
-	service := newTestService(t, process, func(ctx context.Context, _ string) error {
+	service := newTestService(t, process, func(ctx context.Context, _ grpc.ClientConnInterface) error {
 		close(probing)
 		select {
 		case <-ready:
@@ -50,7 +52,7 @@ func TestStatusDuringStartAndConflictingMutations(t *testing.T) {
 func TestCanceledStartReapsChild(t *testing.T) {
 	process := newTestChild(t)
 	probing := make(chan struct{})
-	service := newTestService(t, process, func(ctx context.Context, _ string) error {
+	service := newTestService(t, process, func(ctx context.Context, _ grpc.ClientConnInterface) error {
 		close(probing)
 		<-ctx.Done()
 		return ctx.Err()
@@ -79,7 +81,7 @@ func TestCanceledStartReapsChild(t *testing.T) {
 func TestReadinessErrorPreservesCause(t *testing.T) {
 	cause := errors.New("readiness probe rejected")
 	process := newTestChild(t)
-	service := newTestService(t, process, func(context.Context, string) error { return cause })
+	service := newTestService(t, process, func(context.Context, grpc.ClientConnInterface) error { return cause })
 	_, err := service.Start(t.Context(), "primary")
 	var failure *StartError
 	if !errors.As(err, &failure) || failure.Reason != ReadinessFailed || failure.ExitCode != nil ||
@@ -91,7 +93,7 @@ func TestReadinessErrorPreservesCause(t *testing.T) {
 
 func TestUnexpectedExitIsObserved(t *testing.T) {
 	process := newTestChild(t)
-	service := newTestService(t, process, func(context.Context, string) error { return nil })
+	service := newTestService(t, process, func(context.Context, grpc.ClientConnInterface) error { return nil })
 	if _, err := service.Start(t.Context(), "primary"); err != nil {
 		t.Fatal(err)
 	}
@@ -106,7 +108,7 @@ func TestUnexpectedExitIsObserved(t *testing.T) {
 func TestCloseCancelsStartAndRejectsFurtherMutations(t *testing.T) {
 	process := newTestChild(t)
 	probing := make(chan struct{})
-	service := newTestService(t, process, func(ctx context.Context, _ string) error {
+	service := newTestService(t, process, func(ctx context.Context, _ grpc.ClientConnInterface) error {
 		close(probing)
 		<-ctx.Done()
 		return ctx.Err()
@@ -129,7 +131,7 @@ func TestCloseCancelsStartAndRejectsFurtherMutations(t *testing.T) {
 	}
 }
 
-func newTestService(t *testing.T, process child, probe func(context.Context, string) error) *Service {
+func newTestService(t *testing.T, process child, probe func(context.Context, grpc.ClientConnInterface) error) *Service {
 	t.Helper()
 	service := New(Config{ID: "primary"})
 	service.launch = func(Config) (child, error) { return process, nil }

@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package papiliovpn.xray.native;
+option go_package = "github.com/PapilioVPN/node/internal/engines/xray/stats/native";
+
+// Wire response for GetSysStats in Xray v26.11.9.
+// https://github.com/XTLS/Xray-core/blob/676eaf66f8f05d4d558ee7a74b4736623d3feeb9/app/stats/command/command.proto
+message SysStatsResponse {
+  uint32 num_goroutine = 1;
+  uint32 num_gc = 2;
+  uint64 alloc = 3;
+  uint64 total_alloc = 4;
+  uint64 sys = 5;
+  uint64 mallocs = 6;
+  uint64 frees = 7;
+  uint64 live_objects = 8;
+  uint64 pause_total_ns = 9;
+  uint32 uptime = 10;
+}

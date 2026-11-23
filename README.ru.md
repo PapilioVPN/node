@@ -65,6 +65,7 @@ docker run --rm --network=host --read-only --cap-drop ALL \
 | Сводка хоста | Время работы, загрузка CPU, память и хранилище в одном ответе. |
 | Экземпляр Xray | Запуск, чтение состояния и остановка одного настроенного экземпляра по HTTP и gRPC с типизированными ошибками запуска. |
 | Проверка конфигурации Xray | Проверка настроенного JSON по HTTP и gRPC перед перезапуском экземпляра. |
+| Статистика Xray | Время работы, выделение памяти, количество горутин и счётчики сборки мусора активного экземпляра по HTTP и gRPC. |
 
 <a name="management"></a>
 
@@ -87,6 +88,8 @@ HTTP-запрос `GET /v1/host/stats` и метод gRPC `HostService.GetSystem
 При сбое запуска HTTP возвращает `503` с полем JSON `reason`, а gRPC возвращает `UNAVAILABLE` с деталями `XrayStartFailure`. Возможные причины: `launch_failed`, `exited_before_ready`, `readiness_timeout` и `readiness_failed`. Если Xray завершился до готовности и вернул код, ответ содержит `exit_code`.
 
 Отправьте пустой запрос `POST /v1/xray/instances/{id}/config-validations` или вызовите `XrayConfigsService.ValidateConfig` с идентификатором экземпляра. Node проверяет настроенный файл с теми же параметрами, что при запуске. Недопустимая конфигурация возвращает `valid: false` и код проблемы, а также строку и столбец, если их сообщил Xray. Сбой выполнения проверки возвращает ошибку API. [Контракт gRPC](internal/engines/xray/configs/bridge/grpc/proto/v1/configs.proto)
+
+Используйте `GET /v1/xray/instances/{id}/stats/runtime` или `XrayStatsService.GetRuntimeStats`. Каждый ответ читается из активного процесса Xray. Память измеряется в байтах, время работы — в целых секундах с запуска службы статистики Xray, суммарная пауза GC — в наносекундах. Для недоступного экземпляра HTTP возвращает `503`, а gRPC — `UNAVAILABLE`. Поддерживается до 32 одновременных чтений. Сверх лимита HTTP возвращает `429`, а gRPC — `RESOURCE_EXHAUSTED`. [Контракт gRPC](internal/engines/xray/stats/bridge/grpc/proto/v1/runtime_stats.proto)
 
 В примере оба интерфейса привязаны к loopback. HTTP-запрос `GET /healthz` возвращает `204 No Content`, когда Node готов. Служба проверки gRPC на порту 8081 возвращает `SERVING` для пустого имени службы. Для TLS укажите `management.tls.cert_file` и `management.tls.key_file`. Необязательный параметр `management.tls.client_ca_file` включает mTLS, а `management.api_key` задаёт ключ для заголовка или метаданных `x-api-key`.
 

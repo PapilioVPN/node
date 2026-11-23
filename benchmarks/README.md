@@ -115,3 +115,22 @@ The rerun uses the Xray lifecycle fixture above with five rounds, six cold start
 | gRPC | Stop | 4.008 | 4.961 |
 
 Use `XRAY_BENCH_CYCLES=6` with the reproduction command in the lifecycle section. [HTTP per-round results](xray/results/2026-11-23-startup-details-http.csv) · [gRPC per-round results](xray/results/2026-11-23-startup-details-grpc.csv)
+
+## Xray runtime statistics
+
+This run compares PapilioVPN `GetRuntimeStats` and PasarGuard `GetBackendStats`. Both read the same ten fields through one native `GetSysStats` call on Xray v26.11.9. The table shows the median of seven per-round percentiles in milliseconds.
+
+| Transport | Concurrent clients | PapilioVPN p50 | PapilioVPN p95 | PasarGuard p50 | PasarGuard p95 |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| HTTP | 1 | 0.825 | 2.286 | 0.785 | 2.283 |
+| HTTP | 8 | 1.917 | 4.454 | 2.026 | 4.724 |
+| gRPC | 1 | 1.320 | 4.016 | 1.224 | 3.542 |
+| gRPC | 8 | 2.447 | 4.748 | 2.647 | 5.531 |
+
+PapilioVPN had lower p50 and p95 with eight clients on both transports in this run. PasarGuard had lower single-client p50 on both transports. The per-round distributions overlap. The test compares the public HTTP APIs using their respective JSON and protobuf encodings.
+
+In a local diagnostic with 4,000 reads per path on one active Unix connection, median latency was 150 µs for a direct native RPC and 164 µs through the Node statistics service. This isolates the service's contribution from TLS and public response encoding.
+
+The CPU affinity, TLS, fixture and build settings match the lifecycle fixture above. The client waited until the native Xray statistics uptime was at least one second, warmed each connection, then measured a 450 ms polling window. Server and client-count order alternate across rounds. Use `XRAY_BENCH_RUNTIME_STATS=1 XRAY_BENCH_ROUNDS=7` with the lifecycle reproduction command.
+
+[HTTP per-round results](xray/results/2026-11-23-runtime-stats-http.csv) · [gRPC per-round results](xray/results/2026-11-23-runtime-stats-grpc.csv)

@@ -11,13 +11,16 @@ import (
 	grpcserver "google.golang.org/grpc"
 )
 
-var Module = fx.Module("xray-instances", fx.Invoke(register))
+var Module = fx.Module("xray-instances", fx.Provide(newService), fx.Invoke(register))
 
-func register(life fx.Lifecycle, config settings.Xray, router *chi.Mux, server *grpcserver.Server) {
+func newService(config settings.Xray) *lifecycle.Service {
+	return lifecycle.New(lifecycle.Config(config))
+}
+
+func register(life fx.Lifecycle, config settings.Xray, service *lifecycle.Service, router *chi.Mux, server *grpcserver.Server) {
 	if !config.Enabled() {
 		return
 	}
-	service := lifecycle.New(lifecycle.Config(config))
 	life.Append(fx.Hook{OnStop: service.Close})
 	http.Register(router, service)
 	grpc.Register(server, service)

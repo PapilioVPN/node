@@ -60,6 +60,10 @@ xray:
 YAML
 
 export GOMAXPROCS=1
+benchmark_args=()
+if [[ ${XRAY_BENCH_RUNTIME_STATS:-0} == 1 ]]; then
+  benchmark_args+=(-runtime-stats)
+fi
 taskset -c "${XRAY_BENCH_SERVER_CPU:-2}" "$node" -config "$work/node.yml" >"$work/node.log" 2>&1 &
 node_pid=$!
 for protocol in http grpc; do
@@ -85,7 +89,7 @@ for protocol in http grpc; do
       exit 1
     fi
   done
-  if ! taskset -c "${XRAY_BENCH_CLIENT_CPU:-4}" "$client" -transport "$protocol" \
+  if ! taskset -c "${XRAY_BENCH_CLIENT_CPU:-4}" "$client" "${benchmark_args[@]}" -transport "$protocol" \
     -node "127.0.0.1:$node_port" -node-pid "$node_pid" -reference 127.0.0.1:20883 \
     -reference-pid "$reference_pid" -cert "$work/cert.pem" -reference-proto "$descriptor" \
     -config "$work/xray.json" -rounds "${XRAY_BENCH_ROUNDS:-5}" -cycles "${XRAY_BENCH_CYCLES:-30}" \

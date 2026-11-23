@@ -62,6 +62,7 @@ docker run --rm --network=host --read-only --cap-drop ALL \
 | Host system stats | Fetch uptime, CPU, memory and storage in one response. |
 | Xray instance | Start, read lifecycle state, and stop one configured instance over HTTP and gRPC, with typed startup failures. |
 | Xray config validation | Check the configured Xray JSON over HTTP and gRPC before restarting the instance. |
+| Xray runtime statistics | Read the active instance’s uptime, memory allocation, goroutines, and garbage collection counters over HTTP and gRPC. |
 
 <a name="management"></a>
 
@@ -84,6 +85,8 @@ Use `GET /v1/xray/instances/{id}` for status and `PUT` or `DELETE /v1/xray/insta
 A startup failure returns HTTP `503` with a JSON `reason` or gRPC `UNAVAILABLE` with `XrayStartFailure` details. The reasons are `launch_failed`, `exited_before_ready`, `readiness_timeout`, and `readiness_failed`. The response includes `exit_code` when Xray supplied one after exiting before readiness.
 
 Send an empty `POST /v1/xray/instances/{id}/config-validations` or call `XrayConfigsService.ValidateConfig` with the instance ID. Node tests the configured file with the same options used for startup. An invalid file returns `valid: false` and an issue code, with a line and column when Xray reports them. An execution failure returns an API error. [gRPC contract](internal/engines/xray/configs/bridge/grpc/proto/v1/configs.proto)
+
+Use `GET /v1/xray/instances/{id}/stats/runtime` or `XrayStatsService.GetRuntimeStats`. Each response reads the active Xray execution directly. Memory fields report bytes, uptime counts whole seconds since the Xray stats service started, and cumulative GC pause is in nanoseconds. A configured instance that is unavailable returns HTTP `503` or gRPC `UNAVAILABLE`. A maximum of 32 simultaneous reads is admitted. Extra reads return HTTP `429` or gRPC `RESOURCE_EXHAUSTED`. [gRPC contract](internal/engines/xray/stats/bridge/grpc/proto/v1/runtime_stats.proto)
 
 The example binds both listeners to loopback. HTTP `GET /healthz` returns `204 No Content` when ready. The gRPC health service on port 8081 reports `SERVING` for the empty service name. Set `management.tls.cert_file` and `management.tls.key_file` to enable TLS. Optionally configure `management.tls.client_ca_file` for mutual TLS and `management.api_key` for the `x-api-key` header or metadata.
 
