@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package papiliovpn.node.v1;
+
+option go_package = "github.com/PapilioVPN/node/internal/engines/xray/instances/bridge/grpc/proto/v1;instancesv1";
+
+service XrayInstancesService {
+  // Starts the configured instance and waits for its native API to respond.
+  rpc Start(XrayInstanceRequest) returns (XrayInstanceStatus);
+  // Returns the last state observed by the lifecycle owner.
+  rpc GetStatus(XrayInstanceRequest) returns (XrayInstanceStatus);
+  // Stops and reaps the instance before returning success.
+  rpc Stop(XrayInstanceRequest) returns (XrayInstanceStatus);
+}
+
+message XrayInstanceRequest {
+  string id = 1;
+}
+
+enum XrayInstanceState {
+  XRAY_INSTANCE_STATE_UNSPECIFIED = 0;
+  XRAY_INSTANCE_STATE_STOPPED = 1;
+  XRAY_INSTANCE_STATE_STARTING = 2;
+  XRAY_INSTANCE_STATE_READY = 3;
+  XRAY_INSTANCE_STATE_STOPPING = 4;
+  XRAY_INSTANCE_STATE_FAILED = 5;
+}
+
+message XrayInstanceStatus {
+  string id = 1;
+  XrayInstanceState state = 2;
+}

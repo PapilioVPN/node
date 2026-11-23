@@ -16,6 +16,16 @@ jobs:
       - uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c # v6.1.0
         with:
           go-version-file: go.mod
+      - name: Prepare Xray integration fixture
+        run: |
+          fixture="$RUNNER_TEMP/node-xray"
+          mkdir -p "$fixture"
+          curl --fail --location --retry 3 --output "$fixture/xray.zip" \
+            https://github.com/XTLS/Xray-core/releases/download/v26.11.9/Xray-linux-64.zip
+          printf '%s  %s\n' b651f7e1d9966ee2c1b1ee1bf8b52c72771824d3065dce96bbc8bcc19ed95f82 "$fixture/xray.zip" | sha256sum -c
+          unzip -q "$fixture/xray.zip" xray -d "$fixture"
+          chmod +x "$fixture/xray"
+          printf 'NODE_TEST_XRAY=%s\n' "$fixture/xray" >> "$GITHUB_ENV"
       - run: bash scripts/ci/check.sh
       - id: package
         run: bash scripts/ci/package.sh

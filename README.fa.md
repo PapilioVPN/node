@@ -65,6 +65,7 @@ docker run --rm --network=host --read-only --cap-drop ALL \
 | پردازندهٔ میزبان | خواندن درصد مصرف کل CPU از طریق HTTP و gRPC. |
 | فضای ذخیره‌سازی میزبان | بررسی ظرفیت و وضعیت فقط‌خواندنی فایل‌سیستمِ مسیر تنظیم‌شده. |
 | گزارش کلی میزبان | دریافت uptime، CPU، حافظه و فضای ذخیره‌سازی در یک پاسخ. |
+| نمونهٔ Xray | راه‌اندازی، خواندن وضعیت و توقف یک نمونهٔ تنظیم‌شده از طریق HTTP و gRPC. |
 
 <a name="management"></a>
 
@@ -80,13 +81,17 @@ docker run --rm --network=host --read-only --cap-drop ALL \
 
 درخواست `GET /v1/host/stats` و عملیات `HostService.GetSystemStats` فیلدهای `uptime_seconds`، `cpu`، `memory` و `storage` را با داده‌ها و واحدهای APIهای تکی می‌دهند. فیلدهای در دسترس‌نبودنی در پاسخ نمی‌آیند. برای نمونه، `cpu` بعد از آماده‌شدن اولین نمونه می‌آید.
 
+برای فعال‌کردن یک نمونه، `xray.id`، `xray.executable` و `xray.config_file` را طبق [نمونهٔ تنظیمات](deploy/config.example.yml) تنظیم کن. از Xray نسخهٔ v26.11.9 و فایل JSON تحت کنترل اپراتور استفاده کن. Node موقع راه‌اندازی بخش `api` را با یک سوکت یونیکس خصوصی برای بررسی آمادگی جایگزین می‌کند. در Docker باینری و فایل JSON را mount کن و به کمک گزینه‌ای مثل `--tmpfs /tmp` یک مسیر قابل‌نوشتن بده. مدیریت راه‌دور Xray به TLS با کلید API یا CA کلاینت نیاز دارد.
+
+برای وضعیت از `GET /v1/xray/instances/{id}` و برای راه‌اندازی و توقف از `PUT` و `DELETE /v1/xray/instances/{id}/execution` با بدنهٔ خالی استفاده کن. [قرارداد gRPC](internal/engines/xray/instances/bridge/grpc/proto/v1/instances.proto) عملیات `XrayInstancesService.Start`، `GetStatus` و `Stop` را دارد. راه‌اندازی منتظر پاسخ API بومی می‌ماند و توقف پس از خروج فرایند تمام می‌شود.
+
 در نمونه، هر دو listener روی loopback باز می‌شوند. درخواست HTTP به `GET /healthz` هنگام آمادگی پاسخ `204 No Content` دارد. سرویس health در gRPC روی پورت 8081 برای نام سرویس خالی وضعیت `SERVING` را می‌دهد. برای فعال‌کردن TLS، فیلدهای `management.tls.cert_file` و `management.tls.key_file` را تنظیم کن. فیلد `management.tls.client_ca_file` برای mTLS و `management.api_key` برای هدر یا متادیتای `x-api-key` اختیاری‌اند.
 
 <a name="benchmarks"></a>
 
 ## بنچمارک‌ها
 
-[گزارش بنچمارک Host](benchmarks/README.md) مقایسهٔ HTTP و gRPC با PasarGuard 0.5.7، نتایج هر دور و دستور اندازه‌گیری خواندن اطلاعات میزبان از لینوکس را دارد.
+[گزارش بنچمارک](benchmarks/README.md) مقایسهٔ Host و Xray با PasarGuard 0.5.7، نتایج هر دور و روش بازتولید اندازه‌گیری‌ها را دارد.
 
 <a name="development"></a>
 

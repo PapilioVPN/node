@@ -20,7 +20,17 @@ const maxBytes = 64 << 10
 type Config struct {
 	Management Management `yaml:"management"`
 	Host       Host       `yaml:"host"`
+	Xray       Xray       `yaml:"xray"`
 }
+
+type Xray struct {
+	ID               string `yaml:"id"`
+	Executable       string `yaml:"executable"`
+	ConfigFile       string `yaml:"config_file"`
+	RuntimeDirectory string `yaml:"runtime_directory"`
+}
+
+func (config Xray) Enabled() bool { return config.ID != "" }
 
 type Host struct {
 	StoragePath string `yaml:"storage_path"`
@@ -87,7 +97,59 @@ func Load(path string) (Config, error) {
 	if storagePath != "" && (!filepath.IsAbs(storagePath) || len(storagePath) > 4095 || strings.ContainsRune(storagePath, 0)) {
 		return Config{}, errors.New("host.storage_path must be an absolute Linux path of at most 4095 bytes without NUL")
 	}
+	if err := config.validateXray(dir); err != nil {
+		return Config{}, err
+	}
 	return config, nil
+}
+
+func (config *Config) validateXray(dir string) error {
+	xray := &config.Xray
+	if *xray == (Xray{}) {
+		return nil
+	}
+	if !validInstanceID(xray.ID) {
+		return errors.New("xray.id must be 1 to 63 lowercase ASCII letters, digits or hyphens, starting and ending with a letter or digit")
+	}
+	if xray.Executable == "" || xray.ConfigFile == "" {
+		return errors.New("xray requires executable and config_file")
+	}
+	for _, path := range []*string{&xray.Executable, &xray.ConfigFile, &xray.RuntimeDirectory} {
+		if *path == "" {
+			continue
+		}
+		if strings.ContainsRune(*path, 0) {
+			return errors.New("xray paths must not contain NUL")
+		}
+		absolute, err := filepath.Abs(resolve(dir, *path))
+		if err != nil {
+			return fmt.Errorf("resolve xray path: %w", err)
+		}
+		*path = absolute
+	}
+	management := config.Management
+	if management.APIKey == "" && management.TLS.ClientCAFile == "" {
+		for _, address := range []string{management.HTTPAddress, management.GRPCAddress} {
+			host, _, _ := net.SplitHostPort(address)
+			if !net.ParseIP(host).IsLoopback() {
+				return errors.New("remote xray management requires TLS with an API key or a client CA")
+			}
+		}
+	}
+	return nil
+}
+
+func validInstanceID(id string) bool {
+	if id == "" || len(id) > 63 || id[0] == '-' || id[len(id)-1] == '-' {
+		return false
+	}
+	for i := range len(id) {
+		c := id[i]
+		if (c < 'a' || c > 'z') && (c < '0' || c > '9') && c != '-' {
+			return false
+		}
+	}
+	return true
 }
 
 func validateAddress(address string) error {

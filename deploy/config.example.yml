@@ -5,3 +5,11 @@ management:
 host:
   # Set this to an absolute path on the volume that stores your Node data or logs.
   storage_path: "/"
+
+# Optional single Xray instance. Use Xray v26.11.9 with an operator-owned JSON file.
+# Node installs a private API listener for readiness while loading the config.
+# xray:
+#   id: "primary"
+#   executable: "/usr/local/bin/xray"
+#   config_file: "/etc/xray/config.json"
+#   runtime_directory: "/tmp"

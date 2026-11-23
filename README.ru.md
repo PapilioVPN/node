@@ -63,6 +63,7 @@ docker run --rm --network=host --read-only --cap-drop ALL \
 | Процессор хоста | Суммарная загрузка CPU по HTTP и gRPC. |
 | Хранилище хоста | Объём и режим чтения файловой системы для настроенного пути. |
 | Сводка хоста | Время работы, загрузка CPU, память и хранилище в одном ответе. |
+| Экземпляр Xray | Запуск, чтение состояния и остановка одного настроенного экземпляра по HTTP и gRPC. |
 
 <a name="management"></a>
 
@@ -78,13 +79,17 @@ HTTP-запрос `GET /v1/host/storage` и метод gRPC `HostService.GetStor
 
 HTTP-запрос `GET /v1/host/stats` и метод gRPC `HostService.GetSystemStats` возвращают `uptime_seconds`, `cpu`, `memory` и `storage` с теми же данными и единицами, что и отдельные операции. Недоступные поля пропускаются. Поле `cpu` появляется после первого корректного замера.
 
+Для включения одного экземпляра задайте `xray.id`, `xray.executable` и `xray.config_file` по [примеру настройки](deploy/config.example.yml). Используйте Xray v26.11.9 и JSON-файл, которым управляет оператор. При запуске Node заменяет его блок `api` приватным Unix-сокетом для проверки готовности. В Docker смонтируйте исполняемый файл и JSON и предоставьте каталог с правом записи, например с помощью `--tmpfs /tmp`. Для удалённого управления требуются TLS и ключ API или клиентский CA.
+
+Запрос `GET /v1/xray/instances/{id}` возвращает состояние. Запросы `PUT` и `DELETE /v1/xray/instances/{id}/execution` с пустым телом запускают и останавливают процесс. [Контракт gRPC](internal/engines/xray/instances/bridge/grpc/proto/v1/instances.proto) предоставляет `XrayInstancesService.Start`, `GetStatus` и `Stop`. Запуск ждёт ответа API Xray, остановка ждёт завершения процесса.
+
 В примере оба интерфейса привязаны к loopback. HTTP-запрос `GET /healthz` возвращает `204 No Content`, когда Node готов. Служба проверки gRPC на порту 8081 возвращает `SERVING` для пустого имени службы. Для TLS укажите `management.tls.cert_file` и `management.tls.key_file`. Необязательный параметр `management.tls.client_ca_file` включает mTLS, а `management.api_key` задаёт ключ для заголовка или метаданных `x-api-key`.
 
 <a name="benchmarks"></a>
 
 ## Бенчмарки
 
-В [отчёте о бенчмарках хоста](benchmarks/README.md) приведены сравнение HTTP и gRPC с PasarGuard 0.5.7, результаты каждого раунда и команда для замера чтения данных хоста в Linux.
+В [отчёте о бенчмарках](benchmarks/README.md) приведены сравнения Host и Xray с PasarGuard 0.5.7, результаты каждого раунда и инструкции для повторного запуска.
 
 <a name="development"></a>
 

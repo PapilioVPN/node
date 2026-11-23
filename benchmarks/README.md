@@ -36,3 +36,48 @@ Run the native benchmarks from the repository root on Linux.
 ```sh
 GOMAXPROCS=1 go test ./benchmarks/host -run '^$' -bench . -benchmem -benchtime=250ms -count=5
 ```
+
+## Xray instance lifecycle
+
+On 2026-11-23, PapilioVPN Node had lower p50 and p95 latencies in all six tested transport and operation pairs. The table shows the median of five per-round percentiles, in milliseconds. Each round includes 30 cold starts, 360 status reads while ready, and 30 joined stops per server.
+
+| Transport | Operation | PapilioVPN p50 | PapilioVPN p95 | PasarGuard p50 | PasarGuard p95 |
+| --- | --- | ---: | ---: | ---: | ---: |
+| HTTP | Start | 29.768 | 42.699 | 1028.732 | 1044.833 |
+| HTTP | Status | 0.217 | 1.244 | 0.324 | 2.879 |
+| HTTP | Stop | 3.270 | 5.641 | 4.520 | 7.577 |
+| gRPC | Start | 31.724 | 39.090 | 1029.851 | 1042.816 |
+| gRPC | Status | 0.290 | 1.547 | 0.531 | 2.236 |
+| gRPC | Stop | 3.694 | 5.474 | 5.244 | 9.254 |
+
+[HTTP per-round results](xray/results/2026-11-23-http.csv) · [gRPC per-round results](xray/results/2026-11-23-grpc.csv)
+
+### Workload and limits
+
+- Both Node binaries and the benchmark client were built with Go 1.27.3, `CGO_ENABLED=0`, and `-trimpath`. The host ran Linux 6.17 on an AMD Ryzen 7 3750H. Both servers and their children used `GOMAXPROCS=1` and were pinned to CPU 2. The client used CPU 4 on a different physical core. The fixture used isolated Linux PID and network namespaces with loopback.
+- Both servers ran the same Xray v26.11.9 executable and started from the same JSON with one idle loopback SOCKS inbound, one direct outbound, and zero users. Each product supplied its own native management configuration. The public client used a single persistent TLS 1.3 connection per server and transport, provided an API key, and decoded each response. HTTP used HTTP/1.1.
+- `Start` measures a cold start from no running process to successful native `GetSysStats`. The client sends the configuration to PasarGuard and the instance ID to PapilioVPN, where the configuration is already on disk. PasarGuard's native readiness loop probes once per second. PapilioVPN uses a private Unix socket with short reconnect delays. [PasarGuard readiness loop](https://github.com/PasarGuard/node/blob/739eab94a9343d9f0035baf7162796844109f4c4/backend/xray/jobs.go#L43-L67)
+- `Status` compares reads of the running lifecycle state. PasarGuard also returns version fields. `Stop` measures from the request until a successful response, then the client independently checks that Linux lists no remaining child process. PapilioVPN sends SIGTERM with a bounded SIGKILL fallback. PasarGuard sends SIGKILL first. The workload contains no active client traffic. The reference version is PasarGuard 0.5.7 at `739eab94a9343d9f0035baf7162796844109f4c4`. [PasarGuard stop implementation](https://github.com/PasarGuard/node/blob/739eab94a9343d9f0035baf7162796844109f4c4/backend/xray/core.go#L308-L352)
+
+### Reproduce
+
+Use Linux with unprivileged user namespaces, Go 1.27.3, protoc, OpenSSL, curl, unzip, and iproute2. Run from the repository root. Set `XRAY_BENCH_SERVER_CPU` and `XRAY_BENCH_CLIENT_CPU` to distinct physical cores if CPUs 2 and 4 are unavailable.
+
+```bash
+work=$(mktemp -d)
+ref=739eab94a9343d9f0035baf7162796844109f4c4
+mkdir "$work/reference"
+curl -fsSL "https://codeload.github.com/PasarGuard/node/tar.gz/$ref" |
+  tar -xz --strip-components=1 -C "$work/reference"
+curl -fsSL https://github.com/XTLS/Xray-core/releases/download/v26.11.9/Xray-linux-64.zip \
+  -o "$work/xray.zip"
+printf '%s  %s\n' b651f7e1d9966ee2c1b1ee1bf8b52c72771824d3065dce96bbc8bcc19ed95f82 "$work/xray.zip" | sha256sum -c
+unzip -q "$work/xray.zip" -d "$work/xray"
+chmod +x "$work/xray/xray"
+(cd "$work/reference" && GOTOOLCHAIN=go1.27.3 CGO_ENABLED=0 go build -trimpath -o "$work/pasarguard" ./cmd/node)
+GOTOOLCHAIN=go1.27.3 CGO_ENABLED=0 go build -trimpath -o "$work/node" ./cmd/node
+GOTOOLCHAIN=go1.27.3 CGO_ENABLED=0 go build -trimpath -o "$work/bench" ./benchmarks/xray
+protoc -I "$work/reference" --descriptor_set_out="$work/reference.pb" "$work/reference/common/service.proto"
+bash benchmarks/xray/run.sh "$work/node" "$work/pasarguard" "$work/xray/xray" \
+  "$work/bench" "$work/reference.pb" "$work/results"
+```

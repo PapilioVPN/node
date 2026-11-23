@@ -63,6 +63,7 @@ docker run --rm --network=host --read-only --cap-drop ALL \
 | 主机 CPU | 通过 HTTP 和 gRPC 读取 CPU 总体使用率。 |
 | 主机存储 | 查看配置路径所在文件系统的容量和只读状态。 |
 | 主机概览 | 在一次响应中获取运行时间、CPU、内存和存储信息。 |
+| Xray 实例 | 通过 HTTP 和 gRPC 启动、查询状态和停止一个已配置的实例。 |
 
 <a name="management"></a>
 
@@ -78,13 +79,17 @@ HTTP `GET /v1/host/storage` 和 gRPC `HostService.GetStorage` 返回 `path`、`t
 
 HTTP `GET /v1/host/stats` 和 gRPC `HostService.GetSystemStats` 返回 `uptime_seconds`、`cpu`、`memory` 和 `storage`，数据和单位与各独立操作一致。不可用的字段会省略，`cpu` 会在首次有效采样后返回。
 
+参照[配置示例](deploy/config.example.yml)设置 `xray.id`、`xray.executable` 和 `xray.config_file`，即可启用一个实例。请使用 Xray v26.11.9 和由运维人员控制的 JSON 文件。启动时，Node 将其中的 `api` 配置替换为用于就绪检查的私有 Unix 套接字。在 Docker 中挂载可执行文件和 JSON 配置，并提供可写目录，如使用 `--tmpfs /tmp`。远程管理 Xray 需要 TLS 与 API 密钥或客户端 CA。
+
+使用 `GET /v1/xray/instances/{id}` 读取状态。使用空请求体的 `PUT` 和 `DELETE /v1/xray/instances/{id}/execution` 启动和停止实例。[gRPC 接口](internal/engines/xray/instances/bridge/grpc/proto/v1/instances.proto)提供 `XrayInstancesService.Start`、`GetStatus` 和 `Stop`。启动会等待 Xray 原生 API 响应，停止会等待进程退出。
+
 示例中的两个监听端口都绑定到环回地址。Node 就绪时，HTTP `GET /healthz` 返回 `204 No Content`。端口 8081 上的 gRPC 健康检查对空服务名返回 `SERVING`。设置 `management.tls.cert_file` 和 `management.tls.key_file` 可启用 TLS。可选项 `management.tls.client_ca_file` 启用 mTLS，`management.api_key` 用于 `x-api-key` 请求头或元数据。
 
 <a name="benchmarks"></a>
 
 ## 基准测试
 
-[主机基准测试报告](benchmarks/README.md)包含与 PasarGuard 0.5.7 的 HTTP 和 gRPC 对比、每轮测试结果，以及测量 Linux 主机读取性能的命令。
+[基准测试报告](benchmarks/README.md)包含 Host 和 Xray 与 PasarGuard 0.5.7 的对比、每轮测试结果和复现步骤。
 
 <a name="development"></a>
 

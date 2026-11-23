@@ -2,7 +2,7 @@
 set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel)"
-unformatted=$(gofmt -l cmd internal)
+unformatted=$(gofmt -l cmd internal benchmarks)
 if [[ -n "$unformatted" ]]; then
   printf 'Go files require formatting:\n%s\n' "$unformatted" >&2
   exit 1

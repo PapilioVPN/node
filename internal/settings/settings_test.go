@@ -70,3 +70,49 @@ func writeSettings(t *testing.T, path, contents string) {
 		t.Fatal(err)
 	}
 }
+
+func TestLoadXrayPaths(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "config.yml")
+	writeSettings(t, path, `management:
+  http_address: "127.0.0.1:0"
+  grpc_address: "[::1]:0"
+xray:
+  id: primary
+  executable: bin/xray
+  config_file: xray.json
+  runtime_directory: run
+`)
+	config, err := Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := Xray{
+		ID: "primary", Executable: filepath.Join(dir, "bin", "xray"),
+		ConfigFile: filepath.Join(dir, "xray.json"), RuntimeDirectory: filepath.Join(dir, "run"),
+	}
+	if config.Xray != want {
+		t.Fatalf("xray config = %+v, want %+v", config.Xray, want)
+	}
+}
+
+func TestLoadRequiresCredentialsForRemoteXrayManagement(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "config.yml")
+	const config = `management:
+  http_address: "0.0.0.0:0"
+  grpc_address: "[::1]:0"
+xray:
+  id: primary
+  executable: bin/xray
+  config_file: xray.json
+`
+	writeSettings(t, path, config)
+	if _, err := Load(path); err == nil {
+		t.Fatal("unprotected remote Xray management was accepted")
+	}
+	withTLS := strings.Replace(config, "xray:", "  tls: {cert_file: server.pem, key_file: key.pem, client_ca_file: ca.pem}\nxray:", 1)
+	writeSettings(t, path, withTLS)
+	if _, err := Load(path); err != nil {
+		t.Fatal(err)
+	}
+}

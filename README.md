@@ -60,6 +60,7 @@ docker run --rm --network=host --read-only --cap-drop ALL \
 | Host CPU | Read aggregate CPU utilization over HTTP and gRPC. |
 | Host storage | Check space and read-only status for the filesystem backing a configured path. |
 | Host system stats | Fetch uptime, CPU, memory and storage in one response. |
+| Xray instance | Start one configured instance, read its lifecycle state, and stop it over HTTP and gRPC. |
 
 <a name="management"></a>
 
@@ -75,11 +76,15 @@ HTTP `GET /v1/host/storage` and gRPC `HostService.GetStorage` report `path`, `to
 
 HTTP `GET /v1/host/stats` and gRPC `HostService.GetSystemStats` return `uptime_seconds`, `cpu`, `memory`, and `storage` using the individual operations' data and units. Unavailable fields are omitted, including `cpu` during its initial sample window.
 
+Set `xray.id`, `xray.executable`, and `xray.config_file` in the [example configuration](deploy/config.example.yml) to enable one instance. Use Xray v26.11.9 and an operator-owned JSON file. At launch, Node replaces its `api` block with a private Unix socket for readiness. In Docker, mount the executable and JSON and provide a writable runtime directory, for example with `--tmpfs /tmp`. Remote Xray management requires TLS with an API key or client CA.
+
+Use `GET /v1/xray/instances/{id}` for status and `PUT` or `DELETE /v1/xray/instances/{id}/execution` with an empty body to start or stop. The [gRPC contract](internal/engines/xray/instances/bridge/grpc/proto/v1/instances.proto) exposes `XrayInstancesService.Start`, `GetStatus`, and `Stop`. Start waits for the native API and Stop waits for the process to exit.
+
 The example binds both listeners to loopback. HTTP `GET /healthz` returns `204 No Content` when ready. The gRPC health service on port 8081 reports `SERVING` for the empty service name. Set `management.tls.cert_file` and `management.tls.key_file` to enable TLS. Optionally configure `management.tls.client_ca_file` for mutual TLS and `management.api_key` for the `x-api-key` header or metadata.
 
 ## Benchmarks
 
-See the [Host benchmark report](benchmarks/README.md) for the HTTP and gRPC comparison with PasarGuard 0.5.7, per-round results, and a command to measure native Host reads.
+See the [benchmark report](benchmarks/README.md) for the Host and Xray comparisons with PasarGuard 0.5.7, per-round results, and reproduction steps.
 
 ## Development
 
@@ -95,3 +100,5 @@ After editing `host.proto`, regenerate `host.pb.go` in the same directory. Use `
 ```bash
 go generate ./internal/host/bridge/grpc
 ```
+
+To regenerate the Xray schema, also install `protoc-gen-go-grpc` v1.6.0 and run `go generate ./internal/engines/xray/instances/bridge/grpc`. Set `NODE_TEST_XRAY` to the absolute path of Xray v26.11.9 to run the native integration tests locally.
