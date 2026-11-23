@@ -81,3 +81,22 @@ protoc -I "$work/reference" --descriptor_set_out="$work/reference.pb" "$work/ref
 bash benchmarks/xray/run.sh "$work/node" "$work/pasarguard" "$work/xray/xray" \
   "$work/bench" "$work/reference.pb" "$work/results"
 ```
+
+## Xray config validation
+
+The table reports the median of five per-run mean timings on 2026-11-23, in milliseconds. The reference is direct `xray run -test` on the same Xray v26.11.9 binary, JSON, and management overlay. The pinned PasarGuard revision has no equivalent standalone management operation. [PasarGuard gRPC contract](https://github.com/PasarGuard/node/blob/739eab94a9343d9f0035baf7162796844109f4c4/common/service.proto#L218-L243) · [PasarGuard HTTP routes](https://github.com/PasarGuard/node/blob/739eab94a9343d9f0035baf7162796844109f4c4/controller/rest/service.go#L25-L65)
+
+| Configuration | Direct Xray | Node HTTP | Node gRPC |
+| --- | ---: | ---: | ---: |
+| Valid | 22.72 | 23.56 | 23.59 |
+| Rejected protocol | 20.09 | 21.88 | 23.97 |
+
+[Per-run measurements](xray/results/2026-11-23-config-validation.csv) include iteration counts and Go allocations in the benchmark process. The fixture used Linux amd64, Go 1.26.11, an AMD Ryzen 7 3750H, and CPU 2 with `GOMAXPROCS=1`. HTTP and gRPC used persistent loopback connections without TLS. The direct CLI path reused the prepared overlay. The API paths include request decoding, configuration preparation, native execution, and response decoding. Per-run timing ranges overlap, so the figures describe end-to-end cost for these two small files.
+
+Run from the repository root with the Xray v26.11.9 executable and adjust the CPU affinity to match your machine.
+
+```bash
+NODE_TEST_XRAY=/absolute/path/to/xray GOMAXPROCS=1 taskset -c 2 \
+  go test ./internal/engines/xray/configs/integration -run '^$' \
+  -bench '^BenchmarkValidateConfig$' -benchmem -benchtime=300ms -count=5
+```

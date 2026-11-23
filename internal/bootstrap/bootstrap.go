@@ -8,7 +8,7 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/PapilioVPN/node/internal/engines/xray/instances"
+	"github.com/PapilioVPN/node/internal/engines/xray"
 	"github.com/PapilioVPN/node/internal/host"
 	"github.com/PapilioVPN/node/internal/settings"
 	"go.uber.org/fx"
@@ -22,7 +22,7 @@ func Run(ctx context.Context, config settings.Config, logger *slog.Logger) error
 		fx.Supply(config.Management, config.Host, config.Xray, logger),
 		fx.Provide(loadTLS, newReadiness, newHTTPRouter, newHTTPServer, newGRPCServer),
 		host.Module,
-		instances.Module,
+		xray.Module,
 		fx.Invoke(registerListeners),
 		fx.WithLogger(func() fxevent.Logger { return &fxevent.SlogLogger{Logger: logger} }),
 	)

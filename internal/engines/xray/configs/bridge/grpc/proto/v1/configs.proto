@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package papiliovpn.node.v1;
+
+option go_package = "github.com/PapilioVPN/node/internal/engines/xray/configs/bridge/grpc/proto/v1;configsv1";
+
+service XrayConfigsService {
+  // Checks the configured file through Xray's native test command.
+  rpc ValidateConfig(ValidateXrayConfigRequest) returns (XrayConfigValidation);
+}
+
+message ValidateXrayConfigRequest {
+  string id = 1;
+}
+
+enum XrayConfigIssueCode {
+  XRAY_CONFIG_ISSUE_CODE_UNSPECIFIED = 0;
+  XRAY_CONFIG_ISSUE_CODE_CONFIG_DECODE_ERROR = 1;
+  XRAY_CONFIG_ISSUE_CODE_CONFIG_REJECTED = 2;
+}
+
+message XrayConfigValidationIssue {
+  XrayConfigIssueCode code = 1;
+  // Native source location, when reported. Zero denotes an unavailable value.
+  uint32 line = 2;
+  uint32 column = 3;
+}
+
+message XrayConfigValidation {
+  string id = 1;
+  bool valid = 2;
+  XrayConfigValidationIssue issue = 3;
+}

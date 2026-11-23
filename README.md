@@ -61,6 +61,7 @@ docker run --rm --network=host --read-only --cap-drop ALL \
 | Host storage | Check space and read-only status for the filesystem backing a configured path. |
 | Host system stats | Fetch uptime, CPU, memory and storage in one response. |
 | Xray instance | Start one configured instance, read its lifecycle state, and stop it over HTTP and gRPC. |
+| Xray config validation | Check the configured Xray JSON over HTTP and gRPC before restarting the instance. |
 
 <a name="management"></a>
 
@@ -79,6 +80,8 @@ HTTP `GET /v1/host/stats` and gRPC `HostService.GetSystemStats` return `uptime_s
 Set `xray.id`, `xray.executable`, and `xray.config_file` in the [example configuration](deploy/config.example.yml) to enable one instance. Use Xray v26.11.9 and an operator-owned JSON file. At launch, Node replaces its `api` block with a private Unix socket for readiness. In Docker, mount the executable and JSON and provide a writable runtime directory, for example with `--tmpfs /tmp`. Remote Xray management requires TLS with an API key or client CA.
 
 Use `GET /v1/xray/instances/{id}` for status and `PUT` or `DELETE /v1/xray/instances/{id}/execution` with an empty body to start or stop. The [gRPC contract](internal/engines/xray/instances/bridge/grpc/proto/v1/instances.proto) exposes `XrayInstancesService.Start`, `GetStatus`, and `Stop`. Start waits for the native API and Stop waits for the process to exit.
+
+Send an empty `POST /v1/xray/instances/{id}/config-validations` or call `XrayConfigsService.ValidateConfig` with the instance ID. Node tests the configured file with the same options used for startup. An invalid file returns `valid: false` and an issue code, with a line and column when Xray reports them. An execution failure returns an API error. [gRPC contract](internal/engines/xray/configs/bridge/grpc/proto/v1/configs.proto)
 
 The example binds both listeners to loopback. HTTP `GET /healthz` returns `204 No Content` when ready. The gRPC health service on port 8081 reports `SERVING` for the empty service name. Set `management.tls.cert_file` and `management.tls.key_file` to enable TLS. Optionally configure `management.tls.client_ca_file` for mutual TLS and `management.api_key` for the `x-api-key` header or metadata.
 
@@ -101,4 +104,4 @@ After editing `host.proto`, regenerate `host.pb.go` in the same directory. Use `
 go generate ./internal/host/bridge/grpc
 ```
 
-To regenerate the Xray schema, also install `protoc-gen-go-grpc` v1.6.0 and run `go generate ./internal/engines/xray/instances/bridge/grpc`. Set `NODE_TEST_XRAY` to the absolute path of Xray v26.11.9 to run the native integration tests locally.
+To regenerate the Xray schemas, also install `protoc-gen-go-grpc` v1.6.0 and run `go generate ./internal/engines/xray/...`. Set `NODE_TEST_XRAY` to the absolute path of Xray v26.11.9 to run the native integration tests locally.

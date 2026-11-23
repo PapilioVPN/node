@@ -64,6 +64,7 @@ docker run --rm --network=host --read-only --cap-drop ALL \
 | Хранилище хоста | Объём и режим чтения файловой системы для настроенного пути. |
 | Сводка хоста | Время работы, загрузка CPU, память и хранилище в одном ответе. |
 | Экземпляр Xray | Запуск, чтение состояния и остановка одного настроенного экземпляра по HTTP и gRPC. |
+| Проверка конфигурации Xray | Проверка настроенного JSON по HTTP и gRPC перед перезапуском экземпляра. |
 
 <a name="management"></a>
 
@@ -82,6 +83,8 @@ HTTP-запрос `GET /v1/host/stats` и метод gRPC `HostService.GetSystem
 Для включения одного экземпляра задайте `xray.id`, `xray.executable` и `xray.config_file` по [примеру настройки](deploy/config.example.yml). Используйте Xray v26.11.9 и JSON-файл, которым управляет оператор. При запуске Node заменяет его блок `api` приватным Unix-сокетом для проверки готовности. В Docker смонтируйте исполняемый файл и JSON и предоставьте каталог с правом записи, например с помощью `--tmpfs /tmp`. Для удалённого управления требуются TLS и ключ API или клиентский CA.
 
 Запрос `GET /v1/xray/instances/{id}` возвращает состояние. Запросы `PUT` и `DELETE /v1/xray/instances/{id}/execution` с пустым телом запускают и останавливают процесс. [Контракт gRPC](internal/engines/xray/instances/bridge/grpc/proto/v1/instances.proto) предоставляет `XrayInstancesService.Start`, `GetStatus` и `Stop`. Запуск ждёт ответа API Xray, остановка ждёт завершения процесса.
+
+Отправьте пустой запрос `POST /v1/xray/instances/{id}/config-validations` или вызовите `XrayConfigsService.ValidateConfig` с идентификатором экземпляра. Node проверяет настроенный файл с теми же параметрами, что при запуске. Недопустимая конфигурация возвращает `valid: false` и код проблемы, а также строку и столбец, если их сообщил Xray. Сбой выполнения проверки возвращает ошибку API. [Контракт gRPC](internal/engines/xray/configs/bridge/grpc/proto/v1/configs.proto)
 
 В примере оба интерфейса привязаны к loopback. HTTP-запрос `GET /healthz` возвращает `204 No Content`, когда Node готов. Служба проверки gRPC на порту 8081 возвращает `SERVING` для пустого имени службы. Для TLS укажите `management.tls.cert_file` и `management.tls.key_file`. Необязательный параметр `management.tls.client_ca_file` включает mTLS, а `management.api_key` задаёт ключ для заголовка или метаданных `x-api-key`.
 
