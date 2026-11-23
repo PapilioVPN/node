@@ -762,3 +762,51 @@ Run the native diagnostic with the pinned Xray binary in `XRAY_BINARY`.
 GOMAXPROCS=1 XRAY_BENCH_NATIVE_PAIR_RESET="$XRAY_BINARY" \
   taskset -c 2 go test ./benchmarks/xray -run '^TestMeasureNativePairReset$' -count=1 -v
 ```
+
+## Xray integration performance recheck
+
+The baseline `a51a787` combines the routing controls, VLESS account operations,
+and traffic resets. Both targets and the driver used Go 1.27.4, stock Xray
+v26.11.9 and the pinned PasarGuard revision `739eab9`. The driver used CPU 6.
+Both servers and Xray children used CPU 2. Each row represents five
+alternating rounds using 450 ms windows for runtime and reset or 550 ms
+windows for TestRoute. No measured requests were rejected.
+
+Each cell shows Node / PasarGuard. The first two values are latency in
+microseconds. The third is successful requests per second.
+
+| Operation | API | Clients | Baseline p50 · p95 · reads/s | Trial p50 · p95 · reads/s |
+| --- | --- | ---: | --- | --- |
+| TestRoute | HTTP | 1 | 479.4 / 526.6 · 964.7 / 960.3 · 1765.4 / 1728.8 | 314.1 / 339.8 · 359.0 / 460.9 · 2989.2 / 2726.8 |
+| TestRoute | HTTP | 8 | 1309.3 / 1352.5 · 3182.4 / 3179.7 · 5336.1 / 5146.9 | 929.4 / 1062.6 · 2591.7 / 2768.1 · 7279.8 / 6476.6 |
+| Runtime stats | HTTP | 1 | 462.4 / 505.1 · 983.9 / 1028.4 · 1777.0 / 1662.3 | 375.6 / 395.7 · 687.2 / 505.0 · 2360.8 / 2332.3 |
+| Runtime stats | HTTP | 8 | 993.3 / 1236.2 · 2220.9 / 3155.5 · 7019.0 / 5610.0 | 854.2 / 1161.4 · 1764.9 / 2983.1 · 8102.8 / 6077.3 |
+| Runtime stats | gRPC | 1 | 452.0 / 533.9 · 771.5 / 1043.5 · 1928.6 / 1629.2 | 462.7 / 515.9 · 732.9 / 829.5 · 1999.0 / 1723.2 |
+| Runtime stats | gRPC | 8 | 1050.4 / 1312.1 · 2499.8 / 3014.9 · 6847.9 / 5470.4 | 1001.5 / 1428.0 · 2106.2 / 3266.3 · 7297.9 / 4933.7 |
+| Reset pair, 1 account | HTTP | 1 | 1162.3 / 799.9 · 3594.6 / 3315.1 · 692.5 / 889.0 | 480.5 / 339.5 · 628.5 / 471.6 · 1933.2 / 2689.1 |
+| Reset pair, 1 account | HTTP | 8 | 3053.6 / 1867.9 · 6069.7 / 4590.0 · 2316.6 / 3745.9 | 1286.8 / 1010.1 · 3228.1 / 2567.4 · 5407.6 / 6912.9 |
+| Reset pair, 1 account | gRPC | 1 | 1081.3 / 852.6 · 2735.8 / 2686.9 · 792.2 / 949.8 | 508.9 / 364.6 · 720.6 / 504.1 · 1745.3 / 2561.4 |
+| Reset pair, 1 account | gRPC | 8 | 2780.3 / 2064.8 · 5804.9 / 4382.1 · 2588.3 / 3498.9 | 1418.6 / 1067.5 · 3245.2 / 2726.1 · 4980.7 / 6391.8 |
+| Reset pair, 512 accounts | HTTP | 1 | 731.0 / 592.5 · 1244.9 / 1061.6 · 1216.6 / 1516.3 | 449.0 / 392.4 · 541.1 / 546.4 · 2075.3 / 2362.9 |
+| Reset pair, 512 accounts | HTTP | 8 | 1873.7 / 1666.1 · 4025.5 / 3451.7 · 3838.1 / 4358.6 | 1298.1 / 1390.4 · 3229.8 / 3114.3 · 5346.7 / 5203.1 |
+| Reset pair, 512 accounts | gRPC | 1 | 856.7 / 702.4 · 1659.8 / 1176.5 · 1055.0 / 1300.4 | 523.7 / 478.8 · 999.6 / 782.2 · 1623.2 / 1849.3 |
+| Reset pair, 512 accounts | gRPC | 8 | 2055.7 / 2024.3 · 4094.6 / 4092.8 · 3517.6 / 3557.2 | 1508.9 / 1467.0 · 3549.2 / 2933.8 · 4505.1 / 4961.9 |
+
+The retained TestRoute change keeps the native request and its routing context
+in one allocation and detects extra JSON input without decoding an extra
+value. The trial led on all three metrics at both tested HTTP client counts.
+The remaining trial changes reused a runtime reply and reused the reset
+request and reply while adjusting native call options. The baseline already
+led in the four runtime cases. The reset trial still trailed on at least one
+metric in each case. PasarGuard's own timing shifted between runs on the
+shared workstation. Both statistics paths retain the baseline implementation.
+
+[Per-round measurements](xray/results/2026-11-23-integrated-control-retest.csv)
+
+Use the [routing fixture](xray/routing-control.md#benchmark) with
+`XRAY_BENCH_ROUTING_RULES=4`, `XRAY_BENCH_ROUTING_OPERATION=test`,
+`XRAY_BENCH_ROUTING_CLIENTS=1,8`, `XRAY_BENCH_ROUTING_WINDOW=550ms` and
+`XRAY_BENCH_TRANSPORTS=http` for the retained change. Build both nodes and
+the driver with Go 1.27.4. Set `XRAY_BENCH_ROUNDS=5` and
+`XRAY_BENCH_CLIENT_CPU=6`. Use the corresponding runtime statistics and named
+pair reset fixtures above for those workloads.
