@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/PapilioVPN/node/internal/buildinfo"
 	"github.com/PapilioVPN/node/internal/engines/xray/logs/live"
 	"golang.org/x/sync/semaphore"
 	"google.golang.org/grpc"
@@ -21,6 +22,7 @@ type Config struct {
 
 type child interface {
 	socket() string
+	version() string
 	wait() processExit
 	terminate() error
 	kill() error
@@ -39,7 +41,7 @@ type execution struct {
 type Service struct {
 	config Config
 	logs   *live.Service
-	launch func(Config, *live.Execution) (child, error)
+	launch func(context.Context, Config, *live.Execution) (child, error)
 	probe  func(context.Context, grpc.ClientConnInterface) error
 
 	control  *semaphore.Weighted
@@ -65,7 +67,15 @@ func (service *Service) GetStatus(id string) (Status, error) {
 	}
 	service.mu.RLock()
 	defer service.mu.RUnlock()
-	return Status{ID: id, State: service.state}, nil
+	return service.statusLocked(), nil
+}
+
+func (service *Service) statusLocked() Status {
+	status := Status{ID: service.config.ID, State: service.state, NodeVersion: buildinfo.Version}
+	if service.run != nil {
+		status.XrayVersion = service.run.child.version()
+	}
+	return status
 }
 
 // NativeConnection returns the current execution's connection. The lifecycle
@@ -91,8 +101,9 @@ func (service *Service) Start(ctx context.Context, id string) (Status, error) {
 	service.mu.Lock()
 	switch service.state {
 	case Ready:
+		status := service.statusLocked()
 		service.mu.Unlock()
-		return Status{ID: id, State: Ready}, nil
+		return status, nil
 	case Starting, Stopping:
 		service.mu.Unlock()
 		return Status{}, ErrBusy
@@ -109,7 +120,7 @@ func (service *Service) Start(ctx context.Context, id string) (Status, error) {
 	}
 
 	logs := service.logs.Prepare()
-	process, err := service.launch(service.config, logs)
+	process, err := service.launch(startCtx, service.config, logs)
 	if err != nil {
 		logs.End()
 		service.mu.Lock()
@@ -138,8 +149,9 @@ func (service *Service) Start(ctx context.Context, id string) (Status, error) {
 		run.conn = conn
 		service.state = Ready
 		logs.Activate()
+		status := service.statusLocked()
 		service.mu.Unlock()
-		return Status{ID: id, State: Ready}, nil
+		return status, nil
 	}
 	var failure StartError
 	var exitErr error
@@ -190,7 +202,7 @@ func (service *Service) Stop(ctx context.Context, id string) (Status, error) {
 	if err := service.stop(ctx); err != nil {
 		return Status{}, err
 	}
-	return Status{ID: id, State: Stopped}, nil
+	return service.GetStatus(id)
 }
 
 // Close rejects new mutations and joins any child still owned by the service.

@@ -10,17 +10,16 @@ import (
 	"syscall"
 
 	"github.com/PapilioVPN/node/internal/bootstrap"
+	"github.com/PapilioVPN/node/internal/buildinfo"
 	"github.com/PapilioVPN/node/internal/settings"
 )
-
-const version = "0.0.0"
 
 func main() {
 	path := flag.String("config", "config.yml", "path to the Node settings file")
 	showVersion := flag.Bool("version", false, "print the Node version")
 	flag.Parse()
 	if *showVersion {
-		fmt.Println(version)
+		fmt.Println(buildinfo.Version)
 		return
 	}
 

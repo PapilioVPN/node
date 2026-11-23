@@ -179,9 +179,12 @@ func (x *XrayInstanceRequest) GetId() string {
 }
 
 type XrayInstanceStatus struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	State         XrayInstanceState      `protobuf:"varint,2,opt,name=state,proto3,enum=papiliovpn.node.v1.XrayInstanceState" json:"state,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Id    string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	State XrayInstanceState      `protobuf:"varint,2,opt,name=state,proto3,enum=papiliovpn.node.v1.XrayInstanceState" json:"state,omitempty"`
+	// Version reported by the executable for the current child, when available.
+	XrayVersion   string `protobuf:"bytes,3,opt,name=xray_version,json=xrayVersion,proto3" json:"xray_version,omitempty"`
+	NodeVersion   string `protobuf:"bytes,4,opt,name=node_version,json=nodeVersion,proto3" json:"node_version,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -228,6 +231,20 @@ func (x *XrayInstanceStatus) GetState() XrayInstanceState {
 		return x.State
 	}
 	return XrayInstanceState_XRAY_INSTANCE_STATE_UNSPECIFIED
+}
+
+func (x *XrayInstanceStatus) GetXrayVersion() string {
+	if x != nil {
+		return x.XrayVersion
+	}
+	return ""
+}
+
+func (x *XrayInstanceStatus) GetNodeVersion() string {
+	if x != nil {
+		return x.NodeVersion
+	}
+	return ""
 }
 
 type XrayStartFailure struct {
@@ -289,10 +306,12 @@ const file_proto_v1_instances_proto_rawDesc = "" +
 	"\n" +
 	"\x18proto/v1/instances.proto\x12\x12papiliovpn.node.v1\"%\n" +
 	"\x13XrayInstanceRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"a\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"\xa7\x01\n" +
 	"\x12XrayInstanceStatus\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12;\n" +
-	"\x05state\x18\x02 \x01(\x0e2%.papiliovpn.node.v1.XrayInstanceStateR\x05state\"\x86\x01\n" +
+	"\x05state\x18\x02 \x01(\x0e2%.papiliovpn.node.v1.XrayInstanceStateR\x05state\x12!\n" +
+	"\fxray_version\x18\x03 \x01(\tR\vxrayVersion\x12!\n" +
+	"\fnode_version\x18\x04 \x01(\tR\vnodeVersion\"\x86\x01\n" +
 	"\x10XrayStartFailure\x12B\n" +
 	"\x06reason\x18\x01 \x01(\x0e2*.papiliovpn.node.v1.XrayStartFailureReasonR\x06reason\x12 \n" +
 	"\texit_code\x18\x02 \x01(\x05H\x00R\bexitCode\x88\x01\x01B\f\n" +

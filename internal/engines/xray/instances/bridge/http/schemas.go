@@ -10,8 +10,10 @@ import (
 )
 
 type statusResponse struct {
-	ID    string          `json:"id"`
-	State lifecycle.State `json:"state"`
+	ID          string          `json:"id"`
+	State       lifecycle.State `json:"state"`
+	XrayVersion string          `json:"xray_version,omitempty"`
+	NodeVersion string          `json:"node_version"`
 }
 
 type startFailureResponse struct {
@@ -46,5 +48,5 @@ func writeResult(w http.ResponseWriter, result lifecycle.Status, err error) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(statusResponse{ID: result.ID, State: result.State})
+	_ = json.NewEncoder(w).Encode(statusResponse{ID: result.ID, State: result.State, XrayVersion: result.XrayVersion, NodeVersion: result.NodeVersion})
 }

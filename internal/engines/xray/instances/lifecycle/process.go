@@ -2,6 +2,7 @@ package lifecycle
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"os"
 	"os/exec"
@@ -14,10 +15,11 @@ import (
 )
 
 type process struct {
-	command    *exec.Cmd
-	socketPath string
-	exited     chan struct{}
-	exit       processExit
+	command       *exec.Cmd
+	socketPath    string
+	engineVersion string
+	exited        chan struct{}
+	exit          processExit
 }
 
 type processExit struct {
@@ -26,12 +28,16 @@ type processExit struct {
 	code       int
 }
 
-func startProcess(config Config, logs *live.Execution) (child, error) {
+func startProcess(ctx context.Context, config Config, logs *live.Execution) (child, error) {
 	run, err := runconfig.Prepare(config.ConfigFile, config.RuntimeDirectory)
 	if err != nil {
 		return nil, err
 	}
 
+	version := executableVersion(ctx, config.Executable)
+	if err := ctx.Err(); err != nil {
+		return nil, errors.Join(err, run.Cleanup())
+	}
 	cmd := exec.Command(config.Executable, run.Args...)
 	cmd.Stdin = bytes.NewReader(run.Overlay)
 	stdout := &outputWriter{run: logs, source: live.Stdout}
@@ -42,7 +48,7 @@ func startProcess(config Config, logs *live.Execution) (child, error) {
 	// Linux sends the signal when the creating thread dies. Keep that thread
 	// alive until Wait returns so the runtime cannot end it during normal use.
 	cmd.SysProcAttr = &syscall.SysProcAttr{Pdeathsig: syscall.SIGKILL}
-	p := &process{command: cmd, socketPath: run.Socket, exited: make(chan struct{})}
+	p := &process{command: cmd, socketPath: run.Socket, engineVersion: version, exited: make(chan struct{})}
 	started := make(chan error, 1)
 	go func() {
 		runtime.LockOSThread()
@@ -65,6 +71,8 @@ func startProcess(config Config, logs *live.Execution) (child, error) {
 }
 
 func (process *process) socket() string { return process.socketPath }
+
+func (process *process) version() string { return process.engineVersion }
 
 func (process *process) wait() processExit {
 	<-process.exited

@@ -135,7 +135,7 @@ func TestCloseCancelsStartAndRejectsFurtherMutations(t *testing.T) {
 func newTestService(t *testing.T, process child, probe func(context.Context, grpc.ClientConnInterface) error) *Service {
 	t.Helper()
 	service := New(Config{ID: "primary"}, live.New("primary"))
-	service.launch = func(Config, *live.Execution) (child, error) { return process, nil }
+	service.launch = func(context.Context, Config, *live.Execution) (child, error) { return process, nil }
 	service.probe = probe
 	t.Cleanup(func() {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
@@ -167,8 +167,9 @@ func newTestChild(t *testing.T) *testChild {
 	return p
 }
 
-func (p *testChild) socket() string { return "test.sock" }
-func (p *testChild) exit()          { p.once.Do(func() { close(p.exited) }) }
+func (p *testChild) socket() string  { return "test.sock" }
+func (p *testChild) version() string { return "" }
+func (p *testChild) exit()           { p.once.Do(func() { close(p.exited) }) }
 func (p *testChild) wait() processExit {
 	<-p.exited
 	return processExit{code: -1}

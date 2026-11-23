@@ -10,10 +10,13 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/PapilioVPN/node/internal/buildinfo"
 	"github.com/PapilioVPN/node/internal/engines/xray/instances"
 	instancesv1 "github.com/PapilioVPN/node/internal/engines/xray/instances/bridge/grpc/proto/v1"
 	"github.com/PapilioVPN/node/internal/engines/xray/logs"
@@ -43,6 +46,51 @@ func TestInstanceLifecycle(t *testing.T) {
 	f.expectGRPC(f.client.Start, instancesv1.XrayInstanceState_XRAY_INSTANCE_STATE_READY)
 	f.stop()
 	f.expectClean()
+}
+
+func TestInstanceVersions(t *testing.T) {
+	f := newFixture(t, `{"log":{"loglevel":"none"}}`)
+	output, err := exec.CommandContext(f.ctx, os.Getenv("NODE_TEST_XRAY"), "version").Output()
+	if err != nil {
+		t.Fatal(err)
+	}
+	wantXray := strings.Fields(string(output))[1]
+	f.expectHTTP(http.MethodPut, "/execution", "ready")
+
+	result, err := f.client.GetStatus(f.ctx, &instancesv1.XrayInstanceRequest{Id: "primary"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var rpcVersions struct {
+		Xray string `json:"xray_version"`
+		Node string `json:"node_version"`
+	}
+	data, err := json.Marshal(result)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := json.Unmarshal(data, &rpcVersions); err != nil {
+		t.Fatal(err)
+	}
+	if rpcVersions.Xray != wantXray || rpcVersions.Node != buildinfo.Version {
+		t.Fatalf("gRPC versions = %+v, want Xray %s and a Node version", rpcVersions, wantXray)
+	}
+
+	response, err := f.http.Client().Get(f.http.URL + "/v1/xray/instances/primary")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+	var httpVersions struct {
+		Xray string `json:"xray_version"`
+		Node string `json:"node_version"`
+	}
+	if err := json.NewDecoder(response.Body).Decode(&httpVersions); err != nil {
+		t.Fatal(err)
+	}
+	if httpVersions.Xray != wantXray || httpVersions.Node != rpcVersions.Node {
+		t.Fatalf("HTTP versions = %+v, want %+v", httpVersions, rpcVersions)
+	}
 }
 
 func TestInvalidNativeConfiguration(t *testing.T) {

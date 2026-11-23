@@ -30,6 +30,9 @@ enum XrayInstanceState {
 message XrayInstanceStatus {
   string id = 1;
   XrayInstanceState state = 2;
+  // Version reported by the executable for the current child, when available.
+  string xray_version = 3;
+  string node_version = 4;
 }
 
 enum XrayStartFailureReason {

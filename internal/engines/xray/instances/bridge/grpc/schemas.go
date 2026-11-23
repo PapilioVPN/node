@@ -46,7 +46,7 @@ func response(result lifecycle.Status, err error) (*instancesv1.XrayInstanceStat
 	case lifecycle.Failed:
 		state = instancesv1.XrayInstanceState_XRAY_INSTANCE_STATE_FAILED
 	}
-	return &instancesv1.XrayInstanceStatus{Id: result.ID, State: state}, nil
+	return &instancesv1.XrayInstanceStatus{Id: result.ID, State: state, XrayVersion: result.XrayVersion, NodeVersion: result.NodeVersion}, nil
 }
 
 func startFailureStatus(failure *lifecycle.StartError) error {

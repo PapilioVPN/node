@@ -43,6 +43,8 @@ const (
 )
 
 type Status struct {
-	ID    string
-	State State
+	ID          string
+	State       State
+	XrayVersion string
+	NodeVersion string
 }
