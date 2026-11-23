@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+package papiliovpn.node.xray.outbounds.v1;
+option go_package = "github.com/PapilioVPN/node/internal/engines/xray/outbounds/bridge/grpc/proto/v1;outboundsv1";
+
+service XrayOutboundsService {
+  // Reads the active execution's ordinary Observatory observation.
+  rpc GetOutboundHealth(XrayOutboundHealthRequest) returns (XrayOutboundHealth);
+}
+
+message XrayOutboundHealthRequest {
+  string id = 1;
+  // Omit for all recorded samples. A supplied tag must be nonempty.
+  optional string tag = 2;
+}
+
+enum XrayOutboundHealthStatus {
+  XRAY_OUTBOUND_HEALTH_STATUS_UNSPECIFIED = 0;
+  XRAY_OUTBOUND_HEALTH_STATUS_HEALTHY = 1;
+  XRAY_OUTBOUND_HEALTH_STATUS_FAILED = 2;
+  XRAY_OUTBOUND_HEALTH_STATUS_NO_SAMPLE = 3;
+}
+
+message XrayOutboundObservation {
+  string tag = 1;
+  XrayOutboundHealthStatus status = 2;
+  // Raw Xray delay. Ordinary Observatory uses 99999999 for a failed probe.
+  optional int64 delay_milliseconds = 3;
+  optional int64 last_seen_unix_seconds = 4;
+  optional int64 last_try_unix_seconds = 5;
+}
+
+message XrayOutboundHealth {
+  // An absent exact tag returns one NO_SAMPLE row. An empty snapshot has no rows.
+  repeated XrayOutboundObservation observations = 1;
+}

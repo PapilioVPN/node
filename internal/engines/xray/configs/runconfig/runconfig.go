@@ -37,6 +37,9 @@ func Prepare(configFile, runtimeDirectory string) (Run, error) {
 	overlay.API.Tag = "papiliovpn-node-api"
 	overlay.API.Listen = socket
 	overlay.API.Services = []string{"StatsService", "RoutingService"}
+	if hasOrdinaryObservatory(configFile) {
+		overlay.API.Services = append(overlay.API.Services, "ObservatoryService")
+	}
 	data, err := json.Marshal(overlay)
 	if err != nil {
 		return Run{}, errors.Join(err, os.RemoveAll(dir))

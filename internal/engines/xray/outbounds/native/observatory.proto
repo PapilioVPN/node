@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package papiliovpn.node.xray.outbounds.native;
+option go_package = "github.com/PapilioVPN/node/internal/engines/xray/outbounds/native";
+
+// Wire projection of Xray v26.11.9 app/observatory/{command/command,config}.proto.
+message OutboundStatusResponse {
+  ObservationResult status = 1;
+}
+
+message ObservationResult {
+  repeated OutboundStatus status = 1;
+}
+
+message OutboundStatus {
+  bool alive = 1;
+  int64 delay = 2;
+  string outbound_tag = 4;
+  int64 last_seen_time = 5;
+  int64 last_try_time = 6;
+}
