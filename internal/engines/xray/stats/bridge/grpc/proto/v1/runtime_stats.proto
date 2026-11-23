@@ -12,6 +12,7 @@ service XrayStatsService {
   rpc GetTraffic(XrayTrafficRequest) returns (XrayTrafficUsage);
   rpc ListTraffic(XrayTrafficListRequest) returns (XrayTrafficList);
   rpc ResetTrafficCounter(XrayTrafficResetRequest) returns (XrayTrafficResetResult);
+  rpc ResetTrafficPair(XrayTrafficPairResetRequest) returns (XrayTrafficPairResetResult);
   rpc GetOnlineIPCount(XrayOnlineRequest) returns (XrayOnlineCount);
   rpc ListOnlineIPs(XrayOnlineRequest) returns (XrayOnlineIPs);
   rpc ListOnlineUsers(XrayOnlineUsersRequest) returns (XrayOnlineUsers);

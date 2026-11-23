@@ -85,16 +85,20 @@ func TestTrafficCountersWithRealProxy(t *testing.T) {
 	proxy := &url.URL{Scheme: "http", Host: proxyAddress, User: url.UserPassword("case>>>name", "fixture")}
 	transport := &http.Transport{Proxy: http.ProxyURL(proxy)}
 	defer transport.CloseIdleConnections()
-	request, err := http.NewRequestWithContext(ctx, http.MethodGet, target.URL, nil)
-	require(t, err)
-	reply, err := (&http.Client{Transport: transport}).Do(request)
-	require(t, err)
-	body, err := io.ReadAll(reply.Body)
-	reply.Body.Close()
-	require(t, err)
-	if reply.StatusCode != http.StatusOK || string(body) != "local traffic" {
-		t.Fatalf("proxy traffic: %s %q", reply.Status, body)
+	seed := func(t *testing.T) {
+		t.Helper()
+		request, err := http.NewRequestWithContext(ctx, http.MethodGet, target.URL, nil)
+		require(t, err)
+		reply, err := (&http.Client{Transport: transport}).Do(request)
+		require(t, err)
+		body, err := io.ReadAll(reply.Body)
+		reply.Body.Close()
+		require(t, err)
+		if reply.StatusCode != http.StatusOK || string(body) != "local traffic" {
+			t.Fatalf("proxy traffic: %s %q", reply.Status, body)
+		}
 	}
+	seed(t)
 
 	listeners := bufconn.Listen(64 << 10)
 	done := make(chan error, 1)
@@ -176,6 +180,9 @@ func TestTrafficCountersWithRealProxy(t *testing.T) {
 	}
 	t.Run("traffic counter reset", func(t *testing.T) {
 		verifyTrafficReset(t, ctx, router, client)
+	})
+	t.Run("traffic pair reset", func(t *testing.T) {
+		verifyTrafficPairReset(t, ctx, router, client, seed)
 	})
 	_, err = owner.Stop(ctx, "primary")
 	require(t, err)

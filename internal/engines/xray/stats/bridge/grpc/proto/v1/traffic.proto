@@ -58,3 +58,28 @@ message XrayTrafficResetFailure {
   }
   Effect effect = 1;
 }
+
+message XrayTrafficPairResetRequest {
+  string id = 1;
+  XrayTrafficScope scope = 2;
+  string name = 3;
+}
+
+// Also attached as a status detail when a failure interrupts a pair.
+message XrayTrafficPairResetResult {
+  XrayTrafficDirectionReset uplink = 1;
+  XrayTrafficDirectionReset downlink = 2;
+}
+
+message XrayTrafficDirectionReset {
+  enum Effect {
+    EFFECT_UNSPECIFIED = 0;
+    ACKNOWLEDGED = 1;
+    MISSING = 2;
+    NOT_APPLIED = 3;
+    UNKNOWN = 4;
+    NOT_ATTEMPTED = 5;
+  }
+  Effect effect = 1;
+  optional int64 previous_bytes = 2;
+}

@@ -23,6 +23,10 @@ func (readerFixture) Reset(context.Context, Counter) (int64, error) {
 	panic("unexpected reset")
 }
 
+func (readerFixture) ResetPair(context.Context, CounterPair) (PairReset, error) {
+	panic("unexpected pair reset")
+}
+
 func TestGetPreservesCounterPresence(t *testing.T) {
 	service := New(readerFixture{read: func(ctx context.Context, id string, scope Scope, name string) (Usage, error) {
 		if _, timed := ctx.Deadline(); !timed || id != "primary" || scope != User || name != "team>>>alice" {

@@ -17,6 +17,7 @@ type counters interface {
 	Read(context.Context, string, Scope, string) (Usage, error)
 	List(context.Context, string, Scope) ([]Usage, error)
 	Reset(context.Context, Counter) (int64, error)
+	ResetPair(context.Context, CounterPair) (PairReset, error)
 }
 
 type Service struct {

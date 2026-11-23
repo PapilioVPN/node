@@ -19,13 +19,54 @@ func (client *Traffic) Reset(ctx context.Context, counter traffic.Counter) (int6
 	if err != nil {
 		return 0, err
 	}
+	prefix := string(counter.Scope) + ">>>" + counter.Name + ">>>traffic>>>"
+	return swapCounter(ctx, conn, prefix+string(counter.Direction))
+}
+
+func (client *Traffic) ResetPair(ctx context.Context, pair traffic.CounterPair) (traffic.PairReset, error) {
+	conn, err := client.instances.NativeConnection(pair.ID)
+	if err != nil {
+		return traffic.PairReset{}, err
+	}
+	if err := ctx.Err(); err != nil {
+		return traffic.PairReset{}, err
+	}
+	prefix := string(pair.Scope) + ">>>" + pair.Name + ">>>traffic>>>"
+	result := traffic.PairReset{Downlink: traffic.DirectionReset{Effect: traffic.ResetNotAttempted}}
+	result.Uplink, err = resetDirection(ctx, conn, prefix+"uplink")
+	if err != nil {
+		return result, err
+	}
+	if err := ctx.Err(); err != nil {
+		return result, err
+	}
+	if err := client.checkConnection(pair.ID, conn); err != nil {
+		return result, err
+	}
+	result.Downlink, err = resetDirection(ctx, conn, prefix+"downlink")
+	return result, err
+}
+
+func resetDirection(ctx context.Context, conn *grpc.ClientConn, key string) (traffic.DirectionReset, error) {
+	value, err := swapCounter(ctx, conn, key)
+	switch {
+	case err == nil:
+		return traffic.DirectionReset{Effect: traffic.ResetAcknowledged, PreviousBytes: value}, nil
+	case errors.Is(err, traffic.ErrResetUnknown):
+		return traffic.DirectionReset{Effect: traffic.ResetUnknown}, err
+	case errors.Is(err, traffic.ErrNotFound):
+		return traffic.DirectionReset{Effect: traffic.ResetMissing}, nil
+	default:
+		return traffic.DirectionReset{Effect: traffic.ResetNotApplied}, err
+	}
+}
+
+func swapCounter(ctx context.Context, conn *grpc.ClientConn, key string) (int64, error) {
 	if err := ctx.Err(); err != nil {
 		return 0, err
 	}
-
-	key := string(counter.Scope) + ">>>" + counter.Name + ">>>traffic>>>" + string(counter.Direction)
 	var reply NamedCounterResponse
-	err = conn.Invoke(ctx, resetCounter, &ResetCounterRequest{Name: key, Reset_: true}, &reply, resetOptions...)
+	err := conn.Invoke(ctx, resetCounter, &ResetCounterRequest{Name: key, Reset_: true}, &reply, resetOptions...)
 	switch status.Code(err) {
 	case codes.OK:
 		if reply.GetStat().GetName() != key {
