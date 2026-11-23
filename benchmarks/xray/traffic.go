@@ -45,7 +45,9 @@ func benchmarkTraffic(protocol string, targets []target, rounds int, clients []i
 		{"outbound", statsv1.XrayTrafficScope_XRAY_TRAFFIC_SCOPE_OUTBOUND, 1, "direct", 1},
 		{"outbound", statsv1.XrayTrafficScope_XRAY_TRAFFIC_SCOPE_OUTBOUND, 0, "", 1},
 	}
+	scopedReset := selection == "reset-scope/list"
 	resetPair := selection == "reset-pair/one"
+	reset := scopedReset || resetPair
 	online := selection == "online" || strings.HasPrefix(selection, "online-")
 	if online {
 		cases = []trafficRead{
@@ -55,6 +57,12 @@ func benchmarkTraffic(protocol string, targets []target, rounds int, clients []i
 	}
 	if resetPair {
 		cases = []trafficRead{{scope: "reset-pair", name: "account-0000"}}
+	}
+	if scopedReset {
+		if names > 500 {
+			check(fmt.Errorf("scoped reset benchmarks support at most 500 accounts"))
+		}
+		cases = []trafficRead{{scope: "reset-scope", count: names}}
 	}
 	if selection != "" && selection != "online" {
 		cases = slices.DeleteFunc(cases, func(item trafficRead) bool { return item.label() != selection })
@@ -78,11 +86,11 @@ func benchmarkTraffic(protocol string, targets []target, rounds int, clients []i
 		} else {
 			check(seedTraffic(ctx, target.URL, address, names))
 		}
-		if resetPair {
+		if reset {
 			seeded, err := t.traffic(cases[0])(ctx)
 			check(fmtError(t.name, cases[0], err))
 			if seeded != 1 {
-				check(fmt.Errorf("%s reset did not return both nonzero seeded counters", t.name))
+				check(fmt.Errorf("%s reset did not return the nonzero seeded counters", t.name))
 			}
 		}
 		cancel()
@@ -116,10 +124,10 @@ func benchmarkTraffic(protocol string, targets []target, rounds int, clients []i
 					t := targets[index]
 					ctx, cancel := context.WithTimeout(context.Background(), window+15*time.Second)
 					call := t.traffic(spec)
-					if resetPair {
-						reset := call
+					if reset {
+						resetCall := call
 						call = func(ctx context.Context) (uint32, error) {
-							seeded, err := reset(ctx)
+							seeded, err := resetCall(ctx)
 							if err == nil && seeded != 0 {
 								err = fmt.Errorf("timed reset found a nonzero counter after seeding")
 							}
@@ -192,6 +200,9 @@ func trafficHTTP(client *http.Client, node, reference string) (func(trafficRead)
 			if spec.scope == "reset-pair" {
 				return nodePairHTTP(client, node, spec.name)
 			}
+			if spec.scope == "reset-scope" {
+				return scopeResetHTTP(client, node, spec.count, false)
+			}
 			endpoint := "https://" + node + "/v1/xray/instances/primary/stats/traffic/" + spec.scope
 			if spec.name != "" {
 				endpoint += "?name=" + url.QueryEscape(spec.name)
@@ -220,6 +231,9 @@ func trafficHTTP(client *http.Client, node, reference string) (func(trafficRead)
 			}
 			if spec.scope == "reset-pair" {
 				return referencePairHTTP(client, reference, spec.name)
+			}
+			if spec.scope == "reset-scope" {
+				return scopeResetHTTP(client, reference, spec.count, true)
 			}
 			input, err := proto.Marshal(&ReferenceTrafficRequest{Name: spec.name, Type: spec.referenceScope})
 			check(err)
@@ -275,6 +289,9 @@ func trafficGRPC(node, reference *grpc.ClientConn) (func(trafficRead) trafficCal
 			if spec.scope == "reset-pair" {
 				return nodePairGRPC(client, spec.name)
 			}
+			if spec.scope == "reset-scope" {
+				return nodeScopeResetGRPC(client, spec.count)
+			}
 			single := &statsv1.XrayTrafficRequest{Id: "primary", Scope: spec.nodeScope, Name: spec.name}
 			list := &statsv1.XrayTrafficListRequest{Id: "primary", Scope: spec.nodeScope}
 			return func(ctx context.Context) (uint32, error) {
@@ -298,6 +315,9 @@ func trafficGRPC(node, reference *grpc.ClientConn) (func(trafficRead) trafficCal
 			}
 			if spec.scope == "reset-pair" {
 				return referencePairGRPC(reference, spec.name)
+			}
+			if spec.scope == "reset-scope" {
+				return referenceScopeResetGRPC(reference, spec.count)
 			}
 			request := &ReferenceTrafficRequest{Name: spec.name, Type: spec.referenceScope}
 			return func(ctx context.Context) (uint32, error) {

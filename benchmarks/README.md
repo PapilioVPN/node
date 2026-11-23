@@ -810,3 +810,11 @@ Use the [routing fixture](xray/routing-control.md#benchmark) with
 the driver with Go 1.27.4. Set `XRAY_BENCH_ROUNDS=5` and
 `XRAY_BENCH_CLIENT_CPU=6`. Use the corresponding runtime statistics and named
 pair reset fixtures above for those workloads.
+
+## Xray scoped traffic reset
+
+The scoped API selects exact traffic counters and reports the effect of
+each native reset. The benchmark covers 2, 100 and 1000 counters. The pinned
+PasarGuard uses a substring batch operation and was faster on the shared
+fixture. Optional bounded concurrency improved Node's p50 in the focused
+repeat. [Contract, reproduction and per-round data](xray/traffic-scope-reset.md)

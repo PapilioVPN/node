@@ -67,7 +67,7 @@ docker run --rm --network=host --read-only --cap-drop ALL \
 | Xray 配置验证 | 通过 HTTP 和 gRPC 在重启实例之前验证已配置的 JSON。 |
 | Xray 运行统计 | 通过 HTTP 和 gRPC 查询活动实例的运行时间、内存分配、goroutine 和垃圾回收计数。 |
 | Xray 流量计数器 | 通过 HTTP 和 gRPC 读取单个或全部账户、入站标签或出站标签的上行与下行字节数。 |
-| Xray 流量清零 | 显式启用后，通过 HTTP 和 gRPC 读取并清零指定账户或标签的单个方向或两个方向。 |
+| Xray 流量清零 | 显式启用后，通过 HTTP 和 gRPC 清零单个计数器、指定名称的两个方向或有数量上限的范围。 |
 | Xray 在线账户和 IP | 通过 HTTP 和 gRPC 查询在线账户、不同来源 IP 数量及其最近出现时间。 |
 | Xray 路由 | 通过 HTTP 和 gRPC 读取与修改规则、测试路由，并查询或覆盖负载均衡目标。 |
 | Xray VLESS 账户 | 通过 HTTP 和 gRPC 添加、移除和统计运行中的 VLESS 入站账户。 |
@@ -102,6 +102,8 @@ HTTP `GET /v1/host/stats` 和 gRPC `HostService.GetSystemStats` 返回 `uptime_s
 设置 `xray.reset_engine_stats: true` 可通过管理 API 清零计数器。使用 `POST /v1/xray/instances/{id}/stats/traffic/{scope}/resets?name=...&direction=uplink` 或 `XrayStatsService.ResetTrafficCounter`。另一个方向使用 `downlink`。Xray 以原子方式返回原字节数并清零所选计数器。结果未知或响应丢失时，应先核对状态再重试。
 
 使用 `POST /v1/xray/instances/{id}/stats/traffic/{scope}/pair-resets?name=...` 或 `XrayStatsService.ResetTrafficPair` 清零两个方向。Xray 分别清零每个方向。即使操作中断，HTTP 也在响应体中返回两个方向的结果。gRPC 通过状态详情返回部分结果。只有已确认的方向会返回原字节数。
+
+使用 `POST /v1/xray/instances/{id}/stats/traffic/{scope}/scope-resets?max_counters=...` 或 `XrayStatsService.ResetTrafficScope` 清零一个范围。将上限设为 1 到 1000 个方向计数器。选中的计数器超过上限时，请求会在首次清零之前被拒绝。请检查整体结果和每个计数器的结果。gRPC 在响应体中返回中断或结果未知的报告。 范围清零默认顺序执行。将 `xray.reset_scope_concurrency` 设为 2 到 8 可启用并行清零。[接口约定与基准测试](benchmarks/xray/traffic-scope-reset.md)
 
 使用 `GET /v1/xray/instances/{id}/stats/online/count?name=...` 查询数量，或在同一实例路径下使用 `/stats/online/ips?name=...` 查询列表。gRPC 方法为 `XrayStatsService.GetOnlineIPCount` 和 `ListOnlineIPs`。请在账户的策略级别启用 `statsUserOnline`。时间戳为 Unix 秒。跟踪记录为空时返回零或空映射。缺少观察记录时，HTTP 返回 `404`，gRPC 返回 `NOT_FOUND`。 [gRPC 接口](internal/engines/xray/stats/bridge/grpc/proto/v1/online.proto)
 

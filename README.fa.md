@@ -69,7 +69,7 @@ docker run --rm --network=host --read-only --cap-drop ALL \
 | اعتبارسنجی کانفیگ Xray | بررسی فایل JSON تنظیم‌شده از HTTP و gRPC پیش از راه‌اندازی دوبارهٔ نمونه. |
 | آمار اجرای Xray | خواندن زمان کارکرد، تخصیص حافظه، goroutineها و شمارنده‌های GC نمونهٔ فعال از HTTP و gRPC. |
 | شمارنده‌های ترافیک Xray | بایت آپلود و دانلود یک یا همهٔ حساب‌ها، ورودی‌ها یا خروجی‌ها را با HTTP و gRPC بخوان. |
-| ریست ترافیک Xray | با فعال‌سازی صریح، شمارندهٔ یک جهت یا هر دو جهت یک حساب یا تگ را با HTTP و gRPC بخوان و صفر کن. |
+| ریست ترافیک Xray | با فعال‌سازی صریح، یک شمارنده، هر دو جهت یک حساب یا تگ، یا یک محدودهٔ سقف‌دار را با HTTP و gRPC ریست کن. |
 | حساب‌ها و IPهای آنلاین Xray | فهرست حساب‌های آنلاین، تعداد IPهای مبدأ یکتا و زمان آخرین مشاهده را با HTTP و gRPC بخوان. |
 | مسیریابی Xray | قوانین فعال را بخوان، مسیر را آزمایش کن، قوانین را تغییر بده و وضعیت یا مقصد balancer را با HTTP و gRPC مدیریت کن. |
 | حساب‌های VLESS در Xray | حساب‌های یک ورودی فعال VLESS را با HTTP و gRPC اضافه، حذف یا شمارش کن. |
@@ -104,6 +104,8 @@ docker run --rm --network=host --read-only --cap-drop ALL \
 برای ریست ترافیک در API مدیریت، `xray.reset_engine_stats: true` را فعال کن. از `POST /v1/xray/instances/{id}/stats/traffic/{scope}/resets?name=...&direction=uplink` یا `XrayStatsService.ResetTrafficCounter` استفاده کن. برای دانلود، جهت `downlink` را بده. Xray مقدار قبلی را بر حسب بایت برمی‌گرداند و همان شمارنده را اتمی صفر می‌کند. در صورت نتیجهٔ نامعلوم یا نرسیدن پاسخ، قبل از تکرار وضعیت را بررسی کن.
 
 برای هر دو جهت از `POST /v1/xray/instances/{id}/stats/traffic/{scope}/pair-resets?name=...` یا `XrayStatsService.ResetTrafficPair` استفاده کن. Xray هر جهت را جدا صفر می‌کند. HTTP نتیجهٔ هر جهت را حتی در اجرای ناقص در بدنه برمی‌گرداند و gRPC نتیجهٔ ناقص را در جزئیات خطا می‌دهد. مقدار قبلی فقط برای جهت تأییدشده برمی‌گردد.
+
+برای ریست کل یک محدوده از `POST /v1/xray/instances/{id}/stats/traffic/{scope}/scope-resets?max_counters=...` یا `XrayStatsService.ResetTrafficScope` استفاده کن. سقف را از ۱ تا ۱۰۰۰ شمارندهٔ جهت‌دار بده. اگر انتخاب از سقف بیشتر باشد، درخواست پیش از اولین ریست رد می‌شود. وضعیت کلی و نتیجهٔ هر شمارنده را بررسی کن. gRPC گزارش ناقص یا نامعلوم را در بدنهٔ پاسخ می‌دهد. ریست محدوده به‌طور پیش‌فرض ترتیبی است. برای اجرای موازی، `xray.reset_scope_concurrency` را روی ۲ تا ۸ بگذار. [قرارداد و بنچمارک](benchmarks/xray/traffic-scope-reset.md)
 
 از `GET /v1/xray/instances/{id}/stats/online/count?name=...` برای شمارش و از `/stats/online/ips?name=...` زیر مسیر همان نمونه برای فهرست استفاده کن. متدهای gRPC، `XrayStatsService.GetOnlineIPCount` و `ListOnlineIPs` هستند. `statsUserOnline` را در سطح سیاست حساب فعال کن. زمان‌ها بر حسب ثانیهٔ یونیکس هستند. اگر نقشهٔ IP حساب خالی باشد، شمارش صفر و فهرست خالی برمی‌گردد. اگر مشاهده‌ای وجود نداشته باشد، HTTP پاسخ `404` و gRPC وضعیت `NOT_FOUND` می‌دهد. [قرارداد gRPC](internal/engines/xray/stats/bridge/grpc/proto/v1/online.proto)
 
