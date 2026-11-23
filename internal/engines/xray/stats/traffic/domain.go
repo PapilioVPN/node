@@ -1,10 +1,7 @@
-// Package traffic reads byte counters from the active Xray execution.
+// Package traffic reads upload and download counters for an active Xray instance.
 package traffic
 
-import (
-	"errors"
-	"iter"
-)
+import "errors"
 
 type Scope string
 
@@ -14,21 +11,25 @@ const (
 	Outbound Scope = "outbound"
 )
 
+func (scope Scope) valid() bool {
+	switch scope {
+	case User, Inbound, Outbound:
+		return true
+	default:
+		return false
+	}
+}
+
 var (
-	ErrUnavailable = errors.New("Xray traffic counters unavailable")
 	ErrInvalid     = errors.New("invalid Xray traffic selector")
 	ErrNotFound    = errors.New("Xray traffic counters not found")
 	ErrBusy        = errors.New("too many concurrent Xray traffic reads")
 	ErrTooLarge    = errors.New("Xray traffic response exceeds the size limit")
+	ErrUnavailable = errors.New("Xray traffic counters unavailable")
 )
 
 type Usage struct {
 	Name                       string
 	UplinkBytes, DownlinkBytes int64
 	HasUplink, HasDownlink     bool
-}
-
-type Counters struct {
-	Count int
-	Each  iter.Seq2[string, int64]
 }
