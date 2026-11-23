@@ -10,4 +10,15 @@ import "google/protobuf/wrappers.proto";
 service HostService {
   // Returns whole seconds since boot in Node's Linux time namespace, including suspension.
   rpc GetUptime(google.protobuf.Empty) returns (google.protobuf.UInt64Value);
+
+  // Returns a memory snapshot from the Linux procfs visible to Node.
+  rpc GetMemory(google.protobuf.Empty) returns (MemorySnapshot);
+}
+
+message MemorySnapshot {
+  uint64 total_bytes = 1;
+  // Estimated RAM available without swapping, when reported by Linux.
+  optional uint64 available_bytes = 2;
+  uint64 swap_total_bytes = 3;
+  uint64 swap_free_bytes = 4;
 }

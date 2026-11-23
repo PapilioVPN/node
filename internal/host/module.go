@@ -14,5 +14,6 @@ func register(httpRouter *chi.Mux, grpcServer *grpc.Server) error {
 		return err
 	}
 	httpRouter.Get("/v1/host/uptime", handleUptime)
+	httpRouter.Get("/v1/host/memory", handleMemory)
 	return nil
 }

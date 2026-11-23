@@ -8,6 +8,7 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"encoding/pem"
+	"fmt"
 	"io"
 	"log/slog"
 	"math/big"
@@ -21,6 +22,7 @@ import (
 	"time"
 
 	bridgerpc "github.com/PapilioVPN/go-bridge/api/grpc/client"
+	nodev1 "github.com/PapilioVPN/node/api/v1"
 	"github.com/PapilioVPN/node/internal/settings"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -114,6 +116,7 @@ func TestRunServesAndStopsBothListeners(t *testing.T) {
 				t.Fatalf("gRPC readiness = %v, %v", response, err)
 			}
 			verifyHostUptime(t, verifyCtx, httpClient, scheme+"://"+httpAddress, config.APIKey, connection)
+			verifyHostMemory(t, verifyCtx, httpClient, scheme+"://"+httpAddress, config.APIKey, connection)
 
 			if mode.mutual {
 				serverOnlyTLS := grpcConfig.TLS.Clone()
@@ -188,6 +191,61 @@ func procUptime(t *testing.T) uint64 {
 		t.Fatal(err)
 	}
 	return seconds
+}
+
+func verifyHostMemory(t *testing.T, ctx context.Context, client *http.Client, baseURL, key string, connection *grpc.ClientConn) {
+	t.Helper()
+	contents, err := os.ReadFile("/proc/meminfo")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var ram, swap uint64
+	for line := range strings.Lines(string(contents)) {
+		if strings.HasPrefix(line, "MemTotal:") {
+			if _, err := fmt.Sscanf(line, "MemTotal: %d kB", &ram); err != nil {
+				t.Fatal(err)
+			}
+		}
+		if strings.HasPrefix(line, "SwapTotal:") {
+			if _, err := fmt.Sscanf(line, "SwapTotal: %d kB", &swap); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, baseURL+"/v1/host/memory", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if key != "" {
+		request.Header.Set("X-API-Key", key)
+	}
+	response, err := client.Do(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusOK || response.Header.Get("Cache-Control") != "no-store" {
+		t.Fatalf("HTTP memory status = %d, headers = %v", response.StatusCode, response.Header)
+	}
+	var httpSnapshot struct {
+		TotalBytes     *uint64 `json:"total_bytes"`
+		SwapTotalBytes *uint64 `json:"swap_total_bytes"`
+		SwapFreeBytes  *uint64 `json:"swap_free_bytes"`
+	}
+	if err := json.NewDecoder(response.Body).Decode(&httpSnapshot); err != nil {
+		t.Fatal(err)
+	}
+	if httpSnapshot.TotalBytes == nil || *httpSnapshot.TotalBytes != ram*1024 ||
+		httpSnapshot.SwapTotalBytes == nil || *httpSnapshot.SwapTotalBytes != swap*1024 || httpSnapshot.SwapFreeBytes == nil {
+		t.Errorf("HTTP memory = %#v, want RAM %d bytes and swap %d bytes", httpSnapshot, ram*1024, swap*1024)
+	}
+
+	var grpcSnapshot nodev1.MemorySnapshot
+	err = connection.Invoke(ctx, "/papiliovpn.node.v1.HostService/GetMemory", &emptypb.Empty{}, &grpcSnapshot)
+	if err != nil || grpcSnapshot.GetTotalBytes() != ram*1024 || grpcSnapshot.GetSwapTotalBytes() != swap*1024 {
+		t.Errorf("gRPC memory = %v, %v, want RAM %d bytes and swap %d bytes", &grpcSnapshot, err, ram*1024, swap*1024)
+	}
 }
 
 func TestBindFailureReleasesFirstListener(t *testing.T) {
