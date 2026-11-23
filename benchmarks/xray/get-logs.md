@@ -19,7 +19,7 @@ The producer sets this rate.
 | Full queue | Drops the newest event for that subscriber. The sequence can expose a gap. | Drops the newest event for that subscriber. The string has no gap marker. |
 | End | Execution stop or exit ends its subscriptions and discards the pending queue. | The backend owns the buffer lifetime. Backend shutdown closes it. An in-place Xray restart can reuse the buffer. |
 
-[PapilioVPN API contract](../../internal/engines/xray/logs/contract.md) ·
+[PapilioVPN API contract](log-stream-contract.md) ·
 [PasarGuard REST](https://github.com/PasarGuard/node/blob/739eab94a9343d9f0035baf7162796844109f4c4/controller/rest/log.go) ·
 [PasarGuard gRPC](https://github.com/PasarGuard/node/blob/739eab94a9343d9f0035baf7162796844109f4c4/controller/rpc/log.go) ·
 [PasarGuard stdout capture](https://github.com/PasarGuard/node/blob/739eab94a9343d9f0035baf7162796844109f4c4/backend/xray/log.go) ·
