@@ -8,7 +8,6 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/PapilioVPN/node/internal/platform/management"
 	"github.com/PapilioVPN/node/internal/settings"
 	"go.uber.org/fx"
 	"go.uber.org/fx/fxevent"
@@ -19,8 +18,8 @@ const lifecycleTimeout = 5 * time.Second
 func Run(ctx context.Context, config settings.Config, logger *slog.Logger) error {
 	app := fx.New(
 		fx.Supply(config.Management, logger),
-		fx.Provide(management.New),
-		fx.Invoke(registerManagement),
+		fx.Provide(loadTLS, newReadiness, newHTTPServer, newGRPCServer),
+		fx.Invoke(registerListeners),
 		fx.WithLogger(func() fxevent.Logger { return &fxevent.SlogLogger{Logger: logger} }),
 	)
 	startCtx, cancelStart := context.WithTimeout(ctx, lifecycleTimeout)
@@ -42,8 +41,4 @@ func Run(ctx context.Context, config settings.Config, logger *slog.Logger) error
 	stopCtx, cancel := context.WithTimeout(context.Background(), lifecycleTimeout)
 	defer cancel()
 	return errors.Join(runErr, app.Stop(stopCtx))
-}
-
-func registerManagement(lifecycle fx.Lifecycle, servers *management.Servers) {
-	lifecycle.Append(fx.Hook{OnStart: servers.Start, OnStop: servers.Stop})
 }
