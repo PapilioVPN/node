@@ -14,7 +14,7 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
-func registerGRPC(server *grpc.Server, sampler *services.CPUSampler) error {
+func registerGRPC(server *grpc.Server, sampler *services.CPUSampler, storagePath string) error {
 	router, err := bridgegrpc.NewRouter("papiliovpn.node.v1.HostService")
 	if err != nil {
 		return err
@@ -28,7 +28,29 @@ func registerGRPC(server *grpc.Server, sampler *services.CPUSampler) error {
 	if err := bridgegrpc.HandleUnary(router, "GetCPU", getCPU(sampler)); err != nil {
 		return err
 	}
+	if err := bridgegrpc.HandleUnary(router, "GetStorage", getStorage(storagePath)); err != nil {
+		return err
+	}
 	return bridgegrpc.Setup(server, router)
+}
+
+func getStorage(path string) func(context.Context, *emptypb.Empty) (*nodev1.StorageSnapshot, error) {
+	return func(ctx context.Context, _ *emptypb.Empty) (*nodev1.StorageSnapshot, error) {
+		snapshot, err := services.Storage(ctx, path)
+		if err != nil {
+			if cause := ctx.Err(); cause != nil {
+				return nil, status.FromContextError(cause).Err()
+			}
+			return nil, status.Error(codes.Unavailable, "host storage is unavailable")
+		}
+		return &nodev1.StorageSnapshot{
+			Path:           snapshot.Path,
+			TotalBytes:     snapshot.TotalBytes,
+			UsedBytes:      snapshot.UsedBytes,
+			AvailableBytes: snapshot.AvailableBytes,
+			ReadOnly:       snapshot.ReadOnly,
+		}, nil
+	}
 }
 
 func getCPU(sampler *services.CPUSampler) func(context.Context, *emptypb.Empty) (*nodev1.CPUSnapshot, error) {

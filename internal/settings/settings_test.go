@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestLoadResolvesTLSFilesAgainstSettings(t *testing.T) {
+func TestLoadReadsStoragePathAndResolvesTLSFiles(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "config.yml")
 	writeSettings(t, path, `management:
@@ -17,6 +17,8 @@ func TestLoadResolvesTLSFilesAgainstSettings(t *testing.T) {
     cert_file: certs/server.pem
     key_file: certs/server-key.pem
     client_ca_file: certs/ca.pem
+host:
+  storage_path: /srv/node/data
 `)
 	config, err := Load(path)
 	if err != nil {
@@ -28,18 +30,24 @@ func TestLoadResolvesTLSFilesAgainstSettings(t *testing.T) {
 		files.ClientCAFile != filepath.Join(dir, "certs/ca.pem") {
 		t.Fatalf("unexpected paths: %#v", files)
 	}
+	if config.Host.StoragePath != "/srv/node/data" {
+		t.Fatalf("storage path = %q, want /srv/node/data", config.Host.StoragePath)
+	}
 }
 
 func TestLoadRejectsInvalidSettings(t *testing.T) {
 	const valid = "management:\n  http_address: '127.0.0.1:8080'\n  grpc_address: '127.0.0.1:8081'\n"
 	cases := map[string]string{
-		"unknown field": valid + "  surprise: test-secret\n",
-		"two documents": valid + "---\n{}\n",
-		"missing port":  strings.Replace(valid, "127.0.0.1:8080", "127.0.0.1", 1),
-		"named port":    strings.Replace(valid, ":8080", ":http", 1),
-		"partial TLS":   valid + "  tls: {cert_file: cert.pem}\n",
-		"cleartext key": valid + "  api_key: test-secret\n",
-		"large file":    strings.Repeat(" ", maxBytes+1),
+		"unknown field":         valid + "  surprise: test-secret\n",
+		"two documents":         valid + "---\n{}\n",
+		"missing port":          strings.Replace(valid, "127.0.0.1:8080", "127.0.0.1", 1),
+		"named port":            strings.Replace(valid, ":8080", ":http", 1),
+		"partial TLS":           valid + "  tls: {cert_file: cert.pem}\n",
+		"cleartext key":         valid + "  api_key: test-secret\n",
+		"relative storage path": valid + "host: {storage_path: test-secret}\n",
+		"NUL in storage path":   valid + `host: {storage_path: "/test-secret\0"}`,
+		"storage path too long": valid + "host: {storage_path: /" + strings.Repeat("x", 4095) + "}\n",
+		"large file":            strings.Repeat(" ", maxBytes+1),
 	}
 	for name, contents := range cases {
 		t.Run(name, func(t *testing.T) {

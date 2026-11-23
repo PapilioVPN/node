@@ -18,7 +18,7 @@ func TestCPUWithoutAValidSample(t *testing.T) {
 	router := chi.NewRouter()
 	server := grpc.NewServer()
 	t.Cleanup(server.Stop)
-	if err := Register(router, server, sampler); err != nil {
+	if err := Register(router, server, sampler, "/"); err != nil {
 		t.Fatal(err)
 	}
 	response := httptest.NewRecorder()

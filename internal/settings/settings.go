@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"go.yaml.in/yaml/v3"
 )
@@ -18,6 +19,11 @@ const maxBytes = 64 << 10
 
 type Config struct {
 	Management Management `yaml:"management"`
+	Host       Host       `yaml:"host"`
+}
+
+type Host struct {
+	StoragePath string `yaml:"storage_path"`
 }
 
 type Management struct {
@@ -77,6 +83,10 @@ func Load(path string) (Config, error) {
 	tls.CertFile = resolve(dir, tls.CertFile)
 	tls.KeyFile = resolve(dir, tls.KeyFile)
 	tls.ClientCAFile = resolve(dir, tls.ClientCAFile)
+	storagePath := config.Host.StoragePath
+	if storagePath != "" && (!filepath.IsAbs(storagePath) || len(storagePath) > 4095 || strings.ContainsRune(storagePath, 0)) {
+		return Config{}, errors.New("host.storage_path must be an absolute Linux path of at most 4095 bytes without NUL")
+	}
 	return config, nil
 }
 

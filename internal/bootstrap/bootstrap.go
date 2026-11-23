@@ -18,7 +18,7 @@ const lifecycleTimeout = 5 * time.Second
 
 func Run(ctx context.Context, config settings.Config, logger *slog.Logger) error {
 	app := fx.New(
-		fx.Supply(config.Management, logger),
+		fx.Supply(config.Management, config.Host, logger),
 		fx.Provide(loadTLS, newReadiness, newHTTPRouter, newHTTPServer, newGRPCServer),
 		host.Module,
 		fx.Invoke(registerListeners),

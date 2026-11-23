@@ -62,6 +62,7 @@ docker run --rm --network=host --read-only --cap-drop ALL \
 | زمان کارکرد میزبان | خواندن زمان سپری‌شده از بوت لینوکس به ثانیهٔ کامل از طریق HTTP و gRPC. |
 | حافظهٔ میزبان | خواندن RAM کل و در دسترس، و ظرفیت و فضای آزاد swap، به بایت از طریق HTTP و gRPC. |
 | پردازندهٔ میزبان | خواندن درصد مصرف کل CPU از طریق HTTP و gRPC. |
+| فضای ذخیره‌سازی میزبان | بررسی ظرفیت و وضعیت فقط‌خواندنی فایل‌سیستمِ مسیر تنظیم‌شده. |
 
 <a name="management"></a>
 
@@ -72,6 +73,8 @@ docker run --rm --network=host --read-only --cap-drop ALL \
 درخواست `GET /v1/host/memory` و عملیات `HostService.GetMemory` از `/proc/meminfo` قابل مشاهده برای Node می‌خوانند. همهٔ مقادیر به بایت هستند. فیلد `available_bytes` برآورد کرنل از RAM قابل استفاده بدون swap است و هر وقت کرنل آن را گزارش کند در پاسخ می‌آید.
 
 درخواست `GET /v1/host/cpu` و عملیات `HostService.GetCPU` یک نمونهٔ مشترک از CPU لینوکس را می‌دهند که تقریباً هر ثانیه به‌روز می‌شود. پاسخ شامل `busy_percent`، `window_milliseconds`، `observed_at` و در صورت گزارش کرنل `steal_percent` است. زمان انتظار I/O و زمان گرفته‌شده توسط هایپروایزر در درصد مشغولی حساب نمی‌شوند. تا وقتی بازهٔ معتبری در دسترس نباشد، HTTP وضعیت `503` و gRPC وضعیت `UNAVAILABLE` می‌دهد.
+
+درخواست `GET /v1/host/storage` و عملیات `HostService.GetStorage` فیلدهای `path`، `total_bytes`، `used_bytes`، `available_bytes` و `read_only` را می‌دهند. فضای رزروشده برای کاربران دارای دسترسی ویژه در `available_bytes` حساب نمی‌شود. برای پایش یک دیسک، `host.storage_path` را روی یک مسیر مطلق از همان دیسک بگذار. مقدار پیش‌فرض `/` در فضای mount خود Node است. در Docker، مسیر قابل‌مشاهده از داخل کانتینر را وارد کن. اگر مسیر قابل‌بررسی نباشد، HTTP وضعیت `503` و gRPC وضعیت `UNAVAILABLE` می‌دهد.
 
 در نمونه، هر دو listener روی loopback باز می‌شوند. درخواست HTTP به `GET /healthz` هنگام آمادگی پاسخ `204 No Content` دارد. سرویس health در gRPC روی پورت 8081 برای نام سرویس خالی وضعیت `SERVING` را می‌دهد. برای فعال‌کردن TLS، فیلدهای `management.tls.cert_file` و `management.tls.key_file` را تنظیم کن. فیلد `management.tls.client_ca_file` برای mTLS و `management.api_key` برای هدر یا متادیتای `x-api-key` اختیاری‌اند.
 

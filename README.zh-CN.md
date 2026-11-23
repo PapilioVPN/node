@@ -60,6 +60,7 @@ docker run --rm --network=host --read-only --cap-drop ALL \
 | 主机运行时间 | 通过 HTTP 和 gRPC 以整秒读取自 Linux 启动以来的时间。 |
 | 主机内存 | 通过 HTTP 和 gRPC 读取总内存、可用内存、交换空间总量和空闲量，单位为字节。 |
 | 主机 CPU | 通过 HTTP 和 gRPC 读取 CPU 总体使用率。 |
+| 主机存储 | 查看配置路径所在文件系统的容量和只读状态。 |
 
 <a name="management"></a>
 
@@ -70,6 +71,8 @@ HTTP `GET /v1/host/uptime` 返回 `uptime_seconds`。gRPC `HostService.GetUptime
 HTTP `GET /v1/host/memory` 和 gRPC `HostService.GetMemory` 读取 Node 可见的 Linux `/proc/meminfo`。所有数值均以字节为单位。`available_bytes` 是内核估算的无需使用交换空间即可使用的内存，只在内核提供该值时返回。
 
 HTTP `GET /v1/host/cpu` 和 gRPC `HostService.GetCPU` 返回同一份 Linux CPU 总体采样，约每秒更新一次。响应包含 `busy_percent`、`window_milliseconds`、`observed_at`，以及 Linux 提供的可选字段 `steal_percent`。I/O 等待时间和被虚拟机监控程序占用的时间均不计入忙碌时间。尚无有效采样时，HTTP 返回 `503`，gRPC 返回 `UNAVAILABLE`。
+
+HTTP `GET /v1/host/storage` 和 gRPC `HostService.GetStorage` 返回 `path`、`total_bytes`、`used_bytes`、`available_bytes` 和 `read_only`。`available_bytes` 不包含为特权用户保留的空间。通过 `host.storage_path` 指定要监控的存储卷上的绝对路径，默认使用 Node 挂载命名空间中的 `/`。在 Docker 中，请填写容器内可见的路径。无法读取该路径时，HTTP 返回 `503`，gRPC 返回 `UNAVAILABLE`。
 
 示例中的两个监听端口都绑定到环回地址。Node 就绪时，HTTP `GET /healthz` 返回 `204 No Content`。端口 8081 上的 gRPC 健康检查对空服务名返回 `SERVING`。设置 `management.tls.cert_file` 和 `management.tls.key_file` 可启用 TLS。可选项 `management.tls.client_ca_file` 启用 mTLS，`management.api_key` 用于 `x-api-key` 请求头或元数据。
 

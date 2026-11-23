@@ -68,3 +68,28 @@ func handleMemory(w http.ResponseWriter, request *http.Request) {
 		SwapFreeBytes:  snapshot.SwapFreeBytes,
 	})
 }
+
+func handleStorage(path string) http.HandlerFunc {
+	return func(w http.ResponseWriter, request *http.Request) {
+		w.Header().Set("Cache-Control", "no-store")
+		snapshot, err := services.Storage(request.Context(), path)
+		if err != nil {
+			http.Error(w, "host storage is unavailable", http.StatusServiceUnavailable)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(struct {
+			Path           string `json:"path"`
+			TotalBytes     uint64 `json:"total_bytes"`
+			UsedBytes      uint64 `json:"used_bytes"`
+			AvailableBytes uint64 `json:"available_bytes"`
+			ReadOnly       bool   `json:"read_only"`
+		}{
+			Path:           snapshot.Path,
+			TotalBytes:     snapshot.TotalBytes,
+			UsedBytes:      snapshot.UsedBytes,
+			AvailableBytes: snapshot.AvailableBytes,
+			ReadOnly:       snapshot.ReadOnly,
+		})
+	}
+}

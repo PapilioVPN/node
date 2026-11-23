@@ -1,3 +1,7 @@
 management:
   http_address: "127.0.0.1:8080"
   grpc_address: "127.0.0.1:8081"
+
+host:
+  # Set this to an absolute path on the volume that stores your Node data or logs.
+  storage_path: "/"

@@ -24,6 +24,7 @@ import (
 	bridgerpc "github.com/PapilioVPN/go-bridge/api/grpc/client"
 	nodev1 "github.com/PapilioVPN/node/api/v1"
 	"github.com/PapilioVPN/node/internal/settings"
+	"golang.org/x/sys/unix"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
@@ -46,6 +47,12 @@ func TestRunServesAndStopsBothListeners(t *testing.T) {
 		t.Run(mode.name, func(t *testing.T) {
 			httpAddress, grpcAddress := availableAddresses(t)
 			config := settings.Management{HTTPAddress: httpAddress, GRPCAddress: grpcAddress}
+			hostConfig := settings.Host{}
+			storagePath := "/"
+			if !mode.secure {
+				storagePath = t.TempDir()
+				hostConfig.StoragePath = storagePath
+			}
 			scheme := "http"
 			httpClient := &http.Client{Timeout: time.Second}
 			grpcConfig := bridgerpc.Config{Target: grpcAddress}
@@ -64,7 +71,7 @@ func TestRunServesAndStopsBothListeners(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 			done := make(chan error, 1)
 			go func() {
-				done <- Run(ctx, settings.Config{Management: config}, quietLogger())
+				done <- Run(ctx, settings.Config{Management: config, Host: hostConfig}, quietLogger())
 			}()
 			t.Cleanup(func() {
 				cancel()
@@ -117,6 +124,7 @@ func TestRunServesAndStopsBothListeners(t *testing.T) {
 			}
 			verifyHostUptime(t, verifyCtx, httpClient, scheme+"://"+httpAddress, config.APIKey, connection)
 			verifyHostMemory(t, verifyCtx, httpClient, scheme+"://"+httpAddress, config.APIKey, connection)
+			verifyHostStorage(t, verifyCtx, httpClient, scheme+"://"+httpAddress, config.APIKey, storagePath, connection)
 			if !mode.secure {
 				verifyHostCPU(t, verifyCtx, httpClient, scheme+"://"+httpAddress, connection)
 			}
@@ -304,6 +312,57 @@ func verifyHostCPU(t *testing.T, ctx context.Context, client *http.Client, baseU
 			(sample.StealPercent != nil && *sample.StealPercent != rpcSample.GetStealPercent()) {
 			t.Fatalf("different CPU readings for the same timestamp: HTTP %+v, gRPC %v", sample, &rpcSample)
 		}
+	}
+}
+
+func verifyHostStorage(t *testing.T, ctx context.Context, client *http.Client, baseURL, key, path string, connection *grpc.ClientConn) {
+	t.Helper()
+	var stats unix.Statfs_t
+	if err := unix.Statfs(path, &stats); err != nil {
+		t.Fatal(err)
+	}
+	blockSize := stats.Frsize
+	if blockSize == 0 {
+		blockSize = stats.Bsize
+	}
+	total := stats.Blocks * uint64(blockSize)
+	readOnly := stats.Flags&unix.ST_RDONLY != 0
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, baseURL+"/v1/host/storage", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if key != "" {
+		request.Header.Set("X-API-Key", key)
+	}
+	response, err := client.Do(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("HTTP storage status = %d", response.StatusCode)
+	}
+	var observed struct {
+		Path           string  `json:"path"`
+		TotalBytes     uint64  `json:"total_bytes"`
+		UsedBytes      *uint64 `json:"used_bytes"`
+		AvailableBytes *uint64 `json:"available_bytes"`
+		ReadOnly       *bool   `json:"read_only"`
+	}
+	if err := json.NewDecoder(response.Body).Decode(&observed); err != nil {
+		t.Fatal(err)
+	}
+	if observed.Path != path || observed.TotalBytes != total || observed.ReadOnly == nil || *observed.ReadOnly != readOnly ||
+		observed.UsedBytes == nil || *observed.UsedBytes > total || observed.AvailableBytes == nil || *observed.AvailableBytes > total {
+		t.Fatalf("invalid HTTP storage sample: %+v", observed)
+	}
+	var rpcSnapshot nodev1.StorageSnapshot
+	if err := connection.Invoke(ctx, "/papiliovpn.node.v1.HostService/GetStorage", &emptypb.Empty{}, &rpcSnapshot); err != nil {
+		t.Fatal(err)
+	}
+	if rpcSnapshot.Path != path || rpcSnapshot.TotalBytes != total || rpcSnapshot.ReadOnly != readOnly ||
+		rpcSnapshot.UsedBytes > total || rpcSnapshot.AvailableBytes > total {
+		t.Fatalf("invalid gRPC storage sample: %v", &rpcSnapshot)
 	}
 }
 

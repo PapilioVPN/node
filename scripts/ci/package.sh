@@ -54,6 +54,8 @@ if [[ "$ready" != true ]]; then
 fi
 curl -fs --max-time 1 "http://$address/v1/host/uptime" >/dev/null
 curl -fs --max-time 1 "http://$address/v1/host/memory" >/dev/null
+storage=$(curl -fs --max-time 1 "http://$address/v1/host/storage")
+[[ "$storage" == *'"read_only":true'* ]]
 docker stop --time 8 "$container" >/dev/null
 test "$(docker inspect --format '{{.State.ExitCode}}' "$container")" = 0
 
