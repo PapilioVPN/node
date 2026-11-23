@@ -4,7 +4,6 @@ package lifecycle
 import (
 	"context"
 	"errors"
-	"fmt"
 	"sync"
 	"time"
 )
@@ -18,7 +17,7 @@ type Config struct {
 
 type child interface {
 	socket() string
-	wait() error
+	wait() processExit
 	terminate() error
 	kill() error
 }
@@ -27,7 +26,7 @@ type execution struct {
 	child      child
 	done       chan struct{}
 	finalState State
-	cleanupErr error
+	exit       processExit
 }
 
 type Service struct {
@@ -92,7 +91,7 @@ func (service *Service) Start(ctx context.Context, id string) (Status, error) {
 		service.mu.Lock()
 		service.state = Failed
 		service.mu.Unlock()
-		return Status{}, fmt.Errorf("%w: %w", ErrStartFailed, err)
+		return Status{}, &StartError{Reason: LaunchFailed, cause: err}
 	}
 
 	run := &execution{child: process, done: make(chan struct{}), finalState: Failed}
@@ -106,18 +105,36 @@ func (service *Service) Start(ctx context.Context, id string) (Status, error) {
 		probeErr = service.probe(startCtx, process.socket())
 	}
 	service.mu.Lock()
-	if probeErr == nil && startCtx.Err() == nil && service.run == run {
+	startErr := startCtx.Err()
+	if probeErr == nil && startErr == nil && service.run == run {
 		service.state = Ready
 		service.mu.Unlock()
 		return Status{ID: id, State: Ready}, nil
 	}
-	if service.run == run {
+	var failure StartError
+	var exitErr error
+	exited := service.run != run
+	if exited {
+		failure.Reason = ExitedBeforeReady
+		exitErr = run.exit.err
+		if run.exit.code >= 0 {
+			code := int32(run.exit.code)
+			failure.ExitCode = &code
+		}
+	} else {
 		service.state = Stopping
+		failure.Reason = ReadinessFailed
+		if errors.Is(startErr, context.DeadlineExceeded) || errors.Is(probeErr, context.DeadlineExceeded) {
+			failure.Reason = ReadinessTimeout
+		}
 	}
 	service.mu.Unlock()
 
 	// A request that never reached readiness must not leave an active child.
-	killErr := process.kill()
+	var killErr error
+	if !exited {
+		killErr = process.kill()
+	}
 	cleanupCtx, cleanupCancel := context.WithTimeout(context.Background(), time.Second)
 	defer cleanupCancel()
 	cleanupErr := awaitExit(cleanupCtx, run)
@@ -127,7 +144,8 @@ func (service *Service) Start(ctx context.Context, id string) (Status, error) {
 	if service.shutdown.Err() != nil {
 		return Status{}, errors.Join(ErrUnavailable, killErr, cleanupErr)
 	}
-	return Status{}, errors.Join(ErrStartFailed, probeErr, killErr, cleanupErr)
+	failure.cause = errors.Join(exitErr, startErr, probeErr, killErr, cleanupErr)
+	return Status{}, &failure
 }
 
 func (service *Service) Stop(ctx context.Context, id string) (Status, error) {
@@ -177,12 +195,13 @@ func (service *Service) admit(ctx context.Context, id string) error {
 func (service *Service) release() { <-service.control }
 
 func (service *Service) wait(run *execution, cancelStart context.CancelFunc) {
-	run.cleanupErr = run.child.wait()
+	exit := run.child.wait()
 	service.mu.Lock()
 	defer service.mu.Unlock()
+	run.exit = exit
 	service.run = nil
 	service.state = run.finalState
-	if run.cleanupErr != nil {
+	if exit.cleanupErr != nil {
 		service.state = Failed
 	}
 	close(run.done)
@@ -206,7 +225,7 @@ func (service *Service) stop(ctx context.Context) error {
 	defer grace.Stop()
 	select {
 	case <-run.done:
-		if err := errors.Join(signalErr, run.cleanupErr); err != nil {
+		if err := errors.Join(signalErr, run.exit.cleanupErr); err != nil {
 			return errors.Join(ErrStopFailed, err)
 		}
 		return nil
@@ -223,12 +242,12 @@ func (service *Service) stop(ctx context.Context) error {
 func awaitExit(ctx context.Context, run *execution) error {
 	select {
 	case <-run.done:
-		return run.cleanupErr
+		return run.exit.cleanupErr
 	default:
 	}
 	select {
 	case <-run.done:
-		return run.cleanupErr
+		return run.exit.cleanupErr
 	case <-ctx.Done():
 		return ctx.Err()
 	}

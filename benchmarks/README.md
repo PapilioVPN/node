@@ -100,3 +100,18 @@ NODE_TEST_XRAY=/absolute/path/to/xray GOMAXPROCS=1 taskset -c 2 \
   go test ./internal/engines/xray/configs/integration -run '^$' \
   -bench '^BenchmarkValidateConfig$' -benchmem -benchtime=300ms -count=5
 ```
+
+## Xray lifecycle after startup error reporting
+
+The rerun uses the Xray lifecycle fixture above with five rounds, six cold starts and joined stops per round, and 12 status reads per start. The table shows the median of the per-round p50s in milliseconds for successful calls. The occupied-port and readiness-timeout cases were verified separately in integration tests.
+
+| Transport | Operation | PapilioVPN p50 | PasarGuard p50 |
+| --- | --- | ---: | ---: |
+| HTTP | Start | 37.776 | 1034.452 |
+| HTTP | Status | 0.341 | 0.459 |
+| HTTP | Stop | 4.480 | 5.510 |
+| gRPC | Start | 32.929 | 1028.577 |
+| gRPC | Status | 0.390 | 0.450 |
+| gRPC | Stop | 4.008 | 4.961 |
+
+Use `XRAY_BENCH_CYCLES=6` with the reproduction command in the lifecycle section. [HTTP per-round results](xray/results/2026-11-23-startup-details-http.csv) · [gRPC per-round results](xray/results/2026-11-23-startup-details-grpc.csv)

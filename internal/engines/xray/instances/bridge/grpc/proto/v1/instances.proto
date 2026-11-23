@@ -6,6 +6,7 @@ option go_package = "github.com/PapilioVPN/node/internal/engines/xray/instances/
 
 service XrayInstancesService {
   // Starts the configured instance and waits for its native API to respond.
+  // Start failures have XrayStartFailure details on an UNAVAILABLE status.
   rpc Start(XrayInstanceRequest) returns (XrayInstanceStatus);
   // Returns the last state observed by the lifecycle owner.
   rpc GetStatus(XrayInstanceRequest) returns (XrayInstanceStatus);
@@ -29,4 +30,18 @@ enum XrayInstanceState {
 message XrayInstanceStatus {
   string id = 1;
   XrayInstanceState state = 2;
+}
+
+enum XrayStartFailureReason {
+  XRAY_START_FAILURE_REASON_UNSPECIFIED = 0;
+  XRAY_START_FAILURE_REASON_LAUNCH_FAILED = 1;
+  XRAY_START_FAILURE_REASON_EXITED_BEFORE_READY = 2;
+  XRAY_START_FAILURE_REASON_READINESS_TIMEOUT = 3;
+  XRAY_START_FAILURE_REASON_READINESS_FAILED = 4;
+}
+
+message XrayStartFailure {
+  XrayStartFailureReason reason = 1;
+  // Present when Xray exited normally before readiness and reported a code.
+  optional int32 exit_code = 2;
 }

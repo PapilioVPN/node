@@ -15,7 +15,13 @@ type process struct {
 	command    *exec.Cmd
 	socketPath string
 	exited     chan struct{}
+	exit       processExit
+}
+
+type processExit struct {
+	err        error
 	cleanupErr error
+	code       int
 }
 
 func startProcess(config Config) (child, error) {
@@ -39,9 +45,8 @@ func startProcess(config Config) (child, error) {
 			return
 		}
 		started <- nil
-		// Both clean exit and signal termination count as a reaped process.
-		_ = cmd.Wait()
-		p.cleanupErr = run.Cleanup()
+		waitErr := cmd.Wait()
+		p.exit = processExit{err: waitErr, cleanupErr: run.Cleanup(), code: cmd.ProcessState.ExitCode()}
 		close(p.exited)
 	}()
 	if err := <-started; err != nil {
@@ -52,9 +57,9 @@ func startProcess(config Config) (child, error) {
 
 func (process *process) socket() string { return process.socketPath }
 
-func (process *process) wait() error {
+func (process *process) wait() processExit {
 	<-process.exited
-	return process.cleanupErr
+	return process.exit
 }
 
 func (process *process) terminate() error {

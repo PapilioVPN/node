@@ -29,6 +29,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type XrayInstancesServiceClient interface {
 	// Starts the configured instance and waits for its native API to respond.
+	// Start failures have XrayStartFailure details on an UNAVAILABLE status.
 	Start(ctx context.Context, in *XrayInstanceRequest, opts ...grpc.CallOption) (*XrayInstanceStatus, error)
 	// Returns the last state observed by the lifecycle owner.
 	GetStatus(ctx context.Context, in *XrayInstanceRequest, opts ...grpc.CallOption) (*XrayInstanceStatus, error)
@@ -79,6 +80,7 @@ func (c *xrayInstancesServiceClient) Stop(ctx context.Context, in *XrayInstanceR
 // for forward compatibility.
 type XrayInstancesServiceServer interface {
 	// Starts the configured instance and waits for its native API to respond.
+	// Start failures have XrayStartFailure details on an UNAVAILABLE status.
 	Start(context.Context, *XrayInstanceRequest) (*XrayInstanceStatus, error)
 	// Returns the last state observed by the lifecycle owner.
 	GetStatus(context.Context, *XrayInstanceRequest) (*XrayInstanceStatus, error)

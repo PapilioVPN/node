@@ -60,7 +60,7 @@ docker run --rm --network=host --read-only --cap-drop ALL \
 | Host CPU | Read aggregate CPU utilization over HTTP and gRPC. |
 | Host storage | Check space and read-only status for the filesystem backing a configured path. |
 | Host system stats | Fetch uptime, CPU, memory and storage in one response. |
-| Xray instance | Start one configured instance, read its lifecycle state, and stop it over HTTP and gRPC. |
+| Xray instance | Start, read lifecycle state, and stop one configured instance over HTTP and gRPC, with typed startup failures. |
 | Xray config validation | Check the configured Xray JSON over HTTP and gRPC before restarting the instance. |
 
 <a name="management"></a>
@@ -80,6 +80,8 @@ HTTP `GET /v1/host/stats` and gRPC `HostService.GetSystemStats` return `uptime_s
 Set `xray.id`, `xray.executable`, and `xray.config_file` in the [example configuration](deploy/config.example.yml) to enable one instance. Use Xray v26.11.9 and an operator-owned JSON file. At launch, Node replaces its `api` block with a private Unix socket for readiness. In Docker, mount the executable and JSON and provide a writable runtime directory, for example with `--tmpfs /tmp`. Remote Xray management requires TLS with an API key or client CA.
 
 Use `GET /v1/xray/instances/{id}` for status and `PUT` or `DELETE /v1/xray/instances/{id}/execution` with an empty body to start or stop. The [gRPC contract](internal/engines/xray/instances/bridge/grpc/proto/v1/instances.proto) exposes `XrayInstancesService.Start`, `GetStatus`, and `Stop`. Start waits for the native API and Stop waits for the process to exit.
+
+A startup failure returns HTTP `503` with a JSON `reason` or gRPC `UNAVAILABLE` with `XrayStartFailure` details. The reasons are `launch_failed`, `exited_before_ready`, `readiness_timeout`, and `readiness_failed`. The response includes `exit_code` when Xray supplied one after exiting before readiness.
 
 Send an empty `POST /v1/xray/instances/{id}/config-validations` or call `XrayConfigsService.ValidateConfig` with the instance ID. Node tests the configured file with the same options used for startup. An invalid file returns `valid: false` and an issue code, with a line and column when Xray reports them. An execution failure returns an API error. [gRPC contract](internal/engines/xray/configs/bridge/grpc/proto/v1/configs.proto)
 

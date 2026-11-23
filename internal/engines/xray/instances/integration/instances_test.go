@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -53,6 +54,53 @@ func TestInvalidNativeConfiguration(t *testing.T) {
 	f.expectClean()
 }
 
+func TestStartReportsEarlyExitWhenPortIsOccupied(t *testing.T) {
+	listener, err := net.Listen("tcp4", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = listener.Close() })
+	port := listener.Addr().(*net.TCPAddr).Port
+	f := newFixture(t, fmt.Sprintf(`{
+		"log": {"loglevel": "none"},
+		"inbounds": [{"tag":"fixture","listen":"127.0.0.1","port":%d,"protocol":"socks"}]
+	}`, port))
+	f.expectHTTPStartFailure("exited_before_ready", true)
+
+	_, err = f.client.Start(f.ctx, &instancesv1.XrayInstanceRequest{Id: "primary"})
+	if status.Code(err) != codes.Unavailable {
+		t.Fatalf("Start error = %v, want Unavailable", err)
+	}
+	details := status.Convert(err).Details()
+	if len(details) != 1 {
+		t.Fatalf("Start details = %v, want one typed failure", details)
+	}
+	failure, ok := details[0].(*instancesv1.XrayStartFailure)
+	if !ok || failure.GetReason() != instancesv1.XrayStartFailureReason_XRAY_START_FAILURE_REASON_EXITED_BEFORE_READY ||
+		failure.ExitCode == nil || failure.GetExitCode() == 0 {
+		t.Fatalf("Start details = %v", details)
+	}
+	f.expectHTTP(http.MethodGet, "", "failed")
+	f.expectClean()
+}
+
+func TestStartReportsMissingExecutable(t *testing.T) {
+	f := newFixtureWithExecutable(t, "{}", filepath.Join(t.TempDir(), "missing"))
+	f.expectHTTPStartFailure("launch_failed", false)
+	f.expectClean()
+}
+
+func TestStartReportsReadinessTimeout(t *testing.T) {
+	executable := filepath.Join(t.TempDir(), "fixture")
+	// The fixture starts successfully and exits only when Node kills it.
+	if err := os.WriteFile(executable, []byte("#!/bin/sh\nexec sleep 30\n"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	f := newFixtureWithExecutable(t, "{}", executable)
+	f.expectHTTPStartFailure("readiness_timeout", false)
+	f.expectClean()
+}
+
 type fixture struct {
 	t      *testing.T
 	ctx    context.Context
@@ -68,6 +116,11 @@ func newFixture(t *testing.T, engineConfig string) fixture {
 	if executable == "" {
 		t.Skip("set NODE_TEST_XRAY to the absolute path of Xray v26.11.9")
 	}
+	return newFixtureWithExecutable(t, engineConfig, executable)
+}
+
+func newFixtureWithExecutable(t *testing.T, engineConfig, executable string) fixture {
+	t.Helper()
 	dir, err := os.MkdirTemp("", "node-native-")
 	if err != nil {
 		t.Fatal(err)
@@ -126,6 +179,32 @@ func newFixture(t *testing.T, engineConfig string) fixture {
 	}
 	t.Cleanup(func() { _ = conn.Close() })
 	return fixture{t, ctx, stop, runtimeDir, httpServer, instancesv1.NewXrayInstancesServiceClient(conn)}
+}
+
+func (f fixture) expectHTTPStartFailure(reason string, exitCode bool) {
+	f.t.Helper()
+	req, err := http.NewRequestWithContext(f.ctx, http.MethodPut, f.http.URL+"/v1/xray/instances/primary/execution", nil)
+	if err != nil {
+		f.t.Fatal(err)
+	}
+	response, err := f.http.Client().Do(req)
+	if err != nil {
+		f.t.Fatal(err)
+	}
+	defer response.Body.Close()
+	var failure struct {
+		Reason   string `json:"reason"`
+		ExitCode *int32 `json:"exit_code"`
+	}
+	if response.StatusCode != http.StatusServiceUnavailable || response.Header.Get("Content-Type") != "application/json" {
+		f.t.Fatalf("Start = %s, %s", response.Status, response.Header.Get("Content-Type"))
+	}
+	if err := json.NewDecoder(response.Body).Decode(&failure); err != nil {
+		f.t.Fatal(err)
+	}
+	if failure.Reason != reason || (failure.ExitCode != nil) != exitCode {
+		f.t.Fatalf("Start failure = %+v, want reason %s, exit code present %t", failure, reason, exitCode)
+	}
 }
 
 func (f fixture) expectHTTP(method, suffix, want string) {

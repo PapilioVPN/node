@@ -64,8 +64,9 @@ func TestCanceledStartReapsChild(t *testing.T) {
 	}()
 	<-probing
 	cancel()
-	if err := <-result; !errors.Is(err, context.Canceled) {
-		t.Fatalf("Start error = %v, want canceled", err)
+	var failure *StartError
+	if err := <-result; !errors.Is(err, context.Canceled) || errors.As(err, &failure) {
+		t.Fatalf("Start error = %v, want caller cancellation", err)
 	}
 	expectState(t, service, Failed)
 	select {
@@ -73,6 +74,19 @@ func TestCanceledStartReapsChild(t *testing.T) {
 	default:
 		t.Fatal("child still running after canceled start")
 	}
+}
+
+func TestReadinessErrorPreservesCause(t *testing.T) {
+	cause := errors.New("readiness probe rejected")
+	process := newTestChild(t)
+	service := newTestService(t, process, func(context.Context, string) error { return cause })
+	_, err := service.Start(t.Context(), "primary")
+	var failure *StartError
+	if !errors.As(err, &failure) || failure.Reason != ReadinessFailed || failure.ExitCode != nil ||
+		!errors.Is(err, ErrStartFailed) || !errors.Is(err, cause) {
+		t.Fatalf("Start error = (%v, %+v), want readiness failure with cause", err, failure)
+	}
+	expectState(t, service, Failed)
 }
 
 func TestUnexpectedExitIsObserved(t *testing.T) {
@@ -152,7 +166,10 @@ func newTestChild(t *testing.T) *testChild {
 
 func (p *testChild) socket() string { return "test.sock" }
 func (p *testChild) exit()          { p.once.Do(func() { close(p.exited) }) }
-func (p *testChild) wait() error    { <-p.exited; return nil }
+func (p *testChild) wait() processExit {
+	<-p.exited
+	return processExit{code: -1}
+}
 func (p *testChild) terminate() error {
 	p.exit()
 	return nil

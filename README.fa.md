@@ -65,7 +65,7 @@ docker run --rm --network=host --read-only --cap-drop ALL \
 | پردازندهٔ میزبان | خواندن درصد مصرف کل CPU از طریق HTTP و gRPC. |
 | فضای ذخیره‌سازی میزبان | بررسی ظرفیت و وضعیت فقط‌خواندنی فایل‌سیستمِ مسیر تنظیم‌شده. |
 | گزارش کلی میزبان | دریافت uptime، CPU، حافظه و فضای ذخیره‌سازی در یک پاسخ. |
-| نمونهٔ Xray | راه‌اندازی، خواندن وضعیت و توقف یک نمونهٔ تنظیم‌شده از طریق HTTP و gRPC. |
+| نمونهٔ Xray | راه‌اندازی، خواندن وضعیت و توقف یک نمونهٔ تنظیم‌شده از طریق HTTP و gRPC، همراه با جزئیات خطای راه‌اندازی. |
 | اعتبارسنجی کانفیگ Xray | بررسی فایل JSON تنظیم‌شده از HTTP و gRPC پیش از راه‌اندازی دوبارهٔ نمونه. |
 
 <a name="management"></a>
@@ -85,6 +85,8 @@ docker run --rm --network=host --read-only --cap-drop ALL \
 برای فعال‌کردن یک نمونه، `xray.id`، `xray.executable` و `xray.config_file` را طبق [نمونهٔ تنظیمات](deploy/config.example.yml) تنظیم کن. از Xray نسخهٔ v26.11.9 و فایل JSON تحت کنترل اپراتور استفاده کن. Node موقع راه‌اندازی بخش `api` را با یک سوکت یونیکس خصوصی برای بررسی آمادگی جایگزین می‌کند. در Docker باینری و فایل JSON را mount کن و به کمک گزینه‌ای مثل `--tmpfs /tmp` یک مسیر قابل‌نوشتن بده. مدیریت راه‌دور Xray به TLS با کلید API یا CA کلاینت نیاز دارد.
 
 برای وضعیت از `GET /v1/xray/instances/{id}` و برای راه‌اندازی و توقف از `PUT` و `DELETE /v1/xray/instances/{id}/execution` با بدنهٔ خالی استفاده کن. [قرارداد gRPC](internal/engines/xray/instances/bridge/grpc/proto/v1/instances.proto) عملیات `XrayInstancesService.Start`، `GetStatus` و `Stop` را دارد. راه‌اندازی منتظر پاسخ API بومی می‌ماند و توقف پس از خروج فرایند تمام می‌شود.
+
+شکست راه‌اندازی با HTTP `503` و فیلد JSON به نام `reason`، یا با gRPC `UNAVAILABLE` و جزئیات `XrayStartFailure` گزارش می‌شود. مقادیر علت `launch_failed`، `exited_before_ready`، `readiness_timeout` و `readiness_failed` هستند. اگر Xray پیش از آمادگی با کد خروج تمام شود، پاسخ `exit_code` را هم دارد.
 
 با بدنهٔ خالی به `POST /v1/xray/instances/{id}/config-validations` درخواست بفرست یا `XrayConfigsService.ValidateConfig` را با شناسهٔ نمونه صدا بزن. Node فایل تنظیم‌شده را با همان گزینه‌های راه‌اندازی بررسی می‌کند. فایل نامعتبر با `valid: false` و کد ایراد برمی‌گردد. اگر Xray خط و ستون را گزارش کرده باشد، در پاسخ می‌آیند. شکست اجرای آزمون خطای API دارد. [قرارداد gRPC](internal/engines/xray/configs/bridge/grpc/proto/v1/configs.proto)
 

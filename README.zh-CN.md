@@ -63,7 +63,7 @@ docker run --rm --network=host --read-only --cap-drop ALL \
 | 主机 CPU | 通过 HTTP 和 gRPC 读取 CPU 总体使用率。 |
 | 主机存储 | 查看配置路径所在文件系统的容量和只读状态。 |
 | 主机概览 | 在一次响应中获取运行时间、CPU、内存和存储信息。 |
-| Xray 实例 | 通过 HTTP 和 gRPC 启动、查询状态和停止一个已配置的实例。 |
+| Xray 实例 | 通过 HTTP 和 gRPC 启动、查询状态和停止一个已配置的实例，并返回结构化启动错误。 |
 | Xray 配置验证 | 通过 HTTP 和 gRPC 在重启实例之前验证已配置的 JSON。 |
 
 <a name="management"></a>
@@ -83,6 +83,8 @@ HTTP `GET /v1/host/stats` 和 gRPC `HostService.GetSystemStats` 返回 `uptime_s
 参照[配置示例](deploy/config.example.yml)设置 `xray.id`、`xray.executable` 和 `xray.config_file`，即可启用一个实例。请使用 Xray v26.11.9 和由运维人员控制的 JSON 文件。启动时，Node 将其中的 `api` 配置替换为用于就绪检查的私有 Unix 套接字。在 Docker 中挂载可执行文件和 JSON 配置，并提供可写目录，如使用 `--tmpfs /tmp`。远程管理 Xray 需要 TLS 与 API 密钥或客户端 CA。
 
 使用 `GET /v1/xray/instances/{id}` 读取状态。使用空请求体的 `PUT` 和 `DELETE /v1/xray/instances/{id}/execution` 启动和停止实例。[gRPC 接口](internal/engines/xray/instances/bridge/grpc/proto/v1/instances.proto)提供 `XrayInstancesService.Start`、`GetStatus` 和 `Stop`。启动会等待 Xray 原生 API 响应，停止会等待进程退出。
+
+启动失败时，HTTP 返回 `503` 和 JSON `reason` 字段，gRPC 返回 `UNAVAILABLE` 和 `XrayStartFailure` 详情。原因包括 `launch_failed`、`exited_before_ready`、`readiness_timeout` 和 `readiness_failed`。如果 Xray 在就绪前退出并返回退出码，响应会包含 `exit_code`。
 
 发送空请求体的 `POST /v1/xray/instances/{id}/config-validations`，或使用实例 ID 调用 `XrayConfigsService.ValidateConfig`。Node 使用与启动时相同的选项验证配置文件。无效配置返回 `valid: false` 和问题代码，并在 Xray 提供时返回行号和列号。验证执行失败时返回 API 错误。[gRPC 接口](internal/engines/xray/configs/bridge/grpc/proto/v1/configs.proto)
 
