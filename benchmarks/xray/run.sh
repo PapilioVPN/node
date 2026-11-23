@@ -45,14 +45,15 @@ cat > "$work/xray.json" <<'JSON'
 }
 JSON
 if [[ ${XRAY_BENCH_TRAFFIC_NAMES:-0} != 0 ]]; then
-  python3 - "${XRAY_BENCH_TRAFFIC_NAMES}" > "$work/xray.json" <<'PYTHON'
+  python3 - "${XRAY_BENCH_TRAFFIC_NAMES}" "$work" <<'PYTHON'
 import json
+from pathlib import Path
 import sys
 
 names = int(sys.argv[1])
 if not 1 <= names <= 10000:
     raise SystemExit("expected 1 to 10000 traffic accounts")
-json.dump({
+config = {
     "log": {"loglevel": "none"},
     "stats": {},
     "policy": {
@@ -67,7 +68,11 @@ json.dump({
         "settings": {"accounts": [{"user": f"account-{i:04}", "pass": "fixture"} for i in range(names)]},
     }],
     "outbounds": [{"tag": "direct", "protocol": "freedom"}],
-}, sys.stdout)
+}
+directory = Path(sys.argv[2])
+(directory / "xray.json").write_text(json.dumps(config))
+config["inbounds"][0]["port"] = 24441
+(directory / "reference-xray.json").write_text(json.dumps(config))
 PYTHON
 fi
 cat > "$work/node.yml" <<YAML
@@ -88,7 +93,8 @@ YAML
 export GOMAXPROCS=1
 benchmark_args=()
 if [[ ${XRAY_BENCH_TRAFFIC_NAMES:-0} != 0 ]]; then
-  benchmark_args+=(-traffic-names "$XRAY_BENCH_TRAFFIC_NAMES" -traffic-case "${XRAY_BENCH_TRAFFIC_CASE:-}"
+  benchmark_args+=(-traffic-names "$XRAY_BENCH_TRAFFIC_NAMES" -traffic-reference-config "$work/reference-xray.json"
+    -traffic-case "${XRAY_BENCH_TRAFFIC_CASE:-}"
     -runtime-stats-clients "${XRAY_BENCH_TRAFFIC_CLIENTS:-1,8}"
     -runtime-stats-window "${XRAY_BENCH_TRAFFIC_WINDOW:-300ms}")
 elif [[ ${XRAY_BENCH_RUNTIME_STATS:-0} == 1 ]]; then

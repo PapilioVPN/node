@@ -356,8 +356,15 @@ for each entry.
 
 ### Reproduce the traffic measurements
 
-Build the two nodes, client and descriptor using the lifecycle steps. Use the
-same runner and a separate output directory for each row of settings.
+The tables above used the runner at [commit d061a15](https://github.com/PapilioVPN/node/tree/d061a15/benchmarks/xray).
+Build the two nodes, client and descriptor using the lifecycle steps. Use a
+separate output directory for each row of settings.
+
+The current traffic runner starts and seeds both Xray instances once per run
+on separate loopback proxy ports. Both servers and their Xray children share
+the configured server CPU. Each measured window exercises one target, then
+the same case and client count runs on the other target. The order alternates
+by round. Both instances are stopped after the final round.
 
 | Workload | Accounts | Clients | Window | Rounds | Transports | Case |
 | --- | ---: | --- | --- | ---: | --- | --- |

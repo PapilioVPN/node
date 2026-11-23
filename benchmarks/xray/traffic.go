@@ -56,6 +56,21 @@ func benchmarkTraffic(protocol string, targets []target, rounds int, clients []i
 	}))
 	defer target.Close()
 
+	for index, t := range targets {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+		check(t.call(ctx, start))
+		check(seedTraffic(ctx, target.URL, fmt.Sprintf("127.0.0.1:%d", 24440+index), names))
+		cancel()
+		defer func() {
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			check(t.call(ctx, stop))
+			if hasChild(t.pid) {
+				check(fmt.Errorf("%s stop returned before Xray was reaped", t.name))
+			}
+		}()
+	}
+
 	writer := csv.NewWriter(os.Stdout)
 	check(writer.Write([]string{"transport", "round", "node", "accounts", "scope", "selection", "clients", "success", "rejected", "seconds", "goodput_per_sec", "p50_us", "p95_us", "p99_us"}))
 	for round := range rounds {
@@ -65,36 +80,32 @@ func benchmarkTraffic(protocol string, targets []target, rounds int, clients []i
 			slices.Reverse(order)
 			slices.Reverse(counts)
 		}
-		for _, index := range order {
-			t := targets[index]
-			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
-			check(t.call(ctx, start))
-			check(seedTraffic(ctx, target.URL, names))
-			for _, spec := range cases {
-				call := t.traffic(spec)
-				_, err := call(ctx)
-				check(fmtError(t.name, spec, err))
-				for _, count := range counts {
-					result, err := pollRuntimeStats(ctx, call, count, window)
+
+		for _, spec := range cases {
+			selection := "list"
+			if spec.name != "" {
+				selection = "one"
+			}
+			for _, count := range counts {
+				for _, index := range order {
+					t := targets[index]
+					ctx, cancel := context.WithTimeout(context.Background(), window+15*time.Second)
+					result, err := pollRuntimeStats(ctx, t.traffic(spec), count, window)
+					cancel()
 					check(fmtError(t.name, spec, err))
-					selection := "list"
-					if spec.name != "" {
-						selection = "one"
-					}
-					x := result.timings
+
+					timings := result.timings
 					check(writer.Write([]string{
 						protocol, strconv.Itoa(round + 1), t.name, strconv.Itoa(names), spec.scope, selection, strconv.Itoa(count),
-						strconv.Itoa(len(x)), strconv.Itoa(result.rejected), strconv.FormatFloat(result.elapsed.Seconds(), 'f', 6, 64),
-						fmt.Sprintf("%.2f", float64(len(x))/result.elapsed.Seconds()),
-						percentile(x, 50), percentile(x, 95), percentile(x, 99),
+						strconv.Itoa(len(timings)), strconv.Itoa(result.rejected), strconv.FormatFloat(result.elapsed.Seconds(), 'f', 6, 64),
+						fmt.Sprintf("%.2f", float64(len(timings))/result.elapsed.Seconds()),
+						percentile(timings, 50), percentile(timings, 95), percentile(timings, 99),
 					}))
 				}
 			}
-			check(t.call(ctx, stop))
-			cancel()
-			writer.Flush()
-			check(writer.Error())
 		}
+		writer.Flush()
+		check(writer.Error())
 	}
 }
 
@@ -112,10 +123,10 @@ func fmtError(node string, spec trafficRead, err error) error {
 	return fmt.Errorf("%s %s %q: %w", node, spec.scope, spec.name, err)
 }
 
-func seedTraffic(ctx context.Context, target string, names int) error {
+func seedTraffic(ctx context.Context, target, address string, names int) error {
 	for i := range names {
 		name := fmt.Sprintf("account-%04d", i)
-		proxy := &url.URL{Scheme: "http", Host: "127.0.0.1:24440", User: url.UserPassword(name, "fixture")}
+		proxy := &url.URL{Scheme: "http", Host: address, User: url.UserPassword(name, "fixture")}
 		transport := &http.Transport{Proxy: http.ProxyURL(proxy), DisableKeepAlives: true}
 		request, err := http.NewRequestWithContext(ctx, http.MethodGet, target, nil)
 		if err != nil {

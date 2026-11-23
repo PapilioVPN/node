@@ -56,7 +56,7 @@ func main() {
 	var protocol, node, nodePID, reference, referencePID, cert, descriptor, config string
 	var rounds, cycles, reads, trafficNames int
 	var runtimeStats bool
-	var runtimeStatsClients, trafficCase string
+	var runtimeStatsClients, trafficCase, referenceTrafficConfig string
 	var runtimeStatsWindow time.Duration
 	flag.StringVar(&protocol, "transport", "", "http or grpc")
 	flag.StringVar(&node, "node", "", "PapilioVPN Node address")
@@ -73,6 +73,7 @@ func main() {
 	flag.StringVar(&runtimeStatsClients, "runtime-stats-clients", "1,8", "comma-separated client counts for runtime statistics")
 	flag.DurationVar(&runtimeStatsWindow, "runtime-stats-window", 450*time.Millisecond, "polling window for each runtime statistics measurement")
 	flag.StringVar(&trafficCase, "traffic-case", "", "run only a traffic case such as user/list")
+	flag.StringVar(&referenceTrafficConfig, "traffic-reference-config", "", "Xray fixture configuration for the reference traffic listener")
 	flag.IntVar(&trafficNames, "traffic-names", 0, "seed and measure traffic for this many benchmark accounts")
 	flag.Parse()
 	if (protocol != "http" && protocol != "grpc") || rounds < 1 || cycles < 1 || reads < 1 {
@@ -102,6 +103,12 @@ func main() {
 	desc, err := registry.FindDescriptorByName("service.NodeService")
 	check(err)
 	methods := desc.(protoreflect.ServiceDescriptor).Methods()
+	if trafficNames > 0 {
+		if referenceTrafficConfig == "" {
+			log.Fatal("traffic comparison requires a separate reference listener configuration")
+		}
+		config = referenceTrafficConfig
+	}
 	refStart := dynamicpb.NewMessage(methods.ByName("Start").Input())
 	refStart.Set(refStart.Descriptor().Fields().ByName("config"), protoreflect.ValueOfString(string(read(config))))
 	payload, err := proto.Marshal(refStart)
