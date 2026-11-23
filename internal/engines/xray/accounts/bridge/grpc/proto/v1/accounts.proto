@@ -8,6 +8,8 @@ import "google/protobuf/empty.proto";
 service XrayAccountsService {
   // Reconciles one account by email. Absent credentials request removal.
   rpc SyncUser(SyncUserRequest) returns (SyncResult);
+  // Reconciles multiple named users of one scope after a clean client half-close.
+  rpc SyncUserStream(stream SyncUserRequest) returns (SyncResult);
   // Replaces the complete named membership of the selected inbound.
   rpc SyncUsers(SyncUsersRequest) returns (SyncResult);
   // Applies explicit deltas after the final chunk and a clean client half-close.

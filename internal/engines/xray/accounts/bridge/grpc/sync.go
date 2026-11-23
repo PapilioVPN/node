@@ -8,19 +8,25 @@ import (
 	"github.com/PapilioVPN/node/internal/engines/xray/accounts/membership"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 )
 
 func (h *handlers) SyncUser(ctx context.Context, req *accountsv1.SyncUserRequest) (*accountsv1.SyncResult, error) {
-	input, err := decodeAccount(req.GetEmail(), req.Uuid, req.Flow, req.GetCredential(), req.GetAssignments())
+	request, err := userRequest(req)
 	if err != nil {
 		return nil, accountError(err)
 	}
-	result, err := h.service.SyncUser(ctx, membership.SyncUserRequest{
+	result, err := h.service.SyncUser(ctx, request)
+	return syncResponse(result, err)
+}
+
+func userRequest(req *accountsv1.SyncUserRequest) (membership.SyncUserRequest, error) {
+	input, err := decodeAccount(req.GetEmail(), req.Uuid, req.Flow, req.GetCredential(), req.GetAssignments())
+	return membership.SyncUserRequest{
 		Scope:       membership.Scope{InstanceID: req.GetId(), InboundTag: req.GetInboundTag()},
 		InboundTags: req.InboundTags, Email: input.Email, UUID: input.UUID, Flow: input.Flow,
 		Credential: input.Credential, Assignments: input.Assignments,
-	})
-	return syncResponse(result, err)
+	}, err
 }
 
 func syncResponse(result membership.SyncResult, err error) (*accountsv1.SyncResult, error) {
@@ -64,16 +70,42 @@ func accountInputs(accounts []*accountsv1.VLESSAccount) ([]membership.AccountInp
 	return result, nil
 }
 
+const maxStreamBytes = 2 << 20
+
+func (h *handlers) SyncUserStream(stream accountsv1.XrayAccountsService_SyncUserStreamServer) error {
+	ctx := stream.Context()
+	if err := streamDeadline(ctx); err != nil {
+		return err
+	}
+	var bytes int
+	result, err := h.service.SyncUserStream(ctx, func() (membership.SyncUserRequest, error) {
+		req, err := stream.Recv()
+		if err != nil {
+			return membership.SyncUserRequest{}, err
+		}
+		bytes += proto.Size(req)
+		if bytes > maxStreamBytes {
+			return membership.SyncUserRequest{}, errStreamSize()
+		}
+		return userRequest(req)
+	})
+	return sendStreamResult(stream.SendAndClose, result, err)
+}
+
 func (h *handlers) SyncUsersChunked(stream accountsv1.XrayAccountsService_SyncUsersChunkedServer) error {
 	ctx := stream.Context()
-	deadline, ok := ctx.Deadline()
-	if !ok || time.Until(deadline) > membership.StreamTimeout {
-		return status.Error(codes.InvalidArgument, "account stream requires a deadline of at most 30 seconds")
+	if err := streamDeadline(ctx); err != nil {
+		return err
 	}
+	var bytes int
 	result, err := h.service.SyncUsersChunked(ctx, func() (membership.UsersChunk, error) {
 		req, err := stream.Recv()
 		if err != nil {
 			return membership.UsersChunk{}, err
+		}
+		bytes += proto.Size(req)
+		if bytes > maxStreamBytes {
+			return membership.UsersChunk{}, errStreamSize()
 		}
 		if len(req.GetAccounts()) > membership.MaxChunkAccounts {
 			return membership.UsersChunk{}, membership.ErrInvalid
@@ -84,19 +116,35 @@ func (h *handlers) SyncUsersChunked(stream accountsv1.XrayAccountsService_SyncUs
 			InboundTags: req.InboundTags, Index: req.GetIndex(), Last: req.GetLast(), Accounts: accounts,
 		}, err
 	})
+	return sendStreamResult(stream.SendAndClose, result, err)
+}
+
+func streamDeadline(ctx context.Context) error {
+	deadline, ok := ctx.Deadline()
+	if !ok || time.Until(deadline) > membership.StreamTimeout {
+		return status.Error(codes.InvalidArgument, "account stream requires a deadline of at most 30 seconds")
+	}
+	return nil
+}
+
+func errStreamSize() error {
+	return status.Error(codes.ResourceExhausted, "Xray account stream exceeds the supported size")
+}
+
+func sendStreamResult(send func(*accountsv1.SyncResult) error, result membership.SyncResult, err error) error {
 	switch status.Code(err) {
 	case codes.Canceled:
 		return status.FromContextError(context.Canceled).Err()
 	case codes.DeadlineExceeded:
 		return status.FromContextError(context.DeadlineExceeded).Err()
 	case codes.ResourceExhausted:
-		return status.Error(codes.ResourceExhausted, "Xray account stream message is too large")
+		return errStreamSize()
 	}
 	response, err := syncResponse(result, err)
 	if err != nil {
 		return err
 	}
-	return stream.SendAndClose(response)
+	return send(response)
 }
 
 func credentialInput(input *accountsv1.Credential) (*membership.Credential, error) {

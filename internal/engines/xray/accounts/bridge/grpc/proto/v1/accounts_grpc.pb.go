@@ -21,6 +21,7 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	XrayAccountsService_SyncUser_FullMethodName           = "/papiliovpn.node.xray.accounts.v1.XrayAccountsService/SyncUser"
+	XrayAccountsService_SyncUserStream_FullMethodName     = "/papiliovpn.node.xray.accounts.v1.XrayAccountsService/SyncUserStream"
 	XrayAccountsService_SyncUsers_FullMethodName          = "/papiliovpn.node.xray.accounts.v1.XrayAccountsService/SyncUsers"
 	XrayAccountsService_SyncUsersChunked_FullMethodName   = "/papiliovpn.node.xray.accounts.v1.XrayAccountsService/SyncUsersChunked"
 	XrayAccountsService_AddVLESSAccount_FullMethodName    = "/papiliovpn.node.xray.accounts.v1.XrayAccountsService/AddVLESSAccount"
@@ -34,6 +35,8 @@ const (
 type XrayAccountsServiceClient interface {
 	// Reconciles one account by email. Absent credentials request removal.
 	SyncUser(ctx context.Context, in *SyncUserRequest, opts ...grpc.CallOption) (*SyncResult, error)
+	// Reconciles multiple named users of one scope after a clean client half-close.
+	SyncUserStream(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[SyncUserRequest, SyncResult], error)
 	// Replaces the complete named membership of the selected inbound.
 	SyncUsers(ctx context.Context, in *SyncUsersRequest, opts ...grpc.CallOption) (*SyncResult, error)
 	// Applies explicit deltas after the final chunk and a clean client half-close.
@@ -64,6 +67,19 @@ func (c *xrayAccountsServiceClient) SyncUser(ctx context.Context, in *SyncUserRe
 	return out, nil
 }
 
+func (c *xrayAccountsServiceClient) SyncUserStream(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[SyncUserRequest, SyncResult], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &XrayAccountsService_ServiceDesc.Streams[0], XrayAccountsService_SyncUserStream_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[SyncUserRequest, SyncResult]{ClientStream: stream}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type XrayAccountsService_SyncUserStreamClient = grpc.ClientStreamingClient[SyncUserRequest, SyncResult]
+
 func (c *xrayAccountsServiceClient) SyncUsers(ctx context.Context, in *SyncUsersRequest, opts ...grpc.CallOption) (*SyncResult, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(SyncResult)
@@ -76,7 +92,7 @@ func (c *xrayAccountsServiceClient) SyncUsers(ctx context.Context, in *SyncUsers
 
 func (c *xrayAccountsServiceClient) SyncUsersChunked(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[UsersChunk, SyncResult], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &XrayAccountsService_ServiceDesc.Streams[0], XrayAccountsService_SyncUsersChunked_FullMethodName, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &XrayAccountsService_ServiceDesc.Streams[1], XrayAccountsService_SyncUsersChunked_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -123,6 +139,8 @@ func (c *xrayAccountsServiceClient) CountVLESSAccounts(ctx context.Context, in *
 type XrayAccountsServiceServer interface {
 	// Reconciles one account by email. Absent credentials request removal.
 	SyncUser(context.Context, *SyncUserRequest) (*SyncResult, error)
+	// Reconciles multiple named users of one scope after a clean client half-close.
+	SyncUserStream(grpc.ClientStreamingServer[SyncUserRequest, SyncResult]) error
 	// Replaces the complete named membership of the selected inbound.
 	SyncUsers(context.Context, *SyncUsersRequest) (*SyncResult, error)
 	// Applies explicit deltas after the final chunk and a clean client half-close.
@@ -145,6 +163,9 @@ type UnimplementedXrayAccountsServiceServer struct{}
 
 func (UnimplementedXrayAccountsServiceServer) SyncUser(context.Context, *SyncUserRequest) (*SyncResult, error) {
 	return nil, status.Error(codes.Unimplemented, "method SyncUser not implemented")
+}
+func (UnimplementedXrayAccountsServiceServer) SyncUserStream(grpc.ClientStreamingServer[SyncUserRequest, SyncResult]) error {
+	return status.Error(codes.Unimplemented, "method SyncUserStream not implemented")
 }
 func (UnimplementedXrayAccountsServiceServer) SyncUsers(context.Context, *SyncUsersRequest) (*SyncResult, error) {
 	return nil, status.Error(codes.Unimplemented, "method SyncUsers not implemented")
@@ -199,6 +220,13 @@ func _XrayAccountsService_SyncUser_Handler(srv interface{}, ctx context.Context,
 	}
 	return interceptor(ctx, in, info, handler)
 }
+
+func _XrayAccountsService_SyncUserStream_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(XrayAccountsServiceServer).SyncUserStream(&grpc.GenericServerStream[SyncUserRequest, SyncResult]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type XrayAccountsService_SyncUserStreamServer = grpc.ClientStreamingServer[SyncUserRequest, SyncResult]
 
 func _XrayAccountsService_SyncUsers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(SyncUsersRequest)
@@ -308,6 +336,11 @@ var XrayAccountsService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "SyncUserStream",
+			Handler:       _XrayAccountsService_SyncUserStream_Handler,
+			ClientStreams: true,
+		},
 		{
 			StreamName:    "SyncUsersChunked",
 			Handler:       _XrayAccountsService_SyncUsersChunked_Handler,

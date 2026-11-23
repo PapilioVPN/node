@@ -1008,9 +1008,10 @@ const file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_ra
 	"inboundTag\x12L\n" +
 	"\n" +
 	"credential\x18\x02 \x01(\v2,.papiliovpn.node.xray.accounts.v1.CredentialR\n" +
-	"credential2\xc5\x05\n" +
+	"credential2\xba\x06\n" +
 	"\x13XrayAccountsService\x12k\n" +
-	"\bSyncUser\x121.papiliovpn.node.xray.accounts.v1.SyncUserRequest\x1a,.papiliovpn.node.xray.accounts.v1.SyncResult\x12m\n" +
+	"\bSyncUser\x121.papiliovpn.node.xray.accounts.v1.SyncUserRequest\x1a,.papiliovpn.node.xray.accounts.v1.SyncResult\x12s\n" +
+	"\x0eSyncUserStream\x121.papiliovpn.node.xray.accounts.v1.SyncUserRequest\x1a,.papiliovpn.node.xray.accounts.v1.SyncResult(\x01\x12m\n" +
 	"\tSyncUsers\x122.papiliovpn.node.xray.accounts.v1.SyncUsersRequest\x1a,.papiliovpn.node.xray.accounts.v1.SyncResult\x12p\n" +
 	"\x10SyncUsersChunked\x12,.papiliovpn.node.xray.accounts.v1.UsersChunk\x1a,.papiliovpn.node.xray.accounts.v1.SyncResult(\x01\x12c\n" +
 	"\x0fAddVLESSAccount\x128.papiliovpn.node.xray.accounts.v1.AddVLESSAccountRequest\x1a\x16.google.protobuf.Empty\x12i\n" +
@@ -1057,19 +1058,21 @@ var file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_depI
 	11, // 7: papiliovpn.node.xray.accounts.v1.Credential.peer:type_name -> papiliovpn.node.xray.accounts.v1.WireGuardPeer
 	10, // 8: papiliovpn.node.xray.accounts.v1.Assignment.credential:type_name -> papiliovpn.node.xray.accounts.v1.Credential
 	4,  // 9: papiliovpn.node.xray.accounts.v1.XrayAccountsService.SyncUser:input_type -> papiliovpn.node.xray.accounts.v1.SyncUserRequest
-	8,  // 10: papiliovpn.node.xray.accounts.v1.XrayAccountsService.SyncUsers:input_type -> papiliovpn.node.xray.accounts.v1.SyncUsersRequest
-	9,  // 11: papiliovpn.node.xray.accounts.v1.XrayAccountsService.SyncUsersChunked:input_type -> papiliovpn.node.xray.accounts.v1.UsersChunk
-	0,  // 12: papiliovpn.node.xray.accounts.v1.XrayAccountsService.AddVLESSAccount:input_type -> papiliovpn.node.xray.accounts.v1.AddVLESSAccountRequest
-	1,  // 13: papiliovpn.node.xray.accounts.v1.XrayAccountsService.RemoveVLESSAccount:input_type -> papiliovpn.node.xray.accounts.v1.RemoveVLESSAccountRequest
-	2,  // 14: papiliovpn.node.xray.accounts.v1.XrayAccountsService.CountVLESSAccounts:input_type -> papiliovpn.node.xray.accounts.v1.CountVLESSAccountsRequest
-	5,  // 15: papiliovpn.node.xray.accounts.v1.XrayAccountsService.SyncUser:output_type -> papiliovpn.node.xray.accounts.v1.SyncResult
-	5,  // 16: papiliovpn.node.xray.accounts.v1.XrayAccountsService.SyncUsers:output_type -> papiliovpn.node.xray.accounts.v1.SyncResult
-	5,  // 17: papiliovpn.node.xray.accounts.v1.XrayAccountsService.SyncUsersChunked:output_type -> papiliovpn.node.xray.accounts.v1.SyncResult
-	13, // 18: papiliovpn.node.xray.accounts.v1.XrayAccountsService.AddVLESSAccount:output_type -> google.protobuf.Empty
-	13, // 19: papiliovpn.node.xray.accounts.v1.XrayAccountsService.RemoveVLESSAccount:output_type -> google.protobuf.Empty
-	3,  // 20: papiliovpn.node.xray.accounts.v1.XrayAccountsService.CountVLESSAccounts:output_type -> papiliovpn.node.xray.accounts.v1.CountVLESSAccountsResponse
-	15, // [15:21] is the sub-list for method output_type
-	9,  // [9:15] is the sub-list for method input_type
+	4,  // 10: papiliovpn.node.xray.accounts.v1.XrayAccountsService.SyncUserStream:input_type -> papiliovpn.node.xray.accounts.v1.SyncUserRequest
+	8,  // 11: papiliovpn.node.xray.accounts.v1.XrayAccountsService.SyncUsers:input_type -> papiliovpn.node.xray.accounts.v1.SyncUsersRequest
+	9,  // 12: papiliovpn.node.xray.accounts.v1.XrayAccountsService.SyncUsersChunked:input_type -> papiliovpn.node.xray.accounts.v1.UsersChunk
+	0,  // 13: papiliovpn.node.xray.accounts.v1.XrayAccountsService.AddVLESSAccount:input_type -> papiliovpn.node.xray.accounts.v1.AddVLESSAccountRequest
+	1,  // 14: papiliovpn.node.xray.accounts.v1.XrayAccountsService.RemoveVLESSAccount:input_type -> papiliovpn.node.xray.accounts.v1.RemoveVLESSAccountRequest
+	2,  // 15: papiliovpn.node.xray.accounts.v1.XrayAccountsService.CountVLESSAccounts:input_type -> papiliovpn.node.xray.accounts.v1.CountVLESSAccountsRequest
+	5,  // 16: papiliovpn.node.xray.accounts.v1.XrayAccountsService.SyncUser:output_type -> papiliovpn.node.xray.accounts.v1.SyncResult
+	5,  // 17: papiliovpn.node.xray.accounts.v1.XrayAccountsService.SyncUserStream:output_type -> papiliovpn.node.xray.accounts.v1.SyncResult
+	5,  // 18: papiliovpn.node.xray.accounts.v1.XrayAccountsService.SyncUsers:output_type -> papiliovpn.node.xray.accounts.v1.SyncResult
+	5,  // 19: papiliovpn.node.xray.accounts.v1.XrayAccountsService.SyncUsersChunked:output_type -> papiliovpn.node.xray.accounts.v1.SyncResult
+	13, // 20: papiliovpn.node.xray.accounts.v1.XrayAccountsService.AddVLESSAccount:output_type -> google.protobuf.Empty
+	13, // 21: papiliovpn.node.xray.accounts.v1.XrayAccountsService.RemoveVLESSAccount:output_type -> google.protobuf.Empty
+	3,  // 22: papiliovpn.node.xray.accounts.v1.XrayAccountsService.CountVLESSAccounts:output_type -> papiliovpn.node.xray.accounts.v1.CountVLESSAccountsResponse
+	16, // [16:23] is the sub-list for method output_type
+	9,  // [9:16] is the sub-list for method input_type
 	9,  // [9:9] is the sub-list for extension type_name
 	9,  // [9:9] is the sub-list for extension extendee
 	0,  // [0:9] is the sub-list for field type_name
