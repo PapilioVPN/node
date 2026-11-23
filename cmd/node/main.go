@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -12,9 +13,16 @@ import (
 	"github.com/PapilioVPN/node/internal/settings"
 )
 
+const version = "0.0.0"
+
 func main() {
 	path := flag.String("config", "config.yml", "path to the Node settings file")
+	showVersion := flag.Bool("version", false, "print the Node version")
 	flag.Parse()
+	if *showVersion {
+		fmt.Println(version)
+		return
+	}
 
 	logger := slog.New(slog.NewJSONHandler(os.Stderr, nil))
 	config, err := settings.Load(*path)

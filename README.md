@@ -32,7 +32,7 @@
 Download the Linux amd64 artifact from a successful [Checks run](https://github.com/PapilioVPN/node/actions/workflows/check.yml). From the extracted artifact directory, check the archive and run Node with the example settings.
 
 ```bash
-archive=node-linux-amd64-YOUR_COMMIT_SHA.tar.gz
+archive=node-0.0.0-linux-amd64-YOUR_COMMIT_SHA.tar.gz
 sha256sum -c "$archive.sha256" && tar -xzf "$archive"
 cp -n node/config.example.yml config.yml
 ./node/node -config config.yml

@@ -34,7 +34,7 @@
 从成功的[检查工作流](https://github.com/PapilioVPN/node/actions/workflows/check.yml)下载 Linux amd64 构件。在解压后的构件目录中校验归档文件，然后使用示例配置启动 Node。
 
 ```bash
-archive=node-linux-amd64-YOUR_COMMIT_SHA.tar.gz
+archive=node-0.0.0-linux-amd64-YOUR_COMMIT_SHA.tar.gz
 sha256sum -c "$archive.sha256" && tar -xzf "$archive"
 cp -n node/config.example.yml config.yml
 ./node/node -config config.yml

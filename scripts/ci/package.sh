@@ -7,20 +7,25 @@ mkdir -p "$out"
 out=$(cd "$out" && pwd)
 work=$(mktemp -d)
 revision=$(git rev-parse HEAD)
-image="papiliovpn/node:check-${work##*.}"
+image=
 container=
 
 cleanup() {
   if [[ -n "$container" ]]; then
     docker rm -f "$container" >/dev/null 2>&1 || true
   fi
-  docker image rm "$image" >/dev/null 2>&1 || true
+  if [[ -n "$image" ]]; then
+    docker image rm "$image" >/dev/null 2>&1 || true
+  fi
   rm -rf -- "$work"
 }
 trap cleanup EXIT
 
 mkdir "$work/node"
 CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -o "$work/node/node" ./cmd/node
+version=$("$work/node/node" -version)
+name="node-$version-linux-amd64-$revision"
+image="papiliovpn/node:$version-${work##*.}"
 cp deploy/config.example.yml "$work/node/config.example.yml"
 docker build -q -f deploy/Dockerfile -t "$image" "$work/node"
 
@@ -51,6 +56,9 @@ test "$(docker inspect --format '{{.State.ExitCode}}' "$container")" = 0
 
 docker save -o "$work/node/image.tar" "$image"
 printf '%s\n' "$image" > "$work/node/image-name"
-archive="node-linux-amd64-$revision.tar.gz"
+archive="$name.tar.gz"
 tar -czf "$out/$archive" -C "$work" node
 (cd "$out" && sha256sum "$archive" > "$archive.sha256" && sha256sum -c "$archive.sha256")
+if [[ -n "${GITHUB_OUTPUT:-}" ]]; then
+  printf 'name=%s\n' "$name" >> "$GITHUB_OUTPUT"
+fi

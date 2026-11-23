@@ -36,7 +36,7 @@
 بستهٔ Linux amd64 را از یک [اجرای موفق بررسی‌ها](https://github.com/PapilioVPN/node/actions/workflows/check.yml) بگیر. در پوشهٔ استخراج‌شدهٔ artifact، صحت آرشیو را بررسی کن و Node را با تنظیمات نمونه اجرا کن.
 
 ```bash
-archive=node-linux-amd64-YOUR_COMMIT_SHA.tar.gz
+archive=node-0.0.0-linux-amd64-YOUR_COMMIT_SHA.tar.gz
 sha256sum -c "$archive.sha256" && tar -xzf "$archive"
 cp -n node/config.example.yml config.yml
 ./node/node -config config.yml
