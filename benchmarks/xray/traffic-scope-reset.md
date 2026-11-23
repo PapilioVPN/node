@@ -129,3 +129,31 @@ XRAY_BENCH_TRAFFIC_CASE=reset-scope/list XRAY_BENCH_TRAFFIC_NAMES=500 \
 Set `XRAY_BENCH_SCOPE_RESET_CONCURRENCY=1` for sequential execution. For
 the initial sweep set the window to 400 ms. Use 1, 50 or 500 accounts.
 Run one and eight clients for 1 and 50 accounts and one client for 500.
+
+### Stock Xray tuning
+
+Node now keeps the reset deadline on the client side of the native stream.
+The pinned Xray `GetStats` handler does its swap without reading the server
+context. Cancellation still reaches the stream and a lost reset reply still
+reports an unknown effect. The HTTP and gRPC handlers use the report's
+existing previous-byte values and allocate output rows together.
+
+The confirmation run uses stock Xray v26.11.9, 500 accounts, one API client,
+eight native resets in flight, and three 1.4 s windows. It compares Node
+`5604147` with `92b7b28`. The initial deadline-only trial used the same
+settings. Its reference timings shifted between runs, so the table below
+uses the confirmation run. The CSV retains all four runs.
+
+| Transport | Node p50 ms before / after | Node p95 ms before / after | Node success/s before / after | PasarGuard p95 ms in tuned run |
+| --- | ---: | ---: | ---: | ---: |
+| HTTP | 74.813 / 68.449 | 87.758 / 78.517 | 13.17 / 14.28 | 3.937 |
+| gRPC | 64.098 / 63.905 | 69.107 / 72.161 | 15.38 / 15.51 | 4.746 |
+
+The HTTP repeat improved on the three measured metrics. The gRPC p95 was
+higher in the confirmation run. The underlying count of native requests
+is unchanged. Both products had zero rejections in these windows.
+[Per-round CSV](results/2026-11-23-traffic-scope-reset-stock-tuning.csv)
+
+For the confirmation run, use the reproduction command above with
+`XRAY_BENCH_TRAFFIC_WINDOW=1400ms`. Use stock Xray and a fresh output
+directory for each Node revision.
