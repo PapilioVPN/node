@@ -8,6 +8,8 @@ import "google/protobuf/empty.proto";
 service XrayAccountsService {
   // Reconciles one account by email. Absent uuid requests removal.
   rpc SyncUser(SyncUserRequest) returns (SyncResult);
+  // Replaces the complete named membership of one VLESS inbound.
+  rpc SyncUsers(SyncUsersRequest) returns (SyncResult);
   // Adds one live VLESS account with default Xray level and empty flow.
   rpc AddVLESSAccount(AddVLESSAccountRequest) returns (google.protobuf.Empty);
   // Removes one live VLESS account by its native case-insensitive email.
@@ -52,4 +54,20 @@ message SyncResult {
   uint32 removed = 3;
   // A fixed failure code. Empty on confirmation.
   string failure = 4;
+}
+
+message VLESSAccount {
+  string email = 1;
+  optional string uuid = 2;
+}
+
+message VLESSAccounts {
+  repeated VLESSAccount accounts = 1;
+}
+
+message SyncUsersRequest {
+  string id = 1;
+  string inbound_tag = 2;
+  // Required. An explicitly empty snapshot clears named membership.
+  VLESSAccounts snapshot = 3;
 }

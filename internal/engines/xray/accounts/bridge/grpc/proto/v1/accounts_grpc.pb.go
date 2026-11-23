@@ -21,6 +21,7 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	XrayAccountsService_SyncUser_FullMethodName           = "/papiliovpn.node.xray.accounts.v1.XrayAccountsService/SyncUser"
+	XrayAccountsService_SyncUsers_FullMethodName          = "/papiliovpn.node.xray.accounts.v1.XrayAccountsService/SyncUsers"
 	XrayAccountsService_AddVLESSAccount_FullMethodName    = "/papiliovpn.node.xray.accounts.v1.XrayAccountsService/AddVLESSAccount"
 	XrayAccountsService_RemoveVLESSAccount_FullMethodName = "/papiliovpn.node.xray.accounts.v1.XrayAccountsService/RemoveVLESSAccount"
 	XrayAccountsService_CountVLESSAccounts_FullMethodName = "/papiliovpn.node.xray.accounts.v1.XrayAccountsService/CountVLESSAccounts"
@@ -32,6 +33,8 @@ const (
 type XrayAccountsServiceClient interface {
 	// Reconciles one account by email. Absent uuid requests removal.
 	SyncUser(ctx context.Context, in *SyncUserRequest, opts ...grpc.CallOption) (*SyncResult, error)
+	// Replaces the complete named membership of one VLESS inbound.
+	SyncUsers(ctx context.Context, in *SyncUsersRequest, opts ...grpc.CallOption) (*SyncResult, error)
 	// Adds one live VLESS account with default Xray level and empty flow.
 	AddVLESSAccount(ctx context.Context, in *AddVLESSAccountRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	// Removes one live VLESS account by its native case-insensitive email.
@@ -52,6 +55,16 @@ func (c *xrayAccountsServiceClient) SyncUser(ctx context.Context, in *SyncUserRe
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(SyncResult)
 	err := c.cc.Invoke(ctx, XrayAccountsService_SyncUser_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *xrayAccountsServiceClient) SyncUsers(ctx context.Context, in *SyncUsersRequest, opts ...grpc.CallOption) (*SyncResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SyncResult)
+	err := c.cc.Invoke(ctx, XrayAccountsService_SyncUsers_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -94,6 +107,8 @@ func (c *xrayAccountsServiceClient) CountVLESSAccounts(ctx context.Context, in *
 type XrayAccountsServiceServer interface {
 	// Reconciles one account by email. Absent uuid requests removal.
 	SyncUser(context.Context, *SyncUserRequest) (*SyncResult, error)
+	// Replaces the complete named membership of one VLESS inbound.
+	SyncUsers(context.Context, *SyncUsersRequest) (*SyncResult, error)
 	// Adds one live VLESS account with default Xray level and empty flow.
 	AddVLESSAccount(context.Context, *AddVLESSAccountRequest) (*emptypb.Empty, error)
 	// Removes one live VLESS account by its native case-insensitive email.
@@ -112,6 +127,9 @@ type UnimplementedXrayAccountsServiceServer struct{}
 
 func (UnimplementedXrayAccountsServiceServer) SyncUser(context.Context, *SyncUserRequest) (*SyncResult, error) {
 	return nil, status.Error(codes.Unimplemented, "method SyncUser not implemented")
+}
+func (UnimplementedXrayAccountsServiceServer) SyncUsers(context.Context, *SyncUsersRequest) (*SyncResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method SyncUsers not implemented")
 }
 func (UnimplementedXrayAccountsServiceServer) AddVLESSAccount(context.Context, *AddVLESSAccountRequest) (*emptypb.Empty, error) {
 	return nil, status.Error(codes.Unimplemented, "method AddVLESSAccount not implemented")
@@ -157,6 +175,24 @@ func _XrayAccountsService_SyncUser_Handler(srv interface{}, ctx context.Context,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(XrayAccountsServiceServer).SyncUser(ctx, req.(*SyncUserRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _XrayAccountsService_SyncUsers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SyncUsersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(XrayAccountsServiceServer).SyncUsers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: XrayAccountsService_SyncUsers_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(XrayAccountsServiceServer).SyncUsers(ctx, req.(*SyncUsersRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -225,6 +261,10 @@ var XrayAccountsService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SyncUser",
 			Handler:    _XrayAccountsService_SyncUser_Handler,
+		},
+		{
+			MethodName: "SyncUsers",
+			Handler:    _XrayAccountsService_SyncUsers_Handler,
 		},
 		{
 			MethodName: "AddVLESSAccount",

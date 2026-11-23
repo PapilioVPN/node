@@ -4,7 +4,9 @@ import (
 	"context"
 	"crypto/sha256"
 	"errors"
+	"iter"
 	"strings"
+	"time"
 )
 
 type SyncUserRequest struct {
@@ -43,6 +45,8 @@ func NameKey(email string) string { return strings.ToLower(email) }
 // Editor is valid only inside Engine.Edit. Its mutations share one execution
 // and reuse the same native effects and acknowledgement fence as Add/Remove.
 type Editor interface {
+	Named() iter.Seq2[string, IDKey]
+	Capacity() int
 	Lookup(email string) (IDKey, bool)
 	HasID(IDKey) bool
 	Add(Account) error
@@ -61,7 +65,7 @@ func (s *Service) SyncUser(ctx context.Context, req SyncUserRequest) (SyncResult
 			return SyncResult{}, ErrInvalid
 		}
 	}
-	return s.sync(ctx, req.Scope, func(editor Editor, result *SyncResult) error {
+	return s.sync(ctx, req.Scope, time.Second, func(editor Editor, result *SyncResult) error {
 		current, exists := editor.Lookup(req.Email)
 		if req.UUID != nil {
 			key := id.Key()
@@ -84,9 +88,9 @@ func (s *Service) SyncUser(ctx context.Context, req SyncUserRequest) (SyncResult
 	})
 }
 
-func (s *Service) sync(ctx context.Context, scope Scope, apply func(Editor, *SyncResult) error) (SyncResult, error) {
+func (s *Service) sync(ctx context.Context, scope Scope, timeout time.Duration, apply func(Editor, *SyncResult) error) (SyncResult, error) {
 	var result SyncResult
-	ctx, done, err := s.begin(ctx, scope)
+	ctx, done, err := s.beginWithin(ctx, scope, timeout)
 	if errors.Is(err, ErrInvalid) {
 		return result, err
 	}

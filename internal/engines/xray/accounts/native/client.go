@@ -3,6 +3,8 @@ package native
 import (
 	"context"
 	"errors"
+	"iter"
+	"maps"
 	"sync"
 	"sync/atomic"
 
@@ -74,6 +76,12 @@ type editor struct {
 	state  *inventory
 	entry  *inboundAccounts
 }
+
+func (e *editor) Named() iter.Seq2[string, membership.IDKey] {
+	return maps.All(e.entry.names)
+}
+
+func (e *editor) Capacity() int { return maxAccounts - e.state.size }
 
 func (e *editor) Lookup(email string) (membership.IDKey, bool) {
 	id, found := e.entry.names[membership.NameKey(email)]

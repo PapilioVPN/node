@@ -39,3 +39,17 @@ func writeSync(w http.ResponseWriter, result membership.SyncResult, err error) {
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(result)
 }
+
+func syncUsers(service *membership.Service) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-store")
+		var input struct {
+			Accounts []membership.AccountInput `json:"accounts"`
+		}
+		if !readLimitedBody(w, r, &input, 2<<20) {
+			return
+		}
+		result, err := service.SyncUsers(r.Context(), membership.SyncUsersRequest{Scope: scope(r), Accounts: input.Accounts})
+		writeSync(w, result, err)
+	}
+}

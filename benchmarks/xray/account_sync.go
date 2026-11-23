@@ -102,8 +102,12 @@ func benchmarkAccountSync(protocol string, targets []target, rounds, samples int
 			t := targets[index]
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 			check(t.call(ctx, start))
-			for _, scenario := range syncUserCases(t.accounts.syncUser) {
-				runSyncCase(ctx, index, workload, t.accounts.syncUser, scenario, samples,
+			call, cases := t.accounts.syncUser, syncUserCases(t.accounts.syncUser)
+			if workload.sync == "users" {
+				call, cases = t.accounts.syncUsers, syncUsersCases(t.accounts.syncUsers)
+			}
+			for _, scenario := range cases {
+				runSyncCase(ctx, index, workload, call, scenario, samples,
 					[]string{protocol, strconv.Itoa(round + 1), t.name, scenario.name, strconv.Itoa(len(scenario.payload))},
 					raw, summary)
 			}
@@ -135,7 +139,9 @@ func runSyncCase(ctx context.Context, index int, workload accountWorkload, call 
 	latencies := make([]time.Duration, 0, samples)
 	var total time.Duration
 	for sample := range samples {
-		check(scenario.prepare(ctx, scenario.initial))
+		if !slices.Equal(scenario.initial, scenario.final) {
+			check(scenario.prepare(ctx, scenario.initial))
+		}
 		request, cancel := context.WithTimeout(ctx, 15*time.Second)
 		started := time.Now()
 		err := call(request, scenario.payload)
@@ -192,4 +198,57 @@ func syncHTTPResult(wire []byte) error {
 	var result struct{ Outcome string }
 	err := json.Unmarshal(wire, &result)
 	return checkedSync(result.Outcome, err)
+}
+
+func syncUsersHTTP(client accountHTTPClient, node string) syncAccounts {
+	return func(ctx context.Context, accounts []syncAccount) error {
+		return client(ctx, node+accountPath, struct {
+			Accounts []syncAccount `json:"accounts"`
+		}{accounts})
+	}
+}
+
+func syncUsersGRPC(conn *grpc.ClientConn) syncAccounts {
+	client := accountsv1.NewXrayAccountsServiceClient(conn)
+	return func(ctx context.Context, accounts []syncAccount) error {
+		result, err := client.SyncUsers(syncAuth(ctx), &accountsv1.SyncUsersRequest{
+			Id: "primary", InboundTag: "vless",
+			Snapshot: &accountsv1.VLESSAccounts{Accounts: syncWireAccounts(accounts)},
+		})
+		return checkedSync(result.GetOutcome(), err)
+	}
+}
+
+func syncWireAccounts(accounts []syncAccount) []*accountsv1.VLESSAccount {
+	wire := make([]*accountsv1.VLESSAccount, len(accounts))
+	for i := range accounts {
+		wire[i] = &accountsv1.VLESSAccount{Email: accounts[i].Email}
+		if accounts[i].UUID != "" {
+			wire[i].Uuid = &accounts[i].UUID
+		}
+	}
+	return wire
+}
+
+func referenceUsers(accounts []syncAccount) []*ReferenceAccountUser {
+	users := make([]*ReferenceAccountUser, len(accounts))
+	for i, account := range accounts {
+		users[i] = referenceAccount(account.Email, account.UUID)
+	}
+	return users
+}
+
+func syncUsersCases(prepare syncAccounts) []syncCase {
+	var cases []syncCase
+	for _, size := range []int{100, 1000} {
+		desired, old := make([]syncAccount, size), make([]syncAccount, size)
+		for i := range size {
+			desired[i], old[i] = fixtureAccount(i), fixtureAccount(i+size)
+		}
+		cases = append(cases,
+			syncCase{name: "converged", payload: desired, initial: desired, final: desired, prepare: prepare},
+			syncCase{name: "behind-replace", payload: desired, initial: old, final: desired, prepare: prepare},
+		)
+	}
+	return cases
 }

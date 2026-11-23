@@ -17,3 +17,7 @@ message ReferenceAccountProxy {
 message ReferenceVLESS {
   string id = 1;
 }
+
+message ReferenceAccounts {
+  repeated ReferenceAccountUser users = 1;
+}

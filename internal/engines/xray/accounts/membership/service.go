@@ -126,6 +126,10 @@ func (s *Service) Count(ctx context.Context, scope Scope) (int64, error) {
 }
 
 func (s *Service) begin(ctx context.Context, scope Scope) (context.Context, func(), error) {
+	return s.beginWithin(ctx, scope, time.Second)
+}
+
+func (s *Service) beginWithin(ctx context.Context, scope Scope, timeout time.Duration) (context.Context, func(), error) {
 	if !validName(scope.InstanceID, 63) || !validName(scope.InboundTag, 1024) {
 		return nil, nil, ErrInvalid
 	}
@@ -137,7 +141,7 @@ func (s *Service) begin(ctx context.Context, scope Scope) (context.Context, func
 	default:
 		return nil, nil, ErrBusy
 	}
-	ctx, cancel := context.WithTimeout(ctx, time.Second)
+	ctx, cancel := context.WithTimeout(ctx, timeout)
 	return ctx, func() {
 		cancel()
 		<-s.slots

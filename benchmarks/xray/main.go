@@ -92,10 +92,10 @@ func main() {
 	flag.BoolVar(&outboundHealth, "outbound-health", false, "measure ordinary Observatory reads")
 	flag.StringVar(&outboundCase, "outbound-health-case", "", "run only one or all outbound observations")
 	flag.StringVar(&outboundSamples, "outbound-health-samples", "", "path for compressed per-request outbound health CSV")
-	flag.BoolVar(&accounts.sync, "account-sync", false, "measure single-account synchronization")
+	flag.StringVar(&accounts.sync, "account-sync", "", "measure VLESS synchronization: user or users")
 	flag.StringVar(&accounts.runtimeDir, "account-runtime-dir", "", "measure VLESS accounts on the execution in this runtime directory")
 	flag.StringVar(&accounts.generated, "account-reference-generated", "", "PasarGuard's generated fixture config")
-	flag.StringVar(&accounts.samples, "account-samples", "", "write successful account operation latencies to this compressed CSV")
+	flag.StringVar(&accounts.samples, "account-samples", "", "write per-request account benchmark CSV to this path")
 	flag.IntVar(&accounts.mutations, "account-mutations", 256, "accounts added and removed per measurement round")
 	flag.StringVar(&logs.proxy, "logs-proxy", "", "benchmark stdout access logs generated through this Xray proxy")
 	flag.StringVar(&logs.raw, "logs-samples", "", "write raw per-subscriber log CSV to this gzip path")
@@ -124,6 +124,9 @@ func main() {
 		log.Fatal("routing rule mutations use exactly one client")
 	}
 
+	if accounts.sync != "" && accounts.sync != "user" && accounts.sync != "users" {
+		check(errors.New("invalid account sync operation"))
+	}
 	if accounts.runtimeDir != "" && (runtimeStats || outboundHealth || trafficNames != 0 || routing.rules != 0 ||
 		accounts.generated == "" || accounts.mutations < 1 || accounts.mutations > 10000) {
 		log.Fatal("account comparison requires its fixture paths, 1 to 10000 mutations, and no other benchmark")
@@ -265,7 +268,7 @@ func main() {
 		return
 	}
 	if accounts.runtimeDir != "" {
-		if accounts.sync {
+		if accounts.sync != "" {
 			benchmarkAccountSync(protocol, targets, rounds, reads, accounts)
 		} else {
 			benchmarkAccounts(protocol, targets, rounds, clientCounts, runtimeStatsWindow, accounts)

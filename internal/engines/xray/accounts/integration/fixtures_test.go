@@ -2,16 +2,20 @@ package integration_test
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/PapilioVPN/node/internal/engines/xray"
 	accountsv1 "github.com/PapilioVPN/node/internal/engines/xray/accounts/bridge/grpc/proto/v1"
+	"github.com/PapilioVPN/node/internal/engines/xray/accounts/membership"
+	"github.com/PapilioVPN/node/internal/engines/xray/accounts/native"
 	"github.com/PapilioVPN/node/internal/engines/xray/instances/lifecycle"
 	"github.com/PapilioVPN/node/internal/settings"
 	"github.com/go-chi/chi/v5"
@@ -31,7 +35,12 @@ type fixture struct {
 	instance    *lifecycle.Service
 }
 
-func startFixture(t *testing.T) fixture {
+type configuredAccount struct {
+	Email string `json:"email"`
+	ID    string `json:"id"`
+}
+
+func startFixture(t *testing.T, accounts ...configuredAccount) fixture {
 	t.Helper()
 	executable := os.Getenv("NODE_TEST_XRAY")
 	if executable == "" {
@@ -41,15 +50,20 @@ func startFixture(t *testing.T) fixture {
 	require(t, err)
 	t.Cleanup(func() { require(t, os.RemoveAll(dir)) })
 	port, otherPort := freePorts(t)
+	if accounts == nil {
+		accounts = []configuredAccount{}
+	}
+	clients, err := json.Marshal(accounts)
+	require(t, err)
 	source := fmt.Sprintf(`{
 		"log": {"loglevel":"none"},
 		"inbounds": [
 			{"tag":"vless","listen":"127.0.0.1","port":%d,"protocol":"vless",
-				"settings":{"clients":[],"decryption":"none"}},
+				"settings":{"clients":%s,"decryption":"none"}},
 			{"tag":"trojan","listen":"127.0.0.1","port":%d,"protocol":"trojan","settings":{"clients":[]}}
 		],
 		"outbounds": [{"tag":"direct","protocol":"freedom","settings":{"finalRules":[{"action":"allow","ip":["127.0.0.1/32"]}]}}]
-	}`, port, otherPort)
+	}`, port, clients, otherPort)
 	file := filepath.Join(dir, "xray.json")
 	require(t, os.WriteFile(file, []byte(source), 0600))
 
@@ -103,4 +117,27 @@ func require(t testing.TB, err error) {
 	if err != nil {
 		t.Fatal(err)
 	}
+}
+
+type testExecution struct{ conn *grpc.ClientConn }
+
+func (e testExecution) NativeConnection(string) (*grpc.ClientConn, error) { return e.conn, nil }
+
+// Intercept acknowledgements after the real Xray has performed the edit.
+func (f fixture) interceptEdits(t *testing.T, after func(int32) error) *membership.Service {
+	t.Helper()
+	direct, err := f.instance.NativeConnection(instanceID)
+	require(t, err)
+	var writes atomic.Int32
+	conn, err := grpc.NewClient(direct.Target(), grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithUnaryInterceptor(func(ctx context.Context, method string, req, reply any, conn *grpc.ClientConn, call grpc.UnaryInvoker, opts ...grpc.CallOption) error {
+			err := call(ctx, method, req, reply, conn, opts...)
+			if err == nil && method == native.AlterInboundMethod {
+				return after(writes.Add(1))
+			}
+			return err
+		}))
+	require(t, err)
+	t.Cleanup(func() { require(t, conn.Close()) })
+	return membership.New(native.New(testExecution{conn}))
 }

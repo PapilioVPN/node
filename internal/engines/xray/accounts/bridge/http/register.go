@@ -27,6 +27,7 @@ type accountCount struct {
 
 func Register(router chi.Router, service *membership.Service) {
 	const base = "/v1/xray/instances/{id}/inbounds/{tag}/accounts"
+	router.Put(base, syncUsers(service))
 	router.Put(base+"/membership", syncUser(service))
 	router.Post(base, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
@@ -68,7 +69,11 @@ func scope(r *http.Request) membership.Scope {
 }
 
 func readBody(w http.ResponseWriter, r *http.Request, target any) bool {
-	reader := http.MaxBytesReader(w, r.Body, 8<<10)
+	return readLimitedBody(w, r, target, 8<<10)
+}
+
+func readLimitedBody(w http.ResponseWriter, r *http.Request, target any, limitBytes int64) bool {
+	reader := http.MaxBytesReader(w, r.Body, limitBytes)
 	defer reader.Close()
 	decoder := json.NewDecoder(reader)
 	decoder.DisallowUnknownFields()

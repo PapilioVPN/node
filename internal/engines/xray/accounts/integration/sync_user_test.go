@@ -2,21 +2,17 @@ package integration_test
 
 import (
 	"context"
-	"errors"
-	"sync/atomic"
-
 	"encoding/json"
-	accountsv1 "github.com/PapilioVPN/node/internal/engines/xray/accounts/bridge/grpc/proto/v1"
-	"github.com/PapilioVPN/node/internal/engines/xray/accounts/membership"
-	"github.com/PapilioVPN/node/internal/engines/xray/accounts/native"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
+	"errors"
 	"io"
 	"net"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	accountsv1 "github.com/PapilioVPN/node/internal/engines/xray/accounts/bridge/grpc/proto/v1"
+	"github.com/PapilioVPN/node/internal/engines/xray/accounts/membership"
 )
 
 const rotatedCredential = "4310b7cc-e6d2-4101-ac03-8ec2a553b835"
@@ -99,10 +95,6 @@ func TestSyncUserGRPC(t *testing.T) {
 	checkTrafficCredential(t, f.inboundPort, targetPort, rotatedCredential, false)
 }
 
-type testExecution struct{ conn *grpc.ClientConn }
-
-func (e testExecution) NativeConnection(string) (*grpc.ClientConn, error) { return e.conn, nil }
-
 func TestSyncUserInterruptedRotation(t *testing.T) {
 	for _, tc := range []struct {
 		name, failure string
@@ -114,28 +106,17 @@ func TestSyncUserInterruptedRotation(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			f := startFixture(t)
 			targetPort := trafficTarget(t)
-			direct, err := f.instance.NativeConnection(instanceID)
-			require(t, err)
 			ctx, cancel := context.WithCancel(t.Context())
 			defer cancel()
-			var writes atomic.Int32
-			conn, err := grpc.NewClient(direct.Target(), grpc.WithTransportCredentials(insecure.NewCredentials()),
-				grpc.WithUnaryInterceptor(func(ctx context.Context, method string, req, reply any, conn *grpc.ClientConn, call grpc.UnaryInvoker, opts ...grpc.CallOption) error {
-					err := call(ctx, method, req, reply, conn, opts...)
-					if err == nil && method == native.AlterInboundMethod {
-						n := writes.Add(1)
-						if n == 2 && tc.outcome == membership.Partial {
-							cancel()
-						}
-						if n == 3 && tc.outcome == membership.Unknown {
-							return errors.New(rotatedCredential)
-						}
-					}
-					return err
-				}))
-			require(t, err)
-			defer conn.Close()
-			service := membership.New(native.New(testExecution{conn}))
+			service := f.interceptEdits(t, func(count int32) error {
+				if count == 2 && tc.outcome == membership.Partial {
+					cancel()
+				}
+				if count == 3 && tc.outcome == membership.Unknown {
+					return errors.New(rotatedCredential)
+				}
+				return nil
+			})
 			request := membership.SyncUserRequest{Scope: membership.Scope{InstanceID: instanceID, InboundTag: "vless"}, Email: email, UUID: ptr(credential)}
 			first, err := service.SyncUser(t.Context(), request)
 			require(t, err)
