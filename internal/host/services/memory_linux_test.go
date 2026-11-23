@@ -1,6 +1,25 @@
 package services
 
-import "testing"
+import (
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+)
+
+func TestMemoryReadsPastTheInitialBuffer(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "meminfo")
+	contents := "MemTotal: 2048 kB\n" + strings.Repeat("Unrelated: 0 kB\n", 512) +
+		"MemAvailable: 512 kB\nSwapTotal: 24 kB\nSwapFree: 16 kB\n"
+	if err := os.WriteFile(path, []byte(contents), 0600); err != nil {
+		t.Fatal(err)
+	}
+	snapshot, err := memoryFromFile(t.Context(), path)
+	if err != nil || snapshot.TotalBytes != 2048*1024 || snapshot.AvailableBytes == nil ||
+		*snapshot.AvailableBytes != 512*1024 || snapshot.SwapTotalBytes != 24*1024 || snapshot.SwapFreeBytes != 16*1024 {
+		t.Fatalf("memory snapshot = %+v, %v", snapshot, err)
+	}
+}
 
 func TestParseMemoryConvertsLinuxKilobytes(t *testing.T) {
 	data := []byte("MemTotal: 2048 kB\nMemAvailable: 400 kB\nSwapTotal: 512 kB\nSwapFree: 123 kB\nHugePages_Total: 0\n")
