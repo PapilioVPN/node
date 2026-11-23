@@ -118,7 +118,8 @@ func decodeJSON(w http.ResponseWriter, r *http.Request, target any) bool {
 	if err := decoder.Decode(target); err != nil {
 		return false
 	}
-	return decoder.Decode(new(json.RawMessage)) == io.EOF
+	_, err := decoder.Token()
+	return err == io.EOF
 }
 
 func writeJSON(w http.ResponseWriter, payload any) {

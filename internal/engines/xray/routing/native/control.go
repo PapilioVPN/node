@@ -31,20 +31,25 @@ func (c *Client) TestRoute(ctx context.Context, id string, probe state.RouteProb
 	case "udp":
 		network = 3
 	}
-	input := &RouteContext{
+	var probeRequest struct {
+		context RouteContext
+		request TestRouteRequest
+	}
+	probeRequest.context = RouteContext{
 		InboundTag: probe.InboundTag, Network: network, TargetPort: probe.TargetPort,
 		TargetDomain: probe.TargetDomain, Protocol: probe.Protocol, User: probe.User,
 		Attributes: probe.Attributes,
 	}
 	if probe.TargetIP.IsValid() {
-		input.TargetIps = [][]byte{probe.TargetIP.Unmap().AsSlice()}
+		probeRequest.context.TargetIps = [][]byte{probe.TargetIP.Unmap().AsSlice()}
 	}
+	probeRequest.request.RoutingContext = &probeRequest.context
+	probeRequest.request.FieldSelectors = probeFields
 	var result RouteContext
-	err := c.invoke(ctx, id, testRouteMethod, &TestRouteRequest{RoutingContext: input, FieldSelectors: probeFields}, &result, probeOptions)
-	if exactNativeError(err, "common: not enough information for making a decision") {
-		return state.RouteSelection{}, errors.Join(state.ErrNoRoute, err)
-	}
-	if err != nil {
+	if err := c.invoke(ctx, id, testRouteMethod, &probeRequest.request, &result, probeOptions); err != nil {
+		if exactNativeError(err, "common: not enough information for making a decision") {
+			return state.RouteSelection{}, errors.Join(state.ErrNoRoute, err)
+		}
 		return state.RouteSelection{}, err
 	}
 	return state.RouteSelection{OutboundTag: result.OutboundTag, OutboundGroupTags: result.OutboundGroupTags}, nil
