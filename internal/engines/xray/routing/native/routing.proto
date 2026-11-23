@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+package papiliovpn.xray.native;
+option go_package = "github.com/PapilioVPN/node/internal/engines/xray/routing/native";
+
+// Wire projections for Xray v26.11.9. The native Go module requires a
+// newer toolchain than Node's build pin.
+// https://github.com/XTLS/Xray-core/blob/676eaf66f8f05d4d558ee7a74b4736623d3feeb9/app/router/command/command.proto
+message ListRuleResponse {
+  repeated ListRuleItem rules = 1;
+}
+
+message ListRuleItem {
+  string outbound_tag = 1;
+  string rule_tag = 2;
+}
+
+message GetBalancerInfoRequest {
+  string tag = 1;
+}
+
+message GetBalancerInfoResponse {
+  Balancer balancer = 1;
+}
+
+message Balancer {
+  Override override = 5;
+  Targets principle_target = 6;
+}
+
+message Override {
+  string target = 2;
+}
+
+message Targets {
+  repeated string tags = 1;
+}

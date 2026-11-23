@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package papiliovpn.node.v1;
+option go_package = "github.com/PapilioVPN/node/internal/engines/xray/routing/bridge/grpc/proto/v1;routingv1";
+
+message XrayRoutingRulesRequest {
+  string id = 1;
+}
+
+message XrayRoutingRule {
+  // Xray's reported destination tag. It can be empty for a balancer rule.
+  string outbound_tag = 1;
+  string rule_tag = 2;
+}
+
+message XrayRoutingRules {
+  // Preserves the native rule order, including empty and repeated tags.
+  repeated XrayRoutingRule rules = 1;
+}
+
+message XrayBalancerInfoRequest {
+  string id = 1;
+  string tag = 2;
+}
+
+message XrayBalancerTargets {
+  repeated string tags = 1;
+}
+
+message XrayBalancerInfo {
+  // An explicitly empty value means the router supports overrides and none is set.
+  optional string override_target = 1;
+  // Present when Xray reports a strategy result, even if it has no targets.
+  XrayBalancerTargets reported_targets = 2;
+}
+
+service XrayRoutingService {
+  rpc ListRoutingRules(XrayRoutingRulesRequest) returns (XrayRoutingRules);
+  rpc GetBalancerInfo(XrayBalancerInfoRequest) returns (XrayBalancerInfo);
+}
