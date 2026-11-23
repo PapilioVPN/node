@@ -144,3 +144,18 @@ All expected events were received on both transports. PasarGuard's
 HTTP delivery percentiles were lower. The gRPC rerun also varied by
 subscriber count, with Node leading at one and trailing at eight in the
 tuned window. [Per-round data](results/2026-11-23-xray-http-encoding-repeat.csv)
+
+## Fan-out diagnostic
+
+A fixture recorded the Node receipt timestamp that already travels on
+the wire. At eight subscribers, the p95 from Xray's console timestamp to
+Node receipt was 212 µs. From Node receipt to client decoding, p95 was
+307 µs. These are independently computed percentiles.
+
+A trial replaced the subscriber map with a small slice. The first
+three-round comparison lowered Node's eight-subscriber HTTP p95 from
+444 to 390 µs. The reverse-order repeat measured 428 µs for the
+existing implementation and 675 µs for the slice. Reference timings
+moved between runs as well. Both products delivered every event.
+The existing implementation was retained.
+[Per-round data](results/2026-11-23-http-log-fanout-trial.csv)
