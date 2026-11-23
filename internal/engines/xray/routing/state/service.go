@@ -1,4 +1,4 @@
-// Package state reads routing observations from the active Xray execution.
+// Package state exposes the active Xray execution's routing operations.
 package state
 
 import (
@@ -6,7 +6,6 @@ import (
 	"errors"
 	"sync/atomic"
 	"time"
-	"unicode/utf8"
 )
 
 var (
@@ -29,18 +28,21 @@ type BalancerInfo struct {
 	ReportedTargets []string
 }
 
-type reader interface {
+type controller interface {
 	ListRoutingRules(context.Context, string) ([]Rule, error)
 	GetBalancerInfo(context.Context, string, string) (BalancerInfo, error)
+	TestRoute(context.Context, string, RouteProbe) (RouteSelection, error)
+	OverrideBalancerTarget(context.Context, string, string, string) error
 }
 
 type Service struct {
-	reader    reader
-	lists     atomic.Int32
-	balancers atomic.Int32
+	controller controller
+	probes     atomic.Int32
+	lists      atomic.Int32
+	balancers  atomic.Int32
 }
 
-func New(reader reader) *Service { return &Service{reader: reader} }
+func New(controller controller) *Service { return &Service{controller: controller} }
 
 // ListRoutingRules returns one ordered native observation, including empty tags.
 func (service *Service) ListRoutingRules(ctx context.Context, id string) ([]Rule, error) {
@@ -53,12 +55,12 @@ func (service *Service) ListRoutingRules(ctx context.Context, id string) ([]Rule
 	defer service.lists.Add(-1)
 	ctx, cancel := context.WithTimeout(ctx, time.Second)
 	defer cancel()
-	return service.reader.ListRoutingRules(ctx, id)
+	return service.controller.ListRoutingRules(ctx, id)
 }
 
 // GetBalancerInfo preserves the native override and the strategy's report independently.
 func (service *Service) GetBalancerInfo(ctx context.Context, id, tag string) (BalancerInfo, error) {
-	if id == "" || tag == "" || len(tag) > 4096 || !utf8.ValidString(tag) {
+	if id == "" || tag == "" || !validTag(tag) {
 		return BalancerInfo{}, ErrInvalid
 	}
 	if err := admit(ctx, &service.balancers, 64); err != nil {
@@ -67,7 +69,7 @@ func (service *Service) GetBalancerInfo(ctx context.Context, id, tag string) (Ba
 	defer service.balancers.Add(-1)
 	ctx, cancel := context.WithTimeout(ctx, time.Second)
 	defer cancel()
-	return service.reader.GetBalancerInfo(ctx, id, tag)
+	return service.controller.GetBalancerInfo(ctx, id, tag)
 }
 
 func admit(ctx context.Context, active *atomic.Int32, limit int32) error {

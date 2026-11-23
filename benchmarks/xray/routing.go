@@ -35,16 +35,19 @@ var fixtureTargets = []string{"pool-a", "pool-b"}
 
 type routingReads struct {
 	rules    func(context.Context) (*routingv1.XrayRoutingRules, error)
+	control  routingControl
 	balancer func(context.Context) (string, []string, error)
 	override func(context.Context) error
 }
 
 func routingHTTP(client *http.Client, address string, reference bool) routingReads {
 	base := "https://" + address
+	control := routingHTTPControl(client, base, reference)
 	if reference {
 		tag, err := proto.Marshal(wrapperspb.String(fixtureBalancer))
 		check(err)
 		return routingReads{
+			control: control,
 			rules: func(ctx context.Context) (*routingv1.XrayRoutingRules, error) {
 				result := new(routingv1.XrayRoutingRules) // Same response field numbers.
 				return result, routingHTTPRead(ctx, client, http.MethodGet, base+"/routing/rules", nil, result, false)
@@ -56,12 +59,13 @@ func routingHTTP(client *http.Client, address string, reference bool) routingRea
 			},
 			override: func(ctx context.Context) error {
 				return routingHTTPRead(ctx, client, http.MethodPut, base+"/routing/balancer/override",
-					overrideFixture().ProtoReflect().GetUnknown(), &emptypb.Empty{}, false)
+					overrideFixture(fixtureOverride).ProtoReflect().GetUnknown(), &emptypb.Empty{}, false)
 			},
 		}
 	}
 	base += "/v1/xray/instances/primary/routing"
 	return routingReads{
+		control: control,
 		rules: func(ctx context.Context) (*routingv1.XrayRoutingRules, error) {
 			result := new(routingv1.XrayRoutingRules)
 			return result, routingHTTPRead(ctx, client, http.MethodGet, base+"/rules", nil, result, true)
@@ -81,7 +85,11 @@ func routingHTTPRead(ctx context.Context, client *http.Client, method, endpoint 
 	}
 	req.Header.Set("X-API-Key", key)
 	if len(payload) != 0 {
-		req.Header.Set("Content-Type", "application/x-protobuf")
+		if isJSON {
+			req.Header.Set("Content-Type", "application/json")
+		} else {
+			req.Header.Set("Content-Type", "application/x-protobuf")
+		}
 	}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -93,6 +101,11 @@ func routingHTTPRead(ctx context.Context, client *http.Client, method, endpoint 
 		return err
 	}
 	switch resp.StatusCode {
+	case http.StatusNoContent:
+		if result == nil && len(body) == 0 {
+			return nil
+		}
+		return fmt.Errorf("unexpected HTTP %s", resp.Status)
 	case http.StatusOK:
 		if isJSON {
 			return json.Unmarshal(body, result)
@@ -106,11 +119,13 @@ func routingHTTPRead(ctx context.Context, client *http.Client, method, endpoint 
 }
 
 func routingGRPC(conn *grpc.ClientConn, reference bool) routingReads {
+	control := routingGRPCControl(conn, reference)
 	if reference {
 		const service = "/service.NodeService/"
 		list := &emptypb.Empty{}
 		tag := wrapperspb.String(fixtureBalancer)
 		return routingReads{
+			control: control,
 			rules: func(ctx context.Context) (*routingv1.XrayRoutingRules, error) {
 				ctx = metadata.AppendToOutgoingContext(ctx, "x-api-key", key)
 				result := new(routingv1.XrayRoutingRules)
@@ -124,7 +139,7 @@ func routingGRPC(conn *grpc.ClientConn, reference bool) routingReads {
 			},
 			override: func(ctx context.Context) error {
 				ctx = metadata.AppendToOutgoingContext(ctx, "x-api-key", key)
-				return conn.Invoke(ctx, service+"OverrideBalancerTarget", overrideFixture(), &emptypb.Empty{})
+				return conn.Invoke(ctx, service+"OverrideBalancerTarget", overrideFixture(fixtureOverride), &emptypb.Empty{})
 			},
 		}
 	}
@@ -132,6 +147,7 @@ func routingGRPC(conn *grpc.ClientConn, reference bool) routingReads {
 	list := &routingv1.XrayRoutingRulesRequest{Id: "primary"}
 	balancer := &routingv1.XrayBalancerInfoRequest{Id: "primary", Tag: fixtureBalancer}
 	return routingReads{
+		control: control,
 		rules: func(ctx context.Context) (*routingv1.XrayRoutingRules, error) {
 			return client.ListRoutingRules(metadata.AppendToOutgoingContext(ctx, "x-api-key", key), list)
 		},
@@ -143,10 +159,10 @@ func routingGRPC(conn *grpc.ClientConn, reference bool) routingReads {
 }
 
 // Both stock Xray and the reference setter carry tag and target in fields 1 and 2.
-func overrideFixture() *emptypb.Empty {
+func overrideFixture(target string) *emptypb.Empty {
 	request := &emptypb.Empty{}
 	fields := protowire.AppendString(protowire.AppendTag(nil, 1, protowire.BytesType), fixtureBalancer)
-	fields = protowire.AppendString(protowire.AppendTag(fields, 2, protowire.BytesType), fixtureOverride)
+	fields = protowire.AppendString(protowire.AppendTag(fields, 2, protowire.BytesType), target)
 	request.ProtoReflect().SetUnknown(fields)
 	return request
 }
@@ -165,7 +181,7 @@ func seedRoutingOverride(ctx context.Context, runtimeDir string) error {
 		return err
 	}
 	defer conn.Close()
-	return conn.Invoke(ctx, "/xray.app.router.command.RoutingService/OverrideBalancerTarget", overrideFixture(), &emptypb.Empty{})
+	return conn.Invoke(ctx, "/xray.app.router.command.RoutingService/OverrideBalancerTarget", overrideFixture(fixtureOverride), &emptypb.Empty{})
 }
 
 func fixtureRules(total int) [][2]string {
@@ -224,15 +240,16 @@ func benchmarkRouting(protocol string, targets []target, workload routingWorkloa
 			slices.Reverse(order)
 			slices.Reverse(counts)
 		}
+		operations := []string{workload.operation}
+		if workload.operation == "" {
+			operations = []string{"list", "balancer"}
+		}
 		for _, clients := range counts {
-			for _, op := range []string{"list", "balancer"} {
-				if workload.operation != "" && workload.operation != op {
-					continue
-				}
+			for _, op := range operations {
 				for _, index := range order {
 					t := targets[index]
 					rows := workload.rules
-					if op == "balancer" {
+					if op != "list" {
 						rows = 0
 					}
 					ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second+workload.window)
@@ -240,6 +257,12 @@ func benchmarkRouting(protocol string, targets []target, workload routingWorkloa
 					before := routingCPUTicks(pids)
 					result, err := pollRuntimeStats(ctx, routingRead(t.routing, op, want), clients, workload.window)
 					after := routingCPUTicks(pids)
+					if err == nil && (op == overrideOp || op == clearOp) {
+						target, _, verifyErr := t.routing.balancer(ctx)
+						if verifyErr != nil || target != overrideDestination(op) {
+							err = fmt.Errorf("verify override: got %q, error %v", target, verifyErr)
+						}
+					}
 					cancel()
 					if err != nil {
 						check(fmt.Errorf("%s %s (%d clients): %w", t.name, op, clients, err))
@@ -273,6 +296,9 @@ func benchmarkRouting(protocol string, targets []target, workload routingWorkloa
 }
 
 func routingRead(calls routingReads, op string, want [][2]string) func(context.Context) (uint32, error) {
+	if op == probeOp || op == overrideOp || op == clearOp {
+		return routingControlRead(calls.control, op)
+	}
 	if op == "balancer" {
 		return func(ctx context.Context) (uint32, error) {
 			override, targets, err := calls.balancer(ctx)

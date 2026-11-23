@@ -4,6 +4,7 @@ package native
 import (
 	"context"
 	"errors"
+	"sync"
 	"time"
 
 	"github.com/PapilioVPN/node/internal/engines/xray/routing/state"
@@ -27,7 +28,11 @@ type instances interface {
 	NativeConnection(string) (*grpc.ClientConn, error)
 }
 
-type Client struct{ instances instances }
+type Client struct {
+	instances instances
+	mutation  sync.Mutex
+	fenced    *grpc.ClientConn
+}
 
 func New(instances instances) *Client { return &Client{instances: instances} }
 
@@ -68,8 +73,7 @@ func (client *Client) GetBalancerInfo(ctx context.Context, id, tag string) (stat
 	return info, nil
 }
 
-// The pinned ListRule and GetBalancerInfo handlers do not use the server
-// deadline to interrupt their work. The client still cancels the stream.
+// The pinned read handlers do not use the server deadline to interrupt their work. The client still cancels the stream.
 type readContext struct{ context.Context }
 
 func (readContext) Deadline() (time.Time, bool) { return time.Time{}, false }

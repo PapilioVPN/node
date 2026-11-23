@@ -348,6 +348,227 @@ func (x *Targets) GetTags() []string {
 	return nil
 }
 
+// Wire projection of the probe context and the selected outbound fields.
+type RouteContext struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	InboundTag        string                 `protobuf:"bytes,1,opt,name=inbound_tag,json=inboundTag,proto3" json:"inbound_tag,omitempty"`
+	Network           int32                  `protobuf:"varint,2,opt,name=network,proto3" json:"network,omitempty"`
+	TargetIps         [][]byte               `protobuf:"bytes,4,rep,name=target_ips,json=targetIps,proto3" json:"target_ips,omitempty"`
+	TargetPort        uint32                 `protobuf:"varint,6,opt,name=target_port,json=targetPort,proto3" json:"target_port,omitempty"`
+	TargetDomain      string                 `protobuf:"bytes,7,opt,name=target_domain,json=targetDomain,proto3" json:"target_domain,omitempty"`
+	Protocol          string                 `protobuf:"bytes,8,opt,name=protocol,proto3" json:"protocol,omitempty"`
+	User              string                 `protobuf:"bytes,9,opt,name=user,proto3" json:"user,omitempty"`
+	Attributes        map[string]string      `protobuf:"bytes,10,rep,name=attributes,proto3" json:"attributes,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	OutboundGroupTags []string               `protobuf:"bytes,11,rep,name=outbound_group_tags,json=outboundGroupTags,proto3" json:"outbound_group_tags,omitempty"`
+	OutboundTag       string                 `protobuf:"bytes,12,opt,name=outbound_tag,json=outboundTag,proto3" json:"outbound_tag,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *RouteContext) Reset() {
+	*x = RouteContext{}
+	mi := &file_internal_engines_xray_routing_native_routing_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RouteContext) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RouteContext) ProtoMessage() {}
+
+func (x *RouteContext) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_engines_xray_routing_native_routing_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RouteContext.ProtoReflect.Descriptor instead.
+func (*RouteContext) Descriptor() ([]byte, []int) {
+	return file_internal_engines_xray_routing_native_routing_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *RouteContext) GetInboundTag() string {
+	if x != nil {
+		return x.InboundTag
+	}
+	return ""
+}
+
+func (x *RouteContext) GetNetwork() int32 {
+	if x != nil {
+		return x.Network
+	}
+	return 0
+}
+
+func (x *RouteContext) GetTargetIps() [][]byte {
+	if x != nil {
+		return x.TargetIps
+	}
+	return nil
+}
+
+func (x *RouteContext) GetTargetPort() uint32 {
+	if x != nil {
+		return x.TargetPort
+	}
+	return 0
+}
+
+func (x *RouteContext) GetTargetDomain() string {
+	if x != nil {
+		return x.TargetDomain
+	}
+	return ""
+}
+
+func (x *RouteContext) GetProtocol() string {
+	if x != nil {
+		return x.Protocol
+	}
+	return ""
+}
+
+func (x *RouteContext) GetUser() string {
+	if x != nil {
+		return x.User
+	}
+	return ""
+}
+
+func (x *RouteContext) GetAttributes() map[string]string {
+	if x != nil {
+		return x.Attributes
+	}
+	return nil
+}
+
+func (x *RouteContext) GetOutboundGroupTags() []string {
+	if x != nil {
+		return x.OutboundGroupTags
+	}
+	return nil
+}
+
+func (x *RouteContext) GetOutboundTag() string {
+	if x != nil {
+		return x.OutboundTag
+	}
+	return ""
+}
+
+type TestRouteRequest struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	RoutingContext *RouteContext          `protobuf:"bytes,1,opt,name=routing_context,json=routingContext,proto3" json:"routing_context,omitempty"`
+	FieldSelectors []string               `protobuf:"bytes,2,rep,name=field_selectors,json=fieldSelectors,proto3" json:"field_selectors,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *TestRouteRequest) Reset() {
+	*x = TestRouteRequest{}
+	mi := &file_internal_engines_xray_routing_native_routing_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TestRouteRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TestRouteRequest) ProtoMessage() {}
+
+func (x *TestRouteRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_engines_xray_routing_native_routing_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TestRouteRequest.ProtoReflect.Descriptor instead.
+func (*TestRouteRequest) Descriptor() ([]byte, []int) {
+	return file_internal_engines_xray_routing_native_routing_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *TestRouteRequest) GetRoutingContext() *RouteContext {
+	if x != nil {
+		return x.RoutingContext
+	}
+	return nil
+}
+
+func (x *TestRouteRequest) GetFieldSelectors() []string {
+	if x != nil {
+		return x.FieldSelectors
+	}
+	return nil
+}
+
+type OverrideBalancerTargetRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	BalancerTag   string                 `protobuf:"bytes,1,opt,name=balancer_tag,json=balancerTag,proto3" json:"balancer_tag,omitempty"`
+	Target        string                 `protobuf:"bytes,2,opt,name=target,proto3" json:"target,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *OverrideBalancerTargetRequest) Reset() {
+	*x = OverrideBalancerTargetRequest{}
+	mi := &file_internal_engines_xray_routing_native_routing_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OverrideBalancerTargetRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OverrideBalancerTargetRequest) ProtoMessage() {}
+
+func (x *OverrideBalancerTargetRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_engines_xray_routing_native_routing_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OverrideBalancerTargetRequest.ProtoReflect.Descriptor instead.
+func (*OverrideBalancerTargetRequest) Descriptor() ([]byte, []int) {
+	return file_internal_engines_xray_routing_native_routing_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *OverrideBalancerTargetRequest) GetBalancerTag() string {
+	if x != nil {
+		return x.BalancerTag
+	}
+	return ""
+}
+
+func (x *OverrideBalancerTargetRequest) GetTarget() string {
+	if x != nil {
+		return x.Target
+	}
+	return ""
+}
+
 var File_internal_engines_xray_routing_native_routing_proto protoreflect.FileDescriptor
 
 const file_internal_engines_xray_routing_native_routing_proto_rawDesc = "" +
@@ -368,7 +589,33 @@ const file_internal_engines_xray_routing_native_routing_proto_rawDesc = "" +
 	"\bOverride\x12\x16\n" +
 	"\x06target\x18\x02 \x01(\tR\x06target\"\x1d\n" +
 	"\aTargets\x12\x12\n" +
-	"\x04tags\x18\x01 \x03(\tR\x04tagsBAZ?github.com/PapilioVPN/node/internal/engines/xray/routing/nativeb\x06proto3"
+	"\x04tags\x18\x01 \x03(\tR\x04tags\"\xc6\x03\n" +
+	"\fRouteContext\x12\x1f\n" +
+	"\vinbound_tag\x18\x01 \x01(\tR\n" +
+	"inboundTag\x12\x18\n" +
+	"\anetwork\x18\x02 \x01(\x05R\anetwork\x12\x1d\n" +
+	"\n" +
+	"target_ips\x18\x04 \x03(\fR\ttargetIps\x12\x1f\n" +
+	"\vtarget_port\x18\x06 \x01(\rR\n" +
+	"targetPort\x12#\n" +
+	"\rtarget_domain\x18\a \x01(\tR\ftargetDomain\x12\x1a\n" +
+	"\bprotocol\x18\b \x01(\tR\bprotocol\x12\x12\n" +
+	"\x04user\x18\t \x01(\tR\x04user\x12T\n" +
+	"\n" +
+	"attributes\x18\n" +
+	" \x03(\v24.papiliovpn.xray.native.RouteContext.AttributesEntryR\n" +
+	"attributes\x12.\n" +
+	"\x13outbound_group_tags\x18\v \x03(\tR\x11outboundGroupTags\x12!\n" +
+	"\foutbound_tag\x18\f \x01(\tR\voutboundTag\x1a=\n" +
+	"\x0fAttributesEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x8a\x01\n" +
+	"\x10TestRouteRequest\x12M\n" +
+	"\x0frouting_context\x18\x01 \x01(\v2$.papiliovpn.xray.native.RouteContextR\x0eroutingContext\x12'\n" +
+	"\x0ffield_selectors\x18\x02 \x03(\tR\x0efieldSelectors\"Z\n" +
+	"\x1dOverrideBalancerTargetRequest\x12!\n" +
+	"\fbalancer_tag\x18\x01 \x01(\tR\vbalancerTag\x12\x16\n" +
+	"\x06target\x18\x02 \x01(\tR\x06targetBAZ?github.com/PapilioVPN/node/internal/engines/xray/routing/nativeb\x06proto3"
 
 var (
 	file_internal_engines_xray_routing_native_routing_proto_rawDescOnce sync.Once
@@ -382,26 +629,32 @@ func file_internal_engines_xray_routing_native_routing_proto_rawDescGZIP() []byt
 	return file_internal_engines_xray_routing_native_routing_proto_rawDescData
 }
 
-var file_internal_engines_xray_routing_native_routing_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_internal_engines_xray_routing_native_routing_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_internal_engines_xray_routing_native_routing_proto_goTypes = []any{
-	(*ListRuleResponse)(nil),        // 0: papiliovpn.xray.native.ListRuleResponse
-	(*ListRuleItem)(nil),            // 1: papiliovpn.xray.native.ListRuleItem
-	(*GetBalancerInfoRequest)(nil),  // 2: papiliovpn.xray.native.GetBalancerInfoRequest
-	(*GetBalancerInfoResponse)(nil), // 3: papiliovpn.xray.native.GetBalancerInfoResponse
-	(*Balancer)(nil),                // 4: papiliovpn.xray.native.Balancer
-	(*Override)(nil),                // 5: papiliovpn.xray.native.Override
-	(*Targets)(nil),                 // 6: papiliovpn.xray.native.Targets
+	(*ListRuleResponse)(nil),              // 0: papiliovpn.xray.native.ListRuleResponse
+	(*ListRuleItem)(nil),                  // 1: papiliovpn.xray.native.ListRuleItem
+	(*GetBalancerInfoRequest)(nil),        // 2: papiliovpn.xray.native.GetBalancerInfoRequest
+	(*GetBalancerInfoResponse)(nil),       // 3: papiliovpn.xray.native.GetBalancerInfoResponse
+	(*Balancer)(nil),                      // 4: papiliovpn.xray.native.Balancer
+	(*Override)(nil),                      // 5: papiliovpn.xray.native.Override
+	(*Targets)(nil),                       // 6: papiliovpn.xray.native.Targets
+	(*RouteContext)(nil),                  // 7: papiliovpn.xray.native.RouteContext
+	(*TestRouteRequest)(nil),              // 8: papiliovpn.xray.native.TestRouteRequest
+	(*OverrideBalancerTargetRequest)(nil), // 9: papiliovpn.xray.native.OverrideBalancerTargetRequest
+	nil,                                   // 10: papiliovpn.xray.native.RouteContext.AttributesEntry
 }
 var file_internal_engines_xray_routing_native_routing_proto_depIdxs = []int32{
-	1, // 0: papiliovpn.xray.native.ListRuleResponse.rules:type_name -> papiliovpn.xray.native.ListRuleItem
-	4, // 1: papiliovpn.xray.native.GetBalancerInfoResponse.balancer:type_name -> papiliovpn.xray.native.Balancer
-	5, // 2: papiliovpn.xray.native.Balancer.override:type_name -> papiliovpn.xray.native.Override
-	6, // 3: papiliovpn.xray.native.Balancer.principle_target:type_name -> papiliovpn.xray.native.Targets
-	4, // [4:4] is the sub-list for method output_type
-	4, // [4:4] is the sub-list for method input_type
-	4, // [4:4] is the sub-list for extension type_name
-	4, // [4:4] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	1,  // 0: papiliovpn.xray.native.ListRuleResponse.rules:type_name -> papiliovpn.xray.native.ListRuleItem
+	4,  // 1: papiliovpn.xray.native.GetBalancerInfoResponse.balancer:type_name -> papiliovpn.xray.native.Balancer
+	5,  // 2: papiliovpn.xray.native.Balancer.override:type_name -> papiliovpn.xray.native.Override
+	6,  // 3: papiliovpn.xray.native.Balancer.principle_target:type_name -> papiliovpn.xray.native.Targets
+	10, // 4: papiliovpn.xray.native.RouteContext.attributes:type_name -> papiliovpn.xray.native.RouteContext.AttributesEntry
+	7,  // 5: papiliovpn.xray.native.TestRouteRequest.routing_context:type_name -> papiliovpn.xray.native.RouteContext
+	6,  // [6:6] is the sub-list for method output_type
+	6,  // [6:6] is the sub-list for method input_type
+	6,  // [6:6] is the sub-list for extension type_name
+	6,  // [6:6] is the sub-list for extension extendee
+	0,  // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_internal_engines_xray_routing_native_routing_proto_init() }
@@ -415,7 +668,7 @@ func file_internal_engines_xray_routing_native_routing_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_internal_engines_xray_routing_native_routing_proto_rawDesc), len(file_internal_engines_xray_routing_native_routing_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   7,
+			NumMessages:   11,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

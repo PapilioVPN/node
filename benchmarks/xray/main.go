@@ -81,7 +81,7 @@ func main() {
 	flag.StringVar(&referenceTrafficConfig, "traffic-reference-config", "", "Xray fixture configuration for the reference traffic listener")
 	flag.IntVar(&trafficNames, "traffic-names", 0, "seed and measure traffic for this many benchmark accounts")
 	flag.IntVar(&routing.rules, "routing-rules", 0, "measure routing reads with this many active rules")
-	flag.StringVar(&routing.operation, "routing-operation", "", "run only list or balancer")
+	flag.StringVar(&routing.operation, "routing-operation", "", "run one routing operation: list, balancer, test, override, or clear")
 	flag.StringVar(&routing.runtimeDir, "routing-runtime-dir", "", "fixture Node runtime directory")
 	flag.StringVar(&routing.sampleFile, "routing-samples", "", "write individual successful routing latencies to this CSV")
 	flag.StringVar(&routingConfig, "routing-reference-config", "", "equivalent Xray configuration before PasarGuard injects its management rule")
@@ -106,8 +106,8 @@ func main() {
 	}
 
 	if routing.rules != 0 && (routing.rules < 2 || runtimeStats || outboundHealth || trafficNames != 0 || routingConfig == "" || routing.runtimeDir == "" ||
-		(routing.operation != "" && routing.operation != "list" && routing.operation != "balancer")) {
-		log.Fatal("routing comparison requires at least two rules, its fixture paths and an optional list or balancer operation")
+		(routing.operation != "" && routing.operation != "list" && routing.operation != "balancer" && routing.operation != probeOp && routing.operation != overrideOp && routing.operation != clearOp)) {
+		log.Fatal("routing comparison requires at least two rules, its fixture paths and a supported routing operation")
 	}
 
 	tlsConfig := &tls.Config{RootCAs: x509.NewCertPool(), MinVersion: tls.VersionTLS13}

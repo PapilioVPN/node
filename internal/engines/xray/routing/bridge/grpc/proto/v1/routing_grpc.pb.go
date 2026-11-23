@@ -11,6 +11,7 @@ import (
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
+	emptypb "google.golang.org/protobuf/types/known/emptypb"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -19,8 +20,10 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	XrayRoutingService_ListRoutingRules_FullMethodName = "/papiliovpn.node.v1.XrayRoutingService/ListRoutingRules"
-	XrayRoutingService_GetBalancerInfo_FullMethodName  = "/papiliovpn.node.v1.XrayRoutingService/GetBalancerInfo"
+	XrayRoutingService_ListRoutingRules_FullMethodName       = "/papiliovpn.node.v1.XrayRoutingService/ListRoutingRules"
+	XrayRoutingService_GetBalancerInfo_FullMethodName        = "/papiliovpn.node.v1.XrayRoutingService/GetBalancerInfo"
+	XrayRoutingService_TestRoute_FullMethodName              = "/papiliovpn.node.v1.XrayRoutingService/TestRoute"
+	XrayRoutingService_OverrideBalancerTarget_FullMethodName = "/papiliovpn.node.v1.XrayRoutingService/OverrideBalancerTarget"
 )
 
 // XrayRoutingServiceClient is the client API for XrayRoutingService service.
@@ -29,6 +32,8 @@ const (
 type XrayRoutingServiceClient interface {
 	ListRoutingRules(ctx context.Context, in *XrayRoutingRulesRequest, opts ...grpc.CallOption) (*XrayRoutingRules, error)
 	GetBalancerInfo(ctx context.Context, in *XrayBalancerInfoRequest, opts ...grpc.CallOption) (*XrayBalancerInfo, error)
+	TestRoute(ctx context.Context, in *XrayTestRouteRequest, opts ...grpc.CallOption) (*XrayRouteSelection, error)
+	OverrideBalancerTarget(ctx context.Context, in *XrayOverrideBalancerTargetRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
 type xrayRoutingServiceClient struct {
@@ -59,12 +64,34 @@ func (c *xrayRoutingServiceClient) GetBalancerInfo(ctx context.Context, in *Xray
 	return out, nil
 }
 
+func (c *xrayRoutingServiceClient) TestRoute(ctx context.Context, in *XrayTestRouteRequest, opts ...grpc.CallOption) (*XrayRouteSelection, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(XrayRouteSelection)
+	err := c.cc.Invoke(ctx, XrayRoutingService_TestRoute_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *xrayRoutingServiceClient) OverrideBalancerTarget(ctx context.Context, in *XrayOverrideBalancerTargetRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, XrayRoutingService_OverrideBalancerTarget_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // XrayRoutingServiceServer is the server API for XrayRoutingService service.
 // All implementations must embed UnimplementedXrayRoutingServiceServer
 // for forward compatibility.
 type XrayRoutingServiceServer interface {
 	ListRoutingRules(context.Context, *XrayRoutingRulesRequest) (*XrayRoutingRules, error)
 	GetBalancerInfo(context.Context, *XrayBalancerInfoRequest) (*XrayBalancerInfo, error)
+	TestRoute(context.Context, *XrayTestRouteRequest) (*XrayRouteSelection, error)
+	OverrideBalancerTarget(context.Context, *XrayOverrideBalancerTargetRequest) (*emptypb.Empty, error)
 	mustEmbedUnimplementedXrayRoutingServiceServer()
 }
 
@@ -80,6 +107,12 @@ func (UnimplementedXrayRoutingServiceServer) ListRoutingRules(context.Context, *
 }
 func (UnimplementedXrayRoutingServiceServer) GetBalancerInfo(context.Context, *XrayBalancerInfoRequest) (*XrayBalancerInfo, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetBalancerInfo not implemented")
+}
+func (UnimplementedXrayRoutingServiceServer) TestRoute(context.Context, *XrayTestRouteRequest) (*XrayRouteSelection, error) {
+	return nil, status.Error(codes.Unimplemented, "method TestRoute not implemented")
+}
+func (UnimplementedXrayRoutingServiceServer) OverrideBalancerTarget(context.Context, *XrayOverrideBalancerTargetRequest) (*emptypb.Empty, error) {
+	return nil, status.Error(codes.Unimplemented, "method OverrideBalancerTarget not implemented")
 }
 func (UnimplementedXrayRoutingServiceServer) mustEmbedUnimplementedXrayRoutingServiceServer() {}
 func (UnimplementedXrayRoutingServiceServer) testEmbeddedByValue()                            {}
@@ -138,6 +171,42 @@ func _XrayRoutingService_GetBalancerInfo_Handler(srv interface{}, ctx context.Co
 	return interceptor(ctx, in, info, handler)
 }
 
+func _XrayRoutingService_TestRoute_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(XrayTestRouteRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(XrayRoutingServiceServer).TestRoute(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: XrayRoutingService_TestRoute_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(XrayRoutingServiceServer).TestRoute(ctx, req.(*XrayTestRouteRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _XrayRoutingService_OverrideBalancerTarget_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(XrayOverrideBalancerTargetRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(XrayRoutingServiceServer).OverrideBalancerTarget(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: XrayRoutingService_OverrideBalancerTarget_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(XrayRoutingServiceServer).OverrideBalancerTarget(ctx, req.(*XrayOverrideBalancerTargetRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // XrayRoutingService_ServiceDesc is the grpc.ServiceDesc for XrayRoutingService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -152,6 +221,14 @@ var XrayRoutingService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetBalancerInfo",
 			Handler:    _XrayRoutingService_GetBalancerInfo_Handler,
+		},
+		{
+			MethodName: "TestRoute",
+			Handler:    _XrayRoutingService_TestRoute_Handler,
+		},
+		{
+			MethodName: "OverrideBalancerTarget",
+			Handler:    _XrayRoutingService_OverrideBalancerTarget_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

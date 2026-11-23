@@ -1,6 +1,8 @@
 syntax = "proto3";
 
 package papiliovpn.node.v1;
+
+import "google/protobuf/empty.proto";
 option go_package = "github.com/PapilioVPN/node/internal/engines/xray/routing/bridge/grpc/proto/v1;routingv1";
 
 message XrayRoutingRulesRequest {
@@ -34,7 +36,33 @@ message XrayBalancerInfo {
   XrayBalancerTargets reported_targets = 2;
 }
 
+message XrayTestRouteRequest {
+  string id = 1;
+  string inbound_tag = 2;
+  string network = 3;
+  string target_ip = 4;
+  string target_domain = 5;
+  uint32 target_port = 6;
+  string protocol = 7;
+  string user = 8;
+  map<string, string> attributes = 9;
+}
+
+message XrayRouteSelection {
+  string outbound_tag = 1;
+  repeated string outbound_group_tags = 2;
+}
+
+message XrayOverrideBalancerTargetRequest {
+  string id = 1;
+  string tag = 2;
+  // Supply an empty string to clear the override.
+  optional string target = 3;
+}
+
 service XrayRoutingService {
   rpc ListRoutingRules(XrayRoutingRulesRequest) returns (XrayRoutingRules);
   rpc GetBalancerInfo(XrayBalancerInfoRequest) returns (XrayBalancerInfo);
+  rpc TestRoute(XrayTestRouteRequest) returns (XrayRouteSelection);
+  rpc OverrideBalancerTarget(XrayOverrideBalancerTargetRequest) returns (google.protobuf.Empty);
 }

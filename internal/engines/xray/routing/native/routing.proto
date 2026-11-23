@@ -35,3 +35,27 @@ message Override {
 message Targets {
   repeated string tags = 1;
 }
+
+// Wire projection of the probe context and the selected outbound fields.
+message RouteContext {
+  string inbound_tag = 1;
+  int32 network = 2;
+  repeated bytes target_ips = 4;
+  uint32 target_port = 6;
+  string target_domain = 7;
+  string protocol = 8;
+  string user = 9;
+  map<string, string> attributes = 10;
+  repeated string outbound_group_tags = 11;
+  string outbound_tag = 12;
+}
+
+message TestRouteRequest {
+  RouteContext routing_context = 1;
+  repeated string field_selectors = 2;
+}
+
+message OverrideBalancerTargetRequest {
+  string balancer_tag = 1;
+  string target = 2;
+}

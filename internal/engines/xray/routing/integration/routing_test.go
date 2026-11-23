@@ -187,6 +187,8 @@ func TestRoutingReads(t *testing.T) {
 		t.Fatalf("missing balancer tag: %v", err)
 	}
 
+	verifyRoutingControl(t, ctx, router, client, balancer)
+
 	current, err := instance.NativeConnection("primary")
 	require(t, err)
 	if current != nativeConn {

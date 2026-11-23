@@ -9,6 +9,7 @@ package routingv1
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	emptypb "google.golang.org/protobuf/types/known/emptypb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -313,11 +314,232 @@ func (x *XrayBalancerInfo) GetReportedTargets() *XrayBalancerTargets {
 	return nil
 }
 
+type XrayTestRouteRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	InboundTag    string                 `protobuf:"bytes,2,opt,name=inbound_tag,json=inboundTag,proto3" json:"inbound_tag,omitempty"`
+	Network       string                 `protobuf:"bytes,3,opt,name=network,proto3" json:"network,omitempty"`
+	TargetIp      string                 `protobuf:"bytes,4,opt,name=target_ip,json=targetIp,proto3" json:"target_ip,omitempty"`
+	TargetDomain  string                 `protobuf:"bytes,5,opt,name=target_domain,json=targetDomain,proto3" json:"target_domain,omitempty"`
+	TargetPort    uint32                 `protobuf:"varint,6,opt,name=target_port,json=targetPort,proto3" json:"target_port,omitempty"`
+	Protocol      string                 `protobuf:"bytes,7,opt,name=protocol,proto3" json:"protocol,omitempty"`
+	User          string                 `protobuf:"bytes,8,opt,name=user,proto3" json:"user,omitempty"`
+	Attributes    map[string]string      `protobuf:"bytes,9,rep,name=attributes,proto3" json:"attributes,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *XrayTestRouteRequest) Reset() {
+	*x = XrayTestRouteRequest{}
+	mi := &file_internal_engines_xray_routing_bridge_grpc_proto_v1_routing_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *XrayTestRouteRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*XrayTestRouteRequest) ProtoMessage() {}
+
+func (x *XrayTestRouteRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_engines_xray_routing_bridge_grpc_proto_v1_routing_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use XrayTestRouteRequest.ProtoReflect.Descriptor instead.
+func (*XrayTestRouteRequest) Descriptor() ([]byte, []int) {
+	return file_internal_engines_xray_routing_bridge_grpc_proto_v1_routing_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *XrayTestRouteRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *XrayTestRouteRequest) GetInboundTag() string {
+	if x != nil {
+		return x.InboundTag
+	}
+	return ""
+}
+
+func (x *XrayTestRouteRequest) GetNetwork() string {
+	if x != nil {
+		return x.Network
+	}
+	return ""
+}
+
+func (x *XrayTestRouteRequest) GetTargetIp() string {
+	if x != nil {
+		return x.TargetIp
+	}
+	return ""
+}
+
+func (x *XrayTestRouteRequest) GetTargetDomain() string {
+	if x != nil {
+		return x.TargetDomain
+	}
+	return ""
+}
+
+func (x *XrayTestRouteRequest) GetTargetPort() uint32 {
+	if x != nil {
+		return x.TargetPort
+	}
+	return 0
+}
+
+func (x *XrayTestRouteRequest) GetProtocol() string {
+	if x != nil {
+		return x.Protocol
+	}
+	return ""
+}
+
+func (x *XrayTestRouteRequest) GetUser() string {
+	if x != nil {
+		return x.User
+	}
+	return ""
+}
+
+func (x *XrayTestRouteRequest) GetAttributes() map[string]string {
+	if x != nil {
+		return x.Attributes
+	}
+	return nil
+}
+
+type XrayRouteSelection struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	OutboundTag       string                 `protobuf:"bytes,1,opt,name=outbound_tag,json=outboundTag,proto3" json:"outbound_tag,omitempty"`
+	OutboundGroupTags []string               `protobuf:"bytes,2,rep,name=outbound_group_tags,json=outboundGroupTags,proto3" json:"outbound_group_tags,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *XrayRouteSelection) Reset() {
+	*x = XrayRouteSelection{}
+	mi := &file_internal_engines_xray_routing_bridge_grpc_proto_v1_routing_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *XrayRouteSelection) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*XrayRouteSelection) ProtoMessage() {}
+
+func (x *XrayRouteSelection) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_engines_xray_routing_bridge_grpc_proto_v1_routing_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use XrayRouteSelection.ProtoReflect.Descriptor instead.
+func (*XrayRouteSelection) Descriptor() ([]byte, []int) {
+	return file_internal_engines_xray_routing_bridge_grpc_proto_v1_routing_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *XrayRouteSelection) GetOutboundTag() string {
+	if x != nil {
+		return x.OutboundTag
+	}
+	return ""
+}
+
+func (x *XrayRouteSelection) GetOutboundGroupTags() []string {
+	if x != nil {
+		return x.OutboundGroupTags
+	}
+	return nil
+}
+
+type XrayOverrideBalancerTargetRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Id    string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Tag   string                 `protobuf:"bytes,2,opt,name=tag,proto3" json:"tag,omitempty"`
+	// Supply an empty string to clear the override.
+	Target        *string `protobuf:"bytes,3,opt,name=target,proto3,oneof" json:"target,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *XrayOverrideBalancerTargetRequest) Reset() {
+	*x = XrayOverrideBalancerTargetRequest{}
+	mi := &file_internal_engines_xray_routing_bridge_grpc_proto_v1_routing_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *XrayOverrideBalancerTargetRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*XrayOverrideBalancerTargetRequest) ProtoMessage() {}
+
+func (x *XrayOverrideBalancerTargetRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_engines_xray_routing_bridge_grpc_proto_v1_routing_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use XrayOverrideBalancerTargetRequest.ProtoReflect.Descriptor instead.
+func (*XrayOverrideBalancerTargetRequest) Descriptor() ([]byte, []int) {
+	return file_internal_engines_xray_routing_bridge_grpc_proto_v1_routing_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *XrayOverrideBalancerTargetRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *XrayOverrideBalancerTargetRequest) GetTag() string {
+	if x != nil {
+		return x.Tag
+	}
+	return ""
+}
+
+func (x *XrayOverrideBalancerTargetRequest) GetTarget() string {
+	if x != nil && x.Target != nil {
+		return *x.Target
+	}
+	return ""
+}
+
 var File_internal_engines_xray_routing_bridge_grpc_proto_v1_routing_proto protoreflect.FileDescriptor
 
 const file_internal_engines_xray_routing_bridge_grpc_proto_v1_routing_proto_rawDesc = "" +
 	"\n" +
-	"@internal/engines/xray/routing/bridge/grpc/proto/v1/routing.proto\x12\x12papiliovpn.node.v1\")\n" +
+	"@internal/engines/xray/routing/bridge/grpc/proto/v1/routing.proto\x12\x12papiliovpn.node.v1\x1a\x1bgoogle/protobuf/empty.proto\")\n" +
 	"\x17XrayRoutingRulesRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"O\n" +
 	"\x0fXrayRoutingRule\x12!\n" +
@@ -333,10 +555,37 @@ const file_internal_engines_xray_routing_bridge_grpc_proto_v1_routing_proto_rawD
 	"\x10XrayBalancerInfo\x12,\n" +
 	"\x0foverride_target\x18\x01 \x01(\tH\x00R\x0eoverrideTarget\x88\x01\x01\x12R\n" +
 	"\x10reported_targets\x18\x02 \x01(\v2'.papiliovpn.node.v1.XrayBalancerTargetsR\x0freportedTargetsB\x12\n" +
-	"\x10_override_target2\xe1\x01\n" +
+	"\x10_override_target\"\x8d\x03\n" +
+	"\x14XrayTestRouteRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1f\n" +
+	"\vinbound_tag\x18\x02 \x01(\tR\n" +
+	"inboundTag\x12\x18\n" +
+	"\anetwork\x18\x03 \x01(\tR\anetwork\x12\x1b\n" +
+	"\ttarget_ip\x18\x04 \x01(\tR\btargetIp\x12#\n" +
+	"\rtarget_domain\x18\x05 \x01(\tR\ftargetDomain\x12\x1f\n" +
+	"\vtarget_port\x18\x06 \x01(\rR\n" +
+	"targetPort\x12\x1a\n" +
+	"\bprotocol\x18\a \x01(\tR\bprotocol\x12\x12\n" +
+	"\x04user\x18\b \x01(\tR\x04user\x12X\n" +
+	"\n" +
+	"attributes\x18\t \x03(\v28.papiliovpn.node.v1.XrayTestRouteRequest.AttributesEntryR\n" +
+	"attributes\x1a=\n" +
+	"\x0fAttributesEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"g\n" +
+	"\x12XrayRouteSelection\x12!\n" +
+	"\foutbound_tag\x18\x01 \x01(\tR\voutboundTag\x12.\n" +
+	"\x13outbound_group_tags\x18\x02 \x03(\tR\x11outboundGroupTags\"m\n" +
+	"!XrayOverrideBalancerTargetRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x10\n" +
+	"\x03tag\x18\x02 \x01(\tR\x03tag\x12\x1b\n" +
+	"\x06target\x18\x03 \x01(\tH\x00R\x06target\x88\x01\x01B\t\n" +
+	"\a_target2\xa9\x03\n" +
 	"\x12XrayRoutingService\x12e\n" +
 	"\x10ListRoutingRules\x12+.papiliovpn.node.v1.XrayRoutingRulesRequest\x1a$.papiliovpn.node.v1.XrayRoutingRules\x12d\n" +
-	"\x0fGetBalancerInfo\x12+.papiliovpn.node.v1.XrayBalancerInfoRequest\x1a$.papiliovpn.node.v1.XrayBalancerInfoBYZWgithub.com/PapilioVPN/node/internal/engines/xray/routing/bridge/grpc/proto/v1;routingv1b\x06proto3"
+	"\x0fGetBalancerInfo\x12+.papiliovpn.node.v1.XrayBalancerInfoRequest\x1a$.papiliovpn.node.v1.XrayBalancerInfo\x12]\n" +
+	"\tTestRoute\x12(.papiliovpn.node.v1.XrayTestRouteRequest\x1a&.papiliovpn.node.v1.XrayRouteSelection\x12g\n" +
+	"\x16OverrideBalancerTarget\x125.papiliovpn.node.v1.XrayOverrideBalancerTargetRequest\x1a\x16.google.protobuf.EmptyBYZWgithub.com/PapilioVPN/node/internal/engines/xray/routing/bridge/grpc/proto/v1;routingv1b\x06proto3"
 
 var (
 	file_internal_engines_xray_routing_bridge_grpc_proto_v1_routing_proto_rawDescOnce sync.Once
@@ -350,27 +599,37 @@ func file_internal_engines_xray_routing_bridge_grpc_proto_v1_routing_proto_rawDe
 	return file_internal_engines_xray_routing_bridge_grpc_proto_v1_routing_proto_rawDescData
 }
 
-var file_internal_engines_xray_routing_bridge_grpc_proto_v1_routing_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_internal_engines_xray_routing_bridge_grpc_proto_v1_routing_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_internal_engines_xray_routing_bridge_grpc_proto_v1_routing_proto_goTypes = []any{
-	(*XrayRoutingRulesRequest)(nil), // 0: papiliovpn.node.v1.XrayRoutingRulesRequest
-	(*XrayRoutingRule)(nil),         // 1: papiliovpn.node.v1.XrayRoutingRule
-	(*XrayRoutingRules)(nil),        // 2: papiliovpn.node.v1.XrayRoutingRules
-	(*XrayBalancerInfoRequest)(nil), // 3: papiliovpn.node.v1.XrayBalancerInfoRequest
-	(*XrayBalancerTargets)(nil),     // 4: papiliovpn.node.v1.XrayBalancerTargets
-	(*XrayBalancerInfo)(nil),        // 5: papiliovpn.node.v1.XrayBalancerInfo
+	(*XrayRoutingRulesRequest)(nil),           // 0: papiliovpn.node.v1.XrayRoutingRulesRequest
+	(*XrayRoutingRule)(nil),                   // 1: papiliovpn.node.v1.XrayRoutingRule
+	(*XrayRoutingRules)(nil),                  // 2: papiliovpn.node.v1.XrayRoutingRules
+	(*XrayBalancerInfoRequest)(nil),           // 3: papiliovpn.node.v1.XrayBalancerInfoRequest
+	(*XrayBalancerTargets)(nil),               // 4: papiliovpn.node.v1.XrayBalancerTargets
+	(*XrayBalancerInfo)(nil),                  // 5: papiliovpn.node.v1.XrayBalancerInfo
+	(*XrayTestRouteRequest)(nil),              // 6: papiliovpn.node.v1.XrayTestRouteRequest
+	(*XrayRouteSelection)(nil),                // 7: papiliovpn.node.v1.XrayRouteSelection
+	(*XrayOverrideBalancerTargetRequest)(nil), // 8: papiliovpn.node.v1.XrayOverrideBalancerTargetRequest
+	nil,                   // 9: papiliovpn.node.v1.XrayTestRouteRequest.AttributesEntry
+	(*emptypb.Empty)(nil), // 10: google.protobuf.Empty
 }
 var file_internal_engines_xray_routing_bridge_grpc_proto_v1_routing_proto_depIdxs = []int32{
-	1, // 0: papiliovpn.node.v1.XrayRoutingRules.rules:type_name -> papiliovpn.node.v1.XrayRoutingRule
-	4, // 1: papiliovpn.node.v1.XrayBalancerInfo.reported_targets:type_name -> papiliovpn.node.v1.XrayBalancerTargets
-	0, // 2: papiliovpn.node.v1.XrayRoutingService.ListRoutingRules:input_type -> papiliovpn.node.v1.XrayRoutingRulesRequest
-	3, // 3: papiliovpn.node.v1.XrayRoutingService.GetBalancerInfo:input_type -> papiliovpn.node.v1.XrayBalancerInfoRequest
-	2, // 4: papiliovpn.node.v1.XrayRoutingService.ListRoutingRules:output_type -> papiliovpn.node.v1.XrayRoutingRules
-	5, // 5: papiliovpn.node.v1.XrayRoutingService.GetBalancerInfo:output_type -> papiliovpn.node.v1.XrayBalancerInfo
-	4, // [4:6] is the sub-list for method output_type
-	2, // [2:4] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	1,  // 0: papiliovpn.node.v1.XrayRoutingRules.rules:type_name -> papiliovpn.node.v1.XrayRoutingRule
+	4,  // 1: papiliovpn.node.v1.XrayBalancerInfo.reported_targets:type_name -> papiliovpn.node.v1.XrayBalancerTargets
+	9,  // 2: papiliovpn.node.v1.XrayTestRouteRequest.attributes:type_name -> papiliovpn.node.v1.XrayTestRouteRequest.AttributesEntry
+	0,  // 3: papiliovpn.node.v1.XrayRoutingService.ListRoutingRules:input_type -> papiliovpn.node.v1.XrayRoutingRulesRequest
+	3,  // 4: papiliovpn.node.v1.XrayRoutingService.GetBalancerInfo:input_type -> papiliovpn.node.v1.XrayBalancerInfoRequest
+	6,  // 5: papiliovpn.node.v1.XrayRoutingService.TestRoute:input_type -> papiliovpn.node.v1.XrayTestRouteRequest
+	8,  // 6: papiliovpn.node.v1.XrayRoutingService.OverrideBalancerTarget:input_type -> papiliovpn.node.v1.XrayOverrideBalancerTargetRequest
+	2,  // 7: papiliovpn.node.v1.XrayRoutingService.ListRoutingRules:output_type -> papiliovpn.node.v1.XrayRoutingRules
+	5,  // 8: papiliovpn.node.v1.XrayRoutingService.GetBalancerInfo:output_type -> papiliovpn.node.v1.XrayBalancerInfo
+	7,  // 9: papiliovpn.node.v1.XrayRoutingService.TestRoute:output_type -> papiliovpn.node.v1.XrayRouteSelection
+	10, // 10: papiliovpn.node.v1.XrayRoutingService.OverrideBalancerTarget:output_type -> google.protobuf.Empty
+	7,  // [7:11] is the sub-list for method output_type
+	3,  // [3:7] is the sub-list for method input_type
+	3,  // [3:3] is the sub-list for extension type_name
+	3,  // [3:3] is the sub-list for extension extendee
+	0,  // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_internal_engines_xray_routing_bridge_grpc_proto_v1_routing_proto_init() }
@@ -379,13 +638,14 @@ func file_internal_engines_xray_routing_bridge_grpc_proto_v1_routing_proto_init(
 		return
 	}
 	file_internal_engines_xray_routing_bridge_grpc_proto_v1_routing_proto_msgTypes[5].OneofWrappers = []any{}
+	file_internal_engines_xray_routing_bridge_grpc_proto_v1_routing_proto_msgTypes[8].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_internal_engines_xray_routing_bridge_grpc_proto_v1_routing_proto_rawDesc), len(file_internal_engines_xray_routing_bridge_grpc_proto_v1_routing_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   6,
+			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

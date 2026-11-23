@@ -4,6 +4,7 @@ package grpc
 import (
 	"context"
 	"errors"
+	"net/netip"
 
 	"github.com/PapilioVPN/node/internal/engines/xray/instances/lifecycle"
 	routingv1 "github.com/PapilioVPN/node/internal/engines/xray/routing/bridge/grpc/proto/v1"
@@ -11,6 +12,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 type handlers struct {
@@ -49,12 +51,51 @@ func (h *handlers) GetBalancerInfo(ctx context.Context, req *routingv1.XrayBalan
 	return result, nil
 }
 
+func (h *handlers) TestRoute(ctx context.Context, req *routingv1.XrayTestRouteRequest) (*routingv1.XrayRouteSelection, error) {
+	probe := state.RouteProbe{
+		InboundTag: req.GetInboundTag(), Network: req.GetNetwork(), TargetDomain: req.GetTargetDomain(),
+		TargetPort: req.GetTargetPort(), Protocol: req.GetProtocol(), User: req.GetUser(), Attributes: req.GetAttributes(),
+	}
+	if rawIP := req.GetTargetIp(); rawIP != "" {
+		var err error
+		probe.TargetIP, err = netip.ParseAddr(rawIP)
+		if err != nil {
+			return nil, routingError(state.ErrInvalid)
+		}
+	}
+	selection, err := h.service.TestRoute(ctx, req.GetId(), probe)
+	if err != nil {
+		return nil, routingError(err)
+	}
+	return &routingv1.XrayRouteSelection{OutboundTag: selection.OutboundTag, OutboundGroupTags: selection.OutboundGroupTags}, nil
+}
+
+func (h *handlers) OverrideBalancerTarget(ctx context.Context, req *routingv1.XrayOverrideBalancerTargetRequest) (*emptypb.Empty, error) {
+	if req == nil {
+		return nil, routingError(state.ErrInvalid)
+	}
+	if err := h.service.OverrideBalancerTarget(ctx, req.GetId(), req.GetTag(), req.Target); err != nil {
+		return nil, routingError(err)
+	}
+	return &emptypb.Empty{}, nil
+}
+
 func routingError(err error) error {
 	switch {
 	case errors.Is(err, lifecycle.ErrNotFound):
 		return status.Error(codes.NotFound, lifecycle.ErrNotFound.Error())
 	case errors.Is(err, state.ErrBalancerNotFound):
 		return status.Error(codes.NotFound, state.ErrBalancerNotFound.Error())
+	case errors.Is(err, state.ErrNoRoute):
+		return status.Error(codes.NotFound, state.ErrNoRoute.Error())
+	case errors.Is(err, state.ErrMutationUnknown):
+		return status.Error(codes.Aborted, state.ErrMutationUnknown.Error())
+	case errors.Is(err, state.ErrMutationFenced):
+		return status.Error(codes.FailedPrecondition, state.ErrMutationFenced.Error())
+	case errors.Is(err, state.ErrMutationBusy):
+		return status.Error(codes.ResourceExhausted, state.ErrMutationBusy.Error())
+	case errors.Is(err, state.ErrUnsupported):
+		return status.Error(codes.Unimplemented, state.ErrUnsupported.Error())
 	case errors.Is(err, state.ErrInvalid):
 		return status.Error(codes.InvalidArgument, state.ErrInvalid.Error())
 	case errors.Is(err, state.ErrBusy):
