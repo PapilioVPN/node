@@ -44,7 +44,7 @@ func (service *Service) Reset(ctx context.Context, counter Counter) (int64, erro
 const maxConcurrentResets = 16
 
 func validResetName(id string, scope Scope, name string) bool {
-	return id != "" && scope.valid() && name != "" && len(name) <= MaxCounterNameBytes && utf8.ValidString(name)
+	return id != "" && scope.Valid() && name != "" && len(name) <= MaxCounterNameBytes && utf8.ValidString(name)
 }
 
 type CounterPair struct {

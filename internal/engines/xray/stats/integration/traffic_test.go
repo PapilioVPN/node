@@ -33,6 +33,19 @@ func TestTrafficCountersWithRealProxy(t *testing.T) {
 	if executable == "" {
 		t.Skip("set NODE_TEST_XRAY to the absolute path of Xray v26.11.9")
 	}
+	testTrafficCounters(t, executable, false)
+}
+
+func TestTrafficCountersWithBundledXray(t *testing.T) {
+	executable := os.Getenv("NODE_TEST_BUNDLED_XRAY")
+	if executable == "" {
+		t.Skip("set NODE_TEST_BUNDLED_XRAY to the absolute path of node-xray")
+	}
+	testTrafficCounters(t, executable, true)
+}
+
+func testTrafficCounters(t *testing.T, executable string, scopeBatch bool) {
+	t.Helper()
 	dir, err := os.MkdirTemp("", "node-traffic-")
 	require(t, err)
 	t.Cleanup(func() { require(t, os.RemoveAll(dir)) })
@@ -71,7 +84,7 @@ func TestTrafficCountersWithRealProxy(t *testing.T) {
 	app := fx.New(fx.NopLogger, xray.Module,
 		fx.Supply(router, server, settings.Xray{
 			ID: "primary", Executable: executable, ConfigFile: config, RuntimeDirectory: dir,
-			ResetEngineStats: true, ResetScopeConcurrency: 2,
+			ResetEngineStats: true, ResetScopeConcurrency: 2, NativeScopeReset: scopeBatch,
 		}),
 		fx.Populate(&owner))
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)

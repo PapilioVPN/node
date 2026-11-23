@@ -14,8 +14,6 @@ import (
 
 const (
 	queryStats = "/xray.app.stats.command.StatsService/QueryStats"
-	uplink     = ">>>traffic>>>uplink"
-	downlink   = ">>>traffic>>>downlink"
 )
 
 var (
@@ -28,12 +26,13 @@ type activeInstances interface {
 }
 
 type Traffic struct {
-	instances activeInstances
-	lists     trafficLists
+	instances  activeInstances
+	scopeBatch bool
+	lists      trafficLists
 }
 
-func NewTraffic(instances activeInstances) *Traffic {
-	return &Traffic{instances: instances}
+func NewTraffic(instances activeInstances, scopeBatch bool) *Traffic {
+	return &Traffic{instances: instances, scopeBatch: scopeBatch}
 }
 
 func (client *Traffic) Read(ctx context.Context, id string, scope traffic.Scope, name string) (traffic.Usage, error) {
@@ -138,7 +137,7 @@ func groupTraffic(prefix string, counters []*TrafficCounter) []traffic.Usage {
 		if !inScope {
 			continue
 		}
-		name, direction := splitTrafficCounter(key)
+		name, direction := traffic.SplitCounter(key)
 		if name == "" {
 			continue
 		}
@@ -157,14 +156,4 @@ func groupTraffic(prefix string, counters []*TrafficCounter) []traffic.Usage {
 		}
 	}
 	return grouped
-}
-
-func splitTrafficCounter(key string) (string, traffic.Direction) {
-	if name, ok := strings.CutSuffix(key, uplink); ok {
-		return name, traffic.Uplink
-	}
-	if name, ok := strings.CutSuffix(key, downlink); ok {
-		return name, traffic.Downlink
-	}
-	return "", ""
 }

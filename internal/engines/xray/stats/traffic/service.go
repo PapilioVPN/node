@@ -38,7 +38,7 @@ func New(counters counters, resetEnabled bool, scopeConcurrency uint32) *Service
 }
 
 func (service *Service) Get(ctx context.Context, id string, scope Scope, name string) (Usage, error) {
-	if id == "" || !scope.valid() || name == "" || len(name) > MaxCounterNameBytes {
+	if id == "" || !scope.Valid() || name == "" || len(name) > MaxCounterNameBytes {
 		return Usage{}, ErrInvalid
 	}
 	return withLimit(ctx, &service.reads, maxConcurrentReads, 1, readTimeout, ErrBusy, func(ctx context.Context) (Usage, error) {
@@ -47,7 +47,7 @@ func (service *Service) Get(ctx context.Context, id string, scope Scope, name st
 }
 
 func (service *Service) List(ctx context.Context, id string, scope Scope) ([]Usage, error) {
-	if id == "" || !scope.valid() {
+	if id == "" || !scope.Valid() {
 		return nil, ErrInvalid
 	}
 	return withLimit(ctx, &service.lists, maxConcurrentLists, 1, readTimeout, ErrBusy, func(ctx context.Context) ([]Usage, error) {

@@ -6,8 +6,9 @@ import (
 )
 
 const (
-	maxScopeResetCounters = 1000
-	scopeResetTimeout     = 5 * time.Second
+	MaxScopeResetCounters  = 1000
+	MaxScopeResetNameBytes = 512 << 10
+	scopeResetTimeout      = 5 * time.Second
 )
 
 type ScopeReset struct {
@@ -23,12 +24,12 @@ type CounterReset struct {
 }
 
 // ResetScope returns an ordered result for each selected counter. A nil
-// report with an error means selection failed before any reset was sent.
+// report with an error means no per-counter effects could be reported.
 func (service *Service) ResetScope(ctx context.Context, request ScopeReset) ([]CounterReset, error) {
 	if !service.resetEnabled {
 		return nil, ErrResetDisabled
 	}
-	if request.ID == "" || !request.Scope.valid() || request.MaxCounters == 0 || request.MaxCounters > maxScopeResetCounters {
+	if request.ID == "" || !request.Scope.Valid() || request.MaxCounters == 0 || request.MaxCounters > MaxScopeResetCounters {
 		return nil, ErrInvalid
 	}
 	weight := min(service.scopeConcurrency, int32(request.MaxCounters))

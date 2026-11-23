@@ -1,7 +1,10 @@
 // Package traffic reads upload and download counters for an active Xray instance.
 package traffic
 
-import "errors"
+import (
+	"errors"
+	"strings"
+)
 
 type Scope string
 
@@ -11,7 +14,7 @@ const (
 	Outbound Scope = "outbound"
 )
 
-func (scope Scope) valid() bool {
+func (scope Scope) Valid() bool {
 	switch scope {
 	case User, Inbound, Outbound:
 		return true
@@ -32,4 +35,15 @@ type Usage struct {
 	Name                       string
 	UplinkBytes, DownlinkBytes int64
 	HasUplink, HasDownlink     bool
+}
+
+// SplitCounter separates the direction suffix from a key without its scope prefix.
+func SplitCounter(key string) (string, Direction) {
+	if name, ok := strings.CutSuffix(key, ">>>traffic>>>uplink"); ok {
+		return name, Uplink
+	}
+	if name, ok := strings.CutSuffix(key, ">>>traffic>>>downlink"); ok {
+		return name, Downlink
+	}
+	return "", ""
 }

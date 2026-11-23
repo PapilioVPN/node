@@ -43,7 +43,7 @@ func TestResetReportsLostAcknowledgementWithoutRepeating(t *testing.T) {
 		}
 		return stream.SendMsg(&NamedCounterResponse{Stat: &TrafficCounter{Name: key, Value: previous}})
 	})
-	client := NewTraffic(resetConnection{conn})
+	client := NewTraffic(resetConnection{conn}, false)
 	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
 	defer cancel()
 	counter := traffic.Counter{ID: "primary", Scope: traffic.User, Name: "team>>>alice", Direction: traffic.Uplink}
@@ -167,7 +167,7 @@ func TestResetPairKeepsAcknowledgedProgress(t *testing.T) {
 				}
 				return stream.SendMsg(&NamedCounterResponse{Stat: &TrafficCounter{Name: request.Name, Value: bytes}})
 			})
-			client := NewTraffic(replacingExecution{conn, &replaced})
+			client := NewTraffic(replacingExecution{conn, &replaced}, false)
 			ctx, cancel := context.WithTimeout(t.Context(), time.Second)
 			defer cancel()
 			got, err := client.ResetPair(ctx, traffic.CounterPair{ID: "primary", Scope: traffic.Inbound, Name: "team>>>edge"})

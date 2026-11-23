@@ -14,6 +14,7 @@ type Xray struct {
 	RuntimeDirectory      string `yaml:"runtime_directory"`
 	ResetEngineStats      bool   `yaml:"reset_engine_stats"`
 	ResetScopeConcurrency uint32 `yaml:"reset_scope_concurrency"`
+	NativeScopeReset      bool   `yaml:"native_scope_reset"`
 }
 
 func (xray Xray) Enabled() bool { return xray.ID != "" }

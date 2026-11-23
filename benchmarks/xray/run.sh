@@ -34,6 +34,7 @@ trap cleanup EXIT
 ip link set lo up
 key=8bc4e708-8b28-4705-8f3e-0bf78145e229
 cp "$xray" "$work/xray"
+reference_xray=$(realpath "${XRAY_BENCH_REFERENCE_XRAY:-$xray}")
 mkdir "$work/run" "$work/generated"
 openssl req -x509 -newkey ed25519 -days 1 -nodes -subj '/CN=benchmark' \
   -addext 'subjectAltName=IP:127.0.0.1' -keyout "$work/key.pem" -out "$work/cert.pem" 2>/dev/null
@@ -157,6 +158,9 @@ if [[ ${XRAY_BENCH_TRAFFIC_CASE:-} == reset-pair/one || ${XRAY_BENCH_TRAFFIC_CAS
 fi
 if [[ ${XRAY_BENCH_TRAFFIC_CASE:-} == reset-scope/list ]]; then
   printf '  reset_scope_concurrency: %d\n' "${XRAY_BENCH_SCOPE_RESET_CONCURRENCY:-1}" >> "$work/node.yml"
+  if [[ ${XRAY_BENCH_NATIVE_SCOPE_RESET:-0} == 1 ]]; then
+    printf '  native_scope_reset: true\n' >> "$work/node.yml"
+  fi
 fi
 
 export GOMAXPROCS=1
@@ -205,7 +209,7 @@ for protocol in "${protocols[@]}"; do
   fi
   env "${reference_env[@]}" NODE_HOST=127.0.0.1 SERVICE_PORT=20883 SERVICE_PROTOCOL=$service_protocol API_KEY=$key \
     SSL_CERT_FILE="$work/cert.pem" SSL_KEY_FILE="$work/key.pem" \
-    XRAY_EXECUTABLE_PATH="$work/xray" XRAY_ASSETS_PATH="$(dirname "$xray")" GENERATED_CONFIG_PATH="$work/generated" \
+    XRAY_EXECUTABLE_PATH="$reference_xray" XRAY_ASSETS_PATH="$(dirname "$reference_xray")" GENERATED_CONFIG_PATH="$work/generated" \
     taskset -c "${XRAY_BENCH_SERVER_CPU:-2}" "$reference" >"$work/reference.log" 2>&1 &
   reference_pid=$!
   for port in "$node_port" 20883; do

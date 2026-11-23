@@ -13,12 +13,13 @@ import (
 	"google.golang.org/grpc"
 )
 
-const maxResetNameBytes = 512 << 10
-
 func (client *Traffic) ResetScope(ctx context.Context, request traffic.ScopeReset, concurrency int) ([]traffic.CounterReset, error) {
 	conn, err := client.instances.NativeConnection(request.ID)
 	if err != nil {
 		return nil, err
+	}
+	if client.scopeBatch {
+		return resetScopeBatch(ctx, conn, request)
 	}
 	prefix := string(request.Scope) + ">>>"
 	counters, err := readTrafficCounters(ctx, conn, prefix, listTrafficOptions)
@@ -104,12 +105,12 @@ func selectScopeCounters(prefix string, counters []*TrafficCounter, limit int) (
 		if !inScope {
 			continue
 		}
-		name, direction := splitTrafficCounter(key)
+		name, direction := traffic.SplitCounter(key)
 		if name == "" {
 			continue
 		}
 		nameBytes += len(name)
-		if len(report) == limit || len(name) > traffic.MaxCounterNameBytes || nameBytes > maxResetNameBytes {
+		if len(report) == limit || len(name) > traffic.MaxCounterNameBytes || nameBytes > traffic.MaxScopeResetNameBytes {
 			return nil, traffic.ErrTooLarge
 		}
 		report = append(report, traffic.CounterReset{
@@ -117,6 +118,13 @@ func selectScopeCounters(prefix string, counters []*TrafficCounter, limit int) (
 			DirectionReset: traffic.DirectionReset{Effect: traffic.ResetNotAttempted},
 		})
 	}
+	if err := orderScopeReport(report); err != nil {
+		return nil, err
+	}
+	return report, nil
+}
+
+func orderScopeReport(report []traffic.CounterReset) error {
 	slices.SortFunc(report, func(a, b traffic.CounterReset) int {
 		if order := strings.Compare(a.Name, b.Name); order != 0 {
 			return order
@@ -125,8 +133,8 @@ func selectScopeCounters(prefix string, counters []*TrafficCounter, limit int) (
 	})
 	for i := 1; i < len(report); i++ {
 		if report[i].Name == report[i-1].Name && report[i].Direction == report[i-1].Direction {
-			return nil, traffic.ErrUnavailable
+			return traffic.ErrUnavailable
 		}
 	}
-	return report, nil
+	return nil
 }

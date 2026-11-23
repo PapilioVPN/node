@@ -65,7 +65,7 @@ func TestScopeResetNativeCallsAndOutcomes(t *testing.T) {
 			})
 			ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 			defer cancel()
-			client := NewTraffic(resetConnection{conn})
+			client := NewTraffic(resetConnection{conn}, false)
 			got, err := client.ResetScope(ctx, traffic.ScopeReset{ID: "primary", Scope: traffic.User, MaxCounters: test.limit}, 1)
 			if !errors.Is(err, test.want) || queries.Load() != 1 || swaps.Load() != test.swaps {
 				t.Fatalf("scope reset error %v, queries %d, swaps %d", err, queries.Load(), swaps.Load())
@@ -135,7 +135,7 @@ func TestConcurrentScopeResetStopsAfterFailure(t *testing.T) {
 	})
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()
-	client := NewTraffic(resetConnection{conn})
+	client := NewTraffic(resetConnection{conn}, false)
 	request := traffic.ScopeReset{ID: "primary", Scope: traffic.User, MaxCounters: 3}
 	got, err := client.ResetScope(ctx, request, 2)
 	if !errors.Is(err, traffic.ErrResetUnknown) || !errors.Is(err, traffic.ErrNotFound) || calls.Load() != 2 {
@@ -166,7 +166,7 @@ func TestScopeResetKeepsCancellationWithLocalDeadline(t *testing.T) {
 		<-stream.Context().Done()
 		return status.FromContextError(stream.Context().Err()).Err()
 	})
-	client := NewTraffic(resetConnection{conn})
+	client := NewTraffic(resetConnection{conn}, false)
 	request := traffic.ScopeReset{ID: "primary", Scope: traffic.User, MaxCounters: 1}
 	got, err := client.ResetScope(ctx, request, 1)
 	if !errors.Is(err, context.Canceled) || !errors.Is(err, traffic.ErrResetUnknown) || len(got) != 1 || got[0].Effect != traffic.ResetUnknown {

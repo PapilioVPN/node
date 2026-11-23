@@ -23,11 +23,14 @@ trap cleanup EXIT
 
 mkdir "$work/node"
 CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -o "$work/node/node" ./cmd/node
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -o "$work/node/node-xray" ./cmd/node-xray
+NODE_TEST_BUNDLED_XRAY="$work/node/node-xray" go test ./internal/engines/xray/stats/integration -run '^TestTrafficCountersWithBundledXray$' -count=1
 version=$("$work/node/node" -version)
 name="node-$version-linux-amd64-$revision"
 image="papiliovpn/node:$version-${work##*.}"
 cp deploy/config.example.yml "$work/node/config.example.yml"
 docker build -q -f deploy/Dockerfile -t "$image" "$work/node"
+docker run --rm --read-only --cap-drop ALL --entrypoint /node-xray "$image" version
 
 cat > "$work/smoke.yml" <<'YAML'
 management:

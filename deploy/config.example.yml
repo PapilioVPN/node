@@ -13,3 +13,6 @@ host:
 #   executable: "/usr/local/bin/xray"
 #   config_file: "/etc/xray/config.json"
 #   runtime_directory: "/tmp"
+#   reset_engine_stats: true
+# For one-call scoped resets, set executable to "/node-xray" and enable:
+#   native_scope_reset: true
