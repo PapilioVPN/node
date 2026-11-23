@@ -186,3 +186,13 @@ p50 and p95 is shown in milliseconds, PapilioVPN / PasarGuard.
 [HTTP raw CSV](results/account-sync/chunked-http-samples.csv) ·
 [gRPC rounds](results/account-sync/chunked-grpc.csv) ·
 [gRPC raw CSV](results/account-sync/chunked-grpc-samples.csv)
+
+### Integrated single-account timing recheck
+
+An optimization trial kept mutation deadlines in Node and propagated
+cancellation to the native stream. The five-round confirmation used
+24 samples per target and case, stock Xray v26.11.9, server CPU 0 and
+client CPU 4. The trial did not show a consistent improvement. In particular,
+the remove p95 increased from 1.202 to 1.575 ms over HTTP and from
+1.193 to 1.465 ms over gRPC. The integrated implementation preserves
+the original deadline behavior. [Per-round data](results/account-sync/2026-11-23-single-native-deadline-trial.csv)

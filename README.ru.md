@@ -70,7 +70,8 @@ docker run --rm --network=host --read-only --cap-drop ALL \
 | Сброс трафика Xray | Сбросить один счётчик, оба направления для имени или ограниченную область по HTTP и gRPC после явного включения. |
 | Онлайн-аккаунты и IP в Xray | Получить список онлайн-аккаунтов, число уникальных IP или время их последнего обнаружения по HTTP и gRPC. |
 | Маршрутизация Xray | Читать и изменять правила, проверять маршрут и управлять целью балансировщика по HTTP и gRPC. |
-| Учётные записи VLESS в Xray | Добавлять, удалять и подсчитывать учётные записи активного входящего VLESS по HTTP и gRPC. |
+| Учётные записи VLESS в Xray | Добавлять, удалять, подсчитывать и синхронизировать учётные записи VLESS по HTTP и gRPC: по имени, полным списком или порциями изменений. |
+| Поток журналов Xray | Получать stdout и stderr активного процесса по HTTP и gRPC. |
 | Состояние исходящих подключений Xray | Получить все наблюдения Observatory или выбрать исходящее подключение по тегу через HTTP и gRPC. |
 
 <a name="management"></a>
@@ -105,6 +106,8 @@ HTTP-запрос `GET /v1/host/stats` и метод gRPC `HostService.GetSystem
 
 Для сброса области используйте `POST /v1/xray/instances/{id}/stats/traffic/{scope}/scope-resets?max_counters=...` или `XrayStatsService.ResetTrafficScope`. Задайте лимит от 1 до 1000 счётчиков отдельных направлений. Превышение лимита отклоняет запрос до первого сброса. Проверяйте общий итог и результат каждого счётчика. gRPC передаёт отчёт о прерывании или неизвестном результате в теле ответа. По умолчанию сброс области выполняется последовательно. Для параллельного сброса задайте `xray.reset_scope_concurrency` от 2 до 8. [Контракт и замеры](benchmarks/xray/traffic-scope-reset.md)
 
+Для сброса одним вызовом используйте `/node-xray` из пакета и задайте `xray.native_scope_reset: true`. Со стандартным Xray сброс выполняется последовательно или с настроенным параллелизмом.
+
 Используйте `GET /v1/xray/instances/{id}/stats/online/count?name=...` для подсчёта и `/stats/online/ips?name=...` для списка в том же экземпляре. Методы gRPC — `XrayStatsService.GetOnlineIPCount` и `ListOnlineIPs`. Включите `statsUserOnline` на уровне политики учётной записи. Время указано в секундах Unix. Пустая карта отслеживаемых IP даёт ноль или пустую карту. При отсутствии наблюдения HTTP возвращает `404`, а gRPC — `NOT_FOUND`. [Контракт gRPC](internal/engines/xray/stats/bridge/grpc/proto/v1/online.proto)
 
 Используйте `GET /v1/xray/instances/{id}/stats/online/users` или `XrayStatsService.ListOnlineUsers`, чтобы получить имена аккаунтов, для которых Xray отслеживает хотя бы один IP-адрес источника. Порядок списка не задан. Когда онлайн-аккаунтов нет, HTTP возвращает `{"names":[]}`.
@@ -114,6 +117,8 @@ HTTP-запрос `GET /v1/host/stats` и метод gRPC `HostService.GetSystem
 Используйте `XrayRoutingService.TestRoute`, `AddRoutingRule`, `RemoveRoutingRule` и `OverrideBalancerTarget` для проверки и изменения активной маршрутизации. Маршруты HTTP и подтверждение замены правил описаны в отчёте. [Управление маршрутизацией](benchmarks/xray/routing-rule-writes.md)
 
 Используйте `XrayAccountsService.AddVLESSAccount`, `RemoveVLESSAccount` и `CountVLESSAccounts` или HTTP-маршруты под `/v1/xray/instances/{id}/inbounds/{tag}/accounts`. Операции применяются к активному запуску. [Контракт VLESS](benchmarks/xray/vless-accounts.md)
+
+[Синхронизация VLESS](benchmarks/xray/vless-sync.md) · [Поток журналов Xray](benchmarks/xray/log-stream-contract.md)
 
 Используйте `GET /v1/xray/instances/{id}/outbounds/health` или `XrayOutboundsService.GetOutboundHealth` для чтения обычных наблюдений Observatory. Для одного исходящего подключения укажите его тег. Ответ различает успешную проверку, сбой и отсутствие наблюдения. [Контракт gRPC](internal/engines/xray/outbounds/bridge/grpc/proto/v1/outbounds.proto)
 

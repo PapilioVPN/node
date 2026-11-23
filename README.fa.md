@@ -72,7 +72,8 @@ docker run --rm --network=host --read-only --cap-drop ALL \
 | ریست ترافیک Xray | با فعال‌سازی صریح، یک شمارنده، هر دو جهت یک حساب یا تگ، یا یک محدودهٔ سقف‌دار را با HTTP و gRPC ریست کن. |
 | حساب‌ها و IPهای آنلاین Xray | فهرست حساب‌های آنلاین، تعداد IPهای مبدأ یکتا و زمان آخرین مشاهده را با HTTP و gRPC بخوان. |
 | مسیریابی Xray | قوانین فعال را بخوان، مسیر را آزمایش کن، قوانین را تغییر بده و وضعیت یا مقصد balancer را با HTTP و gRPC مدیریت کن. |
-| حساب‌های VLESS در Xray | حساب‌های یک ورودی فعال VLESS را با HTTP و gRPC اضافه، حذف یا شمارش کن. |
+| حساب‌های VLESS در Xray | حساب‌های VLESS را روی HTTP و gRPC اضافه، حذف، شمارش یا به‌صورت تکی، فهرست کامل و تغییرات تکه‌ای همگام کن. |
+| جریان لاگ Xray | خروجی زندهٔ stdout و stderr اجرای فعال را روی HTTP و gRPC دریافت کن. |
 | سلامت خروجی‌های Xray | نمونه‌های ثبت‌شدهٔ Observatory را برای همهٔ خروجی‌ها یا یک تگ با HTTP و gRPC بخوان. |
 
 <a name="management"></a>
@@ -107,6 +108,8 @@ docker run --rm --network=host --read-only --cap-drop ALL \
 
 برای ریست کل یک محدوده از `POST /v1/xray/instances/{id}/stats/traffic/{scope}/scope-resets?max_counters=...` یا `XrayStatsService.ResetTrafficScope` استفاده کن. سقف را از ۱ تا ۱۰۰۰ شمارندهٔ جهت‌دار بده. اگر انتخاب از سقف بیشتر باشد، درخواست پیش از اولین ریست رد می‌شود. وضعیت کلی و نتیجهٔ هر شمارنده را بررسی کن. gRPC گزارش ناقص یا نامعلوم را در بدنهٔ پاسخ می‌دهد. ریست محدوده به‌طور پیش‌فرض ترتیبی است. برای اجرای موازی، `xray.reset_scope_concurrency` را روی ۲ تا ۸ بگذار. [قرارداد و بنچمارک](benchmarks/xray/traffic-scope-reset.md)
 
+برای ریست یک‌تماسی، از باینری `/node-xray` داخل پکیج استفاده کن و `xray.native_scope_reset: true` را تنظیم کن. مسیر Xray رسمی اجرای ترتیبی یا موازیِ تنظیم‌شده را دارد.
+
 از `GET /v1/xray/instances/{id}/stats/online/count?name=...` برای شمارش و از `/stats/online/ips?name=...` زیر مسیر همان نمونه برای فهرست استفاده کن. متدهای gRPC، `XrayStatsService.GetOnlineIPCount` و `ListOnlineIPs` هستند. `statsUserOnline` را در سطح سیاست حساب فعال کن. زمان‌ها بر حسب ثانیهٔ یونیکس هستند. اگر نقشهٔ IP حساب خالی باشد، شمارش صفر و فهرست خالی برمی‌گردد. اگر مشاهده‌ای وجود نداشته باشد، HTTP پاسخ `404` و gRPC وضعیت `NOT_FOUND` می‌دهد. [قرارداد gRPC](internal/engines/xray/stats/bridge/grpc/proto/v1/online.proto)
 
 از `GET /v1/xray/instances/{id}/stats/online/users` یا `XrayStatsService.ListOnlineUsers` برای دیدن نام حساب‌هایی استفاده کن که Xray در لحظه دست‌کم یک IP مبدأ برایشان ثبت کرده. ترتیب فهرست ثابت نیست. اگر حساب آنلاینی نباشد، HTTP پاسخ `{"names":[]}` می‌دهد.
@@ -116,6 +119,8 @@ docker run --rm --network=host --read-only --cap-drop ALL \
 برای ارزیابی یا تغییر مسیریابی اجرای فعال از `XrayRoutingService.TestRoute`، `AddRoutingRule`، `RemoveRoutingRule` و `OverrideBalancerTarget` استفاده کن. مسیرهای HTTP و تأیید جایگزینی قوانین در گزارش آمده‌اند. [قرارداد کنترل مسیر](benchmarks/xray/routing-rule-writes.md)
 
 از `XrayAccountsService.AddVLESSAccount`، `RemoveVLESSAccount` و `CountVLESSAccounts` یا مسیرهای HTTP زیر `/v1/xray/instances/{id}/inbounds/{tag}/accounts` استفاده کن. این عملیات روی اجرای فعال اعمال می‌شوند. [قرارداد VLESS](benchmarks/xray/vless-accounts.md)
+
+[همگام‌سازی VLESS](benchmarks/xray/vless-sync.md) · [جریان لاگ Xray](benchmarks/xray/log-stream-contract.md)
 
 برای خواندن نمونه‌های Observatory معمولی از `GET /v1/xray/instances/{id}/outbounds/health` یا `XrayOutboundsService.GetOutboundHealth` استفاده کن. برای یک خروجی تگش را بده. پاسخ سه حالت سالم، ناموفق و بدون نمونه را مشخص می‌کند. [قرارداد gRPC](internal/engines/xray/outbounds/bridge/grpc/proto/v1/outbounds.proto)
 

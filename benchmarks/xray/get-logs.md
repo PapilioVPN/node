@@ -122,3 +122,25 @@ successful flush. Keep the NDJSON encoding and event-by-event flush intact.
 Each transport writes a round CSV and a gzip-compressed CSV with one row per
 expected event per subscriber. Raw timestamps are Unix nanoseconds. A blank
 receive timestamp marks a missing delivery.
+
+## Integrated HTTP encoding repeat
+
+The HTTP handler now reuses one output buffer per subscriber and writes
+the same NDJSON fields and base64 payload directly. The regression test
+compares byte-for-byte output with the standard JSON encoder, including
+invalid UTF-8 in the payload. The write timeout and flush behavior are
+part of the same handler and API contract.
+
+The integrated repeat used stock Xray v26.11.9, server CPU 2 and client CPU
+6. Each case used three rounds. Figures are medians of per-round delivery
+percentiles in microseconds. The encoding change applies to HTTP.
+
+| Subscribers | Node p50 before / after | Node p95 before / after | PasarGuard p50 / p95, tuned run |
+| ---: | ---: | ---: | ---: |
+| 1 | 164.0 / 148.2 | 408.5 / 302.7 | 104.7 / 272.1 |
+| 8 | 273.6 / 207.1 | 1166.5 / 408.0 | 172.1 / 380.4 |
+
+All expected events were received on both transports. PasarGuard's
+HTTP delivery percentiles were lower. The gRPC rerun also varied by
+subscriber count, with Node leading at one and trailing at eight in the
+tuned window. [Per-round data](results/2026-11-23-xray-http-encoding-repeat.csv)

@@ -67,7 +67,8 @@ docker run --rm --network=host --read-only --cap-drop ALL \
 | Xray traffic counters | Read upload and download bytes for one or all accounts, inbound tags, or outbound tags over HTTP and gRPC. |
 | Xray online accounts and IPs | List online accounts, count distinct source IPs, or read their last-seen times over HTTP and gRPC. |
 | Xray routing | Read active rules, test a route, edit rules and inspect or override a balancer over HTTP and gRPC. |
-| Xray VLESS accounts | Add, remove and count named accounts on one live VLESS inbound over HTTP and gRPC. |
+| Xray VLESS accounts | Add, remove, count and synchronize VLESS accounts by name, full list or chunked delta over HTTP and gRPC. |
+| Xray log stream | Follow live stdout and stderr for the active Xray execution over HTTP and gRPC. |
 | Xray outbound health | Read all recorded Observatory samples or select an outbound by tag over HTTP and gRPC. |
 
 <a name="management"></a>
@@ -102,6 +103,8 @@ Use `POST /v1/xray/instances/{id}/stats/traffic/{scope}/pair-resets?name=...` or
 
 Use `POST /v1/xray/instances/{id}/stats/traffic/{scope}/scope-resets?max_counters=...` or `XrayStatsService.ResetTrafficScope` for a whole scope. Set the limit from 1 to 1000 directional counters. If the selection exceeds the limit, it is rejected before any reset. Check the response outcome and the result of each counter. gRPC returns an interrupted or unknown report in the response body. Scoped resets run sequentially by default. Set `xray.reset_scope_concurrency` to 2–8 to allow parallel native resets. [Contract and benchmarks](benchmarks/xray/traffic-scope-reset.md)
 
+For a one-call reset, use the packaged `/node-xray` executable and set `xray.native_scope_reset: true`. The standard Xray executable uses the sequential or configured parallel path.
+
 Use `GET /v1/xray/instances/{id}/stats/online/count?name=...` or `/stats/online/ips?name=...` under the same instance path. The gRPC methods are `XrayStatsService.GetOnlineIPCount` and `ListOnlineIPs`. Enable `statsUserOnline` at the account's policy level. Timestamps are Unix seconds. An account with an empty tracked IP map returns zero or an empty map. A missing observation returns HTTP `404` or gRPC `NOT_FOUND`. [gRPC contract](internal/engines/xray/stats/bridge/grpc/proto/v1/online.proto)
 
 Use `GET /v1/xray/instances/{id}/stats/online/users` or `XrayStatsService.ListOnlineUsers` to list account names with at least one source IP currently tracked by Xray. The list has no guaranteed order. When there are no online accounts, HTTP returns `{"names":[]}`.
@@ -111,6 +114,8 @@ Use `GET /v1/xray/instances/{id}/routing/rules` and `GET /v1/xray/instances/{id}
 Use `XrayRoutingService.TestRoute`, `AddRoutingRule`, `RemoveRoutingRule` and `OverrideBalancerTarget` to evaluate and modify the live router. The HTTP routes and confirmation for rule replacement are documented with the benchmark. [Routing control](benchmarks/xray/routing-rule-writes.md)
 
 Use `XrayAccountsService.AddVLESSAccount`, `RemoveVLESSAccount` and `CountVLESSAccounts` or the HTTP routes under `/v1/xray/instances/{id}/inbounds/{tag}/accounts`. These operations apply to the active execution. [VLESS contract](benchmarks/xray/vless-accounts.md)
+
+[VLESS synchronization](benchmarks/xray/vless-sync.md) · [Xray log stream](benchmarks/xray/log-stream-contract.md)
 
 Use `GET /v1/xray/instances/{id}/outbounds/health` or `XrayOutboundsService.GetOutboundHealth` to read ordinary Observatory samples. Provide a tag for one outbound. The response distinguishes healthy, failed and missing samples. [gRPC contract](internal/engines/xray/outbounds/bridge/grpc/proto/v1/outbounds.proto)
 

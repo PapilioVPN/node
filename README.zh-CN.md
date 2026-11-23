@@ -70,7 +70,8 @@ docker run --rm --network=host --read-only --cap-drop ALL \
 | Xray 流量清零 | 显式启用后，通过 HTTP 和 gRPC 清零单个计数器、指定名称的两个方向或有数量上限的范围。 |
 | Xray 在线账户和 IP | 通过 HTTP 和 gRPC 查询在线账户、不同来源 IP 数量及其最近出现时间。 |
 | Xray 路由 | 通过 HTTP 和 gRPC 读取与修改规则、测试路由，并查询或覆盖负载均衡目标。 |
-| Xray VLESS 账户 | 通过 HTTP 和 gRPC 添加、移除和统计运行中的 VLESS 入站账户。 |
+| Xray VLESS 账户 | 通过 HTTP 和 gRPC 添加、移除、统计 VLESS 账户，并按单个账户、完整列表或分块增量进行同步。 |
+| Xray 日志流 | 通过 HTTP 和 gRPC 持续接收运行实例的 stdout 和 stderr。 |
 | Xray 出站健康状态 | 通过 HTTP 和 gRPC 读取全部 Observatory 观测结果，或按出站标签查询。 |
 
 <a name="management"></a>
@@ -105,6 +106,8 @@ HTTP `GET /v1/host/stats` 和 gRPC `HostService.GetSystemStats` 返回 `uptime_s
 
 使用 `POST /v1/xray/instances/{id}/stats/traffic/{scope}/scope-resets?max_counters=...` 或 `XrayStatsService.ResetTrafficScope` 清零一个范围。将上限设为 1 到 1000 个方向计数器。选中的计数器超过上限时，请求会在首次清零之前被拒绝。请检查整体结果和每个计数器的结果。gRPC 在响应体中返回中断或结果未知的报告。 范围清零默认顺序执行。将 `xray.reset_scope_concurrency` 设为 2 到 8 可启用并行清零。[接口约定与基准测试](benchmarks/xray/traffic-scope-reset.md)
 
+如需单次调用清零，请使用包内的 `/node-xray` 并设置 `xray.native_scope_reset: true`。标准 Xray 仍支持顺序或按配置并行执行。
+
 使用 `GET /v1/xray/instances/{id}/stats/online/count?name=...` 查询数量，或在同一实例路径下使用 `/stats/online/ips?name=...` 查询列表。gRPC 方法为 `XrayStatsService.GetOnlineIPCount` 和 `ListOnlineIPs`。请在账户的策略级别启用 `statsUserOnline`。时间戳为 Unix 秒。跟踪记录为空时返回零或空映射。缺少观察记录时，HTTP 返回 `404`，gRPC 返回 `NOT_FOUND`。 [gRPC 接口](internal/engines/xray/stats/bridge/grpc/proto/v1/online.proto)
 
 使用 `GET /v1/xray/instances/{id}/stats/online/users` 或 `XrayStatsService.ListOnlineUsers` 查询 Xray 当前至少跟踪一个来源 IP 的账户名称。列表顺序不固定。没有在线账户时，HTTP 返回 `{"names":[]}`。
@@ -114,6 +117,8 @@ HTTP `GET /v1/host/stats` 和 gRPC `HostService.GetSystemStats` 返回 `uptime_s
 使用 `XrayRoutingService.TestRoute`、`AddRoutingRule`、`RemoveRoutingRule` 和 `OverrideBalancerTarget` 评估或修改当前路由。报告记录了 HTTP 路径和替换规则所需的确认。 [路由控制](benchmarks/xray/routing-rule-writes.md)
 
 使用 `XrayAccountsService.AddVLESSAccount`、`RemoveVLESSAccount` 和 `CountVLESSAccounts`，或使用 `/v1/xray/instances/{id}/inbounds/{tag}/accounts` 下的 HTTP 路径。操作作用于当前运行的实例。 [VLESS 接口](benchmarks/xray/vless-accounts.md)
+
+[VLESS 同步](benchmarks/xray/vless-sync.md) · [Xray 日志流](benchmarks/xray/log-stream-contract.md)
 
 使用 `GET /v1/xray/instances/{id}/outbounds/health` 或 `XrayOutboundsService.GetOutboundHealth` 读取普通 Observatory 观测结果。提供标签可查询单个出站。响应区分健康、探测失败和缺少样本。 [gRPC 接口](internal/engines/xray/outbounds/bridge/grpc/proto/v1/outbounds.proto)
 

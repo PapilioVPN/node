@@ -1,0 +1,61 @@
+operation,phase,transport,round,node,subscribers,accounts,p50_us,p95_us,lost_or_rejected,success
+logs,baseline,http,1,papiliovpn,1,,195.94,408.54,0,384
+logs,baseline,http,1,pasarguard,1,,157.78,383.36,0,384
+logs,baseline,http,1,papiliovpn,8,,399.28,3305.28,0,3072
+logs,baseline,http,1,pasarguard,8,,193.26,572.04,0,3072
+logs,baseline,http,2,pasarguard,1,,157.83,526.26,0,384
+logs,baseline,http,2,papiliovpn,1,,156.14,712.48,0,384
+logs,baseline,http,2,pasarguard,8,,205.07,470.66,0,3072
+logs,baseline,http,2,papiliovpn,8,,273.55,483.48,0,3072
+logs,baseline,http,3,papiliovpn,1,,164.00,389.98,0,384
+logs,baseline,http,3,pasarguard,1,,122.27,335.64,0,384
+logs,baseline,http,3,papiliovpn,8,,265.53,1166.46,0,3072
+logs,baseline,http,3,pasarguard,8,,181.03,415.64,0,3072
+logs,baseline,grpc,1,papiliovpn,1,,223.82,1306.14,0,384
+logs,baseline,grpc,1,pasarguard,1,,215.04,467.27,0,384
+logs,baseline,grpc,1,papiliovpn,8,,298.36,1660.44,0,3072
+logs,baseline,grpc,1,pasarguard,8,,357.71,2531.20,0,3072
+logs,baseline,grpc,2,pasarguard,1,,234.13,2109.76,0,384
+logs,baseline,grpc,2,papiliovpn,1,,245.98,1037.00,0,384
+logs,baseline,grpc,2,pasarguard,8,,254.30,507.27,0,3072
+logs,baseline,grpc,2,papiliovpn,8,,268.33,464.65,0,3072
+logs,baseline,grpc,3,papiliovpn,1,,200.79,329.31,0,384
+logs,baseline,grpc,3,pasarguard,1,,241.82,1635.22,0,384
+logs,baseline,grpc,3,papiliovpn,8,,277.53,533.55,0,3072
+logs,baseline,grpc,3,pasarguard,8,,252.15,400.02,0,3072
+logs,tuned,http,1,papiliovpn,1,,147.47,292.95,0,384
+logs,tuned,http,1,pasarguard,1,,97.58,288.43,0,384
+logs,tuned,http,1,papiliovpn,8,,216.03,422.49,0,3072
+logs,tuned,http,1,pasarguard,8,,172.12,380.39,0,3072
+logs,tuned,http,2,pasarguard,1,,104.73,259.97,0,384
+logs,tuned,http,2,papiliovpn,1,,148.19,302.69,0,384
+logs,tuned,http,2,pasarguard,8,,162.75,363.09,0,3072
+logs,tuned,http,2,papiliovpn,8,,207.09,385.26,0,3072
+logs,tuned,http,3,papiliovpn,1,,165.29,324.23,0,384
+logs,tuned,http,3,pasarguard,1,,107.46,272.14,0,384
+logs,tuned,http,3,papiliovpn,8,,203.43,408.00,0,3072
+logs,tuned,http,3,pasarguard,8,,200.95,478.19,0,3072
+logs,tuned,grpc,1,papiliovpn,1,,214.73,373.77,0,384
+logs,tuned,grpc,1,pasarguard,1,,201.00,407.98,0,384
+logs,tuned,grpc,1,papiliovpn,8,,301.32,493.19,0,3072
+logs,tuned,grpc,1,pasarguard,8,,268.23,464.42,0,3072
+logs,tuned,grpc,2,pasarguard,1,,218.40,388.36,0,384
+logs,tuned,grpc,2,papiliovpn,1,,213.68,321.08,0,384
+logs,tuned,grpc,2,pasarguard,8,,287.38,502.01,0,3072
+logs,tuned,grpc,2,papiliovpn,8,,287.66,459.91,0,3072
+logs,tuned,grpc,3,papiliovpn,1,,210.64,328.09,0,384
+logs,tuned,grpc,3,pasarguard,1,,219.59,376.51,0,384
+logs,tuned,grpc,3,papiliovpn,8,,339.90,554.34,0,3072
+logs,tuned,grpc,3,pasarguard,8,,261.98,418.23,0,3072
+scoped reset,baseline,http,1,papiliovpn,,500,5175.33,8409.89,0,216
+scoped reset,baseline,http,1,pasarguard,,500,3150.85,4916.63,0,363
+scoped reset,baseline,http,2,pasarguard,,500,2983.94,4856.76,0,381
+scoped reset,baseline,http,2,papiliovpn,,500,4857.16,7399.86,0,225
+scoped reset,baseline,http,3,papiliovpn,,500,5265.38,8573.21,0,213
+scoped reset,baseline,http,3,pasarguard,,500,3028.58,4825.04,0,375
+scoped reset,tuned,http,1,papiliovpn,,500,4445.46,6799.43,0,267
+scoped reset,tuned,http,1,pasarguard,,500,3064.07,4669.66,0,369
+scoped reset,tuned,http,2,pasarguard,,500,2935.67,5128.74,0,371
+scoped reset,tuned,http,2,papiliovpn,,500,3912.39,6410.43,0,286
+scoped reset,tuned,http,3,papiliovpn,,500,4044.98,6856.61,0,272
+scoped reset,tuned,http,3,pasarguard,,500,3077.71,5446.40,0,361

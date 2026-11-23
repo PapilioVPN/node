@@ -157,3 +157,58 @@ is unchanged. Both products had zero rejections in these windows.
 For the confirmation run, use the reproduction command above with
 `XRAY_BENCH_TRAFFIC_WINDOW=1400ms`. Use stock Xray and a fresh output
 directory for each Node revision.
+
+### One native call with the bundled Xray
+
+The package includes `/node-xray`, built with the pinned Xray v26.11.9
+SDK. Set `xray.executable: /node-xray` and `xray.native_scope_reset: true`
+alongside the existing `xray.reset_engine_stats: true` grant. Use a
+writable runtime directory for the private socket. A read-only Docker
+container needs a writable mount for this directory, for example
+`--tmpfs /tmp:mode=1777` when using `/tmp`. Stock Xray uses the original
+bounded path when `native_scope_reset` is omitted.
+
+The bundled service checks the exact prefix and direction suffix in the
+child process, verifies the bounds, then swaps the selected counters.
+One request uses one native RPC. Traffic can still arrive between distinct
+counter swaps. A lost native reply reports an unknown effect and Node
+never repeats the request automatically. An explicit bound rejection
+confirms that no counter was reset.
+
+The comparison uses the bundled build for Node and the v26.11.9 release
+binary for PasarGuard. Both are based on Xray revision `676eaf66f8f0`.
+The results measure the complete HTTP and gRPC paths, with one client
+and three 900 ms windows per case. Cells show Node / PasarGuard.
+
+| Transport | Counters | p50 ms | p95 ms | Success/s |
+| --- | ---: | ---: | ---: | ---: |
+| http | 2 | 0.451 / 0.459 | 0.909 / 0.875 | 1918.5 / 1814.4 |
+| grpc | 2 | 0.507 / 0.511 | 0.934 / 0.963 | 1719.2 / 1682.4 |
+| http | 100 | 1.002 / 0.768 | 2.055 / 2.135 | 899.7 / 1066.8 |
+| grpc | 100 | 0.729 / 0.662 | 1.539 / 1.530 | 1217.8 / 1265.5 |
+| http | 1000 | 4.922 / 2.850 | 7.899 / 4.377 | 189.2 / 325.2 |
+| grpc | 1000 | 2.782 / 3.062 | 5.349 / 4.786 | 316.6 / 311.8 |
+
+At 1000 counters, the one-call path reduced p50 from 68.449 to 4.922 ms
+for HTTP and from 63.905 to 2.782 ms for gRPC across these runs. The gRPC
+p50 was lower than the reference at 1000 counters. HTTP p50 and both p95
+values were higher. The comparison used the same selection in its fixture.
+The bundled path guarantees exact scope and preflight bounds.
+
+[Per-round CSV](results/2026-11-23-traffic-scope-reset-native-batch.csv)
+
+Build the companion with `CGO_ENABLED=0 go build -trimpath -o "$work/node-xray" ./cmd/node-xray`.
+Set `XRAY_BENCH_NATIVE_SCOPE_RESET=1`,
+`XRAY_BENCH_REFERENCE_XRAY="$work/xray/xray"` and
+`XRAY_BENCH_TRAFFIC_WINDOW=900ms` in the reproduction command.
+Pass `"$work/node-xray"` as the third runner argument.
+
+#### HTTP encoding repeat
+
+The HTTP adapter now writes the same JSON report directly. A wire
+regression test covers name escaping, empty reports and absent previous
+bytes. Three 1.2 s windows at 1000 counters and one client measured Node
+p50 at 5.175 ms before and 4.045 ms after. Node p95 went from 8.410 ms to
+6.799 ms. The reference in the tuned run measured 3.064 ms p50 and
+5.129 ms p95. Both servers had zero rejections in all windows.
+[Per-round data](results/2026-11-23-xray-http-encoding-repeat.csv)

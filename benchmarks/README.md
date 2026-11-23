@@ -818,3 +818,10 @@ each native reset. The benchmark covers 2, 100 and 1000 counters. The pinned
 PasarGuard uses a substring batch operation and was faster on the shared
 fixture. Optional bounded concurrency improved Node's p50 in the focused
 repeat. [Contract, reproduction and per-round data](xray/traffic-scope-reset.md)
+
+## Xray log delivery and VLESS synchronization
+
+The integrated branches cover two-transport live logs and the single,
+full-list and chunked VLESS sync operations. The reports state the matched
+effects, measured workloads, and differences in streaming and restart
+behavior. [GetLogs](xray/get-logs.md) · [VLESS synchronization](xray/vless-sync.md)
