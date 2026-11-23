@@ -99,7 +99,7 @@ bash scripts/ci/check.sh
 bash scripts/ci/package.sh
 ```
 
-بعد از تغییر `host.proto`، پکیج عمومی Go در `api/v1` را دوباره تولید کن. `protoc` نسخهٔ 36.2 و `protoc-gen-go` نسخهٔ v1.36.12 را در `PATH` بگذار و دستور را از ریشهٔ ریپو اجرا کن.
+بعد از تغییر `host.proto`، فایل `host.pb.go` را در همان پوشه دوباره تولید کن. `protoc` نسخهٔ 36.2 و `protoc-gen-go` نسخهٔ v1.36.12 را در `PATH` بگذار و دستور را از ریشهٔ ریپو اجرا کن.
 
 ```bash
 go generate ./internal/host/bridge/grpc

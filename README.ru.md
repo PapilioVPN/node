@@ -97,7 +97,7 @@ bash scripts/ci/check.sh
 bash scripts/ci/package.sh
 ```
 
-После изменения `host.proto` заново сгенерируйте публичный Go-пакет в `api/v1`. Добавьте `protoc` 36.2 и `protoc-gen-go` v1.36.12 в `PATH` и выполните команду из корня репозитория.
+После изменения `host.proto` заново сгенерируйте `host.pb.go` в том же каталоге. Добавьте `protoc` 36.2 и `protoc-gen-go` v1.36.12 в `PATH` и выполните команду из корня репозитория.
 
 ```bash
 go generate ./internal/host/bridge/grpc

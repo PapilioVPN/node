@@ -4,7 +4,7 @@
 // 	protoc        v7.36.2
 // source: api/v1/host.proto
 
-package nodev1
+package hostv1
 
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
@@ -347,7 +347,7 @@ const file_api_v1_host_proto_rawDesc = "" +
 	"\x06GetCPU\x12\x16.google.protobuf.Empty\x1a\x1f.papiliovpn.node.v1.CPUSnapshot\x12I\n" +
 	"\n" +
 	"GetStorage\x12\x16.google.protobuf.Empty\x1a#.papiliovpn.node.v1.StorageSnapshot\x12L\n" +
-	"\x0eGetSystemStats\x12\x16.google.protobuf.Empty\x1a\".papiliovpn.node.v1.SystemSnapshotB*Z(github.com/PapilioVPN/node/api/v1;nodev1b\x06proto3"
+	"\x0eGetSystemStats\x12\x16.google.protobuf.Empty\x1a\".papiliovpn.node.v1.SystemSnapshotBFZDgithub.com/PapilioVPN/node/internal/host/bridge/grpc/proto/v1;hostv1b\x06proto3"
 
 var (
 	file_api_v1_host_proto_rawDescOnce sync.Once

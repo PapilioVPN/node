@@ -4,13 +4,13 @@ package grpc
 //go:generate protoc --proto_path=api/v1=proto/v1 --go_out=../../../.. --go_opt=module=github.com/PapilioVPN/node api/v1/host.proto
 
 import (
-	nodev1 "github.com/PapilioVPN/node/api/v1"
+	hostv1 "github.com/PapilioVPN/node/internal/host/bridge/grpc/proto/v1"
 	"github.com/PapilioVPN/node/internal/host/services"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-func cpuMessage(sample services.CPUSample) *nodev1.CPUSnapshot {
-	message := &nodev1.CPUSnapshot{
+func cpuMessage(sample services.CPUSample) *hostv1.CPUSnapshot {
+	message := &hostv1.CPUSnapshot{
 		BusyPercent:        sample.BusyPercent,
 		WindowMilliseconds: uint64(sample.Window.Milliseconds()),
 		ObservedAt:         timestamppb.New(sample.ObservedAt),
@@ -21,8 +21,8 @@ func cpuMessage(sample services.CPUSample) *nodev1.CPUSnapshot {
 	return message
 }
 
-func memoryMessage(snapshot services.MemorySnapshot) *nodev1.MemorySnapshot {
-	return &nodev1.MemorySnapshot{
+func memoryMessage(snapshot services.MemorySnapshot) *hostv1.MemorySnapshot {
+	return &hostv1.MemorySnapshot{
 		TotalBytes:     snapshot.TotalBytes,
 		AvailableBytes: snapshot.AvailableBytes,
 		SwapTotalBytes: snapshot.SwapTotalBytes,
@@ -30,8 +30,8 @@ func memoryMessage(snapshot services.MemorySnapshot) *nodev1.MemorySnapshot {
 	}
 }
 
-func storageMessage(snapshot services.StorageSnapshot) *nodev1.StorageSnapshot {
-	return &nodev1.StorageSnapshot{
+func storageMessage(snapshot services.StorageSnapshot) *hostv1.StorageSnapshot {
+	return &hostv1.StorageSnapshot{
 		Path:           snapshot.Path,
 		TotalBytes:     snapshot.TotalBytes,
 		UsedBytes:      snapshot.UsedBytes,
@@ -40,8 +40,8 @@ func storageMessage(snapshot services.StorageSnapshot) *nodev1.StorageSnapshot {
 	}
 }
 
-func systemMessage(snapshot services.SystemSnapshot) *nodev1.SystemSnapshot {
-	response := &nodev1.SystemSnapshot{UptimeSeconds: snapshot.UptimeSeconds}
+func systemMessage(snapshot services.SystemSnapshot) *hostv1.SystemSnapshot {
+	response := &hostv1.SystemSnapshot{UptimeSeconds: snapshot.UptimeSeconds}
 	if snapshot.CPU != nil {
 		response.Cpu = cpuMessage(*snapshot.CPU)
 	}

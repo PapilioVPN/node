@@ -3,7 +3,7 @@ package grpc
 import (
 	"context"
 
-	nodev1 "github.com/PapilioVPN/node/api/v1"
+	hostv1 "github.com/PapilioVPN/node/internal/host/bridge/grpc/proto/v1"
 	"github.com/PapilioVPN/node/internal/host/services"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -11,8 +11,8 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
-func getStorage(path string) func(context.Context, *emptypb.Empty) (*nodev1.StorageSnapshot, error) {
-	return func(ctx context.Context, _ *emptypb.Empty) (*nodev1.StorageSnapshot, error) {
+func getStorage(path string) func(context.Context, *emptypb.Empty) (*hostv1.StorageSnapshot, error) {
+	return func(ctx context.Context, _ *emptypb.Empty) (*hostv1.StorageSnapshot, error) {
 		snapshot, err := services.Storage(ctx, path)
 		if err != nil {
 			if cause := ctx.Err(); cause != nil {
@@ -24,8 +24,8 @@ func getStorage(path string) func(context.Context, *emptypb.Empty) (*nodev1.Stor
 	}
 }
 
-func getCPU(sampler *services.CPUSampler) func(context.Context, *emptypb.Empty) (*nodev1.CPUSnapshot, error) {
-	return func(_ context.Context, _ *emptypb.Empty) (*nodev1.CPUSnapshot, error) {
+func getCPU(sampler *services.CPUSampler) func(context.Context, *emptypb.Empty) (*hostv1.CPUSnapshot, error) {
+	return func(_ context.Context, _ *emptypb.Empty) (*hostv1.CPUSnapshot, error) {
 		sample, ok := sampler.Latest()
 		if !ok {
 			return nil, status.Error(codes.Unavailable, "host CPU sample is unavailable")
@@ -45,7 +45,7 @@ func getUptime(ctx context.Context, _ *emptypb.Empty) (*wrapperspb.UInt64Value, 
 	return wrapperspb.UInt64(seconds), nil
 }
 
-func getMemory(ctx context.Context, _ *emptypb.Empty) (*nodev1.MemorySnapshot, error) {
+func getMemory(ctx context.Context, _ *emptypb.Empty) (*hostv1.MemorySnapshot, error) {
 	snapshot, err := services.Memory(ctx)
 	if err != nil {
 		if cause := ctx.Err(); cause != nil {
@@ -56,8 +56,8 @@ func getMemory(ctx context.Context, _ *emptypb.Empty) (*nodev1.MemorySnapshot, e
 	return memoryMessage(snapshot), nil
 }
 
-func getSystemStats(sampler *services.CPUSampler, storagePath string) func(context.Context, *emptypb.Empty) (*nodev1.SystemSnapshot, error) {
-	return func(ctx context.Context, _ *emptypb.Empty) (*nodev1.SystemSnapshot, error) {
+func getSystemStats(sampler *services.CPUSampler, storagePath string) func(context.Context, *emptypb.Empty) (*hostv1.SystemSnapshot, error) {
+	return func(ctx context.Context, _ *emptypb.Empty) (*hostv1.SystemSnapshot, error) {
 		snapshot, err := services.SystemStats(ctx, sampler, storagePath)
 		if err != nil {
 			if cause := ctx.Err(); cause != nil {

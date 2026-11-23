@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package papiliovpn.node.v1;
 
-option go_package = "github.com/PapilioVPN/node/api/v1;nodev1";
+option go_package = "github.com/PapilioVPN/node/internal/host/bridge/grpc/proto/v1;hostv1";
 
 import "google/protobuf/empty.proto";
 import "google/protobuf/timestamp.proto";

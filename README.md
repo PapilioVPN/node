@@ -90,7 +90,7 @@ bash scripts/ci/check.sh
 bash scripts/ci/package.sh
 ```
 
-After editing `host.proto`, regenerate the public Go package in `api/v1`. Use `protoc` 36.2 and `protoc-gen-go` v1.36.12 on `PATH`, then run this command from the repository root.
+After editing `host.proto`, regenerate `host.pb.go` in the same directory. Use `protoc` 36.2 and `protoc-gen-go` v1.36.12 on `PATH`, then run this command from the repository root.
 
 ```bash
 go generate ./internal/host/bridge/grpc

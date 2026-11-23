@@ -22,7 +22,7 @@ import (
 	"time"
 
 	bridgerpc "github.com/PapilioVPN/go-bridge/api/grpc/client"
-	nodev1 "github.com/PapilioVPN/node/api/v1"
+	hostv1 "github.com/PapilioVPN/node/internal/host/bridge/grpc/proto/v1"
 	"github.com/PapilioVPN/node/internal/settings"
 	"golang.org/x/sys/unix"
 	"google.golang.org/grpc"
@@ -253,7 +253,7 @@ func verifyHostMemory(t *testing.T, ctx context.Context, client *http.Client, ba
 		t.Errorf("HTTP memory = %#v, want RAM %d bytes and swap %d bytes", httpSnapshot, ram*1024, swap*1024)
 	}
 
-	var grpcSnapshot nodev1.MemorySnapshot
+	var grpcSnapshot hostv1.MemorySnapshot
 	err = connection.Invoke(ctx, "/papiliovpn.node.v1.HostService/GetMemory", &emptypb.Empty{}, &grpcSnapshot)
 	if err != nil || grpcSnapshot.GetTotalBytes() != ram*1024 || grpcSnapshot.GetSwapTotalBytes() != swap*1024 {
 		t.Errorf("gRPC memory = %v, %v, want RAM %d bytes and swap %d bytes", &grpcSnapshot, err, ram*1024, swap*1024)
@@ -299,7 +299,7 @@ func verifyHostCPU(t *testing.T, ctx context.Context, client *http.Client, baseU
 		sample.WindowMilliseconds == 0 || sample.ObservedAt.IsZero() {
 		t.Fatalf("invalid HTTP CPU sample: %+v", sample)
 	}
-	var rpcSample nodev1.CPUSnapshot
+	var rpcSample hostv1.CPUSnapshot
 	if err := connection.Invoke(ctx, "/papiliovpn.node.v1.HostService/GetCPU", &emptypb.Empty{}, &rpcSample); err != nil {
 		t.Fatal(err)
 	}
@@ -357,7 +357,7 @@ func verifyHostStorage(t *testing.T, ctx context.Context, client *http.Client, b
 		observed.UsedBytes == nil || *observed.UsedBytes > total || observed.AvailableBytes == nil || *observed.AvailableBytes > total {
 		t.Fatalf("invalid HTTP storage sample: %+v", observed)
 	}
-	var rpcSnapshot nodev1.StorageSnapshot
+	var rpcSnapshot hostv1.StorageSnapshot
 	if err := connection.Invoke(ctx, "/papiliovpn.node.v1.HostService/GetStorage", &emptypb.Empty{}, &rpcSnapshot); err != nil {
 		t.Fatal(err)
 	}
@@ -386,8 +386,8 @@ func verifySystemStats(t *testing.T, ctx context.Context, client *http.Client, b
 		CPU           *struct {
 			ObservedAt time.Time `json:"observed_at"`
 		} `json:"cpu"`
-		Memory  *nodev1.MemorySnapshot  `json:"memory"`
-		Storage *nodev1.StorageSnapshot `json:"storage"`
+		Memory  *hostv1.MemorySnapshot  `json:"memory"`
+		Storage *hostv1.StorageSnapshot `json:"storage"`
 	}
 	if err := json.NewDecoder(response.Body).Decode(&observed); err != nil {
 		t.Fatal(err)
@@ -396,7 +396,7 @@ func verifySystemStats(t *testing.T, ctx context.Context, client *http.Client, b
 		observed.Memory.GetTotalBytes() == 0 || observed.Storage.GetPath() != path {
 		t.Fatalf("incomplete HTTP system stats: %+v", observed)
 	}
-	var snapshot nodev1.SystemSnapshot
+	var snapshot hostv1.SystemSnapshot
 	if err := connection.Invoke(ctx, "/papiliovpn.node.v1.HostService/GetSystemStats", &emptypb.Empty{}, &snapshot); err != nil {
 		t.Fatal(err)
 	}
