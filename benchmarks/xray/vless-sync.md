@@ -51,6 +51,29 @@ sets. The application deadline is five seconds. On a known partial result a
 new snapshot request can continue convergence against the acknowledged state.
 An unacknowledged write uses the inbound fence described above.
 
+## SyncUsersChunked
+
+HTTP `PUT /v1/xray/instances/{id}/inbounds/{tag}/accounts/membership/stream`
+accepts newline-delimited JSON, with one `index`, `last`, and `accounts`
+object per line. gRPC `SyncUsersChunked` accepts the corresponding client
+stream. Repeat the exact instance ID and inbound tag in every gRPC message
+and set a client deadline of at most 30 seconds. The HTTP server limits the
+stream to 30 seconds, each frame to 512 KiB, and the body to 2 MiB.
+
+Indices are consecutive and zero-based. A frame may have up to 100 accounts.
+An empty frame is valid only as the final marker. Send up to 100 frames and
+1,000 accounts in total. Mark the last frame and finish the HTTP body or
+half-close the gRPC stream. A nonfinal EOF, gaps, repeated indices, repeated
+emails or effective UUIDs, changed scopes, extra frames and interrupted
+delivery fail before any live write. At most eight streams are admitted,
+and the live mutation lock is acquired only after complete receipt.
+
+Each row specifies a desired change for its email. An omitted UUID removes
+that account. Other accounts stay in place. The completed stream uses the
+same acknowledgement and fencing rules as other sync operations. The
+application plans in space proportional to the explicit changes and makes
+one native write for each changed add or removal, with two for a rotation.
+
 ## Benchmark method
 
 Build and run using [the common fixture setup](../README.md#reproduce).
@@ -64,7 +87,9 @@ uses persistent management TLS connections. Each measurement is timed from
 request construction to result, including the complete response. Setup and the
 native exact membership check run outside the timed window. A sample is
 successful only when the request confirms and Xray reports the expected names
-and effective credentials. CSVs contain timings and success flags only.
+and effective credentials. The round CSV includes the sum of timed request
+durations and the success rate. The raw CSV records each elapsed duration in
+nanoseconds, with transport, round, target, workload, and success flag.
 
 ```bash
 XRAY_BENCH_VLESS_ACCOUNTS=1 XRAY_BENCH_ACCOUNT_SYNC=user \
@@ -126,3 +151,38 @@ p50 and p95 is shown in milliseconds, PapilioVPN / PasarGuard.
 [HTTP raw CSV](results/account-sync/users-http-samples.csv) ·
 [gRPC rounds](results/account-sync/users-grpc.csv) ·
 [gRPC raw CSV](results/account-sync/users-grpc-samples.csv)
+
+## Chunked-delta comparison
+
+Each stream has 100 or 1,000 explicit changes in 50-account chunks. Half
+specify present credentials and half specify removals. Both engines keep a
+sentinel excluded from the stream. The behind fixture starts with every
+removal present and every addition missing. The converged fixture already
+matches the requested state. PasarGuard
+[applies chunked payloads as targeted deltas](https://github.com/PasarGuard/node/blob/739eab94a9343d9f0035baf7162796844109f4c4/controller/users_chunk.go#L33-L38).
+Its converged case still sends native removes for absent accounts and
+ignores the native removal errors. PapilioVPN skips those calls. The
+comparison covers final membership on complete streams. PapilioVPN also
+requires clean EOF after the final marker and reports uncertain effects.
+
+Use the same sampling and CPU settings as the full-list comparison, with
+`XRAY_BENCH_ACCOUNT_SYNC=chunked`.
+
+The comparison confirmed 384 of 384 requests. The median of round
+p50 and p95 is shown in milliseconds, PapilioVPN / PasarGuard.
+
+| Transport | Accounts | Case | p50 | p95 |
+| --- | ---: | --- | ---: | ---: |
+| HTTP | 100 | converged | 0.64 / 8.08 | 0.87 / 10.06 |
+| HTTP | 100 | behind-delta | 14.86 / 30.35 | 17.57 / 67.41 |
+| HTTP | 1000 | converged | 3.06 / 97.39 | 5.23 / 100.39 |
+| HTTP | 1000 | behind-delta | 145.52 / 258.59 | 186.60 / 282.59 |
+| gRPC | 100 | converged | 0.50 / 9.18 | 0.79 / 13.56 |
+| gRPC | 100 | behind-delta | 16.14 / 31.56 | 17.37 / 67.00 |
+| gRPC | 1000 | converged | 1.91 / 84.25 | 4.78 / 90.31 |
+| gRPC | 1000 | behind-delta | 149.38 / 288.93 | 180.90 / 403.17 |
+
+[HTTP rounds](results/account-sync/chunked-http.csv) ·
+[HTTP raw CSV](results/account-sync/chunked-http-samples.csv) ·
+[gRPC rounds](results/account-sync/chunked-grpc.csv) ·
+[gRPC raw CSV](results/account-sync/chunked-grpc-samples.csv)

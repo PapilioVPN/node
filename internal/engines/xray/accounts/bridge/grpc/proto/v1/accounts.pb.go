@@ -541,6 +541,85 @@ func (x *SyncUsersRequest) GetSnapshot() *VLESSAccounts {
 	return nil
 }
 
+type UsersChunk struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Repeat the same scope in every chunk.
+	Id         string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	InboundTag string `protobuf:"bytes,2,opt,name=inbound_tag,json=inboundTag,proto3" json:"inbound_tag,omitempty"`
+	// Consecutive indices starting at zero.
+	Index uint32 `protobuf:"varint,3,opt,name=index,proto3" json:"index,omitempty"`
+	Last  bool   `protobuf:"varint,4,opt,name=last,proto3" json:"last,omitempty"`
+	// An absent uuid removes only that named account.
+	Accounts      []*VLESSAccount `protobuf:"bytes,5,rep,name=accounts,proto3" json:"accounts,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UsersChunk) Reset() {
+	*x = UsersChunk{}
+	mi := &file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UsersChunk) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UsersChunk) ProtoMessage() {}
+
+func (x *UsersChunk) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UsersChunk.ProtoReflect.Descriptor instead.
+func (*UsersChunk) Descriptor() ([]byte, []int) {
+	return file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *UsersChunk) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *UsersChunk) GetInboundTag() string {
+	if x != nil {
+		return x.InboundTag
+	}
+	return ""
+}
+
+func (x *UsersChunk) GetIndex() uint32 {
+	if x != nil {
+		return x.Index
+	}
+	return 0
+}
+
+func (x *UsersChunk) GetLast() bool {
+	if x != nil {
+		return x.Last
+	}
+	return false
+}
+
+func (x *UsersChunk) GetAccounts() []*VLESSAccount {
+	if x != nil {
+		return x.Accounts
+	}
+	return nil
+}
+
 var File_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto protoreflect.FileDescriptor
 
 const file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_rawDesc = "" +
@@ -586,10 +665,19 @@ const file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_ra
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1f\n" +
 	"\vinbound_tag\x18\x02 \x01(\tR\n" +
 	"inboundTag\x12K\n" +
-	"\bsnapshot\x18\x03 \x01(\v2/.papiliovpn.node.xray.accounts.v1.VLESSAccountsR\bsnapshot2\xd3\x04\n" +
+	"\bsnapshot\x18\x03 \x01(\v2/.papiliovpn.node.xray.accounts.v1.VLESSAccountsR\bsnapshot\"\xb3\x01\n" +
+	"\n" +
+	"UsersChunk\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1f\n" +
+	"\vinbound_tag\x18\x02 \x01(\tR\n" +
+	"inboundTag\x12\x14\n" +
+	"\x05index\x18\x03 \x01(\rR\x05index\x12\x12\n" +
+	"\x04last\x18\x04 \x01(\bR\x04last\x12J\n" +
+	"\baccounts\x18\x05 \x03(\v2..papiliovpn.node.xray.accounts.v1.VLESSAccountR\baccounts2\xc5\x05\n" +
 	"\x13XrayAccountsService\x12k\n" +
 	"\bSyncUser\x121.papiliovpn.node.xray.accounts.v1.SyncUserRequest\x1a,.papiliovpn.node.xray.accounts.v1.SyncResult\x12m\n" +
-	"\tSyncUsers\x122.papiliovpn.node.xray.accounts.v1.SyncUsersRequest\x1a,.papiliovpn.node.xray.accounts.v1.SyncResult\x12c\n" +
+	"\tSyncUsers\x122.papiliovpn.node.xray.accounts.v1.SyncUsersRequest\x1a,.papiliovpn.node.xray.accounts.v1.SyncResult\x12p\n" +
+	"\x10SyncUsersChunked\x12,.papiliovpn.node.xray.accounts.v1.UsersChunk\x1a,.papiliovpn.node.xray.accounts.v1.SyncResult(\x01\x12c\n" +
 	"\x0fAddVLESSAccount\x128.papiliovpn.node.xray.accounts.v1.AddVLESSAccountRequest\x1a\x16.google.protobuf.Empty\x12i\n" +
 	"\x12RemoveVLESSAccount\x12;.papiliovpn.node.xray.accounts.v1.RemoveVLESSAccountRequest\x1a\x16.google.protobuf.Empty\x12\x8f\x01\n" +
 	"\x12CountVLESSAccounts\x12;.papiliovpn.node.xray.accounts.v1.CountVLESSAccountsRequest\x1a<.papiliovpn.node.xray.accounts.v1.CountVLESSAccountsResponseB[ZYgithub.com/PapilioVPN/node/internal/engines/xray/accounts/bridge/grpc/proto/v1;accountsv1b\x06proto3"
@@ -606,7 +694,7 @@ func file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_raw
 	return file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_rawDescData
 }
 
-var file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_goTypes = []any{
 	(*AddVLESSAccountRequest)(nil),     // 0: papiliovpn.node.xray.accounts.v1.AddVLESSAccountRequest
 	(*RemoveVLESSAccountRequest)(nil),  // 1: papiliovpn.node.xray.accounts.v1.RemoveVLESSAccountRequest
@@ -617,26 +705,30 @@ var file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_goTy
 	(*VLESSAccount)(nil),               // 6: papiliovpn.node.xray.accounts.v1.VLESSAccount
 	(*VLESSAccounts)(nil),              // 7: papiliovpn.node.xray.accounts.v1.VLESSAccounts
 	(*SyncUsersRequest)(nil),           // 8: papiliovpn.node.xray.accounts.v1.SyncUsersRequest
-	(*emptypb.Empty)(nil),              // 9: google.protobuf.Empty
+	(*UsersChunk)(nil),                 // 9: papiliovpn.node.xray.accounts.v1.UsersChunk
+	(*emptypb.Empty)(nil),              // 10: google.protobuf.Empty
 }
 var file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_depIdxs = []int32{
-	6, // 0: papiliovpn.node.xray.accounts.v1.VLESSAccounts.accounts:type_name -> papiliovpn.node.xray.accounts.v1.VLESSAccount
-	7, // 1: papiliovpn.node.xray.accounts.v1.SyncUsersRequest.snapshot:type_name -> papiliovpn.node.xray.accounts.v1.VLESSAccounts
-	4, // 2: papiliovpn.node.xray.accounts.v1.XrayAccountsService.SyncUser:input_type -> papiliovpn.node.xray.accounts.v1.SyncUserRequest
-	8, // 3: papiliovpn.node.xray.accounts.v1.XrayAccountsService.SyncUsers:input_type -> papiliovpn.node.xray.accounts.v1.SyncUsersRequest
-	0, // 4: papiliovpn.node.xray.accounts.v1.XrayAccountsService.AddVLESSAccount:input_type -> papiliovpn.node.xray.accounts.v1.AddVLESSAccountRequest
-	1, // 5: papiliovpn.node.xray.accounts.v1.XrayAccountsService.RemoveVLESSAccount:input_type -> papiliovpn.node.xray.accounts.v1.RemoveVLESSAccountRequest
-	2, // 6: papiliovpn.node.xray.accounts.v1.XrayAccountsService.CountVLESSAccounts:input_type -> papiliovpn.node.xray.accounts.v1.CountVLESSAccountsRequest
-	5, // 7: papiliovpn.node.xray.accounts.v1.XrayAccountsService.SyncUser:output_type -> papiliovpn.node.xray.accounts.v1.SyncResult
-	5, // 8: papiliovpn.node.xray.accounts.v1.XrayAccountsService.SyncUsers:output_type -> papiliovpn.node.xray.accounts.v1.SyncResult
-	9, // 9: papiliovpn.node.xray.accounts.v1.XrayAccountsService.AddVLESSAccount:output_type -> google.protobuf.Empty
-	9, // 10: papiliovpn.node.xray.accounts.v1.XrayAccountsService.RemoveVLESSAccount:output_type -> google.protobuf.Empty
-	3, // 11: papiliovpn.node.xray.accounts.v1.XrayAccountsService.CountVLESSAccounts:output_type -> papiliovpn.node.xray.accounts.v1.CountVLESSAccountsResponse
-	7, // [7:12] is the sub-list for method output_type
-	2, // [2:7] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	6,  // 0: papiliovpn.node.xray.accounts.v1.VLESSAccounts.accounts:type_name -> papiliovpn.node.xray.accounts.v1.VLESSAccount
+	7,  // 1: papiliovpn.node.xray.accounts.v1.SyncUsersRequest.snapshot:type_name -> papiliovpn.node.xray.accounts.v1.VLESSAccounts
+	6,  // 2: papiliovpn.node.xray.accounts.v1.UsersChunk.accounts:type_name -> papiliovpn.node.xray.accounts.v1.VLESSAccount
+	4,  // 3: papiliovpn.node.xray.accounts.v1.XrayAccountsService.SyncUser:input_type -> papiliovpn.node.xray.accounts.v1.SyncUserRequest
+	8,  // 4: papiliovpn.node.xray.accounts.v1.XrayAccountsService.SyncUsers:input_type -> papiliovpn.node.xray.accounts.v1.SyncUsersRequest
+	9,  // 5: papiliovpn.node.xray.accounts.v1.XrayAccountsService.SyncUsersChunked:input_type -> papiliovpn.node.xray.accounts.v1.UsersChunk
+	0,  // 6: papiliovpn.node.xray.accounts.v1.XrayAccountsService.AddVLESSAccount:input_type -> papiliovpn.node.xray.accounts.v1.AddVLESSAccountRequest
+	1,  // 7: papiliovpn.node.xray.accounts.v1.XrayAccountsService.RemoveVLESSAccount:input_type -> papiliovpn.node.xray.accounts.v1.RemoveVLESSAccountRequest
+	2,  // 8: papiliovpn.node.xray.accounts.v1.XrayAccountsService.CountVLESSAccounts:input_type -> papiliovpn.node.xray.accounts.v1.CountVLESSAccountsRequest
+	5,  // 9: papiliovpn.node.xray.accounts.v1.XrayAccountsService.SyncUser:output_type -> papiliovpn.node.xray.accounts.v1.SyncResult
+	5,  // 10: papiliovpn.node.xray.accounts.v1.XrayAccountsService.SyncUsers:output_type -> papiliovpn.node.xray.accounts.v1.SyncResult
+	5,  // 11: papiliovpn.node.xray.accounts.v1.XrayAccountsService.SyncUsersChunked:output_type -> papiliovpn.node.xray.accounts.v1.SyncResult
+	10, // 12: papiliovpn.node.xray.accounts.v1.XrayAccountsService.AddVLESSAccount:output_type -> google.protobuf.Empty
+	10, // 13: papiliovpn.node.xray.accounts.v1.XrayAccountsService.RemoveVLESSAccount:output_type -> google.protobuf.Empty
+	3,  // 14: papiliovpn.node.xray.accounts.v1.XrayAccountsService.CountVLESSAccounts:output_type -> papiliovpn.node.xray.accounts.v1.CountVLESSAccountsResponse
+	9,  // [9:15] is the sub-list for method output_type
+	3,  // [3:9] is the sub-list for method input_type
+	3,  // [3:3] is the sub-list for extension type_name
+	3,  // [3:3] is the sub-list for extension extendee
+	0,  // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_init() }
@@ -652,7 +744,7 @@ func file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_ini
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_rawDesc), len(file_internal_engines_xray_accounts_bridge_grpc_proto_v1_accounts_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   9,
+			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

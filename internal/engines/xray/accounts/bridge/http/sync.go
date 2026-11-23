@@ -17,12 +17,10 @@ func syncUser(service *membership.Service) http.HandlerFunc {
 		if !readBody(w, r, &input) {
 			return
 		}
-		var uuid *string
-		if input.UUID != nil {
-			if err := json.Unmarshal(input.UUID, &uuid); err != nil || uuid == nil {
-				writeError(w, membership.ErrInvalid)
-				return
-			}
+		uuid, err := optionalUUID(input.UUID)
+		if err != nil {
+			writeError(w, err)
+			return
 		}
 		result, err := service.SyncUser(r.Context(), membership.SyncUserRequest{
 			Scope: scope(r), Email: input.Email, UUID: uuid,
@@ -52,4 +50,15 @@ func syncUsers(service *membership.Service) http.HandlerFunc {
 		result, err := service.SyncUsers(r.Context(), membership.SyncUsersRequest{Scope: scope(r), Accounts: input.Accounts})
 		writeSync(w, result, err)
 	}
+}
+
+func optionalUUID(raw json.RawMessage) (*string, error) {
+	if raw == nil {
+		return nil, nil
+	}
+	var uuid *string
+	if err := json.Unmarshal(raw, &uuid); err != nil || uuid == nil {
+		return nil, membership.ErrInvalid
+	}
+	return uuid, nil
 }

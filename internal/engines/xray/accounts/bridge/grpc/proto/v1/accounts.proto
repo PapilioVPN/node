@@ -10,6 +10,8 @@ service XrayAccountsService {
   rpc SyncUser(SyncUserRequest) returns (SyncResult);
   // Replaces the complete named membership of one VLESS inbound.
   rpc SyncUsers(SyncUsersRequest) returns (SyncResult);
+  // Applies explicit deltas after the final chunk and a clean client half-close.
+  rpc SyncUsersChunked(stream UsersChunk) returns (SyncResult);
   // Adds one live VLESS account with default Xray level and empty flow.
   rpc AddVLESSAccount(AddVLESSAccountRequest) returns (google.protobuf.Empty);
   // Removes one live VLESS account by its native case-insensitive email.
@@ -70,4 +72,15 @@ message SyncUsersRequest {
   string inbound_tag = 2;
   // Required. An explicitly empty snapshot clears named membership.
   VLESSAccounts snapshot = 3;
+}
+
+message UsersChunk {
+  // Repeat the same scope in every chunk.
+  string id = 1;
+  string inbound_tag = 2;
+  // Consecutive indices starting at zero.
+  uint32 index = 3;
+  bool last = 4;
+  // An absent uuid removes only that named account.
+  repeated VLESSAccount accounts = 5;
 }

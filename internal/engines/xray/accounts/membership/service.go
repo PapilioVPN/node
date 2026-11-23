@@ -83,12 +83,13 @@ type engine interface {
 }
 
 type Service struct {
-	engine engine
-	slots  chan struct{}
+	engine  engine
+	slots   chan struct{}
+	streams chan struct{}
 }
 
 func New(engine engine) *Service {
-	return &Service{engine: engine, slots: make(chan struct{}, 32)}
+	return &Service{engine: engine, slots: make(chan struct{}, 32), streams: make(chan struct{}, 8)}
 }
 
 func (s *Service) Add(ctx context.Context, req AddRequest) error {
@@ -130,7 +131,7 @@ func (s *Service) begin(ctx context.Context, scope Scope) (context.Context, func
 }
 
 func (s *Service) beginWithin(ctx context.Context, scope Scope, timeout time.Duration) (context.Context, func(), error) {
-	if !validName(scope.InstanceID, 63) || !validName(scope.InboundTag, 1024) {
+	if !validScope(scope) {
 		return nil, nil, ErrInvalid
 	}
 	if err := ctx.Err(); err != nil {
@@ -146,6 +147,10 @@ func (s *Service) beginWithin(ctx context.Context, scope Scope, timeout time.Dur
 		cancel()
 		<-s.slots
 	}, nil
+}
+
+func validScope(scope Scope) bool {
+	return validName(scope.InstanceID, 63) && validName(scope.InboundTag, 1024)
 }
 
 func validName(value string, maxBytes int) bool {

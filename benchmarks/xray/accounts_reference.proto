@@ -21,3 +21,9 @@ message ReferenceVLESS {
 message ReferenceAccounts {
   repeated ReferenceAccountUser users = 1;
 }
+
+message ReferenceAccountChunk {
+  repeated ReferenceAccountUser users = 1;
+  uint64 index = 2;
+  bool last = 3;
+}

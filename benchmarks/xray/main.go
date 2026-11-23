@@ -92,7 +92,7 @@ func main() {
 	flag.BoolVar(&outboundHealth, "outbound-health", false, "measure ordinary Observatory reads")
 	flag.StringVar(&outboundCase, "outbound-health-case", "", "run only one or all outbound observations")
 	flag.StringVar(&outboundSamples, "outbound-health-samples", "", "path for compressed per-request outbound health CSV")
-	flag.StringVar(&accounts.sync, "account-sync", "", "measure VLESS synchronization: user or users")
+	flag.StringVar(&accounts.sync, "account-sync", "", "measure VLESS synchronization: user, users or chunked")
 	flag.StringVar(&accounts.runtimeDir, "account-runtime-dir", "", "measure VLESS accounts on the execution in this runtime directory")
 	flag.StringVar(&accounts.generated, "account-reference-generated", "", "PasarGuard's generated fixture config")
 	flag.StringVar(&accounts.samples, "account-samples", "", "write per-request account benchmark CSV to this path")
@@ -124,7 +124,7 @@ func main() {
 		log.Fatal("routing rule mutations use exactly one client")
 	}
 
-	if accounts.sync != "" && accounts.sync != "user" && accounts.sync != "users" {
+	if accounts.sync != "" && accounts.sync != "user" && accounts.sync != "users" && accounts.sync != "chunked" {
 		check(errors.New("invalid account sync operation"))
 	}
 	if accounts.runtimeDir != "" && (runtimeStats || outboundHealth || trafficNames != 0 || routing.rules != 0 ||

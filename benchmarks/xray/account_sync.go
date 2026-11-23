@@ -103,8 +103,11 @@ func benchmarkAccountSync(protocol string, targets []target, rounds, samples int
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 			check(t.call(ctx, start))
 			call, cases := t.accounts.syncUser, syncUserCases(t.accounts.syncUser)
-			if workload.sync == "users" {
+			switch workload.sync {
+			case "users":
 				call, cases = t.accounts.syncUsers, syncUsersCases(t.accounts.syncUsers)
+			case "chunked":
+				call, cases = t.accounts.syncChunk, syncChunkCases(t.accounts.syncUsers)
 			}
 			for _, scenario := range cases {
 				runSyncCase(ctx, index, workload, call, scenario, samples,

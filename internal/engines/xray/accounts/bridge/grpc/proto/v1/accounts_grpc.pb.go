@@ -22,6 +22,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	XrayAccountsService_SyncUser_FullMethodName           = "/papiliovpn.node.xray.accounts.v1.XrayAccountsService/SyncUser"
 	XrayAccountsService_SyncUsers_FullMethodName          = "/papiliovpn.node.xray.accounts.v1.XrayAccountsService/SyncUsers"
+	XrayAccountsService_SyncUsersChunked_FullMethodName   = "/papiliovpn.node.xray.accounts.v1.XrayAccountsService/SyncUsersChunked"
 	XrayAccountsService_AddVLESSAccount_FullMethodName    = "/papiliovpn.node.xray.accounts.v1.XrayAccountsService/AddVLESSAccount"
 	XrayAccountsService_RemoveVLESSAccount_FullMethodName = "/papiliovpn.node.xray.accounts.v1.XrayAccountsService/RemoveVLESSAccount"
 	XrayAccountsService_CountVLESSAccounts_FullMethodName = "/papiliovpn.node.xray.accounts.v1.XrayAccountsService/CountVLESSAccounts"
@@ -35,6 +36,8 @@ type XrayAccountsServiceClient interface {
 	SyncUser(ctx context.Context, in *SyncUserRequest, opts ...grpc.CallOption) (*SyncResult, error)
 	// Replaces the complete named membership of one VLESS inbound.
 	SyncUsers(ctx context.Context, in *SyncUsersRequest, opts ...grpc.CallOption) (*SyncResult, error)
+	// Applies explicit deltas after the final chunk and a clean client half-close.
+	SyncUsersChunked(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[UsersChunk, SyncResult], error)
 	// Adds one live VLESS account with default Xray level and empty flow.
 	AddVLESSAccount(ctx context.Context, in *AddVLESSAccountRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	// Removes one live VLESS account by its native case-insensitive email.
@@ -70,6 +73,19 @@ func (c *xrayAccountsServiceClient) SyncUsers(ctx context.Context, in *SyncUsers
 	}
 	return out, nil
 }
+
+func (c *xrayAccountsServiceClient) SyncUsersChunked(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[UsersChunk, SyncResult], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &XrayAccountsService_ServiceDesc.Streams[0], XrayAccountsService_SyncUsersChunked_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[UsersChunk, SyncResult]{ClientStream: stream}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type XrayAccountsService_SyncUsersChunkedClient = grpc.ClientStreamingClient[UsersChunk, SyncResult]
 
 func (c *xrayAccountsServiceClient) AddVLESSAccount(ctx context.Context, in *AddVLESSAccountRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
@@ -109,6 +125,8 @@ type XrayAccountsServiceServer interface {
 	SyncUser(context.Context, *SyncUserRequest) (*SyncResult, error)
 	// Replaces the complete named membership of one VLESS inbound.
 	SyncUsers(context.Context, *SyncUsersRequest) (*SyncResult, error)
+	// Applies explicit deltas after the final chunk and a clean client half-close.
+	SyncUsersChunked(grpc.ClientStreamingServer[UsersChunk, SyncResult]) error
 	// Adds one live VLESS account with default Xray level and empty flow.
 	AddVLESSAccount(context.Context, *AddVLESSAccountRequest) (*emptypb.Empty, error)
 	// Removes one live VLESS account by its native case-insensitive email.
@@ -130,6 +148,9 @@ func (UnimplementedXrayAccountsServiceServer) SyncUser(context.Context, *SyncUse
 }
 func (UnimplementedXrayAccountsServiceServer) SyncUsers(context.Context, *SyncUsersRequest) (*SyncResult, error) {
 	return nil, status.Error(codes.Unimplemented, "method SyncUsers not implemented")
+}
+func (UnimplementedXrayAccountsServiceServer) SyncUsersChunked(grpc.ClientStreamingServer[UsersChunk, SyncResult]) error {
+	return status.Error(codes.Unimplemented, "method SyncUsersChunked not implemented")
 }
 func (UnimplementedXrayAccountsServiceServer) AddVLESSAccount(context.Context, *AddVLESSAccountRequest) (*emptypb.Empty, error) {
 	return nil, status.Error(codes.Unimplemented, "method AddVLESSAccount not implemented")
@@ -196,6 +217,13 @@ func _XrayAccountsService_SyncUsers_Handler(srv interface{}, ctx context.Context
 	}
 	return interceptor(ctx, in, info, handler)
 }
+
+func _XrayAccountsService_SyncUsersChunked_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(XrayAccountsServiceServer).SyncUsersChunked(&grpc.GenericServerStream[UsersChunk, SyncResult]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type XrayAccountsService_SyncUsersChunkedServer = grpc.ClientStreamingServer[UsersChunk, SyncResult]
 
 func _XrayAccountsService_AddVLESSAccount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(AddVLESSAccountRequest)
@@ -279,6 +307,12 @@ var XrayAccountsService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _XrayAccountsService_CountVLESSAccounts_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "SyncUsersChunked",
+			Handler:       _XrayAccountsService_SyncUsersChunked_Handler,
+			ClientStreams: true,
+		},
+	},
 	Metadata: "internal/engines/xray/accounts/bridge/grpc/proto/v1/accounts.proto",
 }

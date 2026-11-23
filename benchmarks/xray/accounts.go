@@ -37,6 +37,7 @@ type accountWorkload struct {
 type accountCalls struct {
 	syncUser    syncAccounts
 	syncUsers   syncAccounts
+	syncChunk   syncAccounts
 	add, remove func(context.Context, string, string) error
 	count       func(context.Context) (uint32, error)
 }
@@ -79,6 +80,7 @@ func accountHTTP(client *http.Client, node, reference string) (accountCalls, acc
 	nodeCalls := accountCalls{
 		syncUser:  syncUserHTTP(syncNode, node),
 		syncUsers: syncUsersHTTP(syncNode, node),
+		syncChunk: syncChunkHTTP(client, node),
 		add: func(ctx context.Context, email, uuid string) error {
 			return mutate(ctx, http.MethodPost, body{Email: email, UUID: uuid})
 		},
@@ -96,9 +98,10 @@ func accountHTTP(client *http.Client, node, reference string) (accountCalls, acc
 		},
 	}
 	referenceCalls := accountCalls{
-		syncUser: syncRef,
-		add:      syncUser,
-		remove:   func(ctx context.Context, email, _ string) error { return syncUser(ctx, email, "") },
+		syncChunk: referenceChunkHTTP(client, reference),
+		syncUser:  syncRef,
+		add:       syncUser,
+		remove:    func(ctx context.Context, email, _ string) error { return syncUser(ctx, email, "") },
 		syncUsers: func(ctx context.Context, accounts []syncAccount) error {
 			wire, err := proto.Marshal(&ReferenceAccounts{Users: referenceUsers(accounts)})
 			if err != nil {
@@ -152,6 +155,7 @@ func accountGRPC(node, reference *grpc.ClientConn) (accountCalls, accountCalls) 
 	nodeCalls := accountCalls{
 		syncUser:  syncUserGRPC(node),
 		syncUsers: syncUsersGRPC(node),
+		syncChunk: syncChunkGRPC(node),
 		add: func(ctx context.Context, email, uuid string) error {
 			_, err := client.AddVLESSAccount(auth(ctx), &accountsv1.AddVLESSAccountRequest{Id: "primary", InboundTag: "vless", Email: email, Uuid: uuid})
 			return err
@@ -166,9 +170,10 @@ func accountGRPC(node, reference *grpc.ClientConn) (accountCalls, accountCalls) 
 		},
 	}
 	referenceCalls := accountCalls{
-		syncUser: syncRef,
-		add:      syncUser,
-		remove:   func(ctx context.Context, email, _ string) error { return syncUser(ctx, email, "") },
+		syncChunk: referenceChunkGRPC(reference),
+		syncUser:  syncRef,
+		add:       syncUser,
+		remove:    func(ctx context.Context, email, _ string) error { return syncUser(ctx, email, "") },
 		syncUsers: func(ctx context.Context, accounts []syncAccount) error {
 			return reference.Invoke(auth(ctx), "/service.NodeService/SyncUsers", &ReferenceAccounts{Users: referenceUsers(accounts)}, &emptypb.Empty{}, grpc.StaticMethod())
 		},
