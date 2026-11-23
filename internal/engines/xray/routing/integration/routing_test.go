@@ -188,6 +188,7 @@ func TestRoutingReads(t *testing.T) {
 	}
 
 	verifyRoutingControl(t, ctx, router, client, balancer)
+	verifyRoutingRuleWrites(t, ctx, router, client, balancer)
 
 	current, err := instance.NativeConnection("primary")
 	require(t, err)

@@ -33,6 +33,8 @@ type controller interface {
 	GetBalancerInfo(context.Context, string, string) (BalancerInfo, error)
 	TestRoute(context.Context, string, RouteProbe) (RouteSelection, error)
 	OverrideBalancerTarget(context.Context, string, string, string) error
+	AddRoutingRule(context.Context, string, []byte, bool) error
+	RemoveRoutingRule(context.Context, string, string) error
 }
 
 type Service struct {

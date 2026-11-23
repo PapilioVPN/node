@@ -73,17 +73,18 @@ func (client *Client) GetBalancerInfo(ctx context.Context, id, tag string) (stat
 	return info, nil
 }
 
-// The pinned read handlers do not use the server deadline to interrupt their work. The client still cancels the stream.
-type readContext struct{ context.Context }
+// The pinned handlers do not use RPC deadlines to interrupt routing work.
+// Keep the client limit and stream cancellation without a server timer.
+type localDeadlineContext struct{ context.Context }
 
-func (readContext) Deadline() (time.Time, bool) { return time.Time{}, false }
+func (localDeadlineContext) Deadline() (time.Time, bool) { return time.Time{}, false }
 
 func (client *Client) invoke(ctx context.Context, id, method string, request, response any, options []grpc.CallOption) error {
 	conn, err := client.instances.NativeConnection(id)
 	if err != nil {
 		return err
 	}
-	err = conn.Invoke(readContext{ctx}, method, request, response, options...)
+	err = conn.Invoke(localDeadlineContext{ctx}, method, request, response, options...)
 	if cause := ctx.Err(); cause != nil {
 		return cause
 	}

@@ -80,12 +80,38 @@ func (h *handlers) OverrideBalancerTarget(ctx context.Context, req *routingv1.Xr
 	return &emptypb.Empty{}, nil
 }
 
+func (h *handlers) AddRoutingRule(ctx context.Context, req *routingv1.XrayAddRoutingRuleRequest) (*emptypb.Empty, error) {
+	var mode state.RuleMode
+	switch req.GetMode() {
+	case routingv1.XrayRoutingRuleMode_XRAY_ROUTING_RULE_MODE_UNSPECIFIED, routingv1.XrayRoutingRuleMode_XRAY_ROUTING_RULE_MODE_APPEND:
+		mode = state.AppendRule
+	case routingv1.XrayRoutingRuleMode_XRAY_ROUTING_RULE_MODE_REPLACE:
+		mode = state.ReplaceRules
+	default:
+		return nil, routingError(state.ErrInvalid)
+	}
+	change := state.RuleChange{Source: req.GetRuleJson(), Mode: mode, ConfirmReplace: req.GetConfirmReplace()}
+	if err := h.service.AddRoutingRule(ctx, req.GetId(), change); err != nil {
+		return nil, routingError(err)
+	}
+	return &emptypb.Empty{}, nil
+}
+
+func (h *handlers) RemoveRoutingRule(ctx context.Context, req *routingv1.XrayRemoveRoutingRuleRequest) (*emptypb.Empty, error) {
+	if err := h.service.RemoveRoutingRule(ctx, req.GetId(), req.GetRuleTag()); err != nil {
+		return nil, routingError(err)
+	}
+	return &emptypb.Empty{}, nil
+}
+
 func routingError(err error) error {
 	switch {
 	case errors.Is(err, lifecycle.ErrNotFound):
 		return status.Error(codes.NotFound, lifecycle.ErrNotFound.Error())
 	case errors.Is(err, state.ErrBalancerNotFound):
 		return status.Error(codes.NotFound, state.ErrBalancerNotFound.Error())
+	case errors.Is(err, state.ErrRuleExists):
+		return status.Error(codes.AlreadyExists, state.ErrRuleExists.Error())
 	case errors.Is(err, state.ErrNoRoute):
 		return status.Error(codes.NotFound, state.ErrNoRoute.Error())
 	case errors.Is(err, state.ErrMutationUnknown):

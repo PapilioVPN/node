@@ -36,6 +36,7 @@ var fixtureTargets = []string{"pool-a", "pool-b"}
 type routingReads struct {
 	rules    func(context.Context) (*routingv1.XrayRoutingRules, error)
 	control  routingControl
+	changes  ruleChanges
 	balancer func(context.Context) (string, []string, error)
 	override func(context.Context) error
 }
@@ -48,6 +49,7 @@ func routingHTTP(client *http.Client, address string, reference bool) routingRea
 		check(err)
 		return routingReads{
 			control: control,
+			changes: routingRuleHTTP(client, base, reference),
 			rules: func(ctx context.Context) (*routingv1.XrayRoutingRules, error) {
 				result := new(routingv1.XrayRoutingRules) // Same response field numbers.
 				return result, routingHTTPRead(ctx, client, http.MethodGet, base+"/routing/rules", nil, result, false)
@@ -63,9 +65,11 @@ func routingHTTP(client *http.Client, address string, reference bool) routingRea
 			},
 		}
 	}
+	changes := routingRuleHTTP(client, base, reference)
 	base += "/v1/xray/instances/primary/routing"
 	return routingReads{
 		control: control,
+		changes: changes,
 		rules: func(ctx context.Context) (*routingv1.XrayRoutingRules, error) {
 			result := new(routingv1.XrayRoutingRules)
 			return result, routingHTTPRead(ctx, client, http.MethodGet, base+"/rules", nil, result, true)
@@ -126,6 +130,7 @@ func routingGRPC(conn *grpc.ClientConn, reference bool) routingReads {
 		tag := wrapperspb.String(fixtureBalancer)
 		return routingReads{
 			control: control,
+			changes: routingRuleGRPC(conn, reference),
 			rules: func(ctx context.Context) (*routingv1.XrayRoutingRules, error) {
 				ctx = metadata.AppendToOutgoingContext(ctx, "x-api-key", key)
 				result := new(routingv1.XrayRoutingRules)
@@ -148,6 +153,7 @@ func routingGRPC(conn *grpc.ClientConn, reference bool) routingReads {
 	balancer := &routingv1.XrayBalancerInfoRequest{Id: "primary", Tag: fixtureBalancer}
 	return routingReads{
 		control: control,
+		changes: routingRuleGRPC(conn, reference),
 		rules: func(ctx context.Context) (*routingv1.XrayRoutingRules, error) {
 			return client.ListRoutingRules(metadata.AppendToOutgoingContext(ctx, "x-api-key", key), list)
 		},
@@ -220,6 +226,11 @@ func benchmarkRouting(protocol string, targets []target, workload routingWorkloa
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	check(seedRoutingOverride(ctx, workload.runtimeDir))
 	check(targets[1].routing.override(ctx))
+	if workload.operation == replaceOp {
+		for _, t := range targets {
+			check(t.routing.changes.replaceRule(ctx))
+		}
+	}
 	cancel()
 
 	want := fixtureRules(workload.rules)
@@ -249,14 +260,34 @@ func benchmarkRouting(protocol string, targets []target, workload routingWorkloa
 				for _, index := range order {
 					t := targets[index]
 					rows := workload.rules
-					if op != "list" {
+					switch op {
+					case "list", appendOp, removeAbsentOp:
+					case replaceOp:
+						rows = 1
+					case removeOp:
+						rows++
+					default:
 						rows = 0
 					}
 					ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second+workload.window)
 					pids := [3]string{t.pid, children[index], strconv.Itoa(os.Getpid())}
 					before := routingCPUTicks(pids)
-					result, err := pollRuntimeStats(ctx, routingRead(t.routing, op, want), clients, workload.window)
+					var result runtimeStatsPoll
+					var err error
+					if isRuleWrite(op) {
+						result, err = sampleRuleChanges(ctx, t.routing.changes, op, workload.window)
+						slices.Sort(result.timings)
+					} else {
+						result, err = pollRuntimeStats(ctx, routingRead(t.routing, op, want), clients, workload.window)
+					}
 					after := routingCPUTicks(pids)
+					if err == nil && isRuleWrite(op) {
+						expected := want
+						if op == replaceOp {
+							expected = [][2]string{{benchRuleTag, "API"}}
+						}
+						_, err = routingRead(t.routing, "list", expected)(ctx)
+					}
 					if err == nil && (op == overrideOp || op == clearOp) {
 						target, _, verifyErr := t.routing.balancer(ctx)
 						if verifyErr != nil || target != overrideDestination(op) {

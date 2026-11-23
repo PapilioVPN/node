@@ -27,6 +27,8 @@ type balancerInfo struct {
 func Register(router chi.Router, service *state.Service) {
 	const base = "/v1/xray/instances/{id}/routing"
 	router.Post(base+"/tests", testRoute(service))
+	router.Post(base+"/rules", addRule(service))
+	router.Delete(base+"/rules", removeRule(service))
 	router.Put(base+"/balancer/override", overrideBalancer(service))
 	router.Get(base+"/rules", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
@@ -130,6 +132,8 @@ func writeError(w http.ResponseWriter, err error) {
 		http.Error(w, lifecycle.ErrNotFound.Error(), http.StatusNotFound)
 	case errors.Is(err, state.ErrBalancerNotFound):
 		http.Error(w, state.ErrBalancerNotFound.Error(), http.StatusNotFound)
+	case errors.Is(err, state.ErrRuleExists):
+		http.Error(w, state.ErrRuleExists.Error(), http.StatusConflict)
 	case errors.Is(err, state.ErrNoRoute):
 		http.Error(w, state.ErrNoRoute.Error(), http.StatusNotFound)
 	case errors.Is(err, state.ErrMutationUnknown):

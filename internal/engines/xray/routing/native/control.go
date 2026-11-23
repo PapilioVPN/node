@@ -51,10 +51,22 @@ func (c *Client) TestRoute(ctx context.Context, id string, probe state.RouteProb
 }
 
 func (c *Client) OverrideBalancerTarget(ctx context.Context, id, tag, target string) error {
-	return c.mutate(ctx, id, overrideMethod, &OverrideBalancerTargetRequest{BalancerTag: tag, Target: target})
+	request := &OverrideBalancerTargetRequest{BalancerTag: tag, Target: target}
+	return c.mutate(ctx, id, overrideMethod, request, func(err error) error {
+		if exactNativeError(err, "app/router: cannot find tag") {
+			return state.ErrBalancerNotFound
+		}
+		return nil
+	})
 }
 
-func (c *Client) mutate(ctx context.Context, id, method string, request any) error {
+func (c *Client) mutate(ctx context.Context, id, method string, request any, rejected func(error) error) error {
+	return c.withMutation(ctx, id, func(conn *grpc.ClientConn) error {
+		return c.sendMutation(ctx, id, conn, method, request, rejected)
+	})
+}
+
+func (c *Client) withMutation(ctx context.Context, id string, run func(*grpc.ClientConn) error) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -71,16 +83,24 @@ func (c *Client) mutate(ctx context.Context, id, method string, request any) err
 		return state.ErrMutationFenced
 	}
 	c.fenced = nil
+	return run(conn)
+}
+
+func (c *Client) sendMutation(ctx context.Context, id string, conn *grpc.ClientConn, method string, request any, rejected func(error) error) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	err = conn.Invoke(ctx, method, request, &emptypb.Empty{}, mutationOptions...)
-	switch {
-	case method == overrideMethod && exactNativeError(err, "app/router: cannot find tag"):
-		return errors.Join(state.ErrBalancerNotFound, err)
-	case exactNativeError(err, "app/router/command: unsupported router implementation"):
-		return errors.Join(state.ErrUnsupported, err)
-	case err != nil:
+	err := conn.Invoke(localDeadlineContext{ctx}, method, request, &emptypb.Empty{}, mutationOptions...)
+	if err != nil {
+		if exactNativeError(err, "app/router/command: unsupported router implementation") ||
+			exactNativeError(err, "common: not enough information for making a decision") {
+			return errors.Join(state.ErrUnsupported, err)
+		}
+		if rejected != nil {
+			if cause := rejected(err); cause != nil {
+				return errors.Join(cause, err)
+			}
+		}
 		c.fenced = conn
 		return errors.Join(state.ErrMutationUnknown, err)
 	}

@@ -60,9 +60,31 @@ message XrayOverrideBalancerTargetRequest {
   optional string target = 3;
 }
 
+enum XrayRoutingRuleMode {
+  XRAY_ROUTING_RULE_MODE_UNSPECIFIED = 0;
+  XRAY_ROUTING_RULE_MODE_APPEND = 1;
+  XRAY_ROUTING_RULE_MODE_REPLACE = 2;
+}
+
+message XrayAddRoutingRuleRequest {
+  string id = 1;
+  // One native routing.rules[] JSON object.
+  bytes rule_json = 2;
+  XrayRoutingRuleMode mode = 3;
+  // Required to replace the entire active rule and balancer sets.
+  bool confirm_replace = 4;
+}
+
+message XrayRemoveRoutingRuleRequest {
+  string id = 1;
+  string rule_tag = 2;
+}
+
 service XrayRoutingService {
   rpc ListRoutingRules(XrayRoutingRulesRequest) returns (XrayRoutingRules);
   rpc GetBalancerInfo(XrayBalancerInfoRequest) returns (XrayBalancerInfo);
   rpc TestRoute(XrayTestRouteRequest) returns (XrayRouteSelection);
   rpc OverrideBalancerTarget(XrayOverrideBalancerTargetRequest) returns (google.protobuf.Empty);
+  rpc AddRoutingRule(XrayAddRoutingRuleRequest) returns (google.protobuf.Empty);
+  rpc RemoveRoutingRule(XrayRemoveRoutingRuleRequest) returns (google.protobuf.Empty);
 }

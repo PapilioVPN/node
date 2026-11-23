@@ -6,6 +6,7 @@ import (
 	"net"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/PapilioVPN/node/internal/engines/xray/routing/state"
 	"google.golang.org/grpc"
@@ -46,6 +47,9 @@ func TestUnacknowledgedMutationFencesExecution(t *testing.T) {
 	if err := client.OverrideBalancerTarget(t.Context(), "primary", "pool", ""); !errors.Is(err, state.ErrMutationFenced) {
 		t.Fatalf("mutation after uncertain effect = %v", err)
 	}
+	if err := client.RemoveRoutingRule(t.Context(), "primary", "rule"); !errors.Is(err, state.ErrMutationFenced) {
+		t.Fatalf("rule removal after uncertain override = %v", err)
+	}
 	if got := applied.Load(); got != 1 {
 		t.Fatalf("first execution received %d effects, want one", got)
 	}
@@ -56,6 +60,38 @@ func TestUnacknowledgedMutationFencesExecution(t *testing.T) {
 	}
 	if got := applied.Load(); got != 2 {
 		t.Fatalf("replacement execution did not accept the next request, got %d effects", got)
+	}
+}
+
+func TestRuleMutationCannotOverlapOverride(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+	defer cancel()
+	entered := make(chan struct{})
+	release := make(chan struct{})
+	conn := mutationFixture(t, func(ctx context.Context, _ *OverrideBalancerTargetRequest) error {
+		close(entered)
+		select {
+		case <-release:
+			return nil
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	})
+	client := New(&activeFixture{conn: conn})
+	result := make(chan error, 1)
+	go func() { result <- client.OverrideBalancerTarget(ctx, "primary", "pool", "out") }()
+	select {
+	case <-entered:
+	case <-ctx.Done():
+		t.Fatal("override did not enter native server")
+	}
+	err := client.RemoveRoutingRule(ctx, "primary", "rule")
+	close(release)
+	if !errors.Is(err, state.ErrMutationBusy) {
+		t.Fatalf("overlapping rule removal = %v", err)
+	}
+	if err := <-result; err != nil {
+		t.Fatal(err)
 	}
 }
 

@@ -78,4 +78,6 @@ func (p RouteProbe) valid() bool {
 	return size <= 16<<10
 }
 
-func validTag(value string) bool { return len(value) <= 4096 && utf8.ValidString(value) }
+const MaxTagBytes = 4096
+
+func validTag(value string) bool { return len(value) <= MaxTagBytes && utf8.ValidString(value) }
