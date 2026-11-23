@@ -78,7 +78,7 @@ func (client *Online) read(ctx context.Context, id, method string, request, resp
 	if err != nil {
 		return err
 	}
-	err = conn.Invoke(statsReadContext{ctx}, method, request, response, opts...)
+	err = conn.Invoke(localDeadlineContext{ctx}, method, request, response, opts...)
 	if cause := ctx.Err(); cause != nil {
 		return cause
 	}

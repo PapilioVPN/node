@@ -61,8 +61,10 @@ func (h *handlers) ResetTrafficPair(ctx context.Context, req *statsv1.XrayTraffi
 		return nil, resetError(err)
 	}
 	reply := &statsv1.XrayTrafficPairResetResult{
-		Uplink: wireDirectionReset(result.Uplink), Downlink: wireDirectionReset(result.Downlink),
+		Uplink: new(statsv1.XrayTrafficDirectionReset), Downlink: new(statsv1.XrayTrafficDirectionReset),
 	}
+	setDirectionReset(reply.Uplink, &result.Uplink)
+	setDirectionReset(reply.Downlink, &result.Downlink)
 	if err == nil {
 		return reply, nil
 	}
@@ -77,8 +79,7 @@ func (h *handlers) ResetTrafficPair(ctx context.Context, req *statsv1.XrayTraffi
 	return nil, withProgress.Err()
 }
 
-func wireDirectionReset(result traffic.DirectionReset) *statsv1.XrayTrafficDirectionReset {
-	reply := new(statsv1.XrayTrafficDirectionReset)
+func setDirectionReset(reply *statsv1.XrayTrafficDirectionReset, result *traffic.DirectionReset) {
 	switch result.Effect {
 	case traffic.ResetAcknowledged:
 		reply.Effect = statsv1.XrayTrafficDirectionReset_ACKNOWLEDGED
@@ -92,5 +93,4 @@ func wireDirectionReset(result traffic.DirectionReset) *statsv1.XrayTrafficDirec
 	case traffic.ResetNotAttempted:
 		reply.Effect = statsv1.XrayTrafficDirectionReset_NOT_ATTEMPTED
 	}
-	return reply
 }

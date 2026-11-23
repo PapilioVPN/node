@@ -61,7 +61,7 @@ func resetTrafficPair(service *traffic.Service) http.HandlerFunc {
 		_ = json.NewEncoder(w).Encode(struct {
 			Uplink   directionReset `json:"uplink"`
 			Downlink directionReset `json:"downlink"`
-		}{directionResponse(result.Uplink), directionResponse(result.Downlink)})
+		}{directionResponse(&result.Uplink), directionResponse(&result.Downlink)})
 	}
 }
 
@@ -70,7 +70,7 @@ type directionReset struct {
 	PreviousBytes *int64              `json:"previous_bytes,omitempty"`
 }
 
-func directionResponse(result traffic.DirectionReset) directionReset {
+func directionResponse(result *traffic.DirectionReset) directionReset {
 	reply := directionReset{Effect: result.Effect}
 	if result.Effect == traffic.ResetAcknowledged {
 		reply.PreviousBytes = &result.PreviousBytes

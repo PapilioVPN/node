@@ -37,6 +37,7 @@ func (client *Traffic) ResetScope(ctx context.Context, request traffic.ScopeRese
 			return nil, err
 		}
 	}
+	ctx = localDeadlineContext{ctx}
 	if concurrency > 1 && len(report) > 1 {
 		return report, client.resetScopeConcurrent(ctx, request.ID, conn, prefix, report, concurrency)
 	}

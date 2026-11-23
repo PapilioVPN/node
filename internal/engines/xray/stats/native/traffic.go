@@ -84,11 +84,11 @@ func (client *Traffic) List(ctx context.Context, id string, scope traffic.Scope)
 	return entries, nil
 }
 
-// The native statistics reads run without consulting their server context. The
-// deadline still bounds the local wait and cancels the native gRPC stream.
-type statsReadContext struct{ context.Context }
+// The pinned statistics handlers do not consult their server context. Keep
+// the deadline local while forwarding cancellation to the native stream.
+type localDeadlineContext struct{ context.Context }
 
-func (statsReadContext) Deadline() (time.Time, bool) { return time.Time{}, false }
+func (localDeadlineContext) Deadline() (time.Time, bool) { return time.Time{}, false }
 
 func (client *Traffic) query(ctx context.Context, id, pattern string, opts []grpc.CallOption) ([]*TrafficCounter, error) {
 	conn, err := client.instances.NativeConnection(id)
@@ -118,7 +118,7 @@ func (client *Traffic) checkConnection(id string, conn *grpc.ClientConn) error {
 
 func readTrafficCounters(ctx context.Context, conn *grpc.ClientConn, pattern string, opts []grpc.CallOption) ([]*TrafficCounter, error) {
 	var reply QueryStatsResponse
-	if err := conn.Invoke(statsReadContext{ctx}, queryStats, &QueryStatsRequest{Pattern: pattern}, &reply, opts...); err != nil {
+	if err := conn.Invoke(localDeadlineContext{ctx}, queryStats, &QueryStatsRequest{Pattern: pattern}, &reply, opts...); err != nil {
 		if cause := ctx.Err(); cause != nil {
 			return nil, cause
 		}

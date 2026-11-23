@@ -145,3 +145,39 @@ func TestConcurrentScopeResetStopsAfterFailure(t *testing.T) {
 		t.Fatalf("concurrent reset report = %+v", got)
 	}
 }
+
+func TestScopeResetKeepsCancellationWithLocalDeadline(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	defer cancel()
+	const name = "user>>>alice>>>traffic>>>uplink"
+	deadlines := make(chan bool, 1)
+	conn := startResetTestServer(t, func(_ any, stream grpc.ServerStream) error {
+		method, _ := grpc.MethodFromServerStream(stream)
+		var request ResetCounterRequest
+		if err := stream.RecvMsg(&request); err != nil {
+			return err
+		}
+		if method == queryStats {
+			return stream.SendMsg(&QueryStatsResponse{Stats: []*TrafficCounter{{Name: name}}})
+		}
+		_, hasDeadline := stream.Context().Deadline()
+		deadlines <- hasDeadline
+		cancel()
+		<-stream.Context().Done()
+		return status.FromContextError(stream.Context().Err()).Err()
+	})
+	client := NewTraffic(resetConnection{conn})
+	request := traffic.ScopeReset{ID: "primary", Scope: traffic.User, MaxCounters: 1}
+	got, err := client.ResetScope(ctx, request, 1)
+	if !errors.Is(err, context.Canceled) || !errors.Is(err, traffic.ErrResetUnknown) || len(got) != 1 || got[0].Effect != traffic.ResetUnknown {
+		t.Fatalf("canceled reset result = %+v, %v", got, err)
+	}
+	select {
+	case hasDeadline := <-deadlines:
+		if hasDeadline {
+			t.Fatal("scope reset sent the local deadline to Xray")
+		}
+	default:
+		t.Fatal("scope reset never reached the native server")
+	}
+}

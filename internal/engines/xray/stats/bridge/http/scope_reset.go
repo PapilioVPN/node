@@ -47,8 +47,9 @@ func resetTrafficScope(service *traffic.Service) http.HandlerFunc {
 			Result    directionReset    `json:"result"`
 		}
 		counters := make([]counter, len(report))
-		for i, row := range report {
-			counters[i] = counter{Name: row.Name, Direction: row.Direction, Result: directionResponse(row.DirectionReset)}
+		for i := range report {
+			row := &report[i]
+			counters[i] = counter{Name: row.Name, Direction: row.Direction, Result: directionResponse(&row.DirectionReset)}
 		}
 		_ = json.NewEncoder(w).Encode(struct {
 			Outcome  string    `json:"outcome"`
