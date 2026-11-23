@@ -29,50 +29,23 @@
 
 ## Quick start
 
-The runtime bundle targets **Linux amd64** and requires Docker and GNU coreutils.
-Download the `node-linux-amd64-<commit>` artifact for a successful
-[Checks run](https://github.com/PapilioVPN/node/actions/workflows/check.yml)
-and extract the GitHub artifact. In the directory containing the archive and
-its checksum, replace `YOUR_FULL_COMMIT_SHA` with the artifact's commit SHA.
+Download the Linux amd64 artifact from a successful [Checks run](https://github.com/PapilioVPN/node/actions/workflows/check.yml). From the extracted artifact directory, check the archive and run Node with the example settings.
 
 ```bash
-revision=YOUR_FULL_COMMIT_SHA
-archive="node-linux-amd64-$revision.tar.gz"
+archive=node-linux-amd64-YOUR_COMMIT_SHA.tar.gz
 sha256sum -c "$archive.sha256" && tar -xzf "$archive"
+cp -n node/config.example.yml config.yml
+./node/node -config config.yml
 ```
 
-After verification and extraction succeed, install the bundled image and copy
-the example settings for first-time setup.
+To run the same build in Docker, load the bundled image and mount the settings file.
 
 ```bash
-install_dir="$HOME/.local/share/papilio-node"
-config_dir="$HOME/.config/papilio-node"
-./node/install.sh "$install_dir"
-install -d -m 700 "$config_dir"
-test -f "$config_dir/config.yml" ||
-  cp "$install_dir/deploy/config.example.yml" "$config_dir/config.yml"
+docker load -i node/image.tar
+docker run --rm --network=host --read-only --cap-drop ALL \
+  --mount "type=bind,source=$PWD/config.yml,target=/config.yml,readonly" \
+  "$(cat node/image-name)"
 ```
-
-Edit `config.yml` and supply the configured certificates before starting.
-The sample enables all three transports. For HTTP-only use, remove
-`communications.grpc`, `communications.nats`, and
-`communications.requests.nats`. The sample HTTP listener binds to
-`127.0.0.1:8443`.
-
-```bash
-"$install_dir/run.sh" "$config_dir" papilio-node --network=host --detach
-docker logs papilio-node
-```
-
-Stop this example with `docker stop --time 165 papilio-node`.
-
-The runner mounts the configuration directory read-only. For Xray, add
-`instances` in [the example settings](deploy/config.example.yml) and mount
-the selected binary and configuration read-only. Give each instance its own
-private writable work directory and, if configured, a durable state directory
-owned by the Node user with mode `0700`.
-For host observations in Docker, use the explicit namespaces and mounts
-described in the example settings.
 
 <a name="current-capabilities"></a>
 
@@ -80,73 +53,19 @@ described in the example settings.
 
 | Area | Available operations |
 | --- | --- |
-| [System and Node](https://github.com/PapilioVPN/node/tree/main/internal/apps/system) | Host identity, uptime, load, CPU, memory and swap, processes, sessions and login records, sensors, filesystem and device I/O, interface counters, and Node process and resource diagnostics. |
-| [Xray instances](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/runtime/instances) | List and inspect configured instances, start, stop and restart them, and check native readiness. With durable state configured, verify and reattach healthy executions, request bounded repair, set explicit retention and manage controller leases. |
-| [Xray configuration](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/runtime/configs) | Validate and compile sources, inspect desired and applied revisions, and review, apply or recover configuration changes. |
-| [Xray inbounds](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/proxies/inbounds) | List handlers and tags, inspect summaries and compatibility, add from compiled data or sources, remove by tag, and review and execute replacement plans. |
-| [Xray outbounds](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/proxies/outbounds) | Read paginated handler snapshots, add from compiled data or sources, and remove by tag. Review replacement plans, apply supported live changes and retrieve their outcomes. Changes that need a restart use the configuration API. |
-| [Xray accounts](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/users/accounts) | Count and look up live accounts, page through credential-free metadata, explicitly export native account records, and check inbound compatibility. Add or remove accounts individually or in bounded batches, and prepare membership in compiled configuration. |
-| [Xray account sync](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/users/sync) | Preview and apply changes to selected inbound memberships, including chunked input, and read back operation results. |
-| [Xray presence](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/users/online) | Read online counts, users, records and individual users’ IP addresses. |
-| [Xray routing](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/network/routing) | List, add and remove live rules, test route selection, inspect balancers and override their target. |
-| [Xray statistics](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/runtime/statistics) | Read native runtime statistics. |
-| [Xray traffic](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/observability/traffic) | Read and reset individual counters, upload/download pairs and selected groups of counters. |
-| [Xray outbound health](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/observability/outboundhealth) | List observable outbound health results and inspect individual outbounds by tag. |
-| [Xray loggers](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/observability/loggers) | Reopen Xray loggers and inspect the outcome. |
-| [Xray console logs](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/observability/logs) | Read sanitized recent console records and follow them with a resumable cursor. Responses describe gaps, execution changes and capture limits. |
-| [Xray diagnostics](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/tools/diagnostics) | Inspect execution, configuration revisions, the selected executable and native API capabilities in one report. |
-| [Xray assets](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/tools/assets) | Inspect, stage, activate and roll back an explicitly managed Xray executable and geodata release. |
-| [Xray credential tools](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/tools/credentials) | Generate UUIDs, X25519/WireGuard and ML-DSA-65/ML-KEM-768 key material, VLESS encryption pairs, TLS certificates and ECH key sets. Hash TLS certificates. Private artifacts are returned only in the current response. |
-
-Live operations act on the running instance. Configuration operations manage
-what Xray starts with. Keep application user records and policies in the
-controller and use Node for native engine operations and configuration.
+| Node readiness | Check whether the Node management listeners are serving over HTTP and gRPC. |
 
 <a name="management"></a>
 
-Enable managed assets by setting `assets_directory` and selecting `assets_directory/current/xray` as the binary. Initialize the private directory offline using `node -config config.yml -init-xray-assets <id> -xray-distribution <directory>`. The distribution must contain a trusted `xray`, `geoip.dat` and `geosite.dat`. Use the same filesystem identity for installation and Node. Controllers with access to this feature can supply executables. Configure the request limits of the transport used to stage releases.
-
 ## Management APIs
 
-Enable the transports your controller uses. They expose versioned operations
-over the same capability services.
-
-| Transport | Runtime information example | Trust |
-| --- | --- | --- |
-| HTTP | `GET /v1/system/node/runtime` | Node verifies the controller certificate using mTLS. |
-| gRPC | `papilio.system.node.runtime.v1.NodeRuntimeService/GetNodeInfo` | Node verifies the controller certificate using mTLS. |
-| NATS | `<prefix>.system.node.runtime.info.v1.get` with an empty JSON object | The broker authenticates both parties with mTLS and limits subject access through ACLs. |
-
-Use the configured NATS prefix for requests. Keep the Xray native management
-endpoint local to Node, using a numeric loopback address or a Unix socket.
-
-From the host, verify the HTTP endpoint with a trusted controller certificate.
-Use the CA that signed the server certificate and an address in that certificate.
-
-```bash
-curl --fail --show-error --silent \
-  --cacert node-ca.crt --cert controller.crt --key controller.key \
-  https://127.0.0.1:8443/v1/system/node/runtime
-```
+The example binds both listeners to loopback. HTTP `GET /healthz` returns `204 No Content` when ready. The gRPC health service on port 8081 reports `SERVING` for the empty service name. Set `management.tls.cert_file` and `management.tls.key_file` to enable TLS. Optionally configure `management.tls.client_ca_file` for mutual TLS and `management.api_key` for the `x-api-key` header or metadata.
 
 ## Development
 
-Build with the Go version declared in [go.mod](https://github.com/PapilioVPN/node/blob/main/go.mod). Pass
-`-config /path/to/config.yml` when running the resulting binary.
+Run the checks with Go 1.26.11 or newer. The packaging command also requires Docker and curl.
 
 ```bash
-go build -trimpath -o bin/node ./cmd/node
-./bin/node -help
-go test -race ./...
+bash scripts/ci/check.sh
+bash scripts/ci/package.sh
 ```
-
-On Linux amd64, run the integration suite with the pinned Xray binary.
-
-```bash
-xray_test_binary="$(sh scripts/ci/prepare-xray.sh)" &&
-  XRAY_TEST_BINARY="$xray_test_binary" go test -race -tags=integration ./...
-```
-
-[Checks](https://github.com/PapilioVPN/node/actions/workflows/check.yml) runs source and packaging verification.
-When merging a capability, update the relevant row in all four READMEs after
-its public operations have been wired and verified.

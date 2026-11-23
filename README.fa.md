@@ -33,131 +33,46 @@
 
 ## شروع سریع
 
-بستهٔ اجرایی برای **Linux amd64** است و به Docker و GNU coreutils نیاز دارد.
-آرتیفکت `node-linux-amd64-<commit>` را از یک اجرای موفق
-[Checks](https://github.com/PapilioVPN/node/actions/workflows/check.yml)
-دانلود و فایل دریافتی از GitHub را باز کن. در پوشه‌ای که آرشیو و فایل checksum
-آن قرار دارند، به‌جای `YOUR_FULL_COMMIT_SHA` شناسهٔ کامل کامیت آرتیفکت را بگذار.
+بستهٔ Linux amd64 را از یک [اجرای موفق بررسی‌ها](https://github.com/PapilioVPN/node/actions/workflows/check.yml) بگیر. در پوشهٔ استخراج‌شدهٔ artifact، صحت آرشیو را بررسی کن و Node را با تنظیمات نمونه اجرا کن.
 
 ```bash
-revision=YOUR_FULL_COMMIT_SHA
-archive="node-linux-amd64-$revision.tar.gz"
+archive=node-linux-amd64-YOUR_COMMIT_SHA.tar.gz
 sha256sum -c "$archive.sha256" && tar -xzf "$archive"
+cp -n node/config.example.yml config.yml
+./node/node -config config.yml
 ```
 
-بعد از تأیید checksum و باز شدن آرشیو، ایمیج داخل بسته را نصب کن و برای
-راه‌اندازی اول از تنظیمات نمونه کپی بگیر.
+برای اجرای همین نسخه با Docker، تصویر همراه بسته را بارگذاری کن و فایل تنظیمات را به کانتینر بده.
 
 ```bash
-install_dir="$HOME/.local/share/papilio-node"
-config_dir="$HOME/.config/papilio-node"
-./node/install.sh "$install_dir"
-install -d -m 700 "$config_dir"
-test -f "$config_dir/config.yml" ||
-  cp "$install_dir/deploy/config.example.yml" "$config_dir/config.yml"
+docker load -i node/image.tar
+docker run --rm --network=host --read-only --cap-drop ALL \
+  --mount "type=bind,source=$PWD/config.yml,target=/config.yml,readonly" \
+  "$(cat node/image-name)"
 ```
-
-پیش از اجرا `config.yml` را ویرایش کن و گواهی‌های معرفی‌شده در تنظیمات را
-قرار بده. نمونه هر سه روش ارتباطی را فعال می‌کند. برای اجرا فقط با HTTP،
-بخش‌های `communications.grpc`، `communications.nats` و
-`communications.requests.nats` را حذف کن. آدرس شنود HTTP در نمونه
-`127.0.0.1:8443` است.
-
-```bash
-"$install_dir/run.sh" "$config_dir" papilio-node --network=host --detach
-docker logs papilio-node
-```
-
-برای توقف اجرای نمونه از `docker stop --time 165 papilio-node` استفاده کن.
-
-اسکریپت اجرا پوشهٔ تنظیمات را فقط‌خواندنی mount می‌کند. برای Xray،
-`instances` را طبق [تنظیمات نمونه](deploy/config.example.yml) تعریف کن و فایل
-اجرایی و کانفیگ انتخاب‌شده را فقط‌خواندنی mount کن. برای هر نمونه یک پوشهٔ
-کاری خصوصی و قابل‌نوشتن و در صورت پیکربندی، یک مسیر ماندگار خصوصی برای
-وضعیت آن تعیین کن. مالک پوشهٔ وضعیت باید کاربر اجرای Node و سطح دسترسی آن
-باید `0700` باشد. برای دیدن اطلاعات میزبان از داخل Docker، namespaceها و
-mountهای صریح توضیح‌داده‌شده در نمونه را به‌کار ببر.
 
 <a name="capabilities"></a>
-
 <a name="current-capabilities"></a>
 
 ## قابلیت‌ها
 
-| بخش | عملیات قابل استفاده |
+| بخش | عملیات در دسترس |
 | --- | --- |
-| [سیستم و Node](https://github.com/PapilioVPN/node/tree/main/internal/apps/system) | هویت میزبان، زمان کارکرد، بار، CPU، حافظه و swap، پردازش‌ها، نشست‌ها و سوابق ورود، حسگرها، فایل‌سیستم و ورودی‌وخروجی دیسک، شمارنده‌های رابط شبکه و عیب‌یابی پردازش و منابع Node. |
-| [نمونه‌های Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/runtime/instances) | فهرست و وضعیت نمونه‌ها، شروع، توقف، راه‌اندازی مجدد و بررسی آمادگی بومی. با تنظیم مسیر ماندگار، تأیید و اتصال مجدد به پردازش سالم، بازیابی با تعداد تلاش محدود، تعیین حفظ پردازش هنگام توقف و مدیریت lease کنترلر. |
-| [تنظیمات Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/runtime/configs) | اعتبارسنجی و کامپایل سورس‌ها، مشاهدهٔ نسخه‌های مطلوب و اعمال‌شده، و بازبینی، اعمال یا بازیابی تغییرات کانفیگ. |
-| [ورودی‌های Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/proxies/inbounds) | فهرست handlerها و tagها، خلاصه و سازگاری ورودی‌ها، افزودن از دادهٔ کامپایل‌شده یا سورس، حذف با tag و بازبینی و اجرای طرح جایگزینی. |
-| [خروجی‌های Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/proxies/outbounds) | فهرست صفحه‌بندی‌شدهٔ handlerها، افزودن از دادهٔ کامپایل‌شده یا سورس و حذف با tag. بازبینی طرح جایگزینی، اعمال تغییر زندهٔ پشتیبانی‌شده و خواندن نتیجه. تغییرهای نیازمند راه‌اندازی مجدد از API تنظیمات اعمال می‌شوند. |
-| [حساب‌های Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/users/accounts) | شمارش و جست‌وجوی حساب‌های موتور، فهرست صفحه‌بندی‌شدهٔ مشخصات بدون دادهٔ محرمانه، خروجی صریح رکوردهای بومی و بررسی سازگاری ورودی. افزودن و حذف تکی یا گروهی با سقف مشخص و آماده‌سازی اعضا در کانفیگ کامپایل‌شده. |
-| [همگام‌سازی حساب‌های Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/users/sync) | پیش‌نمایش و اعمال تغییر اعضای ورودی‌های منتخب، ارسال ورودی در چند قطعه و خواندن نتیجهٔ عملیات. |
-| [حضور آنلاین در Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/users/online) | مشاهدهٔ شمارش، کاربران و رکوردهای آنلاین و IPهای هر کاربر. |
-| [مسیریابی Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/network/routing) | فهرست‌کردن، افزودن و حذف قوانین زنده، آزمایش انتخاب مسیر، خواندن وضعیت balancer و تعیین مقصد آن. |
-| [آمار Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/runtime/statistics) | خواندن آمار اجرایی بومی موتور. |
-| [ترافیک Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/observability/traffic) | خواندن و بازنشانی شمارنده‌های تکی، جفت ارسال و دریافت و مجموعهٔ شمارنده‌های انتخاب‌شده. |
-| [سلامت خروجی‌های Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/observability/outboundhealth) | فهرست نتایج قابل مشاهدهٔ سلامت و بررسی یک خروجی با tag. |
-| [Loggerهای Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/observability/loggers) | بازکردن مجدد loggerهای Xray و مشاهدهٔ نتیجهٔ عملیات. |
-| [لاگ کنسول Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/observability/logs) | خواندن لاگ‌های اخیر کنسول با حذف دادهٔ حساس و ادامهٔ دریافت از موقعیت ثبت‌شده. پاسخ، شکاف‌ها، تغییر اجرای موتور و سقف ثبت لاگ را گزارش می‌کند. |
-| [عیب‌یابی Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/tools/diagnostics) | وضعیت اجرا، نسخه‌های کانفیگ، نسخهٔ فایل اجرایی و قابلیت‌های API بومی را در یک گزارش ببین. |
-| [فایل‌های اجرایی و دادهٔ جغرافیایی Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/tools/assets) | مشاهده، آماده‌سازی، فعال‌سازی و بازگشت به نسخهٔ قبلی فایل اجرایی و داده‌های جغرافیایی مدیریت‌شده. |
-| [ابزارهای کلید و گواهی Xray](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/tools/credentials) | تولید UUID، کلیدهای X25519 و WireGuard، مواد کلید ML-DSA-65 و ML-KEM-768، جفت رمزنگاری VLESS، گواهی TLS و مجموعه‌کلید ECH. محاسبهٔ هش گواهی TLS. مواد خصوصی فقط در همان پاسخ برمی‌گردند. |
-
-عملیات زنده روی نمونهٔ در حال اجرا اثر می‌گذارد. عملیات کانفیگ تعیین
-می‌کند Xray با چه تنظیماتی شروع شود. سوابق کاربران محصول و سیاست‌هایشان
-در کنترلر می‌ماند و Node عملیات بومی موتور و مدیریت کانفیگ را ارائه می‌دهد.
+| آمادگی Node | بررسی آمادگی رابط‌های مدیریتی Node از طریق HTTP و gRPC. |
 
 <a name="management"></a>
 
-برای مدیریت این فایل‌ها، `assets_directory` را تنظیم کن و مسیر فایل اجرایی را روی `assets_directory/current/xray` بگذار. پوشهٔ خصوصی را در حالت آفلاین با `node -config config.yml -init-xray-assets <id> -xray-distribution <directory>` راه‌اندازی کن. این توزیع باید شامل `xray`، `geoip.dat` و `geosite.dat` معتبر باشد. نصب و اجرای Node را با یک شناسهٔ کاربری انجام بده. کنترلرهای مجاز این قابلیت می‌توانند فایل اجرایی ارسال کنند. سقف درخواست transport مورد استفاده برای ارسال نسخه‌ها را متناسب تنظیم کن.
-
 ## رابط‌های مدیریتی
 
-روش‌هایی را فعال کن که کنترلر استفاده می‌کند. هر سه رابط عملیات نسخه‌بندی‌شدهٔ
-همان سرویس‌های Node را ارائه می‌دهند.
-
-| روش | نمونهٔ خواندن اطلاعات اجرایی | کنترل دسترسی |
-| --- | --- | --- |
-| HTTP | `GET /v1/system/node/runtime` | Node گواهی کنترلر را با mTLS اعتبارسنجی می‌کند. |
-| gRPC | `papilio.system.node.runtime.v1.NodeRuntimeService/GetNodeInfo` | Node گواهی کنترلر را با mTLS اعتبارسنجی می‌کند. |
-| NATS | `<prefix>.system.node.runtime.info.v1.get` با یک شیء خالی JSON | کارگزار هر دو طرف را با mTLS احراز هویت می‌کند و دسترسی به subjectها را با ACL محدود می‌کند. |
-
-برای درخواست‌های NATS از پیشوند تعریف‌شده در تنظیمات استفاده کن.
-رابط مدیریتی بومی Xray را در دسترس محلی Node نگه دار و برای آن از
-آدرس عددی loopback یا سوکت Unix استفاده کن.
-
-از میزبان، مسیر HTTP را با گواهی معتبر کنترلر بررسی کن. از CA امضاکنندهٔ
-گواهی سرور و آدرسی استفاده کن که در همان گواهی آمده است.
-
-```bash
-curl --fail --show-error --silent \
-  --cacert node-ca.crt --cert controller.crt --key controller.key \
-  https://127.0.0.1:8443/v1/system/node/runtime
-```
+در نمونه، هر دو listener روی loopback باز می‌شوند. درخواست HTTP به `GET /healthz` هنگام آمادگی پاسخ `204 No Content` دارد. سرویس health در gRPC روی پورت 8081 برای نام سرویس خالی وضعیت `SERVING` را می‌دهد. برای فعال‌کردن TLS، فیلدهای `management.tls.cert_file` و `management.tls.key_file` را تنظیم کن. فیلد `management.tls.client_ca_file` برای mTLS و `management.api_key` برای هدر یا متادیتای `x-api-key` اختیاری‌اند.
 
 <a name="development"></a>
 
 ## توسعه
 
-برای ساخت از نسخهٔ Go ثبت‌شده در [go.mod](https://github.com/PapilioVPN/node/blob/main/go.mod) استفاده کن. برای اجرای
-برنامهٔ ساخته‌شده، مسیر تنظیمات را با `-config /path/to/config.yml` بده.
+بررسی‌ها را با Go نسخهٔ 1.26.11 یا جدیدتر اجرا کن. بسته‌بندی به Docker و curl هم نیاز دارد.
 
 ```bash
-go build -trimpath -o bin/node ./cmd/node
-./bin/node -help
-go test -race ./...
+bash scripts/ci/check.sh
+bash scripts/ci/package.sh
 ```
-
-در Linux amd64 تست‌های یکپارچه را با نسخهٔ پین‌شدهٔ Xray اجرا کن.
-
-```bash
-xray_test_binary="$(sh scripts/ci/prepare-xray.sh)" &&
-  XRAY_TEST_BINARY="$xray_test_binary" go test -race -tags=integration ./...
-```
-
-[Checks](https://github.com/PapilioVPN/node/actions/workflows/check.yml) کد و بستهٔ اجرایی را بررسی می‌کند.
-هنگام ادغام هر قابلیت، پس از اتصال و بررسی عملیات عمومی آن، ردیف مربوط
-را در هر چهار README به‌روز کن.
-
-</div>

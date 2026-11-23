@@ -31,116 +31,46 @@
 
 ## 快速开始
 
-运行包适用于 **Linux amd64**，需要 Docker 和 GNU coreutils。打开一次成功的
-[Checks 运行](https://github.com/PapilioVPN/node/actions/workflows/check.yml)，
-下载 `node-linux-amd64-<commit>` 构建产物并解压 GitHub 下载文件。在归档文件和
-校验和文件所在目录中，将 `YOUR_FULL_COMMIT_SHA` 替换为该构建产物对应的完整提交 SHA。
+从成功的[检查工作流](https://github.com/PapilioVPN/node/actions/workflows/check.yml)下载 Linux amd64 构件。在解压后的构件目录中校验归档文件，然后使用示例配置启动 Node。
 
 ```bash
-revision=YOUR_FULL_COMMIT_SHA
-archive="node-linux-amd64-$revision.tar.gz"
+archive=node-linux-amd64-YOUR_COMMIT_SHA.tar.gz
 sha256sum -c "$archive.sha256" && tar -xzf "$archive"
+cp -n node/config.example.yml config.yml
+./node/node -config config.yml
 ```
 
-校验并解压成功后，安装包内提供的镜像，并为首次启动复制示例配置。
+如需通过 Docker 运行同一构建，请加载随包提供的镜像并挂载配置文件。
 
 ```bash
-install_dir="$HOME/.local/share/papilio-node"
-config_dir="$HOME/.config/papilio-node"
-./node/install.sh "$install_dir"
-install -d -m 700 "$config_dir"
-test -f "$config_dir/config.yml" ||
-  cp "$install_dir/deploy/config.example.yml" "$config_dir/config.yml"
+docker load -i node/image.tar
+docker run --rm --network=host --read-only --cap-drop ALL \
+  --mount "type=bind,source=$PWD/config.yml,target=/config.yml,readonly" \
+  "$(cat node/image-name)"
 ```
-
-启动之前，编辑 `config.yml` 并放置配置所需的证书。示例启用了三种通信方式。
-如只使用 HTTP，请移除 `communications.grpc`、`communications.nats` 和
-`communications.requests.nats`。示例中的 HTTP 监听地址为 `127.0.0.1:8443`。
-
-```bash
-"$install_dir/run.sh" "$config_dir" papilio-node --network=host --detach
-docker logs papilio-node
-```
-
-使用 `docker stop --time 165 papilio-node` 停止示例容器。
-
-启动脚本以只读方式挂载配置目录。要运行 Xray，请参照[示例配置](deploy/config.example.yml)
-添加 `instances`，并以只读方式挂载所选的可执行文件和配置。每个实例应拥有独立的
-私有可写工作目录，并可按需配置独立的私有持久化状态目录。状态目录应归 Node 运行用户所有，权限为 `0700`。要在 Docker 中采集宿主机
-信息，请使用示例中明确列出的命名空间和挂载参数。
 
 <a name="capabilities"></a>
+<a name="current-capabilities"></a>
 
 ## 功能
 
 | 模块 | 可用操作 |
 | --- | --- |
-| [系统与 Node](https://github.com/PapilioVPN/node/tree/main/internal/apps/system) | 主机标识、运行时长、负载、CPU、内存和交换空间、进程、会话与登录记录、传感器、文件系统和设备 I/O、网络接口计数器，以及 Node 进程与资源诊断。 |
-| [Xray 实例](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/runtime/instances) | 列出已配置的实例，查看状态，启动、停止和重启实例，并检查原生就绪状态。配置持久化状态后，可验证并重新接管健康进程，执行限次修复，明确设置进程保留策略并管理控制器租约。 |
-| [Xray 配置](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/runtime/configs) | 验证并编译配置源，查看期望和已应用的修订版本，以及预览、应用或恢复配置变更。 |
-| [Xray 入站](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/proxies/inbounds) | 列出处理器和标签，查看摘要及兼容性，从编译数据或配置源添加，按标签删除，以及审查并执行替换计划。 |
-| [Xray 出站](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/proxies/outbounds) | 分页读取处理器快照，从编译数据或配置源添加，以及按标签删除。审查替换计划，应用支持的在线变更并查看结果。需要重启的变更通过配置 API 应用。 |
-| [Xray 账户](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/users/accounts) | 统计和查找运行中的账户，分页查看不含凭据的元数据，显式导出原生账户记录，并检查入站兼容性。支持单个或限量批量增删，并为编译后的配置准备账户成员列表。 |
-| [Xray 账户同步](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/users/sync) | 预览并应用选定入站的成员变更，支持分块提交和读取操作结果。 |
-| [Xray 在线状态](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/users/online) | 查看在线人数、用户、记录以及单个用户的 IP 地址。 |
-| [Xray 路由](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/network/routing) | 列出、添加和删除运行中的路由规则，测试路由选择，查看负载均衡器状态并覆盖其目标。 |
-| [Xray 统计](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/runtime/statistics) | 读取引擎的原生运行统计。 |
-| [Xray 流量](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/observability/traffic) | 读取和重置单项计数器、收发计数对及选定的计数器组。 |
-| [Xray 出站健康](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/observability/outboundhealth) | 列出可观测的出站健康结果，也可按出站标签查询。 |
-| [Xray 日志记录器](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/observability/loggers) | 重新打开 Xray 日志记录器并查看操作结果。 |
-| [Xray 控制台日志](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/observability/logs) | 读取脱敏后的近期控制台记录，并通过游标继续获取。响应会报告缺口、执行实例变更和采集上限。 |
-| [Xray 诊断](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/tools/diagnostics) | 通过一份报告查看运行状态、配置修订、可执行文件版本及原生 API 能力。 |
-| [Xray 资源](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/tools/assets) | 查看、暂存、启用及回滚托管的 Xray 可执行文件和地理数据。 |
-| [Xray 凭据工具](https://github.com/PapilioVPN/node/tree/main/internal/apps/xray/tools/credentials) | 生成 UUID、X25519/WireGuard 和 ML-DSA-65/ML-KEM-768 密钥材料、VLESS 加密对、TLS 证书和 ECH 密钥集，并计算 TLS 证书哈希。私密材料仅在当前响应中返回。 |
-
-在线操作作用于运行中的实例，配置操作决定 Xray 启动时使用的设置。
-控制器负责维护应用用户数据和策略，Node 提供引擎的原生操作和配置管理。
+| Node 就绪状态 | 通过 HTTP 和 gRPC 检查 Node 管理接口是否就绪。 |
 
 <a name="management"></a>
 
-启用资源管理时，请设置 `assets_directory` 并指定 `assets_directory/current/xray` 为二进制路径。在 Node 停止时运行 `node -config config.yml -init-xray-assets <id> -xray-distribution <directory>` 初始化私有目录。发行包必须包含可信的 `xray`、`geoip.dat` 和 `geosite.dat`。安装与运行 Node 须使用同一用户。具备此功能访问权限的控制器可以上传可执行文件。请配置上传所用传输协议的请求大小上限。
-
 ## 管理 API
 
-按控制器的需要启用通信方式。三种方式均提供同一套 Node 服务的版本化操作。
-
-| 方式 | 查询 Node 运行时信息 | 信任机制 |
-| --- | --- | --- |
-| HTTP | `GET /v1/system/node/runtime` | Node 通过 mTLS 验证控制器证书。 |
-| gRPC | `papilio.system.node.runtime.v1.NodeRuntimeService/GetNodeInfo` | Node 通过 mTLS 验证控制器证书。 |
-| NATS | 向 `<prefix>.system.node.runtime.info.v1.get` 发送空 JSON 对象 | Broker 通过 mTLS 验证双方，并使用 ACL 限制主题访问。 |
-
-NATS 请求使用配置中指定的主题前缀。请将 Xray 原生管理端点限制在 Node 本地，
-使用数字形式的回环地址或 Unix 套接字。
-
-在宿主机上使用受信任的控制器证书检查 HTTP 接口。请使用签发服务端证书的 CA，
-以及该证书中列出的地址。
-
-```bash
-curl --fail --show-error --silent \
-  --cacert node-ca.crt --cert controller.crt --key controller.key \
-  https://127.0.0.1:8443/v1/system/node/runtime
-```
+示例中的两个监听端口都绑定到环回地址。Node 就绪时，HTTP `GET /healthz` 返回 `204 No Content`。端口 8081 上的 gRPC 健康检查对空服务名返回 `SERVING`。设置 `management.tls.cert_file` 和 `management.tls.key_file` 可启用 TLS。可选项 `management.tls.client_ca_file` 启用 mTLS，`management.api_key` 用于 `x-api-key` 请求头或元数据。
 
 <a name="development"></a>
 
 ## 开发
 
-使用 [go.mod](https://github.com/PapilioVPN/node/blob/main/go.mod) 中声明的 Go 版本构建。运行生成的程序时，通过
-`-config /path/to/config.yml` 指定配置文件。
+使用 Go 1.26.11 或更高版本运行检查。打包还需要 Docker 和 curl。
 
 ```bash
-go build -trimpath -o bin/node ./cmd/node
-./bin/node -help
-go test -race ./...
+bash scripts/ci/check.sh
+bash scripts/ci/package.sh
 ```
-
-在 Linux amd64 上，使用锁定版本的 Xray 运行集成测试。
-
-```bash
-xray_test_binary="$(sh scripts/ci/prepare-xray.sh)" &&
-  XRAY_TEST_BINARY="$xray_test_binary" go test -race -tags=integration ./...
-```
-
-[Checks](https://github.com/PapilioVPN/node/actions/workflows/check.yml) 验证源代码和运行包。合并新功能时，
-接入并验证公开操作后，请同步更新四个 README 中相应的功能说明。
