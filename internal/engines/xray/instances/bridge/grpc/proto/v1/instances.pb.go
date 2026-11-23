@@ -9,6 +9,7 @@ package instancesv1
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -79,14 +80,72 @@ func (XrayInstanceState) EnumDescriptor() ([]byte, []int) {
 	return file_proto_v1_instances_proto_rawDescGZIP(), []int{0}
 }
 
+type XrayStartAction int32
+
+const (
+	XrayStartAction_XRAY_START_ACTION_UNSPECIFIED XrayStartAction = 0
+	XrayStartAction_XRAY_START_ACTION_STARTED     XrayStartAction = 1
+	XrayStartAction_XRAY_START_ACTION_HEARTBEAT   XrayStartAction = 2
+	XrayStartAction_XRAY_START_ACTION_RESTARTED   XrayStartAction = 3
+	XrayStartAction_XRAY_START_ACTION_RECOVERED   XrayStartAction = 4
+)
+
+// Enum value maps for XrayStartAction.
+var (
+	XrayStartAction_name = map[int32]string{
+		0: "XRAY_START_ACTION_UNSPECIFIED",
+		1: "XRAY_START_ACTION_STARTED",
+		2: "XRAY_START_ACTION_HEARTBEAT",
+		3: "XRAY_START_ACTION_RESTARTED",
+		4: "XRAY_START_ACTION_RECOVERED",
+	}
+	XrayStartAction_value = map[string]int32{
+		"XRAY_START_ACTION_UNSPECIFIED": 0,
+		"XRAY_START_ACTION_STARTED":     1,
+		"XRAY_START_ACTION_HEARTBEAT":   2,
+		"XRAY_START_ACTION_RESTARTED":   3,
+		"XRAY_START_ACTION_RECOVERED":   4,
+	}
+)
+
+func (x XrayStartAction) Enum() *XrayStartAction {
+	p := new(XrayStartAction)
+	*p = x
+	return p
+}
+
+func (x XrayStartAction) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (XrayStartAction) Descriptor() protoreflect.EnumDescriptor {
+	return file_proto_v1_instances_proto_enumTypes[1].Descriptor()
+}
+
+func (XrayStartAction) Type() protoreflect.EnumType {
+	return &file_proto_v1_instances_proto_enumTypes[1]
+}
+
+func (x XrayStartAction) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use XrayStartAction.Descriptor instead.
+func (XrayStartAction) EnumDescriptor() ([]byte, []int) {
+	return file_proto_v1_instances_proto_rawDescGZIP(), []int{1}
+}
+
 type XrayStartFailureReason int32
 
 const (
-	XrayStartFailureReason_XRAY_START_FAILURE_REASON_UNSPECIFIED         XrayStartFailureReason = 0
-	XrayStartFailureReason_XRAY_START_FAILURE_REASON_LAUNCH_FAILED       XrayStartFailureReason = 1
-	XrayStartFailureReason_XRAY_START_FAILURE_REASON_EXITED_BEFORE_READY XrayStartFailureReason = 2
-	XrayStartFailureReason_XRAY_START_FAILURE_REASON_READINESS_TIMEOUT   XrayStartFailureReason = 3
-	XrayStartFailureReason_XRAY_START_FAILURE_REASON_READINESS_FAILED    XrayStartFailureReason = 4
+	XrayStartFailureReason_XRAY_START_FAILURE_REASON_UNSPECIFIED             XrayStartFailureReason = 0
+	XrayStartFailureReason_XRAY_START_FAILURE_REASON_LAUNCH_FAILED           XrayStartFailureReason = 1
+	XrayStartFailureReason_XRAY_START_FAILURE_REASON_EXITED_BEFORE_READY     XrayStartFailureReason = 2
+	XrayStartFailureReason_XRAY_START_FAILURE_REASON_READINESS_TIMEOUT       XrayStartFailureReason = 3
+	XrayStartFailureReason_XRAY_START_FAILURE_REASON_READINESS_FAILED        XrayStartFailureReason = 4
+	XrayStartFailureReason_XRAY_START_FAILURE_REASON_CONFIG_REJECTED         XrayStartFailureReason = 5
+	XrayStartFailureReason_XRAY_START_FAILURE_REASON_CONFIG_CHECK_FAILED     XrayStartFailureReason = 6
+	XrayStartFailureReason_XRAY_START_FAILURE_REASON_INITIAL_ACCOUNTS_FAILED XrayStartFailureReason = 7
 )
 
 // Enum value maps for XrayStartFailureReason.
@@ -97,13 +156,19 @@ var (
 		2: "XRAY_START_FAILURE_REASON_EXITED_BEFORE_READY",
 		3: "XRAY_START_FAILURE_REASON_READINESS_TIMEOUT",
 		4: "XRAY_START_FAILURE_REASON_READINESS_FAILED",
+		5: "XRAY_START_FAILURE_REASON_CONFIG_REJECTED",
+		6: "XRAY_START_FAILURE_REASON_CONFIG_CHECK_FAILED",
+		7: "XRAY_START_FAILURE_REASON_INITIAL_ACCOUNTS_FAILED",
 	}
 	XrayStartFailureReason_value = map[string]int32{
-		"XRAY_START_FAILURE_REASON_UNSPECIFIED":         0,
-		"XRAY_START_FAILURE_REASON_LAUNCH_FAILED":       1,
-		"XRAY_START_FAILURE_REASON_EXITED_BEFORE_READY": 2,
-		"XRAY_START_FAILURE_REASON_READINESS_TIMEOUT":   3,
-		"XRAY_START_FAILURE_REASON_READINESS_FAILED":    4,
+		"XRAY_START_FAILURE_REASON_UNSPECIFIED":             0,
+		"XRAY_START_FAILURE_REASON_LAUNCH_FAILED":           1,
+		"XRAY_START_FAILURE_REASON_EXITED_BEFORE_READY":     2,
+		"XRAY_START_FAILURE_REASON_READINESS_TIMEOUT":       3,
+		"XRAY_START_FAILURE_REASON_READINESS_FAILED":        4,
+		"XRAY_START_FAILURE_REASON_CONFIG_REJECTED":         5,
+		"XRAY_START_FAILURE_REASON_CONFIG_CHECK_FAILED":     6,
+		"XRAY_START_FAILURE_REASON_INITIAL_ACCOUNTS_FAILED": 7,
 	}
 )
 
@@ -118,11 +183,11 @@ func (x XrayStartFailureReason) String() string {
 }
 
 func (XrayStartFailureReason) Descriptor() protoreflect.EnumDescriptor {
-	return file_proto_v1_instances_proto_enumTypes[1].Descriptor()
+	return file_proto_v1_instances_proto_enumTypes[2].Descriptor()
 }
 
 func (XrayStartFailureReason) Type() protoreflect.EnumType {
-	return &file_proto_v1_instances_proto_enumTypes[1]
+	return &file_proto_v1_instances_proto_enumTypes[2]
 }
 
 func (x XrayStartFailureReason) Number() protoreflect.EnumNumber {
@@ -131,14 +196,20 @@ func (x XrayStartFailureReason) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use XrayStartFailureReason.Descriptor instead.
 func (XrayStartFailureReason) EnumDescriptor() ([]byte, []int) {
-	return file_proto_v1_instances_proto_rawDescGZIP(), []int{1}
+	return file_proto_v1_instances_proto_rawDescGZIP(), []int{2}
 }
 
 type XrayInstanceRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Id    string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// Start-only fields. GetStatus and Stop require only id.
+	ConfigJson      []byte                     `protobuf:"bytes,2,opt,name=config_json,json=configJson,proto3,oneof" json:"config_json,omitempty"`
+	InitialUsers    []*XrayInitialInboundUsers `protobuf:"bytes,3,rep,name=initial_users,json=initialUsers,proto3" json:"initial_users,omitempty"`
+	ExcludeInbounds []string                   `protobuf:"bytes,4,rep,name=exclude_inbounds,json=excludeInbounds,proto3" json:"exclude_inbounds,omitempty"`
+	// Omission keeps the current interval. Zero disables expiry.
+	KeepAliveSeconds *uint32 `protobuf:"varint,5,opt,name=keep_alive_seconds,json=keepAliveSeconds,proto3,oneof" json:"keep_alive_seconds,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *XrayInstanceRequest) Reset() {
@@ -178,20 +249,155 @@ func (x *XrayInstanceRequest) GetId() string {
 	return ""
 }
 
+func (x *XrayInstanceRequest) GetConfigJson() []byte {
+	if x != nil {
+		return x.ConfigJson
+	}
+	return nil
+}
+
+func (x *XrayInstanceRequest) GetInitialUsers() []*XrayInitialInboundUsers {
+	if x != nil {
+		return x.InitialUsers
+	}
+	return nil
+}
+
+func (x *XrayInstanceRequest) GetExcludeInbounds() []string {
+	if x != nil {
+		return x.ExcludeInbounds
+	}
+	return nil
+}
+
+func (x *XrayInstanceRequest) GetKeepAliveSeconds() uint32 {
+	if x != nil && x.KeepAliveSeconds != nil {
+		return *x.KeepAliveSeconds
+	}
+	return 0
+}
+
+type XrayInitialInboundUsers struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	InboundTag    string                 `protobuf:"bytes,1,opt,name=inbound_tag,json=inboundTag,proto3" json:"inbound_tag,omitempty"`
+	Accounts      []*XrayInitialAccount  `protobuf:"bytes,2,rep,name=accounts,proto3" json:"accounts,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *XrayInitialInboundUsers) Reset() {
+	*x = XrayInitialInboundUsers{}
+	mi := &file_proto_v1_instances_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *XrayInitialInboundUsers) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*XrayInitialInboundUsers) ProtoMessage() {}
+
+func (x *XrayInitialInboundUsers) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_v1_instances_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use XrayInitialInboundUsers.ProtoReflect.Descriptor instead.
+func (*XrayInitialInboundUsers) Descriptor() ([]byte, []int) {
+	return file_proto_v1_instances_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *XrayInitialInboundUsers) GetInboundTag() string {
+	if x != nil {
+		return x.InboundTag
+	}
+	return ""
+}
+
+func (x *XrayInitialInboundUsers) GetAccounts() []*XrayInitialAccount {
+	if x != nil {
+		return x.Accounts
+	}
+	return nil
+}
+
+type XrayInitialAccount struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Email         string                 `protobuf:"bytes,1,opt,name=email,proto3" json:"email,omitempty"`
+	Uuid          string                 `protobuf:"bytes,2,opt,name=uuid,proto3" json:"uuid,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *XrayInitialAccount) Reset() {
+	*x = XrayInitialAccount{}
+	mi := &file_proto_v1_instances_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *XrayInitialAccount) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*XrayInitialAccount) ProtoMessage() {}
+
+func (x *XrayInitialAccount) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_v1_instances_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use XrayInitialAccount.ProtoReflect.Descriptor instead.
+func (*XrayInitialAccount) Descriptor() ([]byte, []int) {
+	return file_proto_v1_instances_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *XrayInitialAccount) GetEmail() string {
+	if x != nil {
+		return x.Email
+	}
+	return ""
+}
+
+func (x *XrayInitialAccount) GetUuid() string {
+	if x != nil {
+		return x.Uuid
+	}
+	return ""
+}
+
 type XrayInstanceStatus struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	Id    string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	State XrayInstanceState      `protobuf:"varint,2,opt,name=state,proto3,enum=papiliovpn.node.v1.XrayInstanceState" json:"state,omitempty"`
 	// Version reported by the executable for the current child, when available.
-	XrayVersion   string `protobuf:"bytes,3,opt,name=xray_version,json=xrayVersion,proto3" json:"xray_version,omitempty"`
-	NodeVersion   string `protobuf:"bytes,4,opt,name=node_version,json=nodeVersion,proto3" json:"node_version,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	XrayVersion string `protobuf:"bytes,3,opt,name=xray_version,json=xrayVersion,proto3" json:"xray_version,omitempty"`
+	NodeVersion string `protobuf:"bytes,4,opt,name=node_version,json=nodeVersion,proto3" json:"node_version,omitempty"`
+	// Populated by Start. On error, this is the action attempted.
+	StartAction        XrayStartAction        `protobuf:"varint,5,opt,name=start_action,json=startAction,proto3,enum=papiliovpn.node.v1.XrayStartAction" json:"start_action,omitempty"`
+	KeepAliveExpiresAt *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=keep_alive_expires_at,json=keepAliveExpiresAt,proto3" json:"keep_alive_expires_at,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *XrayInstanceStatus) Reset() {
 	*x = XrayInstanceStatus{}
-	mi := &file_proto_v1_instances_proto_msgTypes[1]
+	mi := &file_proto_v1_instances_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -203,7 +409,7 @@ func (x *XrayInstanceStatus) String() string {
 func (*XrayInstanceStatus) ProtoMessage() {}
 
 func (x *XrayInstanceStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_v1_instances_proto_msgTypes[1]
+	mi := &file_proto_v1_instances_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -216,7 +422,7 @@ func (x *XrayInstanceStatus) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use XrayInstanceStatus.ProtoReflect.Descriptor instead.
 func (*XrayInstanceStatus) Descriptor() ([]byte, []int) {
-	return file_proto_v1_instances_proto_rawDescGZIP(), []int{1}
+	return file_proto_v1_instances_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *XrayInstanceStatus) GetId() string {
@@ -247,18 +453,33 @@ func (x *XrayInstanceStatus) GetNodeVersion() string {
 	return ""
 }
 
+func (x *XrayInstanceStatus) GetStartAction() XrayStartAction {
+	if x != nil {
+		return x.StartAction
+	}
+	return XrayStartAction_XRAY_START_ACTION_UNSPECIFIED
+}
+
+func (x *XrayInstanceStatus) GetKeepAliveExpiresAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.KeepAliveExpiresAt
+	}
+	return nil
+}
+
 type XrayStartFailure struct {
 	state  protoimpl.MessageState `protogen:"open.v1"`
 	Reason XrayStartFailureReason `protobuf:"varint,1,opt,name=reason,proto3,enum=papiliovpn.node.v1.XrayStartFailureReason" json:"reason,omitempty"`
 	// Present when Xray exited normally before readiness and reported a code.
-	ExitCode      *int32 `protobuf:"varint,2,opt,name=exit_code,json=exitCode,proto3,oneof" json:"exit_code,omitempty"`
+	ExitCode      *int32              `protobuf:"varint,2,opt,name=exit_code,json=exitCode,proto3,oneof" json:"exit_code,omitempty"`
+	Status        *XrayInstanceStatus `protobuf:"bytes,3,opt,name=status,proto3" json:"status,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *XrayStartFailure) Reset() {
 	*x = XrayStartFailure{}
-	mi := &file_proto_v1_instances_proto_msgTypes[2]
+	mi := &file_proto_v1_instances_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -270,7 +491,7 @@ func (x *XrayStartFailure) String() string {
 func (*XrayStartFailure) ProtoMessage() {}
 
 func (x *XrayStartFailure) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_v1_instances_proto_msgTypes[2]
+	mi := &file_proto_v1_instances_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -283,7 +504,7 @@ func (x *XrayStartFailure) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use XrayStartFailure.ProtoReflect.Descriptor instead.
 func (*XrayStartFailure) Descriptor() ([]byte, []int) {
-	return file_proto_v1_instances_proto_rawDescGZIP(), []int{2}
+	return file_proto_v1_instances_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *XrayStartFailure) GetReason() XrayStartFailureReason {
@@ -300,21 +521,45 @@ func (x *XrayStartFailure) GetExitCode() int32 {
 	return 0
 }
 
+func (x *XrayStartFailure) GetStatus() *XrayInstanceStatus {
+	if x != nil {
+		return x.Status
+	}
+	return nil
+}
+
 var File_proto_v1_instances_proto protoreflect.FileDescriptor
 
 const file_proto_v1_instances_proto_rawDesc = "" +
 	"\n" +
-	"\x18proto/v1/instances.proto\x12\x12papiliovpn.node.v1\"%\n" +
+	"\x18proto/v1/instances.proto\x12\x12papiliovpn.node.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xa2\x02\n" +
 	"\x13XrayInstanceRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"\xa7\x01\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12$\n" +
+	"\vconfig_json\x18\x02 \x01(\fH\x00R\n" +
+	"configJson\x88\x01\x01\x12P\n" +
+	"\rinitial_users\x18\x03 \x03(\v2+.papiliovpn.node.v1.XrayInitialInboundUsersR\finitialUsers\x12)\n" +
+	"\x10exclude_inbounds\x18\x04 \x03(\tR\x0fexcludeInbounds\x121\n" +
+	"\x12keep_alive_seconds\x18\x05 \x01(\rH\x01R\x10keepAliveSeconds\x88\x01\x01B\x0e\n" +
+	"\f_config_jsonB\x15\n" +
+	"\x13_keep_alive_seconds\"~\n" +
+	"\x17XrayInitialInboundUsers\x12\x1f\n" +
+	"\vinbound_tag\x18\x01 \x01(\tR\n" +
+	"inboundTag\x12B\n" +
+	"\baccounts\x18\x02 \x03(\v2&.papiliovpn.node.v1.XrayInitialAccountR\baccounts\">\n" +
+	"\x12XrayInitialAccount\x12\x14\n" +
+	"\x05email\x18\x01 \x01(\tR\x05email\x12\x12\n" +
+	"\x04uuid\x18\x02 \x01(\tR\x04uuid\"\xbe\x02\n" +
 	"\x12XrayInstanceStatus\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12;\n" +
 	"\x05state\x18\x02 \x01(\x0e2%.papiliovpn.node.v1.XrayInstanceStateR\x05state\x12!\n" +
 	"\fxray_version\x18\x03 \x01(\tR\vxrayVersion\x12!\n" +
-	"\fnode_version\x18\x04 \x01(\tR\vnodeVersion\"\x86\x01\n" +
+	"\fnode_version\x18\x04 \x01(\tR\vnodeVersion\x12F\n" +
+	"\fstart_action\x18\x05 \x01(\x0e2#.papiliovpn.node.v1.XrayStartActionR\vstartAction\x12M\n" +
+	"\x15keep_alive_expires_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\x12keepAliveExpiresAt\"\xc6\x01\n" +
 	"\x10XrayStartFailure\x12B\n" +
 	"\x06reason\x18\x01 \x01(\x0e2*.papiliovpn.node.v1.XrayStartFailureReasonR\x06reason\x12 \n" +
-	"\texit_code\x18\x02 \x01(\x05H\x00R\bexitCode\x88\x01\x01B\f\n" +
+	"\texit_code\x18\x02 \x01(\x05H\x00R\bexitCode\x88\x01\x01\x12>\n" +
+	"\x06status\x18\x03 \x01(\v2&.papiliovpn.node.v1.XrayInstanceStatusR\x06statusB\f\n" +
 	"\n" +
 	"_exit_code*\xdc\x01\n" +
 	"\x11XrayInstanceState\x12#\n" +
@@ -323,13 +568,22 @@ const file_proto_v1_instances_proto_rawDesc = "" +
 	"\x1cXRAY_INSTANCE_STATE_STARTING\x10\x02\x12\x1d\n" +
 	"\x19XRAY_INSTANCE_STATE_READY\x10\x03\x12 \n" +
 	"\x1cXRAY_INSTANCE_STATE_STOPPING\x10\x04\x12\x1e\n" +
-	"\x1aXRAY_INSTANCE_STATE_FAILED\x10\x05*\x84\x02\n" +
+	"\x1aXRAY_INSTANCE_STATE_FAILED\x10\x05*\xb6\x01\n" +
+	"\x0fXrayStartAction\x12!\n" +
+	"\x1dXRAY_START_ACTION_UNSPECIFIED\x10\x00\x12\x1d\n" +
+	"\x19XRAY_START_ACTION_STARTED\x10\x01\x12\x1f\n" +
+	"\x1bXRAY_START_ACTION_HEARTBEAT\x10\x02\x12\x1f\n" +
+	"\x1bXRAY_START_ACTION_RESTARTED\x10\x03\x12\x1f\n" +
+	"\x1bXRAY_START_ACTION_RECOVERED\x10\x04*\x9d\x03\n" +
 	"\x16XrayStartFailureReason\x12)\n" +
 	"%XRAY_START_FAILURE_REASON_UNSPECIFIED\x10\x00\x12+\n" +
 	"'XRAY_START_FAILURE_REASON_LAUNCH_FAILED\x10\x01\x121\n" +
 	"-XRAY_START_FAILURE_REASON_EXITED_BEFORE_READY\x10\x02\x12/\n" +
 	"+XRAY_START_FAILURE_REASON_READINESS_TIMEOUT\x10\x03\x12.\n" +
-	"*XRAY_START_FAILURE_REASON_READINESS_FAILED\x10\x042\xa7\x02\n" +
+	"*XRAY_START_FAILURE_REASON_READINESS_FAILED\x10\x04\x12-\n" +
+	")XRAY_START_FAILURE_REASON_CONFIG_REJECTED\x10\x05\x121\n" +
+	"-XRAY_START_FAILURE_REASON_CONFIG_CHECK_FAILED\x10\x06\x125\n" +
+	"1XRAY_START_FAILURE_REASON_INITIAL_ACCOUNTS_FAILED\x10\a2\xa7\x02\n" +
 	"\x14XrayInstancesService\x12X\n" +
 	"\x05Start\x12'.papiliovpn.node.v1.XrayInstanceRequest\x1a&.papiliovpn.node.v1.XrayInstanceStatus\x12\\\n" +
 	"\tGetStatus\x12'.papiliovpn.node.v1.XrayInstanceRequest\x1a&.papiliovpn.node.v1.XrayInstanceStatus\x12W\n" +
@@ -347,29 +601,38 @@ func file_proto_v1_instances_proto_rawDescGZIP() []byte {
 	return file_proto_v1_instances_proto_rawDescData
 }
 
-var file_proto_v1_instances_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_proto_v1_instances_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_proto_v1_instances_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
+var file_proto_v1_instances_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_proto_v1_instances_proto_goTypes = []any{
-	(XrayInstanceState)(0),      // 0: papiliovpn.node.v1.XrayInstanceState
-	(XrayStartFailureReason)(0), // 1: papiliovpn.node.v1.XrayStartFailureReason
-	(*XrayInstanceRequest)(nil), // 2: papiliovpn.node.v1.XrayInstanceRequest
-	(*XrayInstanceStatus)(nil),  // 3: papiliovpn.node.v1.XrayInstanceStatus
-	(*XrayStartFailure)(nil),    // 4: papiliovpn.node.v1.XrayStartFailure
+	(XrayInstanceState)(0),          // 0: papiliovpn.node.v1.XrayInstanceState
+	(XrayStartAction)(0),            // 1: papiliovpn.node.v1.XrayStartAction
+	(XrayStartFailureReason)(0),     // 2: papiliovpn.node.v1.XrayStartFailureReason
+	(*XrayInstanceRequest)(nil),     // 3: papiliovpn.node.v1.XrayInstanceRequest
+	(*XrayInitialInboundUsers)(nil), // 4: papiliovpn.node.v1.XrayInitialInboundUsers
+	(*XrayInitialAccount)(nil),      // 5: papiliovpn.node.v1.XrayInitialAccount
+	(*XrayInstanceStatus)(nil),      // 6: papiliovpn.node.v1.XrayInstanceStatus
+	(*XrayStartFailure)(nil),        // 7: papiliovpn.node.v1.XrayStartFailure
+	(*timestamppb.Timestamp)(nil),   // 8: google.protobuf.Timestamp
 }
 var file_proto_v1_instances_proto_depIdxs = []int32{
-	0, // 0: papiliovpn.node.v1.XrayInstanceStatus.state:type_name -> papiliovpn.node.v1.XrayInstanceState
-	1, // 1: papiliovpn.node.v1.XrayStartFailure.reason:type_name -> papiliovpn.node.v1.XrayStartFailureReason
-	2, // 2: papiliovpn.node.v1.XrayInstancesService.Start:input_type -> papiliovpn.node.v1.XrayInstanceRequest
-	2, // 3: papiliovpn.node.v1.XrayInstancesService.GetStatus:input_type -> papiliovpn.node.v1.XrayInstanceRequest
-	2, // 4: papiliovpn.node.v1.XrayInstancesService.Stop:input_type -> papiliovpn.node.v1.XrayInstanceRequest
-	3, // 5: papiliovpn.node.v1.XrayInstancesService.Start:output_type -> papiliovpn.node.v1.XrayInstanceStatus
-	3, // 6: papiliovpn.node.v1.XrayInstancesService.GetStatus:output_type -> papiliovpn.node.v1.XrayInstanceStatus
-	3, // 7: papiliovpn.node.v1.XrayInstancesService.Stop:output_type -> papiliovpn.node.v1.XrayInstanceStatus
-	5, // [5:8] is the sub-list for method output_type
-	2, // [2:5] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	4,  // 0: papiliovpn.node.v1.XrayInstanceRequest.initial_users:type_name -> papiliovpn.node.v1.XrayInitialInboundUsers
+	5,  // 1: papiliovpn.node.v1.XrayInitialInboundUsers.accounts:type_name -> papiliovpn.node.v1.XrayInitialAccount
+	0,  // 2: papiliovpn.node.v1.XrayInstanceStatus.state:type_name -> papiliovpn.node.v1.XrayInstanceState
+	1,  // 3: papiliovpn.node.v1.XrayInstanceStatus.start_action:type_name -> papiliovpn.node.v1.XrayStartAction
+	8,  // 4: papiliovpn.node.v1.XrayInstanceStatus.keep_alive_expires_at:type_name -> google.protobuf.Timestamp
+	2,  // 5: papiliovpn.node.v1.XrayStartFailure.reason:type_name -> papiliovpn.node.v1.XrayStartFailureReason
+	6,  // 6: papiliovpn.node.v1.XrayStartFailure.status:type_name -> papiliovpn.node.v1.XrayInstanceStatus
+	3,  // 7: papiliovpn.node.v1.XrayInstancesService.Start:input_type -> papiliovpn.node.v1.XrayInstanceRequest
+	3,  // 8: papiliovpn.node.v1.XrayInstancesService.GetStatus:input_type -> papiliovpn.node.v1.XrayInstanceRequest
+	3,  // 9: papiliovpn.node.v1.XrayInstancesService.Stop:input_type -> papiliovpn.node.v1.XrayInstanceRequest
+	6,  // 10: papiliovpn.node.v1.XrayInstancesService.Start:output_type -> papiliovpn.node.v1.XrayInstanceStatus
+	6,  // 11: papiliovpn.node.v1.XrayInstancesService.GetStatus:output_type -> papiliovpn.node.v1.XrayInstanceStatus
+	6,  // 12: papiliovpn.node.v1.XrayInstancesService.Stop:output_type -> papiliovpn.node.v1.XrayInstanceStatus
+	10, // [10:13] is the sub-list for method output_type
+	7,  // [7:10] is the sub-list for method input_type
+	7,  // [7:7] is the sub-list for extension type_name
+	7,  // [7:7] is the sub-list for extension extendee
+	0,  // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_proto_v1_instances_proto_init() }
@@ -377,14 +640,15 @@ func file_proto_v1_instances_proto_init() {
 	if File_proto_v1_instances_proto != nil {
 		return
 	}
-	file_proto_v1_instances_proto_msgTypes[2].OneofWrappers = []any{}
+	file_proto_v1_instances_proto_msgTypes[0].OneofWrappers = []any{}
+	file_proto_v1_instances_proto_msgTypes[4].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_v1_instances_proto_rawDesc), len(file_proto_v1_instances_proto_rawDesc)),
-			NumEnums:      2,
-			NumMessages:   3,
+			NumEnums:      3,
+			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

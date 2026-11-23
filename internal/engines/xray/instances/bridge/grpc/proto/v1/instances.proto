@@ -1,12 +1,15 @@
 syntax = "proto3";
 
+import "google/protobuf/timestamp.proto";
+
 package papiliovpn.node.v1;
 
 option go_package = "github.com/PapilioVPN/node/internal/engines/xray/instances/bridge/grpc/proto/v1;instancesv1";
 
 service XrayInstancesService {
-  // Starts the configured instance and waits for its native API to respond.
-  // Start failures have XrayStartFailure details on an UNAVAILABLE status.
+  // Reconciles the execution, starting from the supplied JSON or the configured file.
+  // A healthy execution with the same configuration refreshes its lease.
+  // Start failures after instance selection carry the observed instance status.
   rpc Start(XrayInstanceRequest) returns (XrayInstanceStatus);
   // Returns the last state observed by the lifecycle owner.
   rpc GetStatus(XrayInstanceRequest) returns (XrayInstanceStatus);
@@ -16,6 +19,22 @@ service XrayInstancesService {
 
 message XrayInstanceRequest {
   string id = 1;
+  // Start-only fields. GetStatus and Stop require only id.
+  optional bytes config_json = 2;
+  repeated XrayInitialInboundUsers initial_users = 3;
+  repeated string exclude_inbounds = 4;
+  // Omission keeps the current interval. Zero disables expiry.
+  optional uint32 keep_alive_seconds = 5;
+}
+
+message XrayInitialInboundUsers {
+  string inbound_tag = 1;
+  repeated XrayInitialAccount accounts = 2;
+}
+
+message XrayInitialAccount {
+  string email = 1;
+  string uuid = 2;
 }
 
 enum XrayInstanceState {
@@ -33,6 +52,17 @@ message XrayInstanceStatus {
   // Version reported by the executable for the current child, when available.
   string xray_version = 3;
   string node_version = 4;
+  // Populated by Start. On error, this is the action attempted.
+  XrayStartAction start_action = 5;
+  google.protobuf.Timestamp keep_alive_expires_at = 6;
+}
+
+enum XrayStartAction {
+  XRAY_START_ACTION_UNSPECIFIED = 0;
+  XRAY_START_ACTION_STARTED = 1;
+  XRAY_START_ACTION_HEARTBEAT = 2;
+  XRAY_START_ACTION_RESTARTED = 3;
+  XRAY_START_ACTION_RECOVERED = 4;
 }
 
 enum XrayStartFailureReason {
@@ -41,10 +71,14 @@ enum XrayStartFailureReason {
   XRAY_START_FAILURE_REASON_EXITED_BEFORE_READY = 2;
   XRAY_START_FAILURE_REASON_READINESS_TIMEOUT = 3;
   XRAY_START_FAILURE_REASON_READINESS_FAILED = 4;
+  XRAY_START_FAILURE_REASON_CONFIG_REJECTED = 5;
+  XRAY_START_FAILURE_REASON_CONFIG_CHECK_FAILED = 6;
+  XRAY_START_FAILURE_REASON_INITIAL_ACCOUNTS_FAILED = 7;
 }
 
 message XrayStartFailure {
   XrayStartFailureReason reason = 1;
   // Present when Xray exited normally before readiness and reported a code.
   optional int32 exit_code = 2;
+  XrayInstanceStatus status = 3;
 }

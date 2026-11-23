@@ -1,6 +1,9 @@
 package lifecycle
 
-import "errors"
+import (
+	"errors"
+	"time"
+)
 
 var (
 	ErrNotFound    = errors.New("xray instance not found")
@@ -14,10 +17,13 @@ var (
 type StartFailureReason string
 
 const (
-	LaunchFailed      StartFailureReason = "launch_failed"
-	ExitedBeforeReady StartFailureReason = "exited_before_ready"
-	ReadinessTimeout  StartFailureReason = "readiness_timeout"
-	ReadinessFailed   StartFailureReason = "readiness_failed"
+	LaunchFailed          StartFailureReason = "launch_failed"
+	ExitedBeforeReady     StartFailureReason = "exited_before_ready"
+	ReadinessTimeout      StartFailureReason = "readiness_timeout"
+	ReadinessFailed       StartFailureReason = "readiness_failed"
+	ConfigRejected        StartFailureReason = "config_rejected"
+	ConfigCheckFailed     StartFailureReason = "config_check_failed"
+	InitialAccountsFailed StartFailureReason = "initial_accounts_failed"
 )
 
 type StartError struct {
@@ -42,9 +48,20 @@ const (
 	Failed   State = "failed"
 )
 
+type StartAction string
+
+const (
+	Started   StartAction = "started"
+	Heartbeat StartAction = "heartbeat"
+	Restarted StartAction = "restarted"
+	Recovered StartAction = "recovered"
+)
+
 type Status struct {
-	ID          string
-	State       State
-	XrayVersion string
-	NodeVersion string
+	ID             string
+	State          State
+	XrayVersion    string
+	NodeVersion    string
+	StartAction    StartAction
+	LeaseExpiresAt time.Time
 }

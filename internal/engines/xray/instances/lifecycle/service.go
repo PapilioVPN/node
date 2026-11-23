@@ -36,17 +36,24 @@ type execution struct {
 	exit       processExit
 	exited     bool
 	conn       *grpc.ClientConn
+	desired    desiredConfig
+	keepAlive  time.Duration
+	expiresAt  time.Time
 }
 
 type Service struct {
-	config Config
-	logs   *live.Service
-	launch func(context.Context, Config, *live.Execution) (child, error)
-	probe  func(context.Context, grpc.ClientConnInterface) error
+	config             Config
+	initializeAccounts AccountInitializer
+	logs               *live.Service
+	launch             func(context.Context, Config, []byte, *live.Execution) (child, error)
+	probe              func(context.Context, grpc.ClientConnInterface) error
+	health             func(context.Context, grpc.ClientConnInterface) error
 
-	control  *semaphore.Weighted
-	shutdown context.Context
-	cancel   context.CancelFunc
+	control      *semaphore.Weighted
+	shutdown     context.Context
+	cancel       context.CancelFunc
+	leaseChanged chan struct{}
+	leaseDone    chan struct{} // written under control
 
 	mu    sync.RWMutex
 	state State
@@ -56,9 +63,15 @@ type Service struct {
 func New(config Config, logs *live.Service) *Service {
 	shutdown, cancel := context.WithCancel(context.Background())
 	return &Service{
-		config: config, logs: logs, launch: startProcess, probe: waitForReadiness,
+		config: config, logs: logs, launch: startProcess, probe: waitForReadiness, health: waitForReadiness,
 		control: semaphore.NewWeighted(1), shutdown: shutdown, cancel: cancel, state: Stopped,
+		leaseChanged: make(chan struct{}, 1),
 	}
+}
+
+// SetAccountInitializer registers the accounts capability during composition.
+func (service *Service) SetAccountInitializer(initializer AccountInitializer) {
+	service.initializeAccounts = initializer
 }
 
 func (service *Service) GetStatus(id string) (Status, error) {
@@ -74,6 +87,9 @@ func (service *Service) statusLocked() Status {
 	status := Status{ID: service.config.ID, State: service.state, NodeVersion: buildinfo.Version}
 	if service.run != nil {
 		status.XrayVersion = service.run.child.version()
+		if service.state == Ready {
+			status.LeaseExpiresAt = service.run.expiresAt
+		}
 	}
 	return status
 }
@@ -92,44 +108,31 @@ func (service *Service) NativeConnection(id string) (*grpc.ClientConn, error) {
 	return service.run.conn, nil
 }
 
-func (service *Service) Start(ctx context.Context, id string) (Status, error) {
-	if err := service.admit(ctx, id); err != nil {
-		return Status{}, err
+func (service *Service) launchReady(ctx context.Context, desired desiredConfig, users []InboundUsers, keepAlive time.Duration) error {
+	if err := ctx.Err(); err != nil {
+		return err
 	}
-	defer service.release()
-
 	service.mu.Lock()
-	switch service.state {
-	case Ready:
-		status := service.statusLocked()
-		service.mu.Unlock()
-		return status, nil
-	case Starting, Stopping:
-		service.mu.Unlock()
-		return Status{}, ErrBusy
-	}
 	service.state = Starting
 	service.mu.Unlock()
 
 	startCtx, cancel := context.WithTimeout(ctx, 4*time.Second)
 	defer cancel()
-	stop := context.AfterFunc(service.shutdown, cancel)
-	defer stop()
-	if service.shutdown.Err() != nil {
-		cancel()
-	}
 
 	logs := service.logs.Prepare()
-	process, err := service.launch(startCtx, service.config, logs)
+	process, err := service.launch(startCtx, service.config, desired.source, logs)
 	if err != nil {
 		logs.End()
 		service.mu.Lock()
 		service.state = Failed
 		service.mu.Unlock()
-		return Status{}, &StartError{Reason: LaunchFailed, cause: err}
+		if ctx.Err() != nil {
+			return errors.Join(ctx.Err(), err)
+		}
+		return &StartError{Reason: LaunchFailed, cause: err}
 	}
 
-	run := &execution{child: process, logs: logs, done: make(chan struct{}), finalState: Failed}
+	run := &execution{child: process, logs: logs, done: make(chan struct{}), finalState: Failed, desired: desired}
 	service.mu.Lock()
 	service.run = run
 	service.mu.Unlock()
@@ -143,15 +146,25 @@ func (service *Service) Start(ctx context.Context, id string) (Status, error) {
 			probeErr = service.probe(startCtx, conn)
 		}
 	}
+	var commitAccounts func()
+	var seedErr error
+	if probeErr == nil && service.initializeAccounts != nil {
+		commitAccounts, seedErr = service.initializeAccounts(startCtx, service.config.ID, conn, users, desired.excluded)
+	} else if probeErr == nil && len(users) > 0 {
+		seedErr = ErrUnavailable
+	}
 	service.mu.Lock()
 	startErr := startCtx.Err()
-	if probeErr == nil && startErr == nil && !run.exited {
+	if probeErr == nil && seedErr == nil && startErr == nil && !run.exited {
+		if commitAccounts != nil {
+			commitAccounts()
+		}
 		run.conn = conn
 		service.state = Ready
 		logs.Activate()
-		status := service.statusLocked()
+		service.refreshLeaseLocked(run, keepAlive)
 		service.mu.Unlock()
-		return status, nil
+		return nil
 	}
 	var failure StartError
 	var exitErr error
@@ -169,6 +182,9 @@ func (service *Service) Start(ctx context.Context, id string) (Status, error) {
 		if errors.Is(startErr, context.DeadlineExceeded) || errors.Is(probeErr, context.DeadlineExceeded) {
 			failure.Reason = ReadinessTimeout
 		}
+		if seedErr != nil {
+			failure.Reason = InitialAccountsFailed
+		}
 	}
 	service.mu.Unlock()
 
@@ -184,13 +200,10 @@ func (service *Service) Start(ctx context.Context, id string) (Status, error) {
 	defer cleanupCancel()
 	cleanupErr := awaitExit(cleanupCtx, run)
 	if err := ctx.Err(); err != nil {
-		return Status{}, errors.Join(err, killErr, cleanupErr)
+		return errors.Join(err, killErr, cleanupErr)
 	}
-	if service.shutdown.Err() != nil {
-		return Status{}, errors.Join(ErrUnavailable, killErr, cleanupErr)
-	}
-	failure.cause = errors.Join(exitErr, startErr, probeErr, killErr, cleanupErr)
-	return Status{}, &failure
+	failure.cause = errors.Join(exitErr, startErr, probeErr, seedErr, killErr, cleanupErr)
+	return &failure
 }
 
 func (service *Service) Stop(ctx context.Context, id string) (Status, error) {
@@ -199,10 +212,9 @@ func (service *Service) Stop(ctx context.Context, id string) (Status, error) {
 	}
 	defer service.release()
 
-	if err := service.stop(ctx); err != nil {
-		return Status{}, err
-	}
-	return service.GetStatus(id)
+	err := service.stop(ctx, Stopped)
+	status, _ := service.GetStatus(id)
+	return status, err
 }
 
 // Close rejects new mutations and joins any child still owned by the service.
@@ -211,8 +223,17 @@ func (service *Service) Close(ctx context.Context) error {
 	if err := service.control.Acquire(ctx, 1); err != nil {
 		return err
 	}
-	defer service.release()
-	return service.stop(ctx)
+	leaseDone := service.leaseDone
+	err := service.stop(ctx, Stopped)
+	service.release()
+	if leaseDone != nil {
+		select {
+		case <-leaseDone:
+		case <-ctx.Done():
+			return errors.Join(err, ctx.Err())
+		}
+	}
+	return err
 }
 
 func (service *Service) admit(ctx context.Context, id string) error {
@@ -249,6 +270,7 @@ func (service *Service) wait(run *execution, cancelStart context.CancelFunc) {
 		service.mu.Lock()
 		run.exit.cleanupErr = errors.Join(exit.cleanupErr, closeErr)
 	}
+	service.wakeLease()
 	service.run = nil
 	service.state = run.finalState
 	if run.exit.cleanupErr != nil {
@@ -258,16 +280,16 @@ func (service *Service) wait(run *execution, cancelStart context.CancelFunc) {
 	cancelStart()
 }
 
-func (service *Service) stop(ctx context.Context) error {
+func (service *Service) stop(ctx context.Context, finalState State) error {
 	service.mu.Lock()
 	run := service.run
 	if run == nil {
-		service.state = Stopped
+		service.state = finalState
 		service.mu.Unlock()
 		return nil
 	}
 	service.state = Stopping
-	run.finalState = Stopped
+	run.finalState = finalState
 	run.logs.End()
 	service.mu.Unlock()
 

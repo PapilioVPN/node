@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/PapilioVPN/node/internal/buildinfo"
+	"github.com/PapilioVPN/node/internal/engines/xray/accounts"
 	"github.com/PapilioVPN/node/internal/engines/xray/instances"
 	instancesv1 "github.com/PapilioVPN/node/internal/engines/xray/instances/bridge/grpc/proto/v1"
 	"github.com/PapilioVPN/node/internal/engines/xray/logs"
@@ -61,19 +62,8 @@ func TestInstanceVersions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var rpcVersions struct {
-		Xray string `json:"xray_version"`
-		Node string `json:"node_version"`
-	}
-	data, err := json.Marshal(result)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := json.Unmarshal(data, &rpcVersions); err != nil {
-		t.Fatal(err)
-	}
-	if rpcVersions.Xray != wantXray || rpcVersions.Node != buildinfo.Version {
-		t.Fatalf("gRPC versions = %+v, want Xray %s and a Node version", rpcVersions, wantXray)
+	if result.GetXrayVersion() != wantXray || result.GetNodeVersion() != buildinfo.Version {
+		t.Fatalf("gRPC versions = %q and %q, want %q and %q", result.GetXrayVersion(), result.GetNodeVersion(), wantXray, buildinfo.Version)
 	}
 
 	response, err := f.http.Client().Get(f.http.URL + "/v1/xray/instances/primary")
@@ -88,8 +78,8 @@ func TestInstanceVersions(t *testing.T) {
 	if err := json.NewDecoder(response.Body).Decode(&httpVersions); err != nil {
 		t.Fatal(err)
 	}
-	if httpVersions.Xray != wantXray || httpVersions.Node != rpcVersions.Node {
-		t.Fatalf("HTTP versions = %+v, want %+v", httpVersions, rpcVersions)
+	if httpVersions.Xray != wantXray || httpVersions.Node != buildinfo.Version {
+		t.Fatalf("HTTP versions = %+v, want %q and %q", httpVersions, wantXray, buildinfo.Version)
 	}
 }
 
@@ -188,7 +178,7 @@ func newFixtureWithExecutable(t *testing.T, engineConfig, executable string) fix
 		t.Fatal(err)
 	}
 	router, rpcServer := chi.NewRouter(), grpc.NewServer()
-	app := fx.New(fx.NopLogger, instances.Module, logs.Module,
+	app := fx.New(fx.NopLogger, instances.Module, logs.Module, accounts.Module,
 		fx.Supply(router, rpcServer, settings.Xray{
 			ID: "primary", Executable: executable, ConfigFile: config, RuntimeDirectory: runtimeDir,
 		}))

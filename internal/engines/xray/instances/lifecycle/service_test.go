@@ -3,6 +3,8 @@ package lifecycle
 import (
 	"context"
 	"errors"
+	"os"
+	"path/filepath"
 	"sync"
 	"testing"
 	"time"
@@ -134,8 +136,13 @@ func TestCloseCancelsStartAndRejectsFurtherMutations(t *testing.T) {
 
 func newTestService(t *testing.T, process child, probe func(context.Context, grpc.ClientConnInterface) error) *Service {
 	t.Helper()
-	service := New(Config{ID: "primary"}, live.New("primary"))
-	service.launch = func(context.Context, Config, *live.Execution) (child, error) { return process, nil }
+	configFile := filepath.Join(t.TempDir(), "xray.json")
+	if err := os.WriteFile(configFile, []byte("{}"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	service := New(Config{ID: "primary", ConfigFile: configFile}, live.New("primary"))
+	service.health = func(context.Context, grpc.ClientConnInterface) error { return nil }
+	service.launch = func(context.Context, Config, []byte, *live.Execution) (child, error) { return process, nil }
 	service.probe = probe
 	t.Cleanup(func() {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)

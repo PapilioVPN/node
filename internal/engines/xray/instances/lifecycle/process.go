@@ -28,8 +28,8 @@ type processExit struct {
 	code       int
 }
 
-func startProcess(ctx context.Context, config Config, logs *live.Execution) (child, error) {
-	run, err := runconfig.Prepare(config.ConfigFile, config.RuntimeDirectory)
+func startProcess(ctx context.Context, config Config, source []byte, logs *live.Execution) (child, error) {
+	run, err := runconfig.PrepareSource(source, config.RuntimeDirectory)
 	if err != nil {
 		return nil, err
 	}
