@@ -394,15 +394,17 @@ revision from the lifecycle fixture. Each row summarizes ten equivalent
 workloads across 1 and 8 clients. The additional inbound-list rows include
 PasarGuard's private management counters and are available in the CSV.
 
-| Accounts | Transport | Higher success/s | Lower p50 | Lower p95 |
-| ---: | --- | ---: | ---: | ---: |
-| 1 | gRPC | 9/10 | 9/10 | 8/10 |
-| 1 | HTTP | 6/10 | 6/10 | 7/10 |
-| 512 | gRPC | 9/10 | 10/10 | 8/10 |
-| 512 | HTTP | 7/10 | 6/10 | 4/10 |
+| Accounts | Transport | All three better | Higher success/s | Lower p50 | Lower p95 |
+| ---: | --- | ---: | ---: | ---: | ---: |
+| 1 | gRPC | 8/10 | 9/10 | 9/10 | 8/10 |
+| 1 | HTTP | 5/10 | 6/10 | 6/10 | 7/10 |
+| 512 | gRPC | 8/10 | 9/10 | 10/10 | 8/10 |
+| 512 | HTTP | 4/10 | 7/10 | 6/10 | 4/10 |
+| **Total** | | **25/40** | **31/40** | **31/40** | **27/40** |
 
-PapilioVPN led in successful reads per second in 31 of 40 equivalent
-cases. It had lower p50 in 31 cases and lower p95 in 27.
+PapilioVPN had higher successful reads per second and lower p50 and p95
+together in 25 of 40 equivalent cases. Fifteen cases trailed on at least
+one metric, including 13 cases with higher p95.
 The one-account HTTP user list with one client returned 1100 versus 1130
 successful reads/s. Its p95 was 1.666 ms versus 1.850 ms.
 Both targets returned zero capacity rejections during the sweep.
@@ -428,3 +430,48 @@ transports in this follow-up.
 | gRPC | 8 | 3512 / 3007 | 2.104 / 2.317 | 4.177 / 4.886 |
 
 [HTTP rounds](xray/results/2026-11-23-runtime-stats-concurrency-gates-http.csv) · [gRPC rounds](xray/results/2026-11-23-runtime-stats-concurrency-gates-grpc.csv)
+
+## Concurrent Xray traffic lists
+
+Overlapping requests for the same execution and scope may share a new
+native read. A request waits for a sample initiated after its own admission.
+When a reader cancels, other healthy readers can retry under their own
+deadlines. A controlled test uses two native reads for one initial request
+and eight queued requests. Single-resource reads keep their native path.
+
+The focused HTTP benchmark used the paired runner with five 450 ms
+rounds on CPU 2 for both nodes and engines. The client used CPU 4.
+Each pair shows successful reads per second and p95 latency in milliseconds.
+Reference results come from the same run as the corresponding Node value.
+
+| Accounts | Clients | Node before | PasarGuard before | Node with sharing | PasarGuard with sharing |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 1 | 1 | 1240 / 1.630 | 1230 / 1.664 | 1339 / 1.544 | 1148 / 1.884 |
+| 1 | 8 | 4117 / 3.822 | 3808 / 4.353 | 4648 / 3.155 | 3838 / 4.076 |
+| 512 | 1 | 267 / 5.287 | 255 / 5.660 | 254 / 6.361 | 235 / 6.209 |
+| 512 | 8 | 428 / 26.288 | 375 / 30.720 | 697 / 16.666 | 366 / 30.464 |
+
+[Before](xray/results/2026-11-23-traffic-list-sharing-before.csv) · [After](xray/results/2026-11-23-traffic-list-sharing-after.csv)
+
+The full sweep used three 250 ms rounds for the same 40 equivalent
+workloads. A workload counts as a win only when Node has higher success/s,
+lower p50 and lower p95. No capacity rejections occurred. The CSV also
+includes inbound-list rows, where the reference returns an additional
+private management counter.
+
+| Accounts | Transport | All three better | Higher success/s | Lower p50 | Lower p95 |
+| ---: | --- | ---: | ---: | ---: | ---: |
+| 1 | gRPC | 6/10 | 6/10 | 7/10 | 8/10 |
+| 1 | HTTP | 7/10 | 8/10 | 7/10 | 10/10 |
+| 512 | gRPC | 8/10 | 10/10 | 10/10 | 8/10 |
+| 512 | HTTP | 7/10 | 7/10 | 9/10 | 7/10 |
+| **Total** | | **28/40** | **31/40** | **33/40** | **33/40** |
+
+Node trailed on at least one metric in 12 of 40 equivalent workloads.
+
+[HTTP rounds](xray/results/2026-11-23-traffic-list-sharing-matrix-http.csv) · [gRPC rounds](xray/results/2026-11-23-traffic-list-sharing-matrix-grpc.csv)
+
+Use the same paired runner with the delivery settings for the full sweep.
+For the focused comparison, set `XRAY_BENCH_TRAFFIC_CASE=user/list`,
+`XRAY_BENCH_TRANSPORTS=http`, `XRAY_BENCH_TRAFFIC_WINDOW=450ms`,
+and `XRAY_BENCH_ROUNDS=5`. Run once for each of 1 and 512 accounts.

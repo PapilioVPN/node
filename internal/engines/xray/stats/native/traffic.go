@@ -29,6 +29,7 @@ type trafficInstances interface {
 
 type Traffic struct {
 	instances trafficInstances
+	lists     trafficLists
 }
 
 func NewTraffic(instances trafficInstances) *Traffic {
@@ -58,12 +59,25 @@ func (client *Traffic) Read(ctx context.Context, id string, scope traffic.Scope,
 }
 
 func (client *Traffic) List(ctx context.Context, id string, scope traffic.Scope) ([]traffic.Usage, error) {
-	prefix := string(scope) + ">>>"
-	counters, err := client.query(ctx, id, prefix, listTrafficOptions)
+	conn, err := client.instances.NativeConnection(id)
 	if err != nil {
 		return nil, err
 	}
-	return groupTraffic(prefix, counters), nil
+	prefix := string(scope) + ">>>"
+	entries, err := client.lists.read(ctx, trafficListKey{conn: conn, scope: scope}, func(ctx context.Context) ([]traffic.Usage, error) {
+		counters, err := readTrafficCounters(ctx, conn, prefix, listTrafficOptions)
+		if err != nil {
+			return nil, err
+		}
+		return groupTraffic(prefix, counters), nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	if err := client.checkConnection(id, conn); err != nil {
+		return nil, err
+	}
+	return entries, nil
 }
 
 // QueryStats scans synchronously without consulting its server context. The
@@ -77,6 +91,28 @@ func (client *Traffic) query(ctx context.Context, id, pattern string, opts []grp
 	if err != nil {
 		return nil, err
 	}
+	counters, err := readTrafficCounters(ctx, conn, pattern, opts)
+	if err != nil {
+		return nil, err
+	}
+	if err := client.checkConnection(id, conn); err != nil {
+		return nil, err
+	}
+	return counters, nil
+}
+
+func (client *Traffic) checkConnection(id string, conn *grpc.ClientConn) error {
+	current, err := client.instances.NativeConnection(id)
+	if err != nil {
+		return err
+	}
+	if current != conn {
+		return traffic.ErrUnavailable
+	}
+	return nil
+}
+
+func readTrafficCounters(ctx context.Context, conn *grpc.ClientConn, pattern string, opts []grpc.CallOption) ([]*TrafficCounter, error) {
 	var reply QueryStatsResponse
 	if err := conn.Invoke(trafficReadContext{ctx}, queryStats, &QueryStatsRequest{Pattern: pattern}, &reply, opts...); err != nil {
 		if cause := ctx.Err(); cause != nil {
@@ -86,13 +122,6 @@ func (client *Traffic) query(ctx context.Context, id, pattern string, opts []grp
 			return nil, errors.Join(traffic.ErrTooLarge, err)
 		}
 		return nil, err
-	}
-	current, err := client.instances.NativeConnection(id)
-	if err != nil {
-		return nil, err
-	}
-	if current != conn {
-		return nil, traffic.ErrUnavailable
 	}
 	return reply.GetStats(), nil
 }
