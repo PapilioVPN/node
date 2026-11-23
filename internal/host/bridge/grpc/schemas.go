@@ -5,11 +5,14 @@ package grpc
 
 import (
 	hostv1 "github.com/PapilioVPN/node/internal/host/bridge/grpc/proto/v1"
-	"github.com/PapilioVPN/node/internal/host/services"
+	"github.com/PapilioVPN/node/internal/host/cpu"
+	"github.com/PapilioVPN/node/internal/host/memory"
+	"github.com/PapilioVPN/node/internal/host/storage"
+	"github.com/PapilioVPN/node/internal/host/system"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-func cpuMessage(sample services.CPUSample) *hostv1.CPUSnapshot {
+func cpuMessage(sample cpu.Sample) *hostv1.CPUSnapshot {
 	message := &hostv1.CPUSnapshot{
 		BusyPercent:        sample.BusyPercent,
 		WindowMilliseconds: uint64(sample.Window.Milliseconds()),
@@ -21,7 +24,7 @@ func cpuMessage(sample services.CPUSample) *hostv1.CPUSnapshot {
 	return message
 }
 
-func memoryMessage(snapshot services.MemorySnapshot) *hostv1.MemorySnapshot {
+func memoryMessage(snapshot memory.Snapshot) *hostv1.MemorySnapshot {
 	return &hostv1.MemorySnapshot{
 		TotalBytes:     snapshot.TotalBytes,
 		AvailableBytes: snapshot.AvailableBytes,
@@ -30,7 +33,7 @@ func memoryMessage(snapshot services.MemorySnapshot) *hostv1.MemorySnapshot {
 	}
 }
 
-func storageMessage(snapshot services.StorageSnapshot) *hostv1.StorageSnapshot {
+func storageMessage(snapshot storage.Snapshot) *hostv1.StorageSnapshot {
 	return &hostv1.StorageSnapshot{
 		Path:           snapshot.Path,
 		TotalBytes:     snapshot.TotalBytes,
@@ -40,7 +43,7 @@ func storageMessage(snapshot services.StorageSnapshot) *hostv1.StorageSnapshot {
 	}
 }
 
-func systemMessage(snapshot services.SystemSnapshot) *hostv1.SystemSnapshot {
+func systemMessage(snapshot system.Snapshot) *hostv1.SystemSnapshot {
 	response := &hostv1.SystemSnapshot{UptimeSeconds: snapshot.UptimeSeconds}
 	if snapshot.CPU != nil {
 		response.Cpu = cpuMessage(*snapshot.CPU)

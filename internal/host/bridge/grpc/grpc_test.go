@@ -5,14 +5,14 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/PapilioVPN/node/internal/host/services"
+	"github.com/PapilioVPN/node/internal/host/cpu"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 func TestCPUWithoutAValidSample(t *testing.T) {
-	if _, err := getCPU(services.NewCPUSampler())(t.Context(), &emptypb.Empty{}); status.Code(err) != codes.Unavailable {
+	if _, err := getCPU(cpu.NewSampler())(t.Context(), &emptypb.Empty{}); status.Code(err) != codes.Unavailable {
 		t.Fatalf("gRPC CPU error = %v, want Unavailable", err)
 	}
 }
@@ -25,7 +25,7 @@ func TestStorageUnavailableForMissingConfiguredPath(t *testing.T) {
 }
 
 func TestSystemStatsReturnsAvailableSections(t *testing.T) {
-	sampler := services.NewCPUSampler()
+	sampler := cpu.NewSampler()
 	path := filepath.Join(t.TempDir(), "missing-volume")
 	snapshot, err := getSystemStats(sampler, path)(t.Context(), &emptypb.Empty{})
 	if err != nil {

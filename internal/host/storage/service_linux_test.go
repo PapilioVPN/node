@@ -1,4 +1,4 @@
-package services
+package storage
 
 import (
 	"math"
@@ -11,7 +11,7 @@ func TestStorageSnapshotPreservesReservedSpaceAndReadOnly(t *testing.T) {
 	stats := unix.Statfs_t{
 		Bsize: 4096, Frsize: 512, Blocks: 100, Bfree: 30, Bavail: 25, Flags: unix.ST_RDONLY,
 	}
-	want := StorageSnapshot{Path: "/data", TotalBytes: 51200, UsedBytes: 35840, AvailableBytes: 12800, ReadOnly: true}
+	want := Snapshot{Path: "/data", TotalBytes: 51200, UsedBytes: 35840, AvailableBytes: 12800, ReadOnly: true}
 	got, err := storageSnapshot("/data", stats)
 	if err != nil || got != want {
 		t.Fatalf("storage = %+v, %v, want %+v", got, err, want)
@@ -20,7 +20,7 @@ func TestStorageSnapshotPreservesReservedSpaceAndReadOnly(t *testing.T) {
 	stats.Frsize = 0
 	stats.Bavail = 0
 	stats.Flags = 0
-	want = StorageSnapshot{Path: "/data", TotalBytes: 409600, UsedBytes: 286720}
+	want = Snapshot{Path: "/data", TotalBytes: 409600, UsedBytes: 286720}
 	got, err = storageSnapshot("/data", stats)
 	if err != nil || got != want {
 		t.Fatalf("storage = %+v, %v, want %+v", got, err, want)

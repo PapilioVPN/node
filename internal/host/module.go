@@ -4,7 +4,7 @@ package host
 import (
 	hostgrpc "github.com/PapilioVPN/node/internal/host/bridge/grpc"
 	hosthttp "github.com/PapilioVPN/node/internal/host/bridge/http"
-	"github.com/PapilioVPN/node/internal/host/services"
+	"github.com/PapilioVPN/node/internal/host/cpu"
 	"github.com/PapilioVPN/node/internal/settings"
 	"github.com/go-chi/chi/v5"
 	"go.uber.org/fx"
@@ -12,11 +12,11 @@ import (
 )
 
 var Module = fx.Module("host",
-	fx.Provide(services.NewCPUSampler),
+	fx.Provide(cpu.NewSampler),
 	fx.Invoke(registerCPUSampler, register),
 )
 
-func register(httpRouter *chi.Mux, grpcServer *grpc.Server, sampler *services.CPUSampler, config settings.Host) error {
+func register(httpRouter *chi.Mux, grpcServer *grpc.Server, sampler *cpu.Sampler, config settings.Host) error {
 	path := config.StoragePath
 	if path == "" {
 		path = "/"
@@ -28,6 +28,6 @@ func register(httpRouter *chi.Mux, grpcServer *grpc.Server, sampler *services.CP
 	return nil
 }
 
-func registerCPUSampler(lifecycle fx.Lifecycle, sampler *services.CPUSampler) {
+func registerCPUSampler(lifecycle fx.Lifecycle, sampler *cpu.Sampler) {
 	lifecycle.Append(fx.Hook{OnStart: sampler.Start, OnStop: sampler.Stop})
 }

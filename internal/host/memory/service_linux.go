@@ -1,4 +1,4 @@
-package services
+package memory
 
 import (
 	"bytes"
@@ -13,20 +13,20 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-type MemorySnapshot struct {
+type Snapshot struct {
 	TotalBytes     uint64
 	AvailableBytes *uint64
 	SwapTotalBytes uint64
 	SwapFreeBytes  uint64
 }
 
-func Memory(ctx context.Context) (MemorySnapshot, error) {
+func Read(ctx context.Context) (Snapshot, error) {
 	return memoryFromFile(ctx, "/proc/meminfo")
 }
 
-func memoryFromFile(ctx context.Context, path string) (MemorySnapshot, error) {
+func memoryFromFile(ctx context.Context, path string) (Snapshot, error) {
 	if err := ctx.Err(); err != nil {
-		return MemorySnapshot{}, err
+		return Snapshot{}, err
 	}
 	fd, err := unix.Open(path, unix.O_RDONLY|unix.O_CLOEXEC, 0)
 	for err == unix.EINTR && ctx.Err() == nil {
@@ -34,9 +34,9 @@ func memoryFromFile(ctx context.Context, path string) (MemorySnapshot, error) {
 	}
 	if err != nil {
 		if cause := ctx.Err(); cause != nil {
-			return MemorySnapshot{}, cause
+			return Snapshot{}, cause
 		}
-		return MemorySnapshot{}, fmt.Errorf("read Linux meminfo: %w", err)
+		return Snapshot{}, fmt.Errorf("read Linux meminfo: %w", err)
 	}
 	defer unix.Close(fd)
 
@@ -53,9 +53,9 @@ func memoryFromFile(ctx context.Context, path string) (MemorySnapshot, error) {
 		}
 		if err != nil {
 			if cause := ctx.Err(); cause != nil {
-				return MemorySnapshot{}, cause
+				return Snapshot{}, cause
 			}
-			return MemorySnapshot{}, fmt.Errorf("read Linux meminfo: %w", err)
+			return Snapshot{}, fmt.Errorf("read Linux meminfo: %w", err)
 		}
 		if n == 0 {
 			break
@@ -63,12 +63,12 @@ func memoryFromFile(ctx context.Context, path string) (MemorySnapshot, error) {
 		data = data[:len(data)+n]
 	}
 	if err := ctx.Err(); err != nil {
-		return MemorySnapshot{}, err
+		return Snapshot{}, err
 	}
 	return parseMemory(data)
 }
 
-func parseMemory(data []byte) (MemorySnapshot, error) {
+func parseMemory(data []byte) (Snapshot, error) {
 	type meminfoField struct {
 		bytes   uint64
 		present bool
@@ -95,28 +95,28 @@ func parseMemory(data []byte) (MemorySnapshot, error) {
 			continue
 		}
 		if field.present {
-			return MemorySnapshot{}, fmt.Errorf("duplicate %s in Linux meminfo", string(name))
+			return Snapshot{}, fmt.Errorf("duplicate %s in Linux meminfo", string(name))
 		}
 		value = bytes.TrimSpace(value)
 		separator := bytes.IndexFunc(value, unicode.IsSpace)
 		if separator < 0 || string(bytes.TrimSpace(value[separator:])) != "kB" {
-			return MemorySnapshot{}, fmt.Errorf("invalid %s unit in Linux meminfo", string(name))
+			return Snapshot{}, fmt.Errorf("invalid %s unit in Linux meminfo", string(name))
 		}
 		kib, err := strconv.ParseUint(string(value[:separator]), 10, 64)
 		if err != nil {
-			return MemorySnapshot{}, fmt.Errorf("parse %s: %w", string(name), err)
+			return Snapshot{}, fmt.Errorf("parse %s: %w", string(name), err)
 		}
 		if kib > math.MaxUint64/1024 {
-			return MemorySnapshot{}, fmt.Errorf("%s overflows a byte count", string(name))
+			return Snapshot{}, fmt.Errorf("%s overflows a byte count", string(name))
 		}
 		field.bytes = kib * 1024
 		field.present = true
 	}
 
 	if !total.present || !swapTotal.present || !swapFree.present {
-		return MemorySnapshot{}, errors.New("missing MemTotal, SwapTotal, or SwapFree in Linux meminfo")
+		return Snapshot{}, errors.New("missing MemTotal, SwapTotal, or SwapFree in Linux meminfo")
 	}
-	snapshot := MemorySnapshot{
+	snapshot := Snapshot{
 		TotalBytes:     total.bytes,
 		SwapTotalBytes: swapTotal.bytes,
 		SwapFreeBytes:  swapFree.bytes,

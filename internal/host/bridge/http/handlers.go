@@ -4,12 +4,15 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/PapilioVPN/node/internal/host/services"
+	"github.com/PapilioVPN/node/internal/host/cpu"
+	"github.com/PapilioVPN/node/internal/host/memory"
+	"github.com/PapilioVPN/node/internal/host/storage"
+	"github.com/PapilioVPN/node/internal/host/system"
 )
 
 func handleUptime(w http.ResponseWriter, request *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")
-	seconds, err := services.Uptime(request.Context())
+	seconds, err := system.Uptime(request.Context())
 	if err != nil {
 		http.Error(w, "host uptime is unavailable", http.StatusInternalServerError)
 		return
@@ -18,7 +21,7 @@ func handleUptime(w http.ResponseWriter, request *http.Request) {
 	_ = json.NewEncoder(w).Encode(uptimeResponse{UptimeSeconds: seconds})
 }
 
-func handleCPU(sampler *services.CPUSampler) http.HandlerFunc {
+func handleCPU(sampler *cpu.Sampler) http.HandlerFunc {
 	return func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
 		sample, ok := sampler.Latest()
@@ -33,7 +36,7 @@ func handleCPU(sampler *services.CPUSampler) http.HandlerFunc {
 
 func handleMemory(w http.ResponseWriter, request *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")
-	snapshot, err := services.Memory(request.Context())
+	snapshot, err := memory.Read(request.Context())
 	if err != nil {
 		http.Error(w, "host memory is unavailable", http.StatusInternalServerError)
 		return
@@ -45,7 +48,7 @@ func handleMemory(w http.ResponseWriter, request *http.Request) {
 func handleStorage(path string) http.HandlerFunc {
 	return func(w http.ResponseWriter, request *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
-		snapshot, err := services.Storage(request.Context(), path)
+		snapshot, err := storage.Read(request.Context(), path)
 		if err != nil {
 			http.Error(w, "host storage is unavailable", http.StatusServiceUnavailable)
 			return
@@ -55,10 +58,10 @@ func handleStorage(path string) http.HandlerFunc {
 	}
 }
 
-func handleSystemStats(sampler *services.CPUSampler, storagePath string) http.HandlerFunc {
+func handleSystemStats(sampler *cpu.Sampler, storagePath string) http.HandlerFunc {
 	return func(w http.ResponseWriter, request *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
-		snapshot, err := services.SystemStats(request.Context(), sampler, storagePath)
+		snapshot, err := system.Stats(request.Context(), sampler, storagePath)
 		if err != nil {
 			http.Error(w, "host system stats are unavailable", http.StatusServiceUnavailable)
 			return

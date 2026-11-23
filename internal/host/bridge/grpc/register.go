@@ -3,11 +3,11 @@ package grpc
 
 import (
 	bridgegrpc "github.com/PapilioVPN/go-bridge/api/grpc/server"
-	"github.com/PapilioVPN/node/internal/host/services"
+	"github.com/PapilioVPN/node/internal/host/cpu"
 	"google.golang.org/grpc"
 )
 
-func Register(server *grpc.Server, sampler *services.CPUSampler, storagePath string) error {
+func Register(server *grpc.Server, sampler *cpu.Sampler, storagePath string) error {
 	router, err := bridgegrpc.NewRouter("papiliovpn.node.v1.HostService")
 	if err != nil {
 		return err

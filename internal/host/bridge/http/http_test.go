@@ -8,13 +8,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/PapilioVPN/node/internal/host/services"
+	"github.com/PapilioVPN/node/internal/host/cpu"
 	"github.com/go-chi/chi/v5"
 )
 
 func TestCPUWithoutAValidSample(t *testing.T) {
 	router := chi.NewRouter()
-	Register(router, services.NewCPUSampler(), "/")
+	Register(router, cpu.NewSampler(), "/")
 	response := httptest.NewRecorder()
 	router.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/v1/host/cpu", nil))
 	if response.Code != http.StatusServiceUnavailable || response.Header().Get("Cache-Control") != "no-store" {
@@ -25,7 +25,7 @@ func TestCPUWithoutAValidSample(t *testing.T) {
 func TestStorageUnavailableForMissingConfiguredPath(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "missing-volume")
 	router := chi.NewRouter()
-	Register(router, services.NewCPUSampler(), path)
+	Register(router, cpu.NewSampler(), path)
 	response := httptest.NewRecorder()
 	router.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/v1/host/storage?path=/", nil))
 	if response.Code != http.StatusServiceUnavailable || response.Header().Get("Cache-Control") != "no-store" ||
@@ -37,7 +37,7 @@ func TestStorageUnavailableForMissingConfiguredPath(t *testing.T) {
 func TestSystemStatsReturnsAvailableSections(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "missing-volume")
 	router := chi.NewRouter()
-	Register(router, services.NewCPUSampler(), path)
+	Register(router, cpu.NewSampler(), path)
 	response := httptest.NewRecorder()
 	router.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/v1/host/stats", nil))
 	if response.Code != http.StatusOK || response.Header().Get("Cache-Control") != "no-store" {

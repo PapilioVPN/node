@@ -1,4 +1,4 @@
-package services
+package storage
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-type StorageSnapshot struct {
+type Snapshot struct {
 	Path           string
 	TotalBytes     uint64
 	UsedBytes      uint64
@@ -17,34 +17,34 @@ type StorageSnapshot struct {
 	ReadOnly       bool
 }
 
-func Storage(ctx context.Context, path string) (StorageSnapshot, error) {
+func Read(ctx context.Context, path string) (Snapshot, error) {
 	if err := ctx.Err(); err != nil {
-		return StorageSnapshot{}, err
+		return Snapshot{}, err
 	}
 	var stats unix.Statfs_t
 	statErr := unix.Statfs(path, &stats)
 	if err := ctx.Err(); err != nil {
-		return StorageSnapshot{}, err
+		return Snapshot{}, err
 	}
 	if statErr != nil {
-		return StorageSnapshot{}, fmt.Errorf("stat Linux filesystem: %w", statErr)
+		return Snapshot{}, fmt.Errorf("stat Linux filesystem: %w", statErr)
 	}
 	return storageSnapshot(path, stats)
 }
 
-func storageSnapshot(path string, stats unix.Statfs_t) (StorageSnapshot, error) {
+func storageSnapshot(path string, stats unix.Statfs_t) (Snapshot, error) {
 	blockSize := stats.Frsize
 	if blockSize == 0 {
 		blockSize = stats.Bsize
 	}
 	if blockSize <= 0 || stats.Bfree > stats.Blocks || stats.Bavail > stats.Blocks {
-		return StorageSnapshot{}, errors.New("invalid Linux filesystem capacity counters")
+		return Snapshot{}, errors.New("invalid Linux filesystem capacity counters")
 	}
 	bytesPerBlock := uint64(blockSize)
 	if stats.Blocks > math.MaxUint64/bytesPerBlock {
-		return StorageSnapshot{}, errors.New("Linux filesystem capacity overflows a byte count")
+		return Snapshot{}, errors.New("Linux filesystem capacity overflows a byte count")
 	}
-	return StorageSnapshot{
+	return Snapshot{
 		Path:           path,
 		TotalBytes:     stats.Blocks * bytesPerBlock,
 		UsedBytes:      (stats.Blocks - stats.Bfree) * bytesPerBlock,

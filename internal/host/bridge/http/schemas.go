@@ -3,7 +3,8 @@ package http
 import (
 	"time"
 
-	"github.com/PapilioVPN/node/internal/host/services"
+	"github.com/PapilioVPN/node/internal/host/cpu"
+	"github.com/PapilioVPN/node/internal/host/system"
 )
 
 type uptimeResponse struct {
@@ -39,7 +40,7 @@ type systemResponse struct {
 	Storage       *storageResponse `json:"storage,omitempty"`
 }
 
-func cpuHTTPResponse(sample services.CPUSample) cpuResponse {
+func cpuHTTPResponse(sample cpu.Sample) cpuResponse {
 	response := cpuResponse{
 		BusyPercent:        sample.BusyPercent,
 		WindowMilliseconds: uint64(sample.Window.Milliseconds()),
@@ -51,7 +52,7 @@ func cpuHTTPResponse(sample services.CPUSample) cpuResponse {
 	return response
 }
 
-func systemHTTPResponse(snapshot services.SystemSnapshot) systemResponse {
+func systemHTTPResponse(snapshot system.Snapshot) systemResponse {
 	response := systemResponse{
 		UptimeSeconds: snapshot.UptimeSeconds,
 		Memory:        (*memoryResponse)(snapshot.Memory),

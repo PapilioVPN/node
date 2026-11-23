@@ -3,14 +3,16 @@ package host
 import (
 	"testing"
 
-	"github.com/PapilioVPN/node/internal/host/services"
+	"github.com/PapilioVPN/node/internal/host/cpu"
+	"github.com/PapilioVPN/node/internal/host/memory"
+	"github.com/PapilioVPN/node/internal/host/system"
 )
 
 func BenchmarkMemory(b *testing.B) {
 	ctx := b.Context()
 	b.ReportAllocs()
 	for b.Loop() {
-		if _, err := services.Memory(ctx); err != nil {
+		if _, err := memory.Read(ctx); err != nil {
 			b.Fatal(err)
 		}
 	}
@@ -19,10 +21,10 @@ func BenchmarkMemory(b *testing.B) {
 func BenchmarkSystemStatsOSReads(b *testing.B) {
 	ctx := b.Context()
 	// Measure the live OS reads before a CPU sample is available.
-	sampler := services.NewCPUSampler()
+	sampler := cpu.NewSampler()
 	b.ReportAllocs()
 	for b.Loop() {
-		snapshot, err := services.SystemStats(ctx, sampler, "/")
+		snapshot, err := system.Stats(ctx, sampler, "/")
 		if err != nil {
 			b.Fatal(err)
 		}
