@@ -68,6 +68,8 @@ docker run --rm --network=host --read-only --cap-drop ALL \
 | Xray 运行统计 | 通过 HTTP 和 gRPC 查询活动实例的运行时间、内存分配、goroutine 和垃圾回收计数。 |
 | Xray 流量计数器 | 通过 HTTP 和 gRPC 读取单个或全部账户、入站标签或出站标签的上行与下行字节数。 |
 | Xray 在线账户和 IP | 通过 HTTP 和 gRPC 查询在线账户、不同来源 IP 数量及其最近出现时间。 |
+| Xray 路由 | 通过 HTTP 和 gRPC 按顺序读取生效规则，并按标签读取负载均衡器状态。 |
+| Xray 出站健康状态 | 通过 HTTP 和 gRPC 读取全部 Observatory 观测结果，或按出站标签查询。 |
 
 <a name="management"></a>
 
@@ -98,6 +100,10 @@ HTTP `GET /v1/host/stats` 和 gRPC `HostService.GetSystemStats` 返回 `uptime_s
 使用 `GET /v1/xray/instances/{id}/stats/online/count?name=...` 查询数量，或在同一实例路径下使用 `/stats/online/ips?name=...` 查询列表。gRPC 方法为 `XrayStatsService.GetOnlineIPCount` 和 `ListOnlineIPs`。请在账户的策略级别启用 `statsUserOnline`。时间戳为 Unix 秒。跟踪记录为空时返回零或空映射。缺少观察记录时，HTTP 返回 `404`，gRPC 返回 `NOT_FOUND`。 [gRPC 接口](internal/engines/xray/stats/bridge/grpc/proto/v1/online.proto)
 
 使用 `GET /v1/xray/instances/{id}/stats/online/users` 或 `XrayStatsService.ListOnlineUsers` 查询 Xray 当前至少跟踪一个来源 IP 的账户名称。列表顺序不固定。没有在线账户时，HTTP 返回 `{"names":[]}`。
+
+使用 `GET /v1/xray/instances/{id}/routing/rules` 和 `GET /v1/xray/instances/{id}/routing/balancer?tag=...` 读取路由状态。gRPC 方法为 `XrayRoutingService.ListRoutingRules` 和 `GetBalancerInfo`。响应分别返回覆盖目标和 Xray 报告的目标。 [gRPC 接口](internal/engines/xray/routing/bridge/grpc/proto/v1/routing.proto)
+
+使用 `GET /v1/xray/instances/{id}/outbounds/health` 或 `XrayOutboundsService.GetOutboundHealth` 读取普通 Observatory 观测结果。提供标签可查询单个出站。响应区分健康、探测失败和缺少样本。 [gRPC 接口](internal/engines/xray/outbounds/bridge/grpc/proto/v1/outbounds.proto)
 
 示例中的两个监听端口都绑定到环回地址。Node 就绪时，HTTP `GET /healthz` 返回 `204 No Content`。端口 8081 上的 gRPC 健康检查对空服务名返回 `SERVING`。设置 `management.tls.cert_file` 和 `management.tls.key_file` 可启用 TLS。可选项 `management.tls.client_ca_file` 启用 mTLS，`management.api_key` 用于 `x-api-key` 请求头或元数据。
 

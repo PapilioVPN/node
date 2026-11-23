@@ -70,6 +70,8 @@ docker run --rm --network=host --read-only --cap-drop ALL \
 | آمار اجرای Xray | خواندن زمان کارکرد، تخصیص حافظه، goroutineها و شمارنده‌های GC نمونهٔ فعال از HTTP و gRPC. |
 | شمارنده‌های ترافیک Xray | بایت آپلود و دانلود یک یا همهٔ حساب‌ها، ورودی‌ها یا خروجی‌ها را با HTTP و gRPC بخوان. |
 | حساب‌ها و IPهای آنلاین Xray | فهرست حساب‌های آنلاین، تعداد IPهای مبدأ یکتا و زمان آخرین مشاهده را با HTTP و gRPC بخوان. |
+| مسیریابی Xray | قوانین فعال را به ترتیب بخوان و وضعیت یک balancer را با تگ آن از HTTP و gRPC بگیر. |
+| سلامت خروجی‌های Xray | نمونه‌های ثبت‌شدهٔ Observatory را برای همهٔ خروجی‌ها یا یک تگ با HTTP و gRPC بخوان. |
 
 <a name="management"></a>
 
@@ -100,6 +102,10 @@ docker run --rm --network=host --read-only --cap-drop ALL \
 از `GET /v1/xray/instances/{id}/stats/online/count?name=...` برای شمارش و از `/stats/online/ips?name=...` زیر مسیر همان نمونه برای فهرست استفاده کن. متدهای gRPC، `XrayStatsService.GetOnlineIPCount` و `ListOnlineIPs` هستند. `statsUserOnline` را در سطح سیاست حساب فعال کن. زمان‌ها بر حسب ثانیهٔ یونیکس هستند. اگر نقشهٔ IP حساب خالی باشد، شمارش صفر و فهرست خالی برمی‌گردد. اگر مشاهده‌ای وجود نداشته باشد، HTTP پاسخ `404` و gRPC وضعیت `NOT_FOUND` می‌دهد. [قرارداد gRPC](internal/engines/xray/stats/bridge/grpc/proto/v1/online.proto)
 
 از `GET /v1/xray/instances/{id}/stats/online/users` یا `XrayStatsService.ListOnlineUsers` برای دیدن نام حساب‌هایی استفاده کن که Xray در لحظه دست‌کم یک IP مبدأ برایشان ثبت کرده. ترتیب فهرست ثابت نیست. اگر حساب آنلاینی نباشد، HTTP پاسخ `{"names":[]}` می‌دهد.
+
+برای خواندن وضعیت مسیریابی از `GET /v1/xray/instances/{id}/routing/rules` و `GET /v1/xray/instances/{id}/routing/balancer?tag=...` استفاده کن. متدهای gRPC، `XrayRoutingService.ListRoutingRules` و `GetBalancerInfo` هستند. پاسخ مقصد override و گزینه‌های گزارش‌شدهٔ Xray را جدا برمی‌گرداند. [قرارداد gRPC](internal/engines/xray/routing/bridge/grpc/proto/v1/routing.proto)
+
+برای خواندن نمونه‌های Observatory معمولی از `GET /v1/xray/instances/{id}/outbounds/health` یا `XrayOutboundsService.GetOutboundHealth` استفاده کن. برای یک خروجی تگش را بده. پاسخ سه حالت سالم، ناموفق و بدون نمونه را مشخص می‌کند. [قرارداد gRPC](internal/engines/xray/outbounds/bridge/grpc/proto/v1/outbounds.proto)
 
 در نمونه، هر دو listener روی loopback باز می‌شوند. درخواست HTTP به `GET /healthz` هنگام آمادگی پاسخ `204 No Content` دارد. سرویس health در gRPC روی پورت 8081 برای نام سرویس خالی وضعیت `SERVING` را می‌دهد. برای فعال‌کردن TLS، فیلدهای `management.tls.cert_file` و `management.tls.key_file` را تنظیم کن. فیلد `management.tls.client_ca_file` برای mTLS و `management.api_key` برای هدر یا متادیتای `x-api-key` اختیاری‌اند.
 

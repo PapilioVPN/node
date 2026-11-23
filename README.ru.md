@@ -68,6 +68,8 @@ docker run --rm --network=host --read-only --cap-drop ALL \
 | Статистика Xray | Время работы, выделение памяти, количество горутин и счётчики сборки мусора активного экземпляра по HTTP и gRPC. |
 | Счётчики трафика Xray | Чтение входящих и исходящих байтов для одной или всех учётных записей, входящих или исходящих тегов через HTTP и gRPC. |
 | Онлайн-аккаунты и IP в Xray | Получить список онлайн-аккаунтов, число уникальных IP или время их последнего обнаружения по HTTP и gRPC. |
+| Маршрутизация Xray | Прочитать активные правила по порядку и состояние балансировщика по тегу через HTTP и gRPC. |
+| Состояние исходящих подключений Xray | Получить все наблюдения Observatory или выбрать исходящее подключение по тегу через HTTP и gRPC. |
 
 <a name="management"></a>
 
@@ -98,6 +100,10 @@ HTTP-запрос `GET /v1/host/stats` и метод gRPC `HostService.GetSystem
 Используйте `GET /v1/xray/instances/{id}/stats/online/count?name=...` для подсчёта и `/stats/online/ips?name=...` для списка в том же экземпляре. Методы gRPC — `XrayStatsService.GetOnlineIPCount` и `ListOnlineIPs`. Включите `statsUserOnline` на уровне политики учётной записи. Время указано в секундах Unix. Пустая карта отслеживаемых IP даёт ноль или пустую карту. При отсутствии наблюдения HTTP возвращает `404`, а gRPC — `NOT_FOUND`. [Контракт gRPC](internal/engines/xray/stats/bridge/grpc/proto/v1/online.proto)
 
 Используйте `GET /v1/xray/instances/{id}/stats/online/users` или `XrayStatsService.ListOnlineUsers`, чтобы получить имена аккаунтов, для которых Xray отслеживает хотя бы один IP-адрес источника. Порядок списка не задан. Когда онлайн-аккаунтов нет, HTTP возвращает `{"names":[]}`.
+
+Используйте `GET /v1/xray/instances/{id}/routing/rules` и `GET /v1/xray/instances/{id}/routing/balancer?tag=...` для чтения состояния маршрутизации. Методы gRPC — `XrayRoutingService.ListRoutingRules` и `GetBalancerInfo`. Переопределённая цель и цели, указанные Xray, передаются раздельно. [Контракт gRPC](internal/engines/xray/routing/bridge/grpc/proto/v1/routing.proto)
+
+Используйте `GET /v1/xray/instances/{id}/outbounds/health` или `XrayOutboundsService.GetOutboundHealth` для чтения обычных наблюдений Observatory. Для одного исходящего подключения укажите его тег. Ответ различает успешную проверку, сбой и отсутствие наблюдения. [Контракт gRPC](internal/engines/xray/outbounds/bridge/grpc/proto/v1/outbounds.proto)
 
 В примере оба интерфейса привязаны к loopback. HTTP-запрос `GET /healthz` возвращает `204 No Content`, когда Node готов. Служба проверки gRPC на порту 8081 возвращает `SERVING` для пустого имени службы. Для TLS укажите `management.tls.cert_file` и `management.tls.key_file`. Необязательный параметр `management.tls.client_ca_file` включает mTLS, а `management.api_key` задаёт ключ для заголовка или метаданных `x-api-key`.
 

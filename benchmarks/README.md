@@ -646,3 +646,10 @@ GOTOOLCHAIN=go1.27.3 CGO_ENABLED=0 go test -c -trimpath -o "$work/bench" ./bench
 GOMAXPROCS=1 XRAY_BENCH_ONLINE_USERS="$XRAY_BINARY" \
   taskset -c "${XRAY_BENCH_SERVER_CPU:-2}" "$work/bench" -test.run '^TestMeasureOnlineUsers$' -test.v
 ```
+
+## Xray routing and outbound health
+
+- [Routing rule and balancer reads](xray/routing.md) includes paired round data,
+  focused repeats for the slower cases, and the JSON encoding measurements.
+- [Recorded outbound health](xray/outbound-health.md) includes the paired results,
+  contract differences, and raw samples for the individual requests.
