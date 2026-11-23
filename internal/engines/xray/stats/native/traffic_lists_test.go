@@ -118,3 +118,18 @@ func TestTrafficListCanRetryAfterAnotherReadersCancellation(t *testing.T) {
 		}
 	})
 }
+
+func BenchmarkUncontendedTrafficList(b *testing.B) {
+	var lists trafficLists
+	ctx := context.Background()
+	key := trafficListKey{scope: traffic.Outbound}
+	value := []traffic.Usage{{Name: "direct", UplinkBytes: 24, HasUplink: true}}
+	load := func(context.Context) ([]traffic.Usage, error) { return value, nil }
+	b.ReportAllocs()
+	for b.Loop() {
+		result, err := lists.read(ctx, key, load)
+		if err != nil || len(result) != 1 {
+			b.Fatalf("read = %v %v", result, err)
+		}
+	}
+}

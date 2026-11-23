@@ -17,12 +17,14 @@ type trafficListKey struct {
 
 type trafficListSample struct {
 	done    chan struct{}
+	ready   bool
 	entries []traffic.Usage
 	err     error
 }
 
 type trafficListGroup struct {
 	readers int
+	first   trafficListSample
 	latest  *trafficListSample
 }
 
@@ -45,35 +47,33 @@ func (lists *trafficLists) read(ctx context.Context, key trafficListKey, load fu
 	}
 	group.readers++
 	previous := group.latest
+	if previous == nil {
+		group.latest = &group.first
+	}
 	lists.mu.Unlock()
 	defer lists.leave(key, group)
 
+	if previous == nil {
+		return lists.load(ctx, &group.first, load, false)
+	}
 	for {
 		// The sample already present at admission may predate this request.
-		if previous != nil {
-			if err := previous.wait(ctx); err != nil {
-				return nil, err
-			}
+		if err := lists.wait(ctx, previous); err != nil {
+			return nil, err
 		}
 
 		lists.mu.Lock()
 		next := group.latest
 		if next == previous {
-			next = &trafficListSample{done: make(chan struct{})}
+			next = new(trafficListSample)
 			group.latest = next
 			shared := group.readers > 1
 			lists.mu.Unlock()
-
-			next.entries, next.err = load(ctx)
-			close(next.done)
-			if shared {
-				return slices.Clone(next.entries), next.err
-			}
-			return next.entries, next.err
+			return lists.load(ctx, next, load, shared)
 		}
 		lists.mu.Unlock()
 
-		if err := next.wait(ctx); err != nil {
+		if err := lists.wait(ctx, next); err != nil {
 			return nil, err
 		}
 		// A different request's cancellation must not cancel this read.
@@ -94,11 +94,37 @@ func (lists *trafficLists) leave(key trafficListKey, group *trafficListGroup) {
 	}
 }
 
-func (sample *trafficListSample) wait(ctx context.Context) error {
+func (lists *trafficLists) load(ctx context.Context, sample *trafficListSample, read func(context.Context) ([]traffic.Usage, error), shared bool) ([]traffic.Usage, error) {
+	sample.entries, sample.err = read(ctx)
+	lists.mu.Lock()
+	sample.ready = true
+	if sample.done != nil {
+		close(sample.done)
+	}
+	lists.mu.Unlock()
+
+	if shared {
+		return slices.Clone(sample.entries), sample.err
+	}
+	return sample.entries, sample.err
+}
+
+func (lists *trafficLists) wait(ctx context.Context, sample *trafficListSample) error {
+	lists.mu.Lock()
+	if sample.ready {
+		lists.mu.Unlock()
+		return ctx.Err()
+	}
+	if sample.done == nil {
+		sample.done = make(chan struct{})
+	}
+	done := sample.done
+	lists.mu.Unlock()
+
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
-	case <-sample.done:
+	case <-done:
 		return ctx.Err()
 	}
 }

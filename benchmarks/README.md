@@ -475,3 +475,59 @@ Use the same paired runner with the delivery settings for the full sweep.
 For the focused comparison, set `XRAY_BENCH_TRAFFIC_CASE=user/list`,
 `XRAY_BENCH_TRANSPORTS=http`, `XRAY_BENCH_TRAFFIC_WINDOW=450ms`,
 and `XRAY_BENCH_ROUNDS=5`. Run once for each of 1 and 512 accounts.
+
+## Xray traffic read overhead
+
+An uncontended list previously allocated a group, an initial sample, and a
+completion channel. The initial sample now lives in its group. Readers
+allocate a completion channel when they wait on an active sample. The
+native named lookup also reuses its exact query prefix when identifying
+directions.
+
+The microbenchmark isolates coordination with a single caller and a fixed
+in-memory result. The median of five 150 ms runs on CPU 2 was 413 ns with
+176 bytes and three allocations per operation before the change. The new
+path used 265 ns, 80 bytes and one allocation per operation.
+
+```sh
+GOTOOLCHAIN=go1.27.3 GOMAXPROCS=1 taskset -c 2 go test ./internal/engines/xray/stats/native \
+  -run '^$' -bench '^BenchmarkUncontendedTrafficList$' -benchtime=150ms -count=5
+```
+
+The paired public runs used seven 500 ms windows for each operation with
+both products and engines on server CPU 2 and the client on CPU 4. Each
+cell shows successful responses per second followed by p95 in milliseconds.
+The reference was measured again beside each Node build.
+
+| Operation | Accounts | Clients | Node before | PasarGuard before | Node after | PasarGuard after |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| gRPC named inbound | 1 | 1 | 935 / 2.559 | 948 / 2.205 | 1095 / 1.873 | 1018 / 1.928 |
+| gRPC named inbound | 1 | 8 | 3594 / 4.452 | 3338 / 4.672 | 4088 / 3.831 | 3559 / 4.241 |
+| gRPC named inbound | 512 | 1 | 886 / 2.471 | 761 / 2.964 | 554 / 3.745 | 560 / 3.786 |
+| gRPC named inbound | 512 | 8 | 2923 / 4.710 | 2769 / 5.196 | 2181 / 5.908 | 1924 / 7.035 |
+| HTTP outbound list | 512 | 1 | 871 / 2.824 | 859 / 2.520 | 831 / 2.894 | 731 / 3.192 |
+
+The five focused p95s were lower than the reference after the change.
+The 512-account named inbound had lower throughput and higher p50 at one
+client. The reference timings also shifted between runs. The microbenchmark
+measures the amount of execution saved by the coordination change.
+
+[Focused before](xray/results/2026-11-23-traffic-lean-focused-before.csv) ·
+[Focused after](xray/results/2026-11-23-traffic-lean-focused-after.csv)
+
+The full sweep used the delivery settings with three 250 ms windows.
+A win requires higher success/s, lower p50 and lower p95 in the same
+workload. All 40 comparable workloads completed without capacity rejections.
+
+| Accounts | Transport | All three better | Higher success/s | Lower p50 | Lower p95 |
+| ---: | --- | ---: | ---: | ---: | ---: |
+| 1 | gRPC | 7/10 | 8/10 | 9/10 | 8/10 |
+| 1 | HTTP | 8/10 | 8/10 | 8/10 | 9/10 |
+| 512 | gRPC | 8/10 | 9/10 | 9/10 | 8/10 |
+| 512 | HTTP | 9/10 | 9/10 | 9/10 | 9/10 |
+| **Total** | | **32/40** | **34/40** | **35/40** | **34/40** |
+
+Node trailed on at least one metric in 8 of 40 equivalent workloads.
+
+[HTTP rounds](xray/results/2026-11-23-traffic-lean-matrix-http.csv) ·
+[gRPC rounds](xray/results/2026-11-23-traffic-lean-matrix-grpc.csv)

@@ -37,18 +37,22 @@ func NewTraffic(instances trafficInstances) *Traffic {
 }
 
 func (client *Traffic) Read(ctx context.Context, id string, scope traffic.Scope, name string) (traffic.Usage, error) {
-	key := string(scope) + ">>>" + name
-	counters, err := client.query(ctx, id, key+">>>traffic>>>", namedTrafficOptions)
+	pattern := string(scope) + ">>>" + name + ">>>traffic>>>"
+	counters, err := client.query(ctx, id, pattern, namedTrafficOptions)
 	if err != nil {
 		return traffic.Usage{}, err
 	}
 
 	entry := traffic.Usage{Name: name}
 	for _, counter := range counters {
-		switch counter.GetName() {
-		case key + uplink:
+		direction, matches := strings.CutPrefix(counter.GetName(), pattern)
+		if !matches {
+			continue
+		}
+		switch direction {
+		case "uplink":
 			entry.UplinkBytes, entry.HasUplink = counter.GetValue(), true
-		case key + downlink:
+		case "downlink":
 			entry.DownlinkBytes, entry.HasDownlink = counter.GetValue(), true
 		}
 	}
