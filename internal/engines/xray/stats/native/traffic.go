@@ -23,16 +23,16 @@ var (
 	listTrafficOptions  = []grpc.CallOption{grpc.StaticMethod(), grpc.MaxCallRecvMsgSize(4 << 20)}
 )
 
-type trafficInstances interface {
+type activeInstances interface {
 	NativeConnection(id string) (*grpc.ClientConn, error)
 }
 
 type Traffic struct {
-	instances trafficInstances
+	instances activeInstances
 	lists     trafficLists
 }
 
-func NewTraffic(instances trafficInstances) *Traffic {
+func NewTraffic(instances activeInstances) *Traffic {
 	return &Traffic{instances: instances}
 }
 
@@ -84,11 +84,11 @@ func (client *Traffic) List(ctx context.Context, id string, scope traffic.Scope)
 	return entries, nil
 }
 
-// QueryStats scans synchronously without consulting its server context. The
+// The native statistics reads run without consulting their server context. The
 // deadline still bounds the local wait and cancels the native gRPC stream.
-type trafficReadContext struct{ context.Context }
+type statsReadContext struct{ context.Context }
 
-func (trafficReadContext) Deadline() (time.Time, bool) { return time.Time{}, false }
+func (statsReadContext) Deadline() (time.Time, bool) { return time.Time{}, false }
 
 func (client *Traffic) query(ctx context.Context, id, pattern string, opts []grpc.CallOption) ([]*TrafficCounter, error) {
 	conn, err := client.instances.NativeConnection(id)
@@ -118,7 +118,7 @@ func (client *Traffic) checkConnection(id string, conn *grpc.ClientConn) error {
 
 func readTrafficCounters(ctx context.Context, conn *grpc.ClientConn, pattern string, opts []grpc.CallOption) ([]*TrafficCounter, error) {
 	var reply QueryStatsResponse
-	if err := conn.Invoke(trafficReadContext{ctx}, queryStats, &QueryStatsRequest{Pattern: pattern}, &reply, opts...); err != nil {
+	if err := conn.Invoke(statsReadContext{ctx}, queryStats, &QueryStatsRequest{Pattern: pattern}, &reply, opts...); err != nil {
 		if cause := ctx.Err(); cause != nil {
 			return nil, cause
 		}

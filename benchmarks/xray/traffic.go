@@ -45,7 +45,14 @@ func benchmarkTraffic(protocol string, targets []target, rounds int, clients []i
 		{"outbound", statsv1.XrayTrafficScope_XRAY_TRAFFIC_SCOPE_OUTBOUND, 1, "direct", 1},
 		{"outbound", statsv1.XrayTrafficScope_XRAY_TRAFFIC_SCOPE_OUTBOUND, 0, "", 1},
 	}
-	if selection != "" {
+	online := selection == "online" || strings.HasPrefix(selection, "online-")
+	if online {
+		cases = []trafficRead{
+			{scope: "online-count", name: "account-0000"},
+			{scope: "online-ips", name: "account-0000"},
+		}
+	}
+	if selection != "" && selection != "online" {
 		cases = slices.DeleteFunc(cases, func(item trafficRead) bool { return item.label() != selection })
 		if len(cases) == 0 {
 			check(fmt.Errorf("unknown traffic case %q", selection))
@@ -59,7 +66,14 @@ func benchmarkTraffic(protocol string, targets []target, rounds int, clients []i
 	for index, t := range targets {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 		check(t.call(ctx, start))
-		check(seedTraffic(ctx, target.URL, fmt.Sprintf("127.0.0.1:%d", 24440+index), names))
+		address := fmt.Sprintf("127.0.0.1:%d", 24440+index)
+		if online {
+			tunnel, err := openOnlineTunnel(ctx, address, strings.TrimPrefix(target.URL, "http://"), cases[0].name)
+			check(err)
+			defer tunnel.Close()
+		} else {
+			check(seedTraffic(ctx, target.URL, address, names))
+		}
 		cancel()
 		defer func() {
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -150,6 +164,9 @@ func seedTraffic(ctx context.Context, target, address string, names int) error {
 
 func trafficHTTP(client *http.Client, node, reference string) (func(trafficRead) trafficCall, func(trafficRead) trafficCall) {
 	return func(spec trafficRead) trafficCall {
+			if strings.HasPrefix(spec.scope, "online-") {
+				return onlineHTTP(client, node, spec, false)
+			}
 			endpoint := "https://" + node + "/v1/xray/instances/primary/stats/traffic/" + spec.scope
 			if spec.name != "" {
 				endpoint += "?name=" + url.QueryEscape(spec.name)
@@ -173,6 +190,9 @@ func trafficHTTP(client *http.Client, node, reference string) (func(trafficRead)
 				return validateNodeTraffic(spec, results.Entries)
 			}
 		}, func(spec trafficRead) trafficCall {
+			if strings.HasPrefix(spec.scope, "online-") {
+				return onlineHTTP(client, reference, spec, true)
+			}
 			input, err := proto.Marshal(&ReferenceTrafficRequest{Name: spec.name, Type: spec.referenceScope})
 			check(err)
 			return func(ctx context.Context) (uint32, error) {
@@ -217,6 +237,9 @@ func trafficHTTPRead(ctx context.Context, client *http.Client, endpoint string, 
 func trafficGRPC(node, reference *grpc.ClientConn) (func(trafficRead) trafficCall, func(trafficRead) trafficCall) {
 	client := statsv1.NewXrayStatsServiceClient(node)
 	return func(spec trafficRead) trafficCall {
+			if strings.HasPrefix(spec.scope, "online-") {
+				return onlineGRPC(node, spec, false)
+			}
 			single := &statsv1.XrayTrafficRequest{Id: "primary", Scope: spec.nodeScope, Name: spec.name}
 			list := &statsv1.XrayTrafficListRequest{Id: "primary", Scope: spec.nodeScope}
 			return func(ctx context.Context) (uint32, error) {
@@ -235,6 +258,9 @@ func trafficGRPC(node, reference *grpc.ClientConn) (func(trafficRead) trafficCal
 				return validateNodeTraffic(spec, results.Entries)
 			}
 		}, func(spec trafficRead) trafficCall {
+			if strings.HasPrefix(spec.scope, "online-") {
+				return onlineGRPC(reference, spec, true)
+			}
 			request := &ReferenceTrafficRequest{Name: spec.name, Type: spec.referenceScope}
 			return func(ctx context.Context) (uint32, error) {
 				ctx = metadata.AppendToOutgoingContext(ctx, "x-api-key", key)

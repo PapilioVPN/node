@@ -69,6 +69,7 @@ docker run --rm --network=host --read-only --cap-drop ALL \
 | اعتبارسنجی کانفیگ Xray | بررسی فایل JSON تنظیم‌شده از HTTP و gRPC پیش از راه‌اندازی دوبارهٔ نمونه. |
 | آمار اجرای Xray | خواندن زمان کارکرد، تخصیص حافظه، goroutineها و شمارنده‌های GC نمونهٔ فعال از HTTP و gRPC. |
 | شمارنده‌های ترافیک Xray | بایت آپلود و دانلود یک یا همهٔ حساب‌ها، ورودی‌ها یا خروجی‌ها را با HTTP و gRPC بخوان. |
+| IPهای آنلاین Xray | تعداد IPهای مبدأ یکتا و زمان آخرین مشاهدهٔ آن‌ها را برای یک حساب با HTTP و gRPC بخوان. |
 
 <a name="management"></a>
 
@@ -95,6 +96,8 @@ docker run --rm --network=host --read-only --cap-drop ALL \
 از `GET /v1/xray/instances/{id}/stats/runtime` یا `XrayStatsService.GetRuntimeStats` استفاده کن. هر پاسخ از نمونه‌ای تازه از اجرای فعال Xray استفاده می‌کند. درخواست‌های هم‌زمان می‌توانند نمونهٔ بعدی را مشترک بخوانند. واحد حافظه بایت، زمان کارکرد ثانیهٔ کامل از آغاز سرویس آمار Xray و مجموع مکث GC نانوثانیه است. اگر نمونهٔ تنظیم‌شده در دسترس نباشد، HTTP پاسخ `503` و gRPC وضعیت `UNAVAILABLE` می‌دهد. صف انتظار ظرفیت ۱۲۸ درخواست دارد. اگر صف پر باشد، درخواست در HTTP پاسخ `429` و در gRPC وضعیت `RESOURCE_EXHAUSTED` می‌گیرد. [قرارداد gRPC](internal/engines/xray/stats/bridge/grpc/proto/v1/runtime_stats.proto) · [بنچمارک و نتایج خام](benchmarks/README.md#xray-runtime-statistics-after-the-rewrite)
 
 از `GET /v1/xray/instances/{id}/stats/traffic/{scope}` با `user`، `inbound` یا `outbound` استفاده کن. برای یک حساب یا تگ، `?name=...` را اضافه کن. متدهای gRPC، `XrayStatsService.GetTraffic` و `ListTraffic` هستند. خواندن، شمارنده‌ها را تغییر نمی‌دهد. جهت غایب در پاسخ نمی‌آید و مقدار صفر به‌صورت صفر برمی‌گردد. اگر نام پیدا نشود، HTTP پاسخ `404` و gRPC وضعیت `NOT_FOUND` می‌دهد. فهرست ترتیب ثابتی ندارد. آمار ترافیک محدودهٔ موردنیاز را در سیاست Xray فعال کن. [قرارداد gRPC](internal/engines/xray/stats/bridge/grpc/proto/v1/traffic.proto)
+
+از `GET /v1/xray/instances/{id}/stats/online/count?name=...` برای شمارش و از `/stats/online/ips?name=...` زیر مسیر همان نمونه برای فهرست استفاده کن. متدهای gRPC، `XrayStatsService.GetOnlineIPCount` و `ListOnlineIPs` هستند. `statsUserOnline` را در سطح سیاست حساب فعال کن. زمان‌ها بر حسب ثانیهٔ یونیکس هستند. اگر نقشهٔ IP حساب خالی باشد، شمارش صفر و فهرست خالی برمی‌گردد. اگر مشاهده‌ای وجود نداشته باشد، HTTP پاسخ `404` و gRPC وضعیت `NOT_FOUND` می‌دهد. [قرارداد gRPC](internal/engines/xray/stats/bridge/grpc/proto/v1/online.proto)
 
 در نمونه، هر دو listener روی loopback باز می‌شوند. درخواست HTTP به `GET /healthz` هنگام آمادگی پاسخ `204 No Content` دارد. سرویس health در gRPC روی پورت 8081 برای نام سرویس خالی وضعیت `SERVING` را می‌دهد. برای فعال‌کردن TLS، فیلدهای `management.tls.cert_file` و `management.tls.key_file` را تنظیم کن. فیلد `management.tls.client_ca_file` برای mTLS و `management.api_key` برای هدر یا متادیتای `x-api-key` اختیاری‌اند.
 

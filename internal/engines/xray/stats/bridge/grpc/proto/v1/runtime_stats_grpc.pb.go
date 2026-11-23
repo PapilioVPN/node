@@ -19,9 +19,11 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	XrayStatsService_GetRuntimeStats_FullMethodName = "/papiliovpn.node.v1.XrayStatsService/GetRuntimeStats"
-	XrayStatsService_GetTraffic_FullMethodName      = "/papiliovpn.node.v1.XrayStatsService/GetTraffic"
-	XrayStatsService_ListTraffic_FullMethodName     = "/papiliovpn.node.v1.XrayStatsService/ListTraffic"
+	XrayStatsService_GetRuntimeStats_FullMethodName  = "/papiliovpn.node.v1.XrayStatsService/GetRuntimeStats"
+	XrayStatsService_GetTraffic_FullMethodName       = "/papiliovpn.node.v1.XrayStatsService/GetTraffic"
+	XrayStatsService_ListTraffic_FullMethodName      = "/papiliovpn.node.v1.XrayStatsService/ListTraffic"
+	XrayStatsService_GetOnlineIPCount_FullMethodName = "/papiliovpn.node.v1.XrayStatsService/GetOnlineIPCount"
+	XrayStatsService_ListOnlineIPs_FullMethodName    = "/papiliovpn.node.v1.XrayStatsService/ListOnlineIPs"
 )
 
 // XrayStatsServiceClient is the client API for XrayStatsService service.
@@ -32,6 +34,8 @@ type XrayStatsServiceClient interface {
 	GetRuntimeStats(ctx context.Context, in *XrayRuntimeStatsRequest, opts ...grpc.CallOption) (*XrayRuntimeStats, error)
 	GetTraffic(ctx context.Context, in *XrayTrafficRequest, opts ...grpc.CallOption) (*XrayTrafficUsage, error)
 	ListTraffic(ctx context.Context, in *XrayTrafficListRequest, opts ...grpc.CallOption) (*XrayTrafficList, error)
+	GetOnlineIPCount(ctx context.Context, in *XrayOnlineRequest, opts ...grpc.CallOption) (*XrayOnlineCount, error)
+	ListOnlineIPs(ctx context.Context, in *XrayOnlineRequest, opts ...grpc.CallOption) (*XrayOnlineIPs, error)
 }
 
 type xrayStatsServiceClient struct {
@@ -72,6 +76,26 @@ func (c *xrayStatsServiceClient) ListTraffic(ctx context.Context, in *XrayTraffi
 	return out, nil
 }
 
+func (c *xrayStatsServiceClient) GetOnlineIPCount(ctx context.Context, in *XrayOnlineRequest, opts ...grpc.CallOption) (*XrayOnlineCount, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(XrayOnlineCount)
+	err := c.cc.Invoke(ctx, XrayStatsService_GetOnlineIPCount_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *xrayStatsServiceClient) ListOnlineIPs(ctx context.Context, in *XrayOnlineRequest, opts ...grpc.CallOption) (*XrayOnlineIPs, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(XrayOnlineIPs)
+	err := c.cc.Invoke(ctx, XrayStatsService_ListOnlineIPs_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // XrayStatsServiceServer is the server API for XrayStatsService service.
 // All implementations must embed UnimplementedXrayStatsServiceServer
 // for forward compatibility.
@@ -80,6 +104,8 @@ type XrayStatsServiceServer interface {
 	GetRuntimeStats(context.Context, *XrayRuntimeStatsRequest) (*XrayRuntimeStats, error)
 	GetTraffic(context.Context, *XrayTrafficRequest) (*XrayTrafficUsage, error)
 	ListTraffic(context.Context, *XrayTrafficListRequest) (*XrayTrafficList, error)
+	GetOnlineIPCount(context.Context, *XrayOnlineRequest) (*XrayOnlineCount, error)
+	ListOnlineIPs(context.Context, *XrayOnlineRequest) (*XrayOnlineIPs, error)
 	mustEmbedUnimplementedXrayStatsServiceServer()
 }
 
@@ -98,6 +124,12 @@ func (UnimplementedXrayStatsServiceServer) GetTraffic(context.Context, *XrayTraf
 }
 func (UnimplementedXrayStatsServiceServer) ListTraffic(context.Context, *XrayTrafficListRequest) (*XrayTrafficList, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListTraffic not implemented")
+}
+func (UnimplementedXrayStatsServiceServer) GetOnlineIPCount(context.Context, *XrayOnlineRequest) (*XrayOnlineCount, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetOnlineIPCount not implemented")
+}
+func (UnimplementedXrayStatsServiceServer) ListOnlineIPs(context.Context, *XrayOnlineRequest) (*XrayOnlineIPs, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListOnlineIPs not implemented")
 }
 func (UnimplementedXrayStatsServiceServer) mustEmbedUnimplementedXrayStatsServiceServer() {}
 func (UnimplementedXrayStatsServiceServer) testEmbeddedByValue()                          {}
@@ -174,6 +206,42 @@ func _XrayStatsService_ListTraffic_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _XrayStatsService_GetOnlineIPCount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(XrayOnlineRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(XrayStatsServiceServer).GetOnlineIPCount(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: XrayStatsService_GetOnlineIPCount_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(XrayStatsServiceServer).GetOnlineIPCount(ctx, req.(*XrayOnlineRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _XrayStatsService_ListOnlineIPs_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(XrayOnlineRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(XrayStatsServiceServer).ListOnlineIPs(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: XrayStatsService_ListOnlineIPs_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(XrayStatsServiceServer).ListOnlineIPs(ctx, req.(*XrayOnlineRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // XrayStatsService_ServiceDesc is the grpc.ServiceDesc for XrayStatsService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -192,6 +260,14 @@ var XrayStatsService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListTraffic",
 			Handler:    _XrayStatsService_ListTraffic_Handler,
+		},
+		{
+			MethodName: "GetOnlineIPCount",
+			Handler:    _XrayStatsService_GetOnlineIPCount_Handler,
+		},
+		{
+			MethodName: "ListOnlineIPs",
+			Handler:    _XrayStatsService_ListOnlineIPs_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

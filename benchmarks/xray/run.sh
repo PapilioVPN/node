@@ -45,7 +45,7 @@ cat > "$work/xray.json" <<'JSON'
 }
 JSON
 if [[ ${XRAY_BENCH_TRAFFIC_NAMES:-0} != 0 ]]; then
-  python3 - "${XRAY_BENCH_TRAFFIC_NAMES}" "$work" <<'PYTHON'
+  python3 - "${XRAY_BENCH_TRAFFIC_NAMES}" "$work" "${XRAY_BENCH_TRAFFIC_CASE:-}" <<'PYTHON'
 import json
 from pathlib import Path
 import sys
@@ -69,6 +69,8 @@ config = {
     }],
     "outbounds": [{"tag": "direct", "protocol": "freedom"}],
 }
+if sys.argv[3] == "online" or sys.argv[3].startswith("online-"):
+    config["policy"]["levels"]["0"]["statsUserOnline"] = True
 directory = Path(sys.argv[2])
 (directory / "xray.json").write_text(json.dumps(config))
 config["inbounds"][0]["port"] = 24441

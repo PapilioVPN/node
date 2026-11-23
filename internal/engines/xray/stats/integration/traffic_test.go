@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -53,7 +54,7 @@ func TestTrafficCountersWithRealProxy(t *testing.T) {
 		"log":   map[string]any{"loglevel": "none"},
 		"stats": map[string]any{},
 		"policy": map[string]any{
-			"levels": map[string]any{"0": map[string]bool{"statsUserUplink": true, "statsUserDownlink": true}},
+			"levels": map[string]any{"0": map[string]bool{"statsUserUplink": true, "statsUserDownlink": true, "statsUserOnline": true}},
 			"system": map[string]bool{"statsInboundUplink": true, "statsInboundDownlink": true, "statsOutboundUplink": true, "statsOutboundDownlink": true},
 		},
 		"inbounds": []any{map[string]any{
@@ -166,6 +167,9 @@ func TestTrafficCountersWithRealProxy(t *testing.T) {
 		t.Fatalf("missing counter: HTTP %d", res.Code)
 	}
 	user := statsv1.XrayTrafficScope_XRAY_TRAFFIC_SCOPE_USER
+	t.Run("online IP statistics", func(t *testing.T) {
+		verifyOnlineIPs(t, ctx, router, client, proxyAddress, strings.TrimPrefix(target.URL, "http://"))
+	})
 	_, err = client.GetTraffic(ctx, &statsv1.XrayTrafficRequest{Id: "primary", Scope: user, Name: "missing"})
 	if status.Code(err) != codes.NotFound {
 		t.Fatalf("missing counter: gRPC %v", err)
@@ -182,5 +186,9 @@ func TestTrafficCountersWithRealProxy(t *testing.T) {
 	require(t, err)
 	if len(empty.Entries) != 0 {
 		t.Fatalf("new execution: gRPC counters %v", empty)
+	}
+	_, err = client.GetOnlineIPCount(ctx, &statsv1.XrayOnlineRequest{Id: "primary", Name: "case>>>name"})
+	if status.Code(err) != codes.NotFound {
+		t.Fatalf("new execution retained a previous online observation: %v", err)
 	}
 }

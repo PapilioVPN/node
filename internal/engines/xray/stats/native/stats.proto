@@ -31,3 +31,17 @@ message TrafficCounter {
 message QueryStatsResponse {
   repeated TrafficCounter stats = 1;
 }
+
+// Wire projections for GetStatsOnline and GetStatsOnlineIpList.
+message OnlineRequest {
+  string name = 1;
+}
+
+message OnlineCountResponse {
+  TrafficCounter stat = 1;
+}
+
+message OnlineIPsResponse {
+  string name = 1;
+  map<string, int64> ips = 2;
+}

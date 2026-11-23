@@ -72,7 +72,7 @@ func main() {
 	flag.BoolVar(&runtimeStats, "runtime-stats", false, "measure backend runtime statistics")
 	flag.StringVar(&runtimeStatsClients, "runtime-stats-clients", "1,8", "comma-separated client counts for runtime statistics")
 	flag.DurationVar(&runtimeStatsWindow, "runtime-stats-window", 450*time.Millisecond, "polling window for each runtime statistics measurement")
-	flag.StringVar(&trafficCase, "traffic-case", "", "run only a traffic case such as user/list")
+	flag.StringVar(&trafficCase, "traffic-case", "", "run only a traffic case such as user/list or both online reads with online")
 	flag.StringVar(&referenceTrafficConfig, "traffic-reference-config", "", "Xray fixture configuration for the reference traffic listener")
 	flag.IntVar(&trafficNames, "traffic-names", 0, "seed and measure traffic for this many benchmark accounts")
 	flag.Parse()

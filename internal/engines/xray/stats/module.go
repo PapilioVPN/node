@@ -6,6 +6,7 @@ import (
 	"github.com/PapilioVPN/node/internal/engines/xray/stats/bridge/grpc"
 	"github.com/PapilioVPN/node/internal/engines/xray/stats/bridge/http"
 	"github.com/PapilioVPN/node/internal/engines/xray/stats/native"
+	"github.com/PapilioVPN/node/internal/engines/xray/stats/online"
 	"github.com/PapilioVPN/node/internal/engines/xray/stats/runtime"
 	"github.com/PapilioVPN/node/internal/engines/xray/stats/traffic"
 	"github.com/PapilioVPN/node/internal/settings"
@@ -25,5 +26,7 @@ func register(life fx.Lifecycle, config settings.Xray, instance *lifecycle.Servi
 	http.Register(router, service)
 	trafficService := traffic.New(native.NewTraffic(instance))
 	http.RegisterTraffic(router, trafficService)
-	grpc.Register(server, service, trafficService)
+	onlineService := online.New(native.NewOnline(instance))
+	http.RegisterOnline(router, onlineService)
+	grpc.Register(server, service, trafficService, onlineService)
 }

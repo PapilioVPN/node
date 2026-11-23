@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package papiliovpn.node.v1;
+option go_package = "github.com/PapilioVPN/node/internal/engines/xray/stats/bridge/grpc/proto/v1;statsv1";
+
+message XrayOnlineRequest {
+  string id = 1;
+  string name = 2;
+}
+
+message XrayOnlineCount {
+  string name = 1;
+  int64 count = 2;
+}
+
+message XrayOnlineIPs {
+  string name = 1;
+  // Source IPs currently tracked by Xray and their last-seen Unix seconds.
+  map<string, int64> last_seen_unix_seconds = 2;
+}

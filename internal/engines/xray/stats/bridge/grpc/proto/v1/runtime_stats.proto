@@ -4,12 +4,15 @@ package papiliovpn.node.v1;
 option go_package = "github.com/PapilioVPN/node/internal/engines/xray/stats/bridge/grpc/proto/v1;statsv1";
 
 import "proto/v1/traffic.proto";
+import "proto/v1/online.proto";
 
 service XrayStatsService {
   // Reads runtime statistics from the active Xray instance.
   rpc GetRuntimeStats(XrayRuntimeStatsRequest) returns (XrayRuntimeStats);
   rpc GetTraffic(XrayTrafficRequest) returns (XrayTrafficUsage);
   rpc ListTraffic(XrayTrafficListRequest) returns (XrayTrafficList);
+  rpc GetOnlineIPCount(XrayOnlineRequest) returns (XrayOnlineCount);
+  rpc ListOnlineIPs(XrayOnlineRequest) returns (XrayOnlineIPs);
 }
 
 message XrayRuntimeStatsRequest {

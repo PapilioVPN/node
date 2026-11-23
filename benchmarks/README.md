@@ -531,3 +531,74 @@ Node trailed on at least one metric in 8 of 40 equivalent workloads.
 
 [HTTP rounds](xray/results/2026-11-23-traffic-lean-matrix-http.csv) ·
 [gRPC rounds](xray/results/2026-11-23-traffic-lean-matrix-grpc.csv)
+
+## Xray online IP statistics
+
+The paired workload used the lifecycle fixture with Xray v26.11.9 for both
+servers and PasarGuard at `739eab94a9343d9f0035baf7162796844109f4c4`. Each engine
+had one authenticated HTTP CONNECT tunnel open throughout the benchmark, with
+`statsUserOnline` enabled and `127.0.0.2` as the source. The client checked every
+count against one and every list against the source IP and a positive native Unix
+timestamp. Both HTTP endpoints returned equivalent data over HTTP/1.1 with TLS.
+PapilioVPN used JSON and PasarGuard used protobuf. Both gRPC endpoints used
+protobuf over TLS. Node makes one targeted Xray RPC per request.
+
+### Full measurement
+
+Each figure is the median of seven 450 ms rounds. Cells give PapilioVPN /
+PasarGuard. Latency is in microseconds and goodput counts successful reads per
+second. The test observed zero rejected requests.
+
+| Transport | Operation | Clients | p50 µs | p95 µs | Reads/s |
+| --- | --- | ---: | ---: | ---: | ---: |
+| HTTP | Count IPs | 1 | 703 / 763 | 1859 / 2092 | 1171 / 1104 |
+| HTTP | Count IPs | 8 | 1877 / 1895 | 4618 / 4491 | 3556 / 3678 |
+| HTTP | List IPs | 1 | 721 / 779 | 1857 / 1873 | 1178 / 1084 |
+| HTTP | List IPs | 8 | 1795 / 2143 | 3905 / 4923 | 3992 / 3282 |
+| gRPC | Count IPs | 1 | 810 / 751 | 1972 / 1774 | 1095 / 1134 |
+| gRPC | Count IPs | 8 | 1692 / 2490 | 3672 / 5533 | 4141 / 2888 |
+| gRPC | List IPs | 1 | 1168 / 1399 | 3158 / 3885 | 757 / 579 |
+| gRPC | List IPs | 8 | 2437 / 2919 | 5164 / 6490 | 2923 / 2328 |
+
+PapilioVPN led on all three metrics in six of eight workloads. It trailed on
+HTTP count p95 and goodput with eight clients, and on all three gRPC count metrics
+with one client. The initial five-round sweep led on all three metrics in four
+of eight workloads, including both of the count workloads that trailed in the
+seven-round sweep. The initial build also sent a timeout header to Xray. The
+final build uses a local one-second deadline and still cancels the stream. The
+pinned native handlers process these reads without consulting the server context.
+The two full sweeps had different round counts and absolute latencies, so they
+do not isolate the effect of the deadline change. [Xray handlers](https://github.com/XTLS/Xray-core/blob/676eaf66f8f05d4d558ee7a74b4736623d3feeb9/app/stats/command/command.go#L49-L80)
+
+[Full HTTP rounds](xray/results/2026-11-23-online-http.csv) · [Full gRPC rounds](xray/results/2026-11-23-online-grpc.csv) · [Initial HTTP rounds](xray/results/2026-11-23-online-initial-http.csv) · [Initial gRPC rounds](xray/results/2026-11-23-online-initial-grpc.csv)
+
+### Focused repeat of the two count workloads
+
+The final binary ran the two count workloads again in seven 550 ms rounds
+each. PapilioVPN led on all three median metrics in the focused repeat. The
+direction of the differences changed between the full sweep and this repeat.
+
+| Transport | Clients | p50 µs | p95 µs | Reads/s |
+| --- | ---: | ---: | ---: | ---: |
+| HTTP | 8 | 1306 / 1504 | 2855 / 3536 | 5499 / 4632 |
+| gRPC | 1 | 487 / 559 | 1149 / 1327 | 1741 / 1550 |
+
+[Focused HTTP rounds](xray/results/2026-11-23-online-count-http.csv) · [Focused gRPC rounds](xray/results/2026-11-23-online-count-grpc.csv)
+
+### Reproduce
+
+Build the binaries and descriptor using the [lifecycle setup](#reproduce). Run
+the paired workload with the same Go toolchain and CPU affinity. This workload
+covers a one-entry IP list.
+
+```sh
+XRAY_BENCH_TRAFFIC_NAMES=1 XRAY_BENCH_TRAFFIC_CASE=online \
+XRAY_BENCH_TRAFFIC_CLIENTS=1,8 XRAY_BENCH_TRAFFIC_WINDOW=450ms XRAY_BENCH_ROUNDS=7 \
+bash benchmarks/xray/run.sh "$work/node" "$work/pasarguard" "$work/xray/xray" \
+  "$work/bench" "$work/reference.pb" "$work/results-online"
+```
+
+For the focused repeat, use `XRAY_BENCH_TRAFFIC_CASE=online-count/one` and
+`XRAY_BENCH_TRAFFIC_WINDOW=550ms`. Run once with
+`XRAY_BENCH_TRANSPORTS=http` and `XRAY_BENCH_TRAFFIC_CLIENTS=8`, and once with
+`XRAY_BENCH_TRANSPORTS=grpc` and `XRAY_BENCH_TRAFFIC_CLIENTS=1`.
