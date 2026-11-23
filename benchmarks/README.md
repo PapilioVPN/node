@@ -379,3 +379,52 @@ Set `XRAY_BENCH_TRAFFIC_NAMES`, `XRAY_BENCH_TRAFFIC_CLIENTS`,
 to the chosen row. For a focused workload, set `XRAY_BENCH_TRAFFIC_CASE` to the
 listed case. Leave it unset for all cases. The runner needs Python 3 to
 construct the proxy fixture.
+
+## Xray traffic read delivery
+
+Traffic reads use one native Xray query per request. The traffic service
+applies independent concurrency limits and a one-second local deadline for
+single and collection reads. Native code projects the counters into the
+typed application result while preserving missing directions and exact names.
+
+The final implementation ran in three 250 ms rounds on the paired runner.
+Both nodes and both Xray children shared server CPU 2. The client ran on
+CPU 4. The build used Go 1.27.3, Xray v26.11.9, and the pinned PasarGuard
+revision from the lifecycle fixture. Each row summarizes ten equivalent
+workloads across 1 and 8 clients. The additional inbound-list rows include
+PasarGuard's private management counters and are available in the CSV.
+
+| Accounts | Transport | Higher success/s | Lower p50 | Lower p95 |
+| ---: | --- | ---: | ---: | ---: |
+| 1 | gRPC | 9/10 | 9/10 | 8/10 |
+| 1 | HTTP | 6/10 | 6/10 | 7/10 |
+| 512 | gRPC | 9/10 | 10/10 | 8/10 |
+| 512 | HTTP | 7/10 | 6/10 | 4/10 |
+
+PapilioVPN led in successful reads per second in 31 of 40 equivalent
+cases. It had lower p50 in 31 cases and lower p95 in 27.
+The one-account HTTP user list with one client returned 1100 versus 1130
+successful reads/s. Its p95 was 1.666 ms versus 1.850 ms.
+Both targets returned zero capacity rejections during the sweep.
+
+[HTTP rounds](xray/results/2026-11-23-traffic-delivery-http.csv) · [gRPC rounds](xray/results/2026-11-23-traffic-delivery-grpc.csv)
+
+Use the current traffic runner with `XRAY_BENCH_TRAFFIC_NAMES=1` or `512`,
+`XRAY_BENCH_TRAFFIC_CLIENTS=1,8`, `XRAY_BENCH_TRAFFIC_WINDOW=250ms`,
+and `XRAY_BENCH_ROUNDS=3`.
+
+### Runtime statistics with the concurrency gates
+
+The runtime follow-up measured the new gate at 1 and 8 clients with three
+250 ms polling windows per transport and client count. Each pair shows
+PapilioVPN / PasarGuard. The single-client throughput was lower on both
+transports in this follow-up.
+
+| Transport | Clients | Success/s | p50 ms | p95 ms |
+| --- | ---: | ---: | ---: | ---: |
+| HTTP | 1 | 702 / 972 | 1.214 / 0.859 | 3.061 / 2.319 |
+| HTTP | 8 | 3099 / 3091 | 2.077 / 2.269 | 5.668 / 5.025 |
+| gRPC | 1 | 738 / 874 | 0.969 / 1.008 | 3.914 / 2.666 |
+| gRPC | 8 | 3512 / 3007 | 2.104 / 2.317 | 4.177 / 4.886 |
+
+[HTTP rounds](xray/results/2026-11-23-runtime-stats-concurrency-gates-http.csv) · [gRPC rounds](xray/results/2026-11-23-runtime-stats-concurrency-gates-grpc.csv)
