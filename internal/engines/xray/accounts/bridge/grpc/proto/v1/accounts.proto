@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+package papiliovpn.node.xray.accounts.v1;
+option go_package = "github.com/PapilioVPN/node/internal/engines/xray/accounts/bridge/grpc/proto/v1;accountsv1";
+
+import "google/protobuf/empty.proto";
+
+service XrayAccountsService {
+  // Adds one live VLESS account with default Xray level and empty flow.
+  rpc AddVLESSAccount(AddVLESSAccountRequest) returns (google.protobuf.Empty);
+  // Removes one live VLESS account by its native case-insensitive email.
+  rpc RemoveVLESSAccount(RemoveVLESSAccountRequest) returns (google.protobuf.Empty);
+  // Counts named users of the selected live VLESS inbound.
+  rpc CountVLESSAccounts(CountVLESSAccountsRequest) returns (CountVLESSAccountsResponse);
+}
+
+message AddVLESSAccountRequest {
+  string id = 1;
+  string inbound_tag = 2;
+  string email = 3;
+  string uuid = 4;
+}
+
+message RemoveVLESSAccountRequest {
+  string id = 1;
+  string inbound_tag = 2;
+  string email = 3;
+}
+
+message CountVLESSAccountsRequest {
+  string id = 1;
+  string inbound_tag = 2;
+}
+
+message CountVLESSAccountsResponse {
+  int64 count = 1;
+}

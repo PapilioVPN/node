@@ -2,6 +2,7 @@
 package xray
 
 import (
+	"github.com/PapilioVPN/node/internal/engines/xray/accounts"
 	"github.com/PapilioVPN/node/internal/engines/xray/configs"
 	"github.com/PapilioVPN/node/internal/engines/xray/instances"
 	"github.com/PapilioVPN/node/internal/engines/xray/outbounds"
@@ -10,4 +11,4 @@ import (
 	"go.uber.org/fx"
 )
 
-var Module = fx.Module("xray", instances.Module, configs.Module, stats.Module, routing.Module, outbounds.Module)
+var Module = fx.Module("xray", instances.Module, configs.Module, stats.Module, routing.Module, outbounds.Module, accounts.Module)
