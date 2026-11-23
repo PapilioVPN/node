@@ -91,6 +91,8 @@ func writeResetError(w http.ResponseWriter, err error) {
 		code, message = http.StatusNotFound, traffic.ErrNotFound.Error()
 	case errors.Is(err, traffic.ErrInvalid):
 		code, message = http.StatusBadRequest, traffic.ErrInvalid.Error()
+	case errors.Is(err, traffic.ErrTooLarge):
+		code, message = http.StatusUnprocessableEntity, traffic.ErrTooLarge.Error()
 	case errors.Is(err, traffic.ErrResetBusy):
 		code, message = http.StatusTooManyRequests, traffic.ErrResetBusy.Error()
 	case errors.Is(err, context.DeadlineExceeded):

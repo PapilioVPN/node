@@ -36,7 +36,7 @@ func (service *Service) Reset(ctx context.Context, counter Counter) (int64, erro
 		(counter.Direction != Uplink && counter.Direction != Downlink) {
 		return 0, ErrInvalid
 	}
-	return withLimit(ctx, &service.resets, maxConcurrentResets, ErrResetBusy, func(ctx context.Context) (int64, error) {
+	return withLimit(ctx, &service.resets, maxConcurrentResets, 1, readTimeout, ErrResetBusy, func(ctx context.Context) (int64, error) {
 		return service.counters.Reset(ctx, counter)
 	})
 }
@@ -44,7 +44,7 @@ func (service *Service) Reset(ctx context.Context, counter Counter) (int64, erro
 const maxConcurrentResets = 16
 
 func validResetName(id string, scope Scope, name string) bool {
-	return id != "" && scope.valid() && name != "" && len(name) <= maxNameBytes && utf8.ValidString(name)
+	return id != "" && scope.valid() && name != "" && len(name) <= MaxCounterNameBytes && utf8.ValidString(name)
 }
 
 type CounterPair struct {
@@ -80,7 +80,7 @@ func (service *Service) ResetPair(ctx context.Context, pair CounterPair) (PairRe
 	if !validResetName(pair.ID, pair.Scope, pair.Name) {
 		return PairReset{}, ErrInvalid
 	}
-	return withLimit(ctx, &service.resets, maxConcurrentResets, ErrResetBusy, func(ctx context.Context) (PairReset, error) {
+	return withLimit(ctx, &service.resets, maxConcurrentResets, 1, readTimeout, ErrResetBusy, func(ctx context.Context) (PairReset, error) {
 		return service.counters.ResetPair(ctx, pair)
 	})
 }

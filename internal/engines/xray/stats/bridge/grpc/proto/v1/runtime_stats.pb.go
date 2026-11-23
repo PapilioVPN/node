@@ -201,14 +201,15 @@ const file_proto_v1_runtime_stats_proto_rawDesc = "" +
 	"\flive_objects\x18\b \x01(\x04R\vliveObjects\x12;\n" +
 	"\x1agc_pause_total_nanoseconds\x18\t \x01(\x04R\x17gcPauseTotalNanoseconds\x12%\n" +
 	"\x0euptime_seconds\x18\n" +
-	" \x01(\rR\ruptimeSeconds2\xb8\x06\n" +
+	" \x01(\rR\ruptimeSeconds2\xb0\a\n" +
 	"\x10XrayStatsService\x12d\n" +
 	"\x0fGetRuntimeStats\x12+.papiliovpn.node.v1.XrayRuntimeStatsRequest\x1a$.papiliovpn.node.v1.XrayRuntimeStats\x12Z\n" +
 	"\n" +
 	"GetTraffic\x12&.papiliovpn.node.v1.XrayTrafficRequest\x1a$.papiliovpn.node.v1.XrayTrafficUsage\x12^\n" +
 	"\vListTraffic\x12*.papiliovpn.node.v1.XrayTrafficListRequest\x1a#.papiliovpn.node.v1.XrayTrafficList\x12n\n" +
 	"\x13ResetTrafficCounter\x12+.papiliovpn.node.v1.XrayTrafficResetRequest\x1a*.papiliovpn.node.v1.XrayTrafficResetResult\x12s\n" +
-	"\x10ResetTrafficPair\x12/.papiliovpn.node.v1.XrayTrafficPairResetRequest\x1a..papiliovpn.node.v1.XrayTrafficPairResetResult\x12^\n" +
+	"\x10ResetTrafficPair\x12/.papiliovpn.node.v1.XrayTrafficPairResetRequest\x1a..papiliovpn.node.v1.XrayTrafficPairResetResult\x12v\n" +
+	"\x11ResetTrafficScope\x120.papiliovpn.node.v1.XrayTrafficScopeResetRequest\x1a/.papiliovpn.node.v1.XrayTrafficScopeResetResult\x12^\n" +
 	"\x10GetOnlineIPCount\x12%.papiliovpn.node.v1.XrayOnlineRequest\x1a#.papiliovpn.node.v1.XrayOnlineCount\x12Y\n" +
 	"\rListOnlineIPs\x12%.papiliovpn.node.v1.XrayOnlineRequest\x1a!.papiliovpn.node.v1.XrayOnlineIPs\x12b\n" +
 	"\x0fListOnlineUsers\x12*.papiliovpn.node.v1.XrayOnlineUsersRequest\x1a#.papiliovpn.node.v1.XrayOnlineUsersBUZSgithub.com/PapilioVPN/node/internal/engines/xray/stats/bridge/grpc/proto/v1;statsv1b\x06proto3"
@@ -227,21 +228,23 @@ func file_proto_v1_runtime_stats_proto_rawDescGZIP() []byte {
 
 var file_proto_v1_runtime_stats_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
 var file_proto_v1_runtime_stats_proto_goTypes = []any{
-	(*XrayRuntimeStatsRequest)(nil),     // 0: papiliovpn.node.v1.XrayRuntimeStatsRequest
-	(*XrayRuntimeStats)(nil),            // 1: papiliovpn.node.v1.XrayRuntimeStats
-	(*XrayTrafficRequest)(nil),          // 2: papiliovpn.node.v1.XrayTrafficRequest
-	(*XrayTrafficListRequest)(nil),      // 3: papiliovpn.node.v1.XrayTrafficListRequest
-	(*XrayTrafficResetRequest)(nil),     // 4: papiliovpn.node.v1.XrayTrafficResetRequest
-	(*XrayTrafficPairResetRequest)(nil), // 5: papiliovpn.node.v1.XrayTrafficPairResetRequest
-	(*XrayOnlineRequest)(nil),           // 6: papiliovpn.node.v1.XrayOnlineRequest
-	(*XrayOnlineUsersRequest)(nil),      // 7: papiliovpn.node.v1.XrayOnlineUsersRequest
-	(*XrayTrafficUsage)(nil),            // 8: papiliovpn.node.v1.XrayTrafficUsage
-	(*XrayTrafficList)(nil),             // 9: papiliovpn.node.v1.XrayTrafficList
-	(*XrayTrafficResetResult)(nil),      // 10: papiliovpn.node.v1.XrayTrafficResetResult
-	(*XrayTrafficPairResetResult)(nil),  // 11: papiliovpn.node.v1.XrayTrafficPairResetResult
-	(*XrayOnlineCount)(nil),             // 12: papiliovpn.node.v1.XrayOnlineCount
-	(*XrayOnlineIPs)(nil),               // 13: papiliovpn.node.v1.XrayOnlineIPs
-	(*XrayOnlineUsers)(nil),             // 14: papiliovpn.node.v1.XrayOnlineUsers
+	(*XrayRuntimeStatsRequest)(nil),      // 0: papiliovpn.node.v1.XrayRuntimeStatsRequest
+	(*XrayRuntimeStats)(nil),             // 1: papiliovpn.node.v1.XrayRuntimeStats
+	(*XrayTrafficRequest)(nil),           // 2: papiliovpn.node.v1.XrayTrafficRequest
+	(*XrayTrafficListRequest)(nil),       // 3: papiliovpn.node.v1.XrayTrafficListRequest
+	(*XrayTrafficResetRequest)(nil),      // 4: papiliovpn.node.v1.XrayTrafficResetRequest
+	(*XrayTrafficPairResetRequest)(nil),  // 5: papiliovpn.node.v1.XrayTrafficPairResetRequest
+	(*XrayTrafficScopeResetRequest)(nil), // 6: papiliovpn.node.v1.XrayTrafficScopeResetRequest
+	(*XrayOnlineRequest)(nil),            // 7: papiliovpn.node.v1.XrayOnlineRequest
+	(*XrayOnlineUsersRequest)(nil),       // 8: papiliovpn.node.v1.XrayOnlineUsersRequest
+	(*XrayTrafficUsage)(nil),             // 9: papiliovpn.node.v1.XrayTrafficUsage
+	(*XrayTrafficList)(nil),              // 10: papiliovpn.node.v1.XrayTrafficList
+	(*XrayTrafficResetResult)(nil),       // 11: papiliovpn.node.v1.XrayTrafficResetResult
+	(*XrayTrafficPairResetResult)(nil),   // 12: papiliovpn.node.v1.XrayTrafficPairResetResult
+	(*XrayTrafficScopeResetResult)(nil),  // 13: papiliovpn.node.v1.XrayTrafficScopeResetResult
+	(*XrayOnlineCount)(nil),              // 14: papiliovpn.node.v1.XrayOnlineCount
+	(*XrayOnlineIPs)(nil),                // 15: papiliovpn.node.v1.XrayOnlineIPs
+	(*XrayOnlineUsers)(nil),              // 16: papiliovpn.node.v1.XrayOnlineUsers
 }
 var file_proto_v1_runtime_stats_proto_depIdxs = []int32{
 	0,  // 0: papiliovpn.node.v1.XrayStatsService.GetRuntimeStats:input_type -> papiliovpn.node.v1.XrayRuntimeStatsRequest
@@ -249,19 +252,21 @@ var file_proto_v1_runtime_stats_proto_depIdxs = []int32{
 	3,  // 2: papiliovpn.node.v1.XrayStatsService.ListTraffic:input_type -> papiliovpn.node.v1.XrayTrafficListRequest
 	4,  // 3: papiliovpn.node.v1.XrayStatsService.ResetTrafficCounter:input_type -> papiliovpn.node.v1.XrayTrafficResetRequest
 	5,  // 4: papiliovpn.node.v1.XrayStatsService.ResetTrafficPair:input_type -> papiliovpn.node.v1.XrayTrafficPairResetRequest
-	6,  // 5: papiliovpn.node.v1.XrayStatsService.GetOnlineIPCount:input_type -> papiliovpn.node.v1.XrayOnlineRequest
-	6,  // 6: papiliovpn.node.v1.XrayStatsService.ListOnlineIPs:input_type -> papiliovpn.node.v1.XrayOnlineRequest
-	7,  // 7: papiliovpn.node.v1.XrayStatsService.ListOnlineUsers:input_type -> papiliovpn.node.v1.XrayOnlineUsersRequest
-	1,  // 8: papiliovpn.node.v1.XrayStatsService.GetRuntimeStats:output_type -> papiliovpn.node.v1.XrayRuntimeStats
-	8,  // 9: papiliovpn.node.v1.XrayStatsService.GetTraffic:output_type -> papiliovpn.node.v1.XrayTrafficUsage
-	9,  // 10: papiliovpn.node.v1.XrayStatsService.ListTraffic:output_type -> papiliovpn.node.v1.XrayTrafficList
-	10, // 11: papiliovpn.node.v1.XrayStatsService.ResetTrafficCounter:output_type -> papiliovpn.node.v1.XrayTrafficResetResult
-	11, // 12: papiliovpn.node.v1.XrayStatsService.ResetTrafficPair:output_type -> papiliovpn.node.v1.XrayTrafficPairResetResult
-	12, // 13: papiliovpn.node.v1.XrayStatsService.GetOnlineIPCount:output_type -> papiliovpn.node.v1.XrayOnlineCount
-	13, // 14: papiliovpn.node.v1.XrayStatsService.ListOnlineIPs:output_type -> papiliovpn.node.v1.XrayOnlineIPs
-	14, // 15: papiliovpn.node.v1.XrayStatsService.ListOnlineUsers:output_type -> papiliovpn.node.v1.XrayOnlineUsers
-	8,  // [8:16] is the sub-list for method output_type
-	0,  // [0:8] is the sub-list for method input_type
+	6,  // 5: papiliovpn.node.v1.XrayStatsService.ResetTrafficScope:input_type -> papiliovpn.node.v1.XrayTrafficScopeResetRequest
+	7,  // 6: papiliovpn.node.v1.XrayStatsService.GetOnlineIPCount:input_type -> papiliovpn.node.v1.XrayOnlineRequest
+	7,  // 7: papiliovpn.node.v1.XrayStatsService.ListOnlineIPs:input_type -> papiliovpn.node.v1.XrayOnlineRequest
+	8,  // 8: papiliovpn.node.v1.XrayStatsService.ListOnlineUsers:input_type -> papiliovpn.node.v1.XrayOnlineUsersRequest
+	1,  // 9: papiliovpn.node.v1.XrayStatsService.GetRuntimeStats:output_type -> papiliovpn.node.v1.XrayRuntimeStats
+	9,  // 10: papiliovpn.node.v1.XrayStatsService.GetTraffic:output_type -> papiliovpn.node.v1.XrayTrafficUsage
+	10, // 11: papiliovpn.node.v1.XrayStatsService.ListTraffic:output_type -> papiliovpn.node.v1.XrayTrafficList
+	11, // 12: papiliovpn.node.v1.XrayStatsService.ResetTrafficCounter:output_type -> papiliovpn.node.v1.XrayTrafficResetResult
+	12, // 13: papiliovpn.node.v1.XrayStatsService.ResetTrafficPair:output_type -> papiliovpn.node.v1.XrayTrafficPairResetResult
+	13, // 14: papiliovpn.node.v1.XrayStatsService.ResetTrafficScope:output_type -> papiliovpn.node.v1.XrayTrafficScopeResetResult
+	14, // 15: papiliovpn.node.v1.XrayStatsService.GetOnlineIPCount:output_type -> papiliovpn.node.v1.XrayOnlineCount
+	15, // 16: papiliovpn.node.v1.XrayStatsService.ListOnlineIPs:output_type -> papiliovpn.node.v1.XrayOnlineIPs
+	16, // 17: papiliovpn.node.v1.XrayStatsService.ListOnlineUsers:output_type -> papiliovpn.node.v1.XrayOnlineUsers
+	9,  // [9:18] is the sub-list for method output_type
+	0,  // [0:9] is the sub-list for method input_type
 	0,  // [0:0] is the sub-list for extension type_name
 	0,  // [0:0] is the sub-list for extension extendee
 	0,  // [0:0] is the sub-list for field type_name

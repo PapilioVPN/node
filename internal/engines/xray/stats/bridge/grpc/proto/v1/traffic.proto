@@ -83,3 +83,27 @@ message XrayTrafficDirectionReset {
   Effect effect = 1;
   optional int64 previous_bytes = 2;
 }
+
+message XrayTrafficScopeResetRequest {
+  string id = 1;
+  XrayTrafficScope scope = 2;
+  // Required. A selection larger than this limit is not applied.
+  uint32 max_counters = 3;
+}
+
+message XrayTrafficScopeResetResult {
+  enum Outcome {
+    OUTCOME_UNSPECIFIED = 0;
+    COMPLETE = 1;
+    INTERRUPTED = 2;
+    UNKNOWN = 3;
+  }
+  Outcome outcome = 1;
+  repeated XrayTrafficScopedCounterReset counters = 2;
+}
+
+message XrayTrafficScopedCounterReset {
+  string name = 1;
+  XrayTrafficDirection direction = 2;
+  XrayTrafficDirectionReset result = 3;
+}

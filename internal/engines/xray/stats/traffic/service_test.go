@@ -27,13 +27,17 @@ func (readerFixture) ResetPair(context.Context, CounterPair) (PairReset, error) 
 	panic("unexpected pair reset")
 }
 
+func (readerFixture) ResetScope(context.Context, ScopeReset, int) ([]CounterReset, error) {
+	panic("unexpected scoped reset")
+}
+
 func TestGetPreservesCounterPresence(t *testing.T) {
 	service := New(readerFixture{read: func(ctx context.Context, id string, scope Scope, name string) (Usage, error) {
 		if _, timed := ctx.Deadline(); !timed || id != "primary" || scope != User || name != "team>>>alice" {
 			t.Fatalf("read selector = %q %q %q", id, scope, name)
 		}
 		return Usage{Name: name, HasUplink: true}, nil
-	}}, false)
+	}}, false, 0)
 	want := Usage{Name: "team>>>alice", HasUplink: true}
 	got, err := service.Get(t.Context(), "primary", User, want.Name)
 	if err != nil || got != want {
@@ -42,7 +46,7 @@ func TestGetPreservesCounterPresence(t *testing.T) {
 }
 
 func TestGetRejectsInvalidAndCanceledSelectorsBeforeRead(t *testing.T) {
-	service := New(readerFixture{}, false)
+	service := New(readerFixture{}, false, 0)
 	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
 	if _, err := service.Get(ctx, "primary", User, "alice"); !errors.Is(err, context.Canceled) {
@@ -56,8 +60,8 @@ func TestGetRejectsInvalidAndCanceledSelectorsBeforeRead(t *testing.T) {
 func TestReadLimitReleasesSlotOnError(t *testing.T) {
 	var active atomic.Int32
 	nativeErr := errors.New("native read failed")
-	_, err := withLimit(t.Context(), &active, 1, ErrBusy, func(ctx context.Context) (Usage, error) {
-		_, err := withLimit(ctx, &active, 1, ErrBusy, func(context.Context) ([]Usage, error) {
+	_, err := withLimit(t.Context(), &active, 4, 2, readTimeout, ErrBusy, func(ctx context.Context) (Usage, error) {
+		_, err := withLimit(ctx, &active, 4, 3, readTimeout, ErrBusy, func(context.Context) ([]Usage, error) {
 			t.Fatal("busy request entered the native reader")
 			return nil, nil
 		})
@@ -69,7 +73,7 @@ func TestReadLimitReleasesSlotOnError(t *testing.T) {
 	if !errors.Is(err, nativeErr) {
 		t.Fatalf("first read = %v", err)
 	}
-	got, err := withLimit(t.Context(), &active, 1, ErrBusy, func(context.Context) ([]Usage, error) {
+	got, err := withLimit(t.Context(), &active, 4, 4, readTimeout, ErrBusy, func(context.Context) ([]Usage, error) {
 		return []Usage{{Name: "account"}}, nil
 	})
 	if err != nil || len(got) != 1 || got[0].Name != "account" {
@@ -79,17 +83,17 @@ func TestReadLimitReleasesSlotOnError(t *testing.T) {
 
 func TestResetRequiresGrantAndExactSelector(t *testing.T) {
 	counter := Counter{ID: "primary", Scope: User, Name: "alice", Direction: Uplink}
-	if _, err := New(readerFixture{}, false).Reset(t.Context(), counter); !errors.Is(err, ErrResetDisabled) {
+	if _, err := New(readerFixture{}, false, 0).Reset(t.Context(), counter); !errors.Is(err, ErrResetDisabled) {
 		t.Fatalf("disabled reset = %v", err)
 	}
 	counter.Direction = ""
-	if _, err := New(readerFixture{}, true).Reset(t.Context(), counter); !errors.Is(err, ErrInvalid) {
+	if _, err := New(readerFixture{}, true, 0).Reset(t.Context(), counter); !errors.Is(err, ErrInvalid) {
 		t.Fatalf("missing direction = %v", err)
 	}
 	counter.Direction = Downlink
 	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
-	if _, err := New(readerFixture{}, true).Reset(ctx, counter); !errors.Is(err, context.Canceled) {
+	if _, err := New(readerFixture{}, true, 0).Reset(ctx, counter); !errors.Is(err, context.Canceled) {
 		t.Fatalf("canceled reset = %v", err)
 	}
 }

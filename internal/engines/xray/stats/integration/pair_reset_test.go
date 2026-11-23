@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strconv"
+	"strings"
 	"testing"
 
 	statsgrpc "github.com/PapilioVPN/node/internal/engines/xray/stats/bridge/grpc"
@@ -133,8 +135,21 @@ func (interruptedPairBackend) ResetPair(context.Context, traffic.CounterPair) (t
 	}, traffic.ErrResetUnknown
 }
 
+func (interruptedPairBackend) ResetScope(context.Context, traffic.ScopeReset, int) ([]traffic.CounterReset, error) {
+	report := make([]traffic.CounterReset, 128)
+	for i := range report {
+		report[i] = traffic.CounterReset{
+			Name: strings.Repeat("x", 80) + strconv.Itoa(i), Direction: traffic.Uplink,
+			DirectionReset: traffic.DirectionReset{Effect: traffic.ResetNotAttempted},
+		}
+	}
+	report[0].DirectionReset = traffic.DirectionReset{Effect: traffic.ResetAcknowledged, PreviousBytes: 42}
+	report[1].Effect = traffic.ResetUnknown
+	return report, traffic.ErrResetUnknown
+}
+
 func TestInterruptedPairReportsProgressOnBothTransports(t *testing.T) {
-	service := traffic.New(interruptedPairBackend{}, true)
+	service := traffic.New(interruptedPairBackend{}, true, 0)
 	router := chi.NewRouter()
 	statshttp.RegisterTraffic(router, service)
 	res := httptest.NewRecorder()
@@ -153,6 +168,24 @@ func TestInterruptedPairReportsProgressOnBothTransports(t *testing.T) {
 		t.Fatalf("partial HTTP result: %d %s", res.Code, res.Body)
 	}
 
+	client := startTrafficResetClient(t, service)
+	_, err := client.ResetTrafficPair(t.Context(), &statsv1.XrayTrafficPairResetRequest{
+		Id: "primary", Scope: statsv1.XrayTrafficScope_XRAY_TRAFFIC_SCOPE_USER, Name: "alice",
+	})
+	st := status.Convert(err)
+	if st.Code() != codes.Unknown || len(st.Details()) != 1 {
+		t.Fatalf("expected only the partial gRPC result: %v", err)
+	}
+	pair, ok := st.Details()[0].(*statsv1.XrayTrafficPairResetResult)
+	if !ok || pair.GetUplink().GetEffect() != statsv1.XrayTrafficDirectionReset_ACKNOWLEDGED ||
+		pair.GetUplink().GetPreviousBytes() != 42 || pair.GetDownlink().GetEffect() != statsv1.XrayTrafficDirectionReset_UNKNOWN ||
+		pair.GetDownlink().PreviousBytes != nil {
+		t.Fatalf("partial gRPC result: %v", st.Details())
+	}
+}
+
+func startTrafficResetClient(t *testing.T, service *traffic.Service) statsv1.XrayStatsServiceClient {
+	t.Helper()
 	server := grpc.NewServer()
 	statsgrpc.Register(server, nil, service, nil)
 	listener := bufconn.Listen(64 << 10)
@@ -170,17 +203,5 @@ func TestInterruptedPairReportsProgressOnBothTransports(t *testing.T) {
 		grpc.WithContextDialer(func(ctx context.Context, _ string) (net.Conn, error) { return listener.DialContext(ctx) }))
 	require(t, err)
 	t.Cleanup(func() { require(t, conn.Close()) })
-	_, err = statsv1.NewXrayStatsServiceClient(conn).ResetTrafficPair(t.Context(), &statsv1.XrayTrafficPairResetRequest{
-		Id: "primary", Scope: statsv1.XrayTrafficScope_XRAY_TRAFFIC_SCOPE_USER, Name: "alice",
-	})
-	st := status.Convert(err)
-	if st.Code() != codes.Unknown || len(st.Details()) != 1 {
-		t.Fatalf("expected only the partial gRPC result: %v", err)
-	}
-	pair, ok := st.Details()[0].(*statsv1.XrayTrafficPairResetResult)
-	if !ok || pair.GetUplink().GetEffect() != statsv1.XrayTrafficDirectionReset_ACKNOWLEDGED ||
-		pair.GetUplink().GetPreviousBytes() != 42 || pair.GetDownlink().GetEffect() != statsv1.XrayTrafficDirectionReset_UNKNOWN ||
-		pair.GetDownlink().PreviousBytes != nil {
-		t.Fatalf("partial gRPC result: %v", st.Details())
-	}
+	return statsv1.NewXrayStatsServiceClient(conn)
 }

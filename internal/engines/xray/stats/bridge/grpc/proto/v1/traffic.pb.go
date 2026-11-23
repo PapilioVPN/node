@@ -229,6 +229,58 @@ func (XrayTrafficDirectionReset_Effect) EnumDescriptor() ([]byte, []int) {
 	return file_proto_v1_traffic_proto_rawDescGZIP(), []int{9, 0}
 }
 
+type XrayTrafficScopeResetResult_Outcome int32
+
+const (
+	XrayTrafficScopeResetResult_OUTCOME_UNSPECIFIED XrayTrafficScopeResetResult_Outcome = 0
+	XrayTrafficScopeResetResult_COMPLETE            XrayTrafficScopeResetResult_Outcome = 1
+	XrayTrafficScopeResetResult_INTERRUPTED         XrayTrafficScopeResetResult_Outcome = 2
+	XrayTrafficScopeResetResult_UNKNOWN             XrayTrafficScopeResetResult_Outcome = 3
+)
+
+// Enum value maps for XrayTrafficScopeResetResult_Outcome.
+var (
+	XrayTrafficScopeResetResult_Outcome_name = map[int32]string{
+		0: "OUTCOME_UNSPECIFIED",
+		1: "COMPLETE",
+		2: "INTERRUPTED",
+		3: "UNKNOWN",
+	}
+	XrayTrafficScopeResetResult_Outcome_value = map[string]int32{
+		"OUTCOME_UNSPECIFIED": 0,
+		"COMPLETE":            1,
+		"INTERRUPTED":         2,
+		"UNKNOWN":             3,
+	}
+)
+
+func (x XrayTrafficScopeResetResult_Outcome) Enum() *XrayTrafficScopeResetResult_Outcome {
+	p := new(XrayTrafficScopeResetResult_Outcome)
+	*p = x
+	return p
+}
+
+func (x XrayTrafficScopeResetResult_Outcome) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (XrayTrafficScopeResetResult_Outcome) Descriptor() protoreflect.EnumDescriptor {
+	return file_proto_v1_traffic_proto_enumTypes[4].Descriptor()
+}
+
+func (XrayTrafficScopeResetResult_Outcome) Type() protoreflect.EnumType {
+	return &file_proto_v1_traffic_proto_enumTypes[4]
+}
+
+func (x XrayTrafficScopeResetResult_Outcome) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use XrayTrafficScopeResetResult_Outcome.Descriptor instead.
+func (XrayTrafficScopeResetResult_Outcome) EnumDescriptor() ([]byte, []int) {
+	return file_proto_v1_traffic_proto_rawDescGZIP(), []int{11, 0}
+}
+
 type XrayTrafficRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -767,6 +819,179 @@ func (x *XrayTrafficDirectionReset) GetPreviousBytes() int64 {
 	return 0
 }
 
+type XrayTrafficScopeResetRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Id    string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Scope XrayTrafficScope       `protobuf:"varint,2,opt,name=scope,proto3,enum=papiliovpn.node.v1.XrayTrafficScope" json:"scope,omitempty"`
+	// Required. A selection larger than this limit is not applied.
+	MaxCounters   uint32 `protobuf:"varint,3,opt,name=max_counters,json=maxCounters,proto3" json:"max_counters,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *XrayTrafficScopeResetRequest) Reset() {
+	*x = XrayTrafficScopeResetRequest{}
+	mi := &file_proto_v1_traffic_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *XrayTrafficScopeResetRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*XrayTrafficScopeResetRequest) ProtoMessage() {}
+
+func (x *XrayTrafficScopeResetRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_v1_traffic_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use XrayTrafficScopeResetRequest.ProtoReflect.Descriptor instead.
+func (*XrayTrafficScopeResetRequest) Descriptor() ([]byte, []int) {
+	return file_proto_v1_traffic_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *XrayTrafficScopeResetRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *XrayTrafficScopeResetRequest) GetScope() XrayTrafficScope {
+	if x != nil {
+		return x.Scope
+	}
+	return XrayTrafficScope_XRAY_TRAFFIC_SCOPE_UNSPECIFIED
+}
+
+func (x *XrayTrafficScopeResetRequest) GetMaxCounters() uint32 {
+	if x != nil {
+		return x.MaxCounters
+	}
+	return 0
+}
+
+type XrayTrafficScopeResetResult struct {
+	state         protoimpl.MessageState              `protogen:"open.v1"`
+	Outcome       XrayTrafficScopeResetResult_Outcome `protobuf:"varint,1,opt,name=outcome,proto3,enum=papiliovpn.node.v1.XrayTrafficScopeResetResult_Outcome" json:"outcome,omitempty"`
+	Counters      []*XrayTrafficScopedCounterReset    `protobuf:"bytes,2,rep,name=counters,proto3" json:"counters,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *XrayTrafficScopeResetResult) Reset() {
+	*x = XrayTrafficScopeResetResult{}
+	mi := &file_proto_v1_traffic_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *XrayTrafficScopeResetResult) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*XrayTrafficScopeResetResult) ProtoMessage() {}
+
+func (x *XrayTrafficScopeResetResult) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_v1_traffic_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use XrayTrafficScopeResetResult.ProtoReflect.Descriptor instead.
+func (*XrayTrafficScopeResetResult) Descriptor() ([]byte, []int) {
+	return file_proto_v1_traffic_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *XrayTrafficScopeResetResult) GetOutcome() XrayTrafficScopeResetResult_Outcome {
+	if x != nil {
+		return x.Outcome
+	}
+	return XrayTrafficScopeResetResult_OUTCOME_UNSPECIFIED
+}
+
+func (x *XrayTrafficScopeResetResult) GetCounters() []*XrayTrafficScopedCounterReset {
+	if x != nil {
+		return x.Counters
+	}
+	return nil
+}
+
+type XrayTrafficScopedCounterReset struct {
+	state         protoimpl.MessageState     `protogen:"open.v1"`
+	Name          string                     `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Direction     XrayTrafficDirection       `protobuf:"varint,2,opt,name=direction,proto3,enum=papiliovpn.node.v1.XrayTrafficDirection" json:"direction,omitempty"`
+	Result        *XrayTrafficDirectionReset `protobuf:"bytes,3,opt,name=result,proto3" json:"result,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *XrayTrafficScopedCounterReset) Reset() {
+	*x = XrayTrafficScopedCounterReset{}
+	mi := &file_proto_v1_traffic_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *XrayTrafficScopedCounterReset) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*XrayTrafficScopedCounterReset) ProtoMessage() {}
+
+func (x *XrayTrafficScopedCounterReset) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_v1_traffic_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use XrayTrafficScopedCounterReset.ProtoReflect.Descriptor instead.
+func (*XrayTrafficScopedCounterReset) Descriptor() ([]byte, []int) {
+	return file_proto_v1_traffic_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *XrayTrafficScopedCounterReset) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *XrayTrafficScopedCounterReset) GetDirection() XrayTrafficDirection {
+	if x != nil {
+		return x.Direction
+	}
+	return XrayTrafficDirection_XRAY_TRAFFIC_DIRECTION_UNSPECIFIED
+}
+
+func (x *XrayTrafficScopedCounterReset) GetResult() *XrayTrafficDirectionReset {
+	if x != nil {
+		return x.Result
+	}
+	return nil
+}
+
 var File_proto_v1_traffic_proto protoreflect.FileDescriptor
 
 const file_proto_v1_traffic_proto_rawDesc = "" +
@@ -817,7 +1042,23 @@ const file_proto_v1_traffic_proto_rawDesc = "" +
 	"\vNOT_APPLIED\x10\x03\x12\v\n" +
 	"\aUNKNOWN\x10\x04\x12\x11\n" +
 	"\rNOT_ATTEMPTED\x10\x05B\x11\n" +
-	"\x0f_previous_bytes*\x94\x01\n" +
+	"\x0f_previous_bytes\"\x8d\x01\n" +
+	"\x1cXrayTrafficScopeResetRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12:\n" +
+	"\x05scope\x18\x02 \x01(\x0e2$.papiliovpn.node.v1.XrayTrafficScopeR\x05scope\x12!\n" +
+	"\fmax_counters\x18\x03 \x01(\rR\vmaxCounters\"\x8f\x02\n" +
+	"\x1bXrayTrafficScopeResetResult\x12Q\n" +
+	"\aoutcome\x18\x01 \x01(\x0e27.papiliovpn.node.v1.XrayTrafficScopeResetResult.OutcomeR\aoutcome\x12M\n" +
+	"\bcounters\x18\x02 \x03(\v21.papiliovpn.node.v1.XrayTrafficScopedCounterResetR\bcounters\"N\n" +
+	"\aOutcome\x12\x17\n" +
+	"\x13OUTCOME_UNSPECIFIED\x10\x00\x12\f\n" +
+	"\bCOMPLETE\x10\x01\x12\x0f\n" +
+	"\vINTERRUPTED\x10\x02\x12\v\n" +
+	"\aUNKNOWN\x10\x03\"\xc2\x01\n" +
+	"\x1dXrayTrafficScopedCounterReset\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12F\n" +
+	"\tdirection\x18\x02 \x01(\x0e2(.papiliovpn.node.v1.XrayTrafficDirectionR\tdirection\x12E\n" +
+	"\x06result\x18\x03 \x01(\v2-.papiliovpn.node.v1.XrayTrafficDirectionResetR\x06result*\x94\x01\n" +
 	"\x10XrayTrafficScope\x12\"\n" +
 	"\x1eXRAY_TRAFFIC_SCOPE_UNSPECIFIED\x10\x00\x12\x1b\n" +
 	"\x17XRAY_TRAFFIC_SCOPE_USER\x10\x01\x12\x1e\n" +
@@ -840,40 +1081,49 @@ func file_proto_v1_traffic_proto_rawDescGZIP() []byte {
 	return file_proto_v1_traffic_proto_rawDescData
 }
 
-var file_proto_v1_traffic_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
-var file_proto_v1_traffic_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
+var file_proto_v1_traffic_proto_enumTypes = make([]protoimpl.EnumInfo, 5)
+var file_proto_v1_traffic_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
 var file_proto_v1_traffic_proto_goTypes = []any{
-	(XrayTrafficScope)(0),                 // 0: papiliovpn.node.v1.XrayTrafficScope
-	(XrayTrafficDirection)(0),             // 1: papiliovpn.node.v1.XrayTrafficDirection
-	(XrayTrafficResetFailure_Effect)(0),   // 2: papiliovpn.node.v1.XrayTrafficResetFailure.Effect
-	(XrayTrafficDirectionReset_Effect)(0), // 3: papiliovpn.node.v1.XrayTrafficDirectionReset.Effect
-	(*XrayTrafficRequest)(nil),            // 4: papiliovpn.node.v1.XrayTrafficRequest
-	(*XrayTrafficListRequest)(nil),        // 5: papiliovpn.node.v1.XrayTrafficListRequest
-	(*XrayTrafficUsage)(nil),              // 6: papiliovpn.node.v1.XrayTrafficUsage
-	(*XrayTrafficList)(nil),               // 7: papiliovpn.node.v1.XrayTrafficList
-	(*XrayTrafficResetRequest)(nil),       // 8: papiliovpn.node.v1.XrayTrafficResetRequest
-	(*XrayTrafficResetResult)(nil),        // 9: papiliovpn.node.v1.XrayTrafficResetResult
-	(*XrayTrafficResetFailure)(nil),       // 10: papiliovpn.node.v1.XrayTrafficResetFailure
-	(*XrayTrafficPairResetRequest)(nil),   // 11: papiliovpn.node.v1.XrayTrafficPairResetRequest
-	(*XrayTrafficPairResetResult)(nil),    // 12: papiliovpn.node.v1.XrayTrafficPairResetResult
-	(*XrayTrafficDirectionReset)(nil),     // 13: papiliovpn.node.v1.XrayTrafficDirectionReset
+	(XrayTrafficScope)(0),                    // 0: papiliovpn.node.v1.XrayTrafficScope
+	(XrayTrafficDirection)(0),                // 1: papiliovpn.node.v1.XrayTrafficDirection
+	(XrayTrafficResetFailure_Effect)(0),      // 2: papiliovpn.node.v1.XrayTrafficResetFailure.Effect
+	(XrayTrafficDirectionReset_Effect)(0),    // 3: papiliovpn.node.v1.XrayTrafficDirectionReset.Effect
+	(XrayTrafficScopeResetResult_Outcome)(0), // 4: papiliovpn.node.v1.XrayTrafficScopeResetResult.Outcome
+	(*XrayTrafficRequest)(nil),               // 5: papiliovpn.node.v1.XrayTrafficRequest
+	(*XrayTrafficListRequest)(nil),           // 6: papiliovpn.node.v1.XrayTrafficListRequest
+	(*XrayTrafficUsage)(nil),                 // 7: papiliovpn.node.v1.XrayTrafficUsage
+	(*XrayTrafficList)(nil),                  // 8: papiliovpn.node.v1.XrayTrafficList
+	(*XrayTrafficResetRequest)(nil),          // 9: papiliovpn.node.v1.XrayTrafficResetRequest
+	(*XrayTrafficResetResult)(nil),           // 10: papiliovpn.node.v1.XrayTrafficResetResult
+	(*XrayTrafficResetFailure)(nil),          // 11: papiliovpn.node.v1.XrayTrafficResetFailure
+	(*XrayTrafficPairResetRequest)(nil),      // 12: papiliovpn.node.v1.XrayTrafficPairResetRequest
+	(*XrayTrafficPairResetResult)(nil),       // 13: papiliovpn.node.v1.XrayTrafficPairResetResult
+	(*XrayTrafficDirectionReset)(nil),        // 14: papiliovpn.node.v1.XrayTrafficDirectionReset
+	(*XrayTrafficScopeResetRequest)(nil),     // 15: papiliovpn.node.v1.XrayTrafficScopeResetRequest
+	(*XrayTrafficScopeResetResult)(nil),      // 16: papiliovpn.node.v1.XrayTrafficScopeResetResult
+	(*XrayTrafficScopedCounterReset)(nil),    // 17: papiliovpn.node.v1.XrayTrafficScopedCounterReset
 }
 var file_proto_v1_traffic_proto_depIdxs = []int32{
 	0,  // 0: papiliovpn.node.v1.XrayTrafficRequest.scope:type_name -> papiliovpn.node.v1.XrayTrafficScope
 	0,  // 1: papiliovpn.node.v1.XrayTrafficListRequest.scope:type_name -> papiliovpn.node.v1.XrayTrafficScope
-	6,  // 2: papiliovpn.node.v1.XrayTrafficList.entries:type_name -> papiliovpn.node.v1.XrayTrafficUsage
+	7,  // 2: papiliovpn.node.v1.XrayTrafficList.entries:type_name -> papiliovpn.node.v1.XrayTrafficUsage
 	0,  // 3: papiliovpn.node.v1.XrayTrafficResetRequest.scope:type_name -> papiliovpn.node.v1.XrayTrafficScope
 	1,  // 4: papiliovpn.node.v1.XrayTrafficResetRequest.direction:type_name -> papiliovpn.node.v1.XrayTrafficDirection
 	2,  // 5: papiliovpn.node.v1.XrayTrafficResetFailure.effect:type_name -> papiliovpn.node.v1.XrayTrafficResetFailure.Effect
 	0,  // 6: papiliovpn.node.v1.XrayTrafficPairResetRequest.scope:type_name -> papiliovpn.node.v1.XrayTrafficScope
-	13, // 7: papiliovpn.node.v1.XrayTrafficPairResetResult.uplink:type_name -> papiliovpn.node.v1.XrayTrafficDirectionReset
-	13, // 8: papiliovpn.node.v1.XrayTrafficPairResetResult.downlink:type_name -> papiliovpn.node.v1.XrayTrafficDirectionReset
+	14, // 7: papiliovpn.node.v1.XrayTrafficPairResetResult.uplink:type_name -> papiliovpn.node.v1.XrayTrafficDirectionReset
+	14, // 8: papiliovpn.node.v1.XrayTrafficPairResetResult.downlink:type_name -> papiliovpn.node.v1.XrayTrafficDirectionReset
 	3,  // 9: papiliovpn.node.v1.XrayTrafficDirectionReset.effect:type_name -> papiliovpn.node.v1.XrayTrafficDirectionReset.Effect
-	10, // [10:10] is the sub-list for method output_type
-	10, // [10:10] is the sub-list for method input_type
-	10, // [10:10] is the sub-list for extension type_name
-	10, // [10:10] is the sub-list for extension extendee
-	0,  // [0:10] is the sub-list for field type_name
+	0,  // 10: papiliovpn.node.v1.XrayTrafficScopeResetRequest.scope:type_name -> papiliovpn.node.v1.XrayTrafficScope
+	4,  // 11: papiliovpn.node.v1.XrayTrafficScopeResetResult.outcome:type_name -> papiliovpn.node.v1.XrayTrafficScopeResetResult.Outcome
+	17, // 12: papiliovpn.node.v1.XrayTrafficScopeResetResult.counters:type_name -> papiliovpn.node.v1.XrayTrafficScopedCounterReset
+	1,  // 13: papiliovpn.node.v1.XrayTrafficScopedCounterReset.direction:type_name -> papiliovpn.node.v1.XrayTrafficDirection
+	14, // 14: papiliovpn.node.v1.XrayTrafficScopedCounterReset.result:type_name -> papiliovpn.node.v1.XrayTrafficDirectionReset
+	15, // [15:15] is the sub-list for method output_type
+	15, // [15:15] is the sub-list for method input_type
+	15, // [15:15] is the sub-list for extension type_name
+	15, // [15:15] is the sub-list for extension extendee
+	0,  // [0:15] is the sub-list for field type_name
 }
 
 func init() { file_proto_v1_traffic_proto_init() }
@@ -888,8 +1138,8 @@ func file_proto_v1_traffic_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_v1_traffic_proto_rawDesc), len(file_proto_v1_traffic_proto_rawDesc)),
-			NumEnums:      4,
-			NumMessages:   10,
+			NumEnums:      5,
+			NumMessages:   13,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

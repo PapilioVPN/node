@@ -24,6 +24,7 @@ const (
 	XrayStatsService_ListTraffic_FullMethodName         = "/papiliovpn.node.v1.XrayStatsService/ListTraffic"
 	XrayStatsService_ResetTrafficCounter_FullMethodName = "/papiliovpn.node.v1.XrayStatsService/ResetTrafficCounter"
 	XrayStatsService_ResetTrafficPair_FullMethodName    = "/papiliovpn.node.v1.XrayStatsService/ResetTrafficPair"
+	XrayStatsService_ResetTrafficScope_FullMethodName   = "/papiliovpn.node.v1.XrayStatsService/ResetTrafficScope"
 	XrayStatsService_GetOnlineIPCount_FullMethodName    = "/papiliovpn.node.v1.XrayStatsService/GetOnlineIPCount"
 	XrayStatsService_ListOnlineIPs_FullMethodName       = "/papiliovpn.node.v1.XrayStatsService/ListOnlineIPs"
 	XrayStatsService_ListOnlineUsers_FullMethodName     = "/papiliovpn.node.v1.XrayStatsService/ListOnlineUsers"
@@ -39,6 +40,7 @@ type XrayStatsServiceClient interface {
 	ListTraffic(ctx context.Context, in *XrayTrafficListRequest, opts ...grpc.CallOption) (*XrayTrafficList, error)
 	ResetTrafficCounter(ctx context.Context, in *XrayTrafficResetRequest, opts ...grpc.CallOption) (*XrayTrafficResetResult, error)
 	ResetTrafficPair(ctx context.Context, in *XrayTrafficPairResetRequest, opts ...grpc.CallOption) (*XrayTrafficPairResetResult, error)
+	ResetTrafficScope(ctx context.Context, in *XrayTrafficScopeResetRequest, opts ...grpc.CallOption) (*XrayTrafficScopeResetResult, error)
 	GetOnlineIPCount(ctx context.Context, in *XrayOnlineRequest, opts ...grpc.CallOption) (*XrayOnlineCount, error)
 	ListOnlineIPs(ctx context.Context, in *XrayOnlineRequest, opts ...grpc.CallOption) (*XrayOnlineIPs, error)
 	ListOnlineUsers(ctx context.Context, in *XrayOnlineUsersRequest, opts ...grpc.CallOption) (*XrayOnlineUsers, error)
@@ -102,6 +104,16 @@ func (c *xrayStatsServiceClient) ResetTrafficPair(ctx context.Context, in *XrayT
 	return out, nil
 }
 
+func (c *xrayStatsServiceClient) ResetTrafficScope(ctx context.Context, in *XrayTrafficScopeResetRequest, opts ...grpc.CallOption) (*XrayTrafficScopeResetResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(XrayTrafficScopeResetResult)
+	err := c.cc.Invoke(ctx, XrayStatsService_ResetTrafficScope_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *xrayStatsServiceClient) GetOnlineIPCount(ctx context.Context, in *XrayOnlineRequest, opts ...grpc.CallOption) (*XrayOnlineCount, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(XrayOnlineCount)
@@ -142,6 +154,7 @@ type XrayStatsServiceServer interface {
 	ListTraffic(context.Context, *XrayTrafficListRequest) (*XrayTrafficList, error)
 	ResetTrafficCounter(context.Context, *XrayTrafficResetRequest) (*XrayTrafficResetResult, error)
 	ResetTrafficPair(context.Context, *XrayTrafficPairResetRequest) (*XrayTrafficPairResetResult, error)
+	ResetTrafficScope(context.Context, *XrayTrafficScopeResetRequest) (*XrayTrafficScopeResetResult, error)
 	GetOnlineIPCount(context.Context, *XrayOnlineRequest) (*XrayOnlineCount, error)
 	ListOnlineIPs(context.Context, *XrayOnlineRequest) (*XrayOnlineIPs, error)
 	ListOnlineUsers(context.Context, *XrayOnlineUsersRequest) (*XrayOnlineUsers, error)
@@ -169,6 +182,9 @@ func (UnimplementedXrayStatsServiceServer) ResetTrafficCounter(context.Context, 
 }
 func (UnimplementedXrayStatsServiceServer) ResetTrafficPair(context.Context, *XrayTrafficPairResetRequest) (*XrayTrafficPairResetResult, error) {
 	return nil, status.Error(codes.Unimplemented, "method ResetTrafficPair not implemented")
+}
+func (UnimplementedXrayStatsServiceServer) ResetTrafficScope(context.Context, *XrayTrafficScopeResetRequest) (*XrayTrafficScopeResetResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method ResetTrafficScope not implemented")
 }
 func (UnimplementedXrayStatsServiceServer) GetOnlineIPCount(context.Context, *XrayOnlineRequest) (*XrayOnlineCount, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetOnlineIPCount not implemented")
@@ -290,6 +306,24 @@ func _XrayStatsService_ResetTrafficPair_Handler(srv interface{}, ctx context.Con
 	return interceptor(ctx, in, info, handler)
 }
 
+func _XrayStatsService_ResetTrafficScope_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(XrayTrafficScopeResetRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(XrayStatsServiceServer).ResetTrafficScope(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: XrayStatsService_ResetTrafficScope_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(XrayStatsServiceServer).ResetTrafficScope(ctx, req.(*XrayTrafficScopeResetRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _XrayStatsService_GetOnlineIPCount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(XrayOnlineRequest)
 	if err := dec(in); err != nil {
@@ -370,6 +404,10 @@ var XrayStatsService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ResetTrafficPair",
 			Handler:    _XrayStatsService_ResetTrafficPair_Handler,
+		},
+		{
+			MethodName: "ResetTrafficScope",
+			Handler:    _XrayStatsService_ResetTrafficScope_Handler,
 		},
 		{
 			MethodName: "GetOnlineIPCount",

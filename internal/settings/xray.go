@@ -8,11 +8,12 @@ import (
 )
 
 type Xray struct {
-	ID               string `yaml:"id"`
-	Executable       string `yaml:"executable"`
-	ConfigFile       string `yaml:"config_file"`
-	RuntimeDirectory string `yaml:"runtime_directory"`
-	ResetEngineStats bool   `yaml:"reset_engine_stats"`
+	ID                    string `yaml:"id"`
+	Executable            string `yaml:"executable"`
+	ConfigFile            string `yaml:"config_file"`
+	RuntimeDirectory      string `yaml:"runtime_directory"`
+	ResetEngineStats      bool   `yaml:"reset_engine_stats"`
+	ResetScopeConcurrency uint32 `yaml:"reset_scope_concurrency"`
 }
 
 func (xray Xray) Enabled() bool { return xray.ID != "" }
@@ -26,6 +27,9 @@ func (xray *Xray) validate(dir string, management Management) error {
 	}
 	if xray.Executable == "" || xray.ConfigFile == "" {
 		return errors.New("xray requires executable and config_file")
+	}
+	if xray.ResetScopeConcurrency > 8 {
+		return errors.New("xray.reset_scope_concurrency must be at most 8")
 	}
 	for _, path := range []*string{&xray.Executable, &xray.ConfigFile, &xray.RuntimeDirectory} {
 		if *path == "" {

@@ -138,14 +138,7 @@ func groupTraffic(prefix string, counters []*TrafficCounter) []traffic.Usage {
 		if !inScope {
 			continue
 		}
-		name, isUpload := strings.CutSuffix(key, uplink)
-		if !isUpload {
-			var isDownload bool
-			name, isDownload = strings.CutSuffix(key, downlink)
-			if !isDownload {
-				continue
-			}
-		}
+		name, direction := splitTrafficCounter(key)
 		if name == "" {
 			continue
 		}
@@ -157,11 +150,21 @@ func groupTraffic(prefix string, counters []*TrafficCounter) []traffic.Usage {
 			grouped = append(grouped, traffic.Usage{Name: name})
 		}
 		entry := &grouped[index]
-		if isUpload {
+		if direction == traffic.Uplink {
 			entry.UplinkBytes, entry.HasUplink = counter.GetValue(), true
 		} else {
 			entry.DownlinkBytes, entry.HasDownlink = counter.GetValue(), true
 		}
 	}
 	return grouped
+}
+
+func splitTrafficCounter(key string) (string, traffic.Direction) {
+	if name, ok := strings.CutSuffix(key, uplink); ok {
+		return name, traffic.Uplink
+	}
+	if name, ok := strings.CutSuffix(key, downlink); ok {
+		return name, traffic.Downlink
+	}
+	return "", ""
 }

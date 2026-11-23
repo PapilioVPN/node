@@ -69,7 +69,10 @@ func TestTrafficCountersWithRealProxy(t *testing.T) {
 	server := grpc.NewServer()
 	var owner *lifecycle.Service
 	app := fx.New(fx.NopLogger, xray.Module,
-		fx.Supply(router, server, settings.Xray{ID: "primary", Executable: executable, ConfigFile: config, RuntimeDirectory: dir, ResetEngineStats: true}),
+		fx.Supply(router, server, settings.Xray{
+			ID: "primary", Executable: executable, ConfigFile: config, RuntimeDirectory: dir,
+			ResetEngineStats: true, ResetScopeConcurrency: 2,
+		}),
 		fx.Populate(&owner))
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	defer cancel()
@@ -183,6 +186,9 @@ func TestTrafficCountersWithRealProxy(t *testing.T) {
 	})
 	t.Run("traffic pair reset", func(t *testing.T) {
 		verifyTrafficPairReset(t, ctx, router, client, seed)
+	})
+	t.Run("traffic scope reset", func(t *testing.T) {
+		verifyTrafficScopeReset(t, ctx, router, client, seed)
 	})
 	_, err = owner.Stop(ctx, "primary")
 	require(t, err)
