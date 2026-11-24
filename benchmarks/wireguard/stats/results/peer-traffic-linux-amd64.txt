@@ -1,0 +1,17 @@
+goos: linux
+goarch: amd64
+pkg: github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/integration
+cpu: AMD Ryzen 7 3750H with Radeon Vega Mobile Gfx
+BenchmarkPeerTraffic/peers-1/SelectedHTTP         	    1158	    138073 ns/op	   10380 B/op	     126 allocs/op
+BenchmarkPeerTraffic/peers-1/SelectedHTTP         	    1276	    123726 ns/op	   10334 B/op	     126 allocs/op
+BenchmarkPeerTraffic/peers-1/FullHTTP             	    1230	    132080 ns/op	   10502 B/op	     132 allocs/op
+BenchmarkPeerTraffic/peers-1/FullHTTP             	     927	    148206 ns/op	   10494 B/op	     132 allocs/op
+BenchmarkPeerTraffic/peers-1/ResetHTTP            	    1029	    131502 ns/op	   10447 B/op	     128 allocs/op
+BenchmarkPeerTraffic/peers-1/ResetHTTP            	    1108	    183141 ns/op	   10446 B/op	     128 allocs/op
+BenchmarkPeerTraffic/peers-1000/SelectedHTTP      	      87	   1555613 ns/op	   12008 B/op	     155 allocs/op
+BenchmarkPeerTraffic/peers-1000/SelectedHTTP      	     127	   1165119 ns/op	   11428 B/op	     154 allocs/op
+BenchmarkPeerTraffic/peers-1000/FullHTTP          	      36	   3793327 ns/op	  605176 B/op	    2191 allocs/op
+BenchmarkPeerTraffic/peers-1000/FullHTTP          	      50	   3345209 ns/op	  591508 B/op	    2190 allocs/op
+BenchmarkPeerTraffic/peers-1000/ResetHTTP         	     118	   1132120 ns/op	   11548 B/op	     156 allocs/op
+BenchmarkPeerTraffic/peers-1000/ResetHTTP         	     140	   1052386 ns/op	   11553 B/op	     156 allocs/op
+PASS
