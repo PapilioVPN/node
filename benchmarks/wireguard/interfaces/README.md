@@ -1,5 +1,7 @@
 # WireGuard interface status
 
+[Start and Stop benchmark](lifecycle.md)
+
 Each operation reads the same Linux WireGuard interface and verifies its name,
 MTU, and administrative `IFF_UP` flag. Node makes a fresh, targeted
 `RTM_GETLINK` request through a reused route Netlink socket. HTTP and gRPC
