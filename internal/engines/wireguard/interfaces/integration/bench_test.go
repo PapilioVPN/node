@@ -152,6 +152,74 @@ func BenchmarkInterfaceStatus(b *testing.B) {
 	}
 }
 
+func BenchmarkPeerStats(b *testing.B) {
+	for _, count := range []int{1, 1000} {
+		b.Run(fmt.Sprintf("peers-%d", count), func(b *testing.B) {
+			f := newFixture(b)
+			setPeers(b, count)
+			b.Run("HTTP", func(b *testing.B) {
+				benchmarkPeerStats(b, count, func() int { return len(readPeerStatsHTTP(b, f).Peers) })
+			})
+			b.Run("gRPC", func(b *testing.B) {
+				client := f.grpcClient(b)
+				request := &interfacesv1.WireGuardInterfaceRequest{Name: interfaceName}
+				benchmarkPeerStats(b, count, func() int {
+					reply, err := client.ListPeerStats(b.Context(), request)
+					if err != nil {
+						b.Fatal(err)
+					}
+					return len(reply.GetPeers())
+				})
+			})
+			b.Run("wg", func(b *testing.B) {
+				benchmarkPeerStats(b, count, func() int { return readWGPeerStatsCount(b) })
+			})
+		})
+	}
+}
+
+func benchmarkPeerStats(b *testing.B, want int, read func() int) {
+	b.Helper()
+	if got := read(); got != want {
+		b.Fatalf("warm-up returned %d peers, want %d", got, want)
+	}
+	b.ReportAllocs()
+	for b.Loop() {
+		if got := read(); got != want {
+			b.Fatalf("returned %d peers, want %d", got, want)
+		}
+	}
+}
+
+func readWGPeerStatsCount(b *testing.B) int {
+	b.Helper()
+	output, err := exec.CommandContext(b.Context(), "wg", "show", interfaceName, "dump").Output()
+	if err != nil {
+		b.Fatal(err)
+	}
+	_, peers, found := strings.Cut(strings.TrimSpace(string(output)), "\n")
+	if !found {
+		return 0
+	}
+	count := 0
+	for line := range strings.SplitSeq(peers, "\n") {
+		fields := strings.Split(line, "\t")
+		if len(fields) != 8 {
+			b.Fatal("invalid peer statistics in wg dump")
+		}
+		if key, err := base64.StdEncoding.DecodeString(fields[0]); err != nil || len(key) != 32 {
+			b.Fatal("invalid public key in wg dump")
+		}
+		for _, field := range fields[4:7] {
+			if _, err := strconv.ParseUint(field, 10, 64); err != nil {
+				b.Fatal("invalid counter or handshake in wg dump")
+			}
+		}
+		count++
+	}
+	return count
+}
+
 func benchmarkStatus(b *testing.B, want observation, read func() observation) {
 	b.Helper()
 	if got := read(); got != want {
