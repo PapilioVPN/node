@@ -29,14 +29,20 @@ type processExit struct {
 	code       int
 }
 
-func startProcess(ctx context.Context, config Config, source []byte, logs *live.Execution) (child, error) {
+// The lifecycle control gate serializes calls to a launcher.
+type processLauncher struct {
+	identity os.FileInfo
+	version  string
+}
+
+func (launcher *processLauncher) start(ctx context.Context, config Config, source []byte, logs *live.Execution) (child, error) {
 	run, err := runconfig.PrepareSource(source, config.RuntimeDirectory)
 	if err != nil {
 		return nil, err
 	}
 
 	identity, _ := os.Stat(config.Executable)
-	version := executableVersion(ctx, config.Executable)
+	version := launcher.readVersion(ctx, config.Executable, identity)
 	if err := ctx.Err(); err != nil {
 		return nil, errors.Join(err, run.Cleanup())
 	}
@@ -78,8 +84,7 @@ func (process *process) version() string { return process.engineVersion }
 
 func (process *process) executableMatches(path string) bool {
 	current, err := os.Stat(path)
-	return err == nil && process.executable != nil && os.SameFile(process.executable, current) &&
-		current.Size() == process.executable.Size() && current.ModTime().Equal(process.executable.ModTime())
+	return err == nil && sameExecutable(process.executable, current)
 }
 
 func (process *process) wait() processExit {

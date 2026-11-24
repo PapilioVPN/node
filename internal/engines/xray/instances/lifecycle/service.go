@@ -66,7 +66,7 @@ type Service struct {
 func New(config Config, logs *live.Service) *Service {
 	shutdown, cancel := context.WithCancel(context.Background())
 	return &Service{
-		config: config, logs: logs, launch: startProcess, probe: waitForReadiness, health: waitForReadiness,
+		config: config, logs: logs, launch: new(processLauncher).start, probe: waitForReadiness, health: waitForReadiness,
 		control: semaphore.NewWeighted(1), shutdown: shutdown, cancel: cancel, state: Stopped,
 		leaseChanged: make(chan struct{}, 1),
 	}
