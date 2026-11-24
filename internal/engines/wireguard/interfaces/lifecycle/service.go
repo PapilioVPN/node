@@ -15,9 +15,10 @@ import (
 )
 
 var (
-	ErrConflict = errors.New("wireguard interface is in use")
-	ErrInvalid  = errors.New("invalid wireguard configuration")
-	ErrTooLarge = errors.New("wireguard configuration exceeds 1 MiB")
+	ErrConflict    = errors.New("wireguard interface is in use")
+	ErrInvalid     = errors.New("invalid wireguard configuration")
+	ErrTooLarge    = errors.New("wireguard configuration exceeds 1 MiB")
+	ErrUnconfirmed = errors.New("wireguard configuration outcome could not be confirmed")
 )
 
 const OperationTimeout = 2 * time.Second
@@ -31,6 +32,7 @@ type Link struct {
 type Control interface {
 	Create(context.Context, Link, Config) (status.Interface, error)
 	Inspect(context.Context, Link) (status.Interface, error)
+	UpdateMTU(context.Context, Link, uint32, uint32) (status.Interface, error)
 	Remove(context.Context, Link) error
 }
 
@@ -38,6 +40,7 @@ type execution struct {
 	link   Link
 	digest string
 	mtu    uint32
+	fixed  fixedConfig
 }
 
 type Service struct {
@@ -72,7 +75,7 @@ func (service *Service) Start(ctx context.Context, name string, source []byte) (
 	digest := hex.EncodeToString(sum[:])
 	if current := service.applied.Load(); current != nil {
 		if current.digest != digest {
-			return status.Interface{}, ErrConflict
+			return service.applyLive(ctx, current, source, digest)
 		}
 		result, err := service.control.Inspect(ctx, current.link)
 		if err != nil {
@@ -108,7 +111,27 @@ func (service *Service) Start(ctx context.Context, name string, source []byte) (
 		cleanupErr := service.remove(cleanupCtx)
 		return status.Interface{}, errors.Join(err, cleanupErr)
 	}
-	service.applied.Store(&execution{link: link, digest: digest, mtu: config.MTU})
+	service.applied.Store(&execution{link: link, digest: digest, mtu: config.MTU, fixed: config.fixed()})
+	result.AppliedSHA256 = digest
+	return result, nil
+}
+
+func (service *Service) applyLive(ctx context.Context, current *execution, source []byte, digest string) (status.Interface, error) {
+	config, err := parseConfig(source)
+	if err != nil {
+		return status.Interface{}, err
+	}
+	if config.MTU == current.mtu || !current.fixed.matches(config) {
+		return status.Interface{}, ErrConflict
+	}
+	result, err := service.control.UpdateMTU(ctx, current.link, current.mtu, config.MTU)
+	if errors.Is(err, ErrUnconfirmed) {
+		service.applied.Store(nil)
+	}
+	if err != nil {
+		return status.Interface{}, err
+	}
+	service.applied.Store(&execution{link: current.link, digest: digest, mtu: config.MTU, fixed: current.fixed})
 	result.AppliedSHA256 = digest
 	return result, nil
 }

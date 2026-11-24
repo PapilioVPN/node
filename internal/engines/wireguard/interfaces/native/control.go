@@ -161,6 +161,38 @@ func (control *Control) Inspect(ctx context.Context, owner lifecycle.Link) (stat
 	return interfaceStatus(link), ctx.Err()
 }
 
+func (control *Control) UpdateMTU(ctx context.Context, owner lifecycle.Link, previous, desired uint32) (status.Interface, error) {
+	link, err := control.lookup(ctx, owner)
+	if err != nil {
+		return status.Interface{}, err
+	}
+	before := interfaceStatus(link)
+	if !before.Up || before.Name != owner.Name || before.MTU != previous {
+		return status.Interface{}, status.ErrUnavailable
+	}
+	if err := ctx.Err(); err != nil {
+		return status.Interface{}, err
+	}
+	changeErr := control.route.LinkSetMTU(link, int(desired))
+	observed, readErr := control.Inspect(ctx, owner)
+	if readErr != nil {
+		// The write may have completed after the request was canceled. Resolve its
+		// outcome with one bounded read while lifecycle ownership is still held.
+		readCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), socketTimeout)
+		defer cancel()
+		observed, readErr = control.Inspect(readCtx, owner)
+	}
+	if readErr == nil && observed.Up && observed.Name == owner.Name {
+		switch observed.MTU {
+		case desired:
+			return observed, nil
+		case previous:
+			return status.Interface{}, errors.Join(status.ErrUnavailable, changeErr, ctx.Err())
+		}
+	}
+	return status.Interface{}, errors.Join(lifecycle.ErrUnconfirmed, changeErr, readErr)
+}
+
 func (control *Control) Remove(ctx context.Context, owner lifecycle.Link) error {
 	link, err := control.lookup(ctx, owner)
 	if errors.Is(err, status.ErrNotFound) {

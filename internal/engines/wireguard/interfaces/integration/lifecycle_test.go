@@ -89,7 +89,44 @@ func TestManagedExecution(t *testing.T) {
 	if err != nil || strings.TrimSpace(string(configured)) == "0" {
 		t.Fatalf("expected a bound WireGuard port, got %q (%v)", configured, err)
 	}
-	exchangePacket(t, base64.StdEncoding.EncodeToString(privateKey.PublicKey().Bytes()), strings.TrimSpace(string(configured)))
+	exchangePacket(t, base64.StdEncoding.EncodeToString(privateKey.PublicKey().Bytes()), strings.TrimSpace(string(configured)), func() {
+		before, err := net.InterfaceByName(interfaceName)
+		if err != nil {
+			t.Fatal(err)
+		}
+		request.MTU = 1360
+		source, err = json.Marshal(request)
+		if err != nil {
+			t.Fatal(err)
+		}
+		digest = sha256.Sum256(source)
+		want = hex.EncodeToString(digest[:])
+		if got := executionRequest(t, f, http.MethodPut, source, http.StatusOK); got.MTU != 1360 || !got.Up || got.AppliedSHA256 != want {
+			t.Fatalf("live MTU update returned %+v", got)
+		}
+		request.MTU = 1340
+		source, err = json.Marshal(request)
+		if err != nil {
+			t.Fatal(err)
+		}
+		digest = sha256.Sum256(source)
+		want = hex.EncodeToString(digest[:])
+		ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+		applied, err := client.Start(ctx, &interfacesv1.WireGuardStartRequest{Name: interfaceName, ConfigJson: source})
+		cancel()
+		if err != nil || applied.GetMtu() != 1340 || !applied.GetUp() || applied.GetAppliedConfigSha256() != want {
+			t.Fatalf("gRPC live MTU update returned %v, %v", applied, err)
+		}
+		after, err := net.InterfaceByName(interfaceName)
+		if err != nil || after.Index != before.Index || after.MTU != 1340 {
+			t.Fatalf("live MTU changed the interface identity or missed the update: %v, %v", after, err)
+		}
+		unsupported := bytes.Replace(source, []byte(`"mtu":1340`), []byte(`"mtu":1320,"listen_port":51820`), 1)
+		executionRequest(t, f, http.MethodPut, unsupported, http.StatusConflict)
+		if got := readGRPC(t, client); got.MTU != 1340 || got.AppliedSHA256 != want {
+			t.Fatalf("rejected port change changed the active config: %+v", got)
+		}
+	})
 	executionRequest(t, f, http.MethodPut, append(bytes.Clone(source), '\n'), http.StatusConflict)
 	if got := f.readHTTP(t); got.AppliedSHA256 != want {
 		t.Fatalf("rejected change replaced applied hash: %+v", got)
@@ -122,7 +159,7 @@ func TestManagedExecution(t *testing.T) {
 	executionRequest(t, f, http.MethodDelete, nil, http.StatusNoContent)
 }
 
-func exchangePacket(t *testing.T, serverKey, serverPort string) {
+func exchangePacket(t *testing.T, serverKey, serverPort string, whileConnected func()) {
 	t.Helper()
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	defer cancel()
@@ -177,6 +214,8 @@ func exchangePacket(t *testing.T, serverKey, serverPort string) {
 		base64.StdEncoding.EncodeToString(clientKey.Bytes()), serverKey, serverPort)
 	inClient(config, "wg", "setconf", "wg-client", "/dev/stdin")
 	inClient("", "ip", "link", "set", "dev", "wg-client", "up")
+	inClient("", "ping", "-n", "-c", "1", "-W", "2", "192.0.2.1")
+	whileConnected()
 	inClient("", "ping", "-n", "-c", "1", "-W", "2", "192.0.2.1")
 }
 

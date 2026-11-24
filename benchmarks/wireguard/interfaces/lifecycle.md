@@ -29,6 +29,23 @@ deletion before responding.
 Linux `6.17.0-41-generic`, AMD Ryzen 7 3750H, Go `1.27.4` for both
 servers. [Raw request durations](results/lifecycle-http.csv)
 
+## Changing an active interface's MTU
+
+The same HTTPS fixture alternates MTU 1380 and 1360 while retaining the key,
+port and addresses. Each service processes 100 changes across five blocks.
+Outside the timer, the fixture checks the new MTU and the interface index
+after every change. Node keeps the same interface and returns the confirmed
+source fingerprint. PasarGuard recreates the interface for each changed
+source. These timings describe the two different transition behaviors.
+[PasarGuard lifecycle controller](https://github.com/PasarGuard/node/blob/739eab94a9343d9f0035baf7162796844109f4c4/controller/controller.go#L177-L216)
+
+| Implementation | Interface identity | p50, ms | p95, ms |
+| --- | --- | ---: | ---: |
+| PapilioVPN Node | Same index | 0.967 | 1.709 |
+| PasarGuard Node | New index | 77.072 | 96.821 |
+
+[Raw MTU request durations](results/mtu-change-https.csv)
+
 ## Reproduce
 
 Use Linux with kernel WireGuard, `ip`, Python 3, OpenSSL, and permission to
@@ -50,3 +67,5 @@ NODE_TEST_WIREGUARD_PARENT_NETNS=$(readlink /proc/self/ns/net) \
   benchmarks/wireguard/interfaces/measure-lifecycle.py "$work/node" "$work/pasarguard" \
   > "$work/lifecycle-http.csv"
 ```
+
+To measure the MTU changes, add `--live-mtu` after the PasarGuard binary path.

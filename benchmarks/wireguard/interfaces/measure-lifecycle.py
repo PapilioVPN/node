@@ -86,7 +86,33 @@ def sample(conn, start_method, start_path, source, stop_method, stop_path, valid
     raise RuntimeError("Stop left an interface")
 
 
+def measure_mtu(cases, config_sources):
+    for repeat in range(5):
+        for label, args in cases if repeat % 2 == 0 else reversed(cases):
+            conn, start_method, start_path, source, stop_method, stop_path, valid = args
+            _, payload = request(conn, start_method, start_path, source)
+            assert valid(payload)
+            previous_index = socket.if_nametoindex(peer_interface)
+            for index in range(20):
+                mtu = 1360 if index % 2 == 0 else 1380
+                proposed = config_sources[label](mtu)
+                elapsed, payload = request(conn, start_method, start_path, proposed)
+                link = json.loads(subprocess.check_output(
+                    ["ip", "-j", "link", "show", "dev", peer_interface]))[0]
+                assert link["mtu"] == mtu and "UP" in link["flags"]
+                if label == "node":
+                    assert link["ifindex"] == previous_index
+                    assert json.loads(payload)["applied_config_sha256"] == hashlib.sha256(proposed).hexdigest()
+                else:
+                    assert valid(payload) and link["ifindex"] != previous_index
+                previous_index = link["ifindex"]
+                print(f"{repeat + 1},{label},mtu_change,{index + 1},{elapsed}")
+            request(conn, stop_method, stop_path)
+
+
 def main():
+    if len(sys.argv) not in (3, 4) or len(sys.argv) == 4 and sys.argv[3] != "--live-mtu":
+        raise SystemExit("usage: measure-lifecycle.py NODE PASARGUARD [--live-mtu]")
     parent = os.environ.get("NODE_TEST_WIREGUARD_PARENT_NETNS")
     if not parent or parent == os.readlink("/proc/self/ns/net"):
         raise RuntimeError("run in a separate network namespace")
@@ -122,10 +148,17 @@ wireguard:
                      "API_KEY": api_key, "SSL_CERT_FILE": str(cert), "SSL_KEY_FILE": str(key),
                      "PG_NODE_WG_HOST_ROUTING": "false", "PG_NODE_WG_NAT_DISABLE": "true"},
                      "reference", directory, context, ref_port, "/info")
-        local = {"mtu": 1380, "listen_port": 51820, "private_key": private_key}
-        source = json.dumps({**local, "addresses": ["192.0.2.1/24"]}).encode()
-        pg_config = json.dumps({**local, "interface_name": peer_interface, "address": ["192.0.2.1/24"]}).encode()
-        pg_source = b"\x08\x01\x12" + varint(len(pg_config)) + pg_config
+        local = {"listen_port": 51820, "private_key": private_key}
+
+        def node_config(mtu):
+            return json.dumps({**local, "mtu": mtu, "addresses": ["192.0.2.1/24"]}).encode()
+
+        def ref_config(mtu):
+            config = json.dumps({**local, "mtu": mtu, "interface_name": peer_interface, "address": ["192.0.2.1/24"]}).encode()
+            return b"\x08\x01\x12" + varint(len(config)) + config
+
+        source = node_config(1380)
+        pg_source = ref_config(1380)
         execution = f"/v1/wireguard/interfaces/{peer_interface}/execution"
         expected_hash = hashlib.sha256(source).hexdigest()
         def node_valid(payload):
@@ -138,6 +171,9 @@ wireguard:
             ("pasarguard", (ref, "POST", "/start", pg_source, "PUT", "/stop", ref_valid)),
         ]
         print("run,implementation,operation,iteration,nanoseconds")
+        if len(sys.argv) == 4:
+            measure_mtu(cases, {"node": node_config, "pasarguard": ref_config})
+            return
         for repeat in range(5):
             for label, args in cases if repeat % 2 == 0 else reversed(cases):
                 sample(*args)

@@ -3,11 +3,13 @@ package lifecycle
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"io"
 	"net/netip"
+	"slices"
 	"sync"
 
 	"github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/status"
@@ -86,6 +88,26 @@ type Config struct {
 	Addresses  []netip.Prefix
 	ListenPort uint16
 	MTU        uint32
+}
+
+type fixedConfig struct {
+	privateKeySHA256 [32]byte
+	addresses        []netip.Prefix
+	listenPort       uint16
+}
+
+func (config Config) fixed() fixedConfig {
+	return fixedConfig{
+		privateKeySHA256: sha256.Sum256(config.PrivateKey[:]),
+		addresses:        config.Addresses,
+		listenPort:       config.ListenPort,
+	}
+}
+
+func (fixed fixedConfig) matches(config Config) bool {
+	return fixed.listenPort == config.ListenPort &&
+		slices.Equal(fixed.addresses, config.Addresses) &&
+		fixed.privateKeySHA256 == sha256.Sum256(config.PrivateKey[:])
 }
 
 func parseConfig(source []byte) (Config, error) {

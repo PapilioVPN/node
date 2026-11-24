@@ -57,7 +57,7 @@ The management API binds to loopback by default. Check it with `curl -fsS http:/
 
 - **Host** — uptime, CPU, memory, and storage.
 - **Xray** — lifecycle, config validation, live account sync and recovery, traffic and online stats, routing, logs, and outbound health.
-- **WireGuard** — read Linux interface status, validate proposed configuration, and start or stop a configured kernel interface.
+- **WireGuard** — read Linux interface status, validate proposed configuration, start or stop a kernel interface, and update its MTU live.
 
 <a name="management"></a>
 

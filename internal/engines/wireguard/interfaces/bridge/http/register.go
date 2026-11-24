@@ -134,6 +134,8 @@ func writeError(w http.ResponseWriter, err error) {
 		http.Error(w, lifecycle.ErrInvalid.Error(), http.StatusBadRequest)
 	case errors.Is(err, lifecycle.ErrTooLarge):
 		http.Error(w, lifecycle.ErrTooLarge.Error(), http.StatusRequestEntityTooLarge)
+	case errors.Is(err, lifecycle.ErrUnconfirmed):
+		http.Error(w, lifecycle.ErrUnconfirmed.Error(), http.StatusServiceUnavailable)
 	case errors.Is(err, status.ErrNotFound):
 		http.Error(w, status.ErrNotFound.Error(), http.StatusNotFound)
 	case errors.Is(err, status.ErrBusy):

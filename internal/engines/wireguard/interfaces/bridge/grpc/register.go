@@ -83,6 +83,8 @@ func readError(err error) error {
 		return status.Error(codes.InvalidArgument, lifecycle.ErrInvalid.Error())
 	case errors.Is(err, lifecycle.ErrTooLarge):
 		return status.Error(codes.ResourceExhausted, lifecycle.ErrTooLarge.Error())
+	case errors.Is(err, lifecycle.ErrUnconfirmed):
+		return status.Error(codes.Unavailable, lifecycle.ErrUnconfirmed.Error())
 	case errors.Is(err, interfacestatus.ErrNotFound):
 		return status.Error(codes.NotFound, interfacestatus.ErrNotFound.Error())
 	case errors.Is(err, interfacestatus.ErrBusy):
