@@ -3,7 +3,6 @@ package lifecycle
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"slices"
 	"time"
@@ -42,9 +41,8 @@ func (d desiredConfig) equal(other desiredConfig) bool {
 }
 
 func (req StartRequest) selectUsers() ([]InboundUsers, error) {
-	source := bytes.TrimSpace(req.ConfigJSON)
 	if len(req.ConfigJSON) > runconfig.MaxSourceBytes ||
-		(req.ConfigJSON != nil && (len(source) == 0 || source[0] != '{' || !json.Valid(source))) ||
+		(req.ConfigJSON != nil && !runconfig.ValidJSONSource(req.ConfigJSON)) ||
 		len(req.InitialUsers) > MaxInitialInbounds || len(req.ExcludedInbounds) > MaxExcludedInbounds {
 		return nil, ErrInvalidStart
 	}

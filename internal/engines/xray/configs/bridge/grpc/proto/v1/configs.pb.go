@@ -71,8 +71,10 @@ func (XrayConfigIssueCode) EnumDescriptor() ([]byte, []int) {
 }
 
 type ValidateXrayConfigRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Id    string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// Omit to check the configured file. An empty value is invalid.
+	ConfigJson    []byte `protobuf:"bytes,2,opt,name=config_json,json=configJson,proto3,oneof" json:"config_json,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -112,6 +114,13 @@ func (x *ValidateXrayConfigRequest) GetId() string {
 		return x.Id
 	}
 	return ""
+}
+
+func (x *ValidateXrayConfigRequest) GetConfigJson() []byte {
+	if x != nil {
+		return x.ConfigJson
+	}
+	return nil
 }
 
 type XrayConfigValidationIssue struct {
@@ -239,9 +248,12 @@ var File_proto_v1_configs_proto protoreflect.FileDescriptor
 
 const file_proto_v1_configs_proto_rawDesc = "" +
 	"\n" +
-	"\x16proto/v1/configs.proto\x12\x12papiliovpn.node.v1\"+\n" +
+	"\x16proto/v1/configs.proto\x12\x12papiliovpn.node.v1\"a\n" +
 	"\x19ValidateXrayConfigRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"\x84\x01\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12$\n" +
+	"\vconfig_json\x18\x02 \x01(\fH\x00R\n" +
+	"configJson\x88\x01\x01B\x0e\n" +
+	"\f_config_json\"\x84\x01\n" +
 	"\x19XrayConfigValidationIssue\x12;\n" +
 	"\x04code\x18\x01 \x01(\x0e2'.papiliovpn.node.v1.XrayConfigIssueCodeR\x04code\x12\x12\n" +
 	"\x04line\x18\x02 \x01(\rR\x04line\x12\x16\n" +
@@ -294,6 +306,7 @@ func file_proto_v1_configs_proto_init() {
 	if File_proto_v1_configs_proto != nil {
 		return
 	}
+	file_proto_v1_configs_proto_msgTypes[0].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

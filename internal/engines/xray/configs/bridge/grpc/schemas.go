@@ -7,6 +7,7 @@ import (
 	"errors"
 
 	configsv1 "github.com/PapilioVPN/node/internal/engines/xray/configs/bridge/grpc/proto/v1"
+	"github.com/PapilioVPN/node/internal/engines/xray/configs/runconfig"
 	"github.com/PapilioVPN/node/internal/engines/xray/configs/validation"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -19,6 +20,8 @@ func response(result validation.Result, err error) (*configsv1.XrayConfigValidat
 			return nil, status.Error(codes.NotFound, validation.ErrNotFound.Error())
 		case errors.Is(err, validation.ErrBusy):
 			return nil, status.Error(codes.Aborted, validation.ErrBusy.Error())
+		case errors.Is(err, runconfig.ErrSourceTooLarge):
+			return nil, status.Error(codes.ResourceExhausted, runconfig.ErrSourceTooLarge.Error())
 		case errors.Is(err, context.Canceled):
 			return nil, status.Error(codes.Canceled, "xray validation canceled")
 		case errors.Is(err, context.DeadlineExceeded):

@@ -21,6 +21,11 @@ type Issue struct {
 	Column uint32
 }
 
+type Request struct {
+	ID         string
+	ConfigJSON []byte // nil selects the configured file.
+}
+
 type Result struct {
 	ID    string
 	Issue *Issue

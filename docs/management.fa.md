@@ -13,7 +13,7 @@
 | فضای ذخیره‌سازی میزبان | بررسی ظرفیت و وضعیت فقط‌خواندنی فایل‌سیستمِ مسیر تنظیم‌شده. |
 | گزارش کلی میزبان | دریافت uptime، CPU، حافظه و فضای ذخیره‌سازی در یک پاسخ. |
 | نمونهٔ Xray | راه‌اندازی، توقف و خواندن وضعیت و نسخه‌ها از HTTP و gRPC. راه‌اندازی حساب‌های اولیهٔ نوع‌دار را از هر دو مسیر می‌پذیرد و از مهلت keep-alive، اعمال زندهٔ تغییرهای سازگار و بازیابی با راه‌اندازی دوباره پشتیبانی می‌کند. |
-| اعتبارسنجی کانفیگ Xray | بررسی فایل JSON تنظیم‌شده از HTTP و gRPC پیش از راه‌اندازی دوبارهٔ نمونه. |
+| اعتبارسنجی کانفیگ Xray | بررسی JSON پیشنهادی یا فایل تنظیم‌شدهٔ Xray از HTTP و gRPC. |
 | آمار اجرای Xray | خواندن زمان کارکرد، تخصیص حافظه، goroutineها و شمارنده‌های GC نمونهٔ فعال از HTTP و gRPC. |
 | شمارنده‌های ترافیک Xray | بایت آپلود و دانلود یک یا همهٔ حساب‌ها، ورودی‌ها یا خروجی‌ها را با HTTP و gRPC بخوان. |
 | ریست ترافیک Xray | با فعال‌سازی صریح، یک شمارنده، هر دو جهت یک حساب یا تگ، یا یک محدودهٔ سقف‌دار را با HTTP و gRPC ریست کن. |
@@ -43,7 +43,7 @@
 
 شکست راه‌اندازی با HTTP `503` و فیلد JSON به نام `reason`، یا با gRPC `UNAVAILABLE` و جزئیات `XrayStartFailure` گزارش می‌شود. مقادیر علت `launch_failed`، `exited_before_ready`، `readiness_timeout` و `readiness_failed` هستند. اگر Xray پیش از آمادگی با کد خروج تمام شود، پاسخ `exit_code` را هم دارد.
 
-با بدنهٔ خالی به `POST /v1/xray/instances/{id}/config-validations` درخواست بفرست یا `XrayConfigsService.ValidateConfig` را با شناسهٔ نمونه صدا بزن. Node فایل تنظیم‌شده را با همان گزینه‌های راه‌اندازی بررسی می‌کند. فایل نامعتبر با `valid: false` و کد ایراد برمی‌گردد. اگر Xray خط و ستون را گزارش کرده باشد، در پاسخ می‌آیند. شکست اجرای آزمون خطای API دارد. [قرارداد gRPC](../internal/engines/xray/configs/bridge/grpc/proto/v1/configs.proto)
+بدنهٔ خام JSON را به `POST /v1/xray/instances/{id}/config-validations` بفرست یا بایت‌های آن را در فیلد اختیاری `config_json` عملیات `XrayConfigsService.ValidateConfig` بگذار. درخواست HTTP بدون بدنه یا gRPC بدون فیلد، فایل تنظیم‌شده را بررسی می‌کند. مقدار خالی صریح در gRPC یا بدنه‌ای که فقط فاصله دارد نامعتبر است. سقف JSON پیشنهادی ۱ MiB است. Node هر بار یک بررسی با مهلت چهارثانیه‌ای انجام می‌دهد. بررسی پیشنهادی اجرای فعال را تغییر نمی‌دهد و مقصدهای لاگ طرح را باز نمی‌کند. پاسخ کانفیگ نامعتبر `valid: false` و کد ایراد تایپ‌شده دارد و مختصات گزارش‌شده را هم برمی‌گرداند. timeout و شکست اجرا خطای API هستند. [قرارداد gRPC](../internal/engines/xray/configs/bridge/grpc/proto/v1/configs.proto)
 
 از `GET /v1/xray/instances/{id}/stats/runtime` یا `XrayStatsService.GetRuntimeStats` استفاده کن. هر پاسخ از نمونه‌ای تازه از اجرای فعال Xray استفاده می‌کند. درخواست‌های هم‌زمان می‌توانند نمونهٔ بعدی را مشترک بخوانند. واحد حافظه بایت، زمان کارکرد ثانیهٔ کامل از آغاز سرویس آمار Xray و مجموع مکث GC نانوثانیه است. اگر نمونهٔ تنظیم‌شده در دسترس نباشد، HTTP پاسخ `503` و gRPC وضعیت `UNAVAILABLE` می‌دهد. صف انتظار ظرفیت ۱۲۸ درخواست دارد. اگر صف پر باشد، درخواست در HTTP پاسخ `429` و در gRPC وضعیت `RESOURCE_EXHAUSTED` می‌گیرد. [قرارداد gRPC](../internal/engines/xray/stats/bridge/grpc/proto/v1/runtime_stats.proto) · [بنچمارک و نتایج خام](../benchmarks/xray/runtime/README.md#xray-runtime-statistics-after-the-rewrite)
 

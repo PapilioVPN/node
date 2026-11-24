@@ -1,4 +1,4 @@
-// Package validation checks the configured Xray file with the native engine.
+// Package validation checks Xray configuration with the native engine.
 package validation
 
 import (
@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"sync/atomic"
 	"time"
+
+	"github.com/PapilioVPN/node/internal/engines/xray/configs/runconfig"
 )
 
 type Config struct {
@@ -25,12 +27,15 @@ func New(config Config) *Service {
 	return &Service{config: config, run: runNative}
 }
 
-func (service *Service) Validate(ctx context.Context, id string) (Result, error) {
-	if id == "" || id != service.config.ID {
+func (service *Service) Validate(ctx context.Context, req Request) (Result, error) {
+	if req.ID == "" || req.ID != service.config.ID {
 		return Result{}, ErrNotFound
 	}
 	if err := ctx.Err(); err != nil {
 		return Result{}, err
+	}
+	if len(req.ConfigJSON) > runconfig.MaxSourceBytes {
+		return Result{}, runconfig.ErrSourceTooLarge
 	}
 	if !service.validating.CompareAndSwap(false, true) {
 		return Result{}, ErrBusy
@@ -39,9 +44,18 @@ func (service *Service) Validate(ctx context.Context, id string) (Result, error)
 
 	ctx, cancel := context.WithTimeout(ctx, 4*time.Second)
 	defer cancel()
-	issue, err := service.run(ctx, service.config)
+	var issue *Issue
+	var err error
+	if req.ConfigJSON == nil {
+		issue, err = service.run(ctx, service.config)
+	} else {
+		if !runconfig.ValidJSONSource(req.ConfigJSON) {
+			return Result{ID: req.ID, Issue: &Issue{Code: DecodeError}}, nil
+		}
+		issue, err = CheckSource(ctx, service.config.Executable, service.config.RuntimeDirectory, req.ConfigJSON)
+	}
 	if err != nil {
 		return Result{}, fmt.Errorf("%w: %w", ErrFailed, err)
 	}
-	return Result{ID: id, Issue: issue}, nil
+	return Result{ID: req.ID, Issue: issue}, nil
 }

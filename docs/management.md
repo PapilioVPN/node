@@ -13,7 +13,7 @@
 | Host storage | Check space and read-only status for the filesystem backing a configured path. |
 | Host system stats | Fetch uptime, CPU, memory and storage in one response. |
 | Xray instance | Start, stop, and read state and versions over HTTP and gRPC. Start accepts typed initial accounts over both transports and supports keep-alive, compatible live configuration changes, and restart recovery. |
-| Xray config validation | Check the configured Xray JSON over HTTP and gRPC before restarting the instance. |
+| Xray config validation | Check a proposed Xray JSON configuration or the configured file over HTTP and gRPC. |
 | Xray runtime statistics | Read the active instance’s uptime, memory allocation, goroutines, and garbage collection counters over HTTP and gRPC. |
 | Xray traffic resets | Read and clear one counter, both directions of a named account or tag, or a bounded scope over HTTP and gRPC when explicitly enabled. |
 | Xray traffic counters | Read upload and download bytes for one or all accounts, inbound tags, or outbound tags over HTTP and gRPC. |
@@ -43,7 +43,7 @@ Use `GET /v1/xray/instances/{id}` for status and `PUT` or `DELETE /v1/xray/insta
 
 A startup failure returns HTTP `503` with a JSON `reason` or gRPC `UNAVAILABLE` with `XrayStartFailure` details. The reasons are `launch_failed`, `exited_before_ready`, `readiness_timeout`, and `readiness_failed`. The response includes `exit_code` when Xray supplied one after exiting before readiness.
 
-Send an empty `POST /v1/xray/instances/{id}/config-validations` or call `XrayConfigsService.ValidateConfig` with the instance ID. Node tests the configured file with the same options used for startup. An invalid file returns `valid: false` and an issue code, with a line and column when Xray reports them. An execution failure returns an API error. [gRPC contract](../internal/engines/xray/configs/bridge/grpc/proto/v1/configs.proto)
+Send a raw JSON object in `POST /v1/xray/instances/{id}/config-validations` or pass its bytes as optional `config_json` to `XrayConfigsService.ValidateConfig`. An HTTP request with no body or a gRPC request that omits the field checks the configured file. A present empty gRPC value or a body consisting only of whitespace is invalid. Proposed JSON is limited to 1 MiB. Node runs one validation at a time with a four-second deadline. A proposal does not change the live instance or open its log destinations. Rejected configurations return `valid: false` with a typed issue and source coordinates when reported. Execution failures and timeouts return errors. [gRPC contract](../internal/engines/xray/configs/bridge/grpc/proto/v1/configs.proto)
 
 Use `GET /v1/xray/instances/{id}/stats/runtime` or `XrayStatsService.GetRuntimeStats`. Each response uses a fresh sample from the active Xray execution. Overlapping reads can share the next native sample. Memory fields report bytes, uptime counts whole seconds since the Xray stats service started, and cumulative GC pause is in nanoseconds. A configured instance that is unavailable returns HTTP `503` or gRPC `UNAVAILABLE`. The pending-read buffer holds 128 requests. When it is full, reads return HTTP `429` or gRPC `RESOURCE_EXHAUSTED`. [gRPC contract](../internal/engines/xray/stats/bridge/grpc/proto/v1/runtime_stats.proto) · [Benchmark and raw results](../benchmarks/xray/runtime/README.md#xray-runtime-statistics-after-the-rewrite)
 

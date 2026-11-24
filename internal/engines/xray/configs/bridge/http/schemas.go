@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/PapilioVPN/node/internal/engines/xray/configs/runconfig"
 	"github.com/PapilioVPN/node/internal/engines/xray/configs/validation"
 )
 
@@ -23,6 +24,8 @@ func writeResult(w http.ResponseWriter, result validation.Result, err error) {
 			message, code = validation.ErrNotFound.Error(), http.StatusNotFound
 		case errors.Is(err, validation.ErrBusy):
 			message, code = validation.ErrBusy.Error(), http.StatusConflict
+		case errors.Is(err, runconfig.ErrSourceTooLarge):
+			message, code = runconfig.ErrSourceTooLarge.Error(), http.StatusRequestEntityTooLarge
 		case errors.Is(err, context.Canceled):
 			message, code = "xray validation canceled", http.StatusRequestTimeout
 		case errors.Is(err, context.DeadlineExceeded):

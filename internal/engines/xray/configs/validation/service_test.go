@@ -18,14 +18,14 @@ func TestValidationCancelsAndReleasesItsSlot(t *testing.T) {
 	defer cancel()
 	result := make(chan error, 1)
 	go func() {
-		_, err := service.Validate(ctx, "primary")
+		_, err := service.Validate(ctx, Request{ID: "primary"})
 		result <- err
 	}()
 	<-started
-	if _, err := service.Validate(t.Context(), "missing"); !errors.Is(err, ErrNotFound) {
+	if _, err := service.Validate(t.Context(), Request{ID: "missing"}); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("unknown instance error = %v", err)
 	}
-	if _, err := service.Validate(t.Context(), "primary"); !errors.Is(err, ErrBusy) {
+	if _, err := service.Validate(t.Context(), Request{ID: "primary"}); !errors.Is(err, ErrBusy) {
 		t.Fatalf("concurrent validation error = %v", err)
 	}
 	cancel()
@@ -33,7 +33,7 @@ func TestValidationCancelsAndReleasesItsSlot(t *testing.T) {
 		t.Fatalf("canceled validation error = %v", err)
 	}
 	service.run = func(context.Context, Config) (*Issue, error) { return nil, nil }
-	got, err := service.Validate(t.Context(), "primary")
+	got, err := service.Validate(t.Context(), Request{ID: "primary"})
 	if err != nil || got.ID != "primary" || got.Issue != nil {
 		t.Fatalf("retry validation = (%+v, %v)", got, err)
 	}

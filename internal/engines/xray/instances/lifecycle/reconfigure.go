@@ -40,7 +40,7 @@ func (service *Service) reconcile(ctx context.Context, run *execution, desired d
 func (service *Service) checkCandidate(ctx context.Context, source []byte) error {
 	checkCtx, cancel := context.WithTimeout(ctx, 4*time.Second)
 	defer cancel()
-	issue, err := validation.CheckSource(checkCtx, service.config.Executable, service.config.RuntimeDirectory, source)
+	issue, err := validation.CheckStartSource(checkCtx, service.config.Executable, service.config.RuntimeDirectory, source)
 	if ctx.Err() != nil {
 		return ctx.Err()
 	}

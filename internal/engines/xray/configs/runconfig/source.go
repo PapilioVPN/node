@@ -1,6 +1,8 @@
 package runconfig
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
 	"io"
 	"os"
@@ -13,6 +15,12 @@ const (
 )
 
 var ErrSourceTooLarge = errors.New("xray configuration exceeds the supported size")
+
+// ValidJSONSource reports whether source is a JSON object accepted as request input.
+func ValidJSONSource(source []byte) bool {
+	source = bytes.TrimSpace(source)
+	return len(source) != 0 && source[0] == '{' && json.Valid(source)
+}
 
 // ReadSource snapshots a regular file without blocking on a FIFO.
 func ReadSource(path string, limit int64) ([]byte, error) {

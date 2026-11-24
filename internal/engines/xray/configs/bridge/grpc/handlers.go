@@ -13,5 +13,5 @@ type handlers struct {
 }
 
 func (h *handlers) ValidateConfig(ctx context.Context, request *configsv1.ValidateXrayConfigRequest) (*configsv1.XrayConfigValidation, error) {
-	return response(h.service.Validate(ctx, request.GetId()))
+	return response(h.service.Validate(ctx, validation.Request{ID: request.GetId(), ConfigJSON: request.GetConfigJson()}))
 }

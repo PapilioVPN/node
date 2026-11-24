@@ -26,7 +26,7 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type XrayConfigsServiceClient interface {
-	// Checks the configured file through Xray's native test command.
+	// Checks a proposed JSON configuration or the configured file.
 	ValidateConfig(ctx context.Context, in *ValidateXrayConfigRequest, opts ...grpc.CallOption) (*XrayConfigValidation, error)
 }
 
@@ -52,7 +52,7 @@ func (c *xrayConfigsServiceClient) ValidateConfig(ctx context.Context, in *Valid
 // All implementations must embed UnimplementedXrayConfigsServiceServer
 // for forward compatibility.
 type XrayConfigsServiceServer interface {
-	// Checks the configured file through Xray's native test command.
+	// Checks a proposed JSON configuration or the configured file.
 	ValidateConfig(context.Context, *ValidateXrayConfigRequest) (*XrayConfigValidation, error)
 	mustEmbedUnimplementedXrayConfigsServiceServer()
 }

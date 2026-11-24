@@ -3,6 +3,7 @@ package validation
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -42,13 +43,54 @@ func runNative(ctx context.Context, config Config) (*Issue, error) {
 	return check(ctx, config.Executable, run)
 }
 
-// CheckSource validates an exact Start candidate with the executable that would run it.
+// CheckSource checks a proposed configuration without opening its log destinations.
 func CheckSource(ctx context.Context, executable, runtimeDirectory string, source []byte) (*Issue, error) {
+	return checkSource(ctx, executable, runtimeDirectory, source, true)
+}
+
+// CheckStartSource keeps Start's preflight check of the configured log destinations.
+func CheckStartSource(ctx context.Context, executable, runtimeDirectory string, source []byte) (*Issue, error) {
+	return checkSource(ctx, executable, runtimeDirectory, source, false)
+}
+
+func checkSource(ctx context.Context, executable, runtimeDirectory string, source []byte, quietLogs bool) (*Issue, error) {
 	run, err := runconfig.PrepareSource(source, runtimeDirectory)
 	if err != nil {
 		return nil, err
 	}
+	if quietLogs {
+		if err := suppressLogDestinations(&run, source); err != nil {
+			return nil, errors.Join(err, run.Cleanup())
+		}
+	}
 	return check(ctx, executable, run)
+}
+
+// Xray -test constructs its logger before exiting. Disable its writes while
+// retaining the address-mask setting, which the constructor also validates.
+func suppressLogDestinations(run *runconfig.Run, source []byte) error {
+	var candidate struct {
+		Log *struct {
+			MaskAddress string `json:"maskAddress"`
+		} `json:"log"`
+	}
+	if err := json.Unmarshal(source, &candidate); err != nil || candidate.Log == nil {
+		return nil // Xray still validates the original candidate.
+	}
+	var overlay map[string]json.RawMessage
+	if err := json.Unmarshal(run.Overlay, &overlay); err != nil {
+		return err
+	}
+	log, err := json.Marshal(struct {
+		Level       string `json:"loglevel"`
+		MaskAddress string `json:"maskAddress"`
+	}{Level: "none", MaskAddress: candidate.Log.MaskAddress})
+	if err != nil {
+		return err
+	}
+	overlay["log"] = log
+	run.Overlay, err = json.Marshal(overlay)
+	return err
 }
 
 func check(ctx context.Context, executable string, run runconfig.Run) (issue *Issue, err error) {

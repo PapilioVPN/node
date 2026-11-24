@@ -5,12 +5,14 @@ package papiliovpn.node.v1;
 option go_package = "github.com/PapilioVPN/node/internal/engines/xray/configs/bridge/grpc/proto/v1;configsv1";
 
 service XrayConfigsService {
-  // Checks the configured file through Xray's native test command.
+  // Checks a proposed JSON configuration or the configured file.
   rpc ValidateConfig(ValidateXrayConfigRequest) returns (XrayConfigValidation);
 }
 
 message ValidateXrayConfigRequest {
   string id = 1;
+  // Omit to check the configured file. An empty value is invalid.
+  optional bytes config_json = 2;
 }
 
 enum XrayConfigIssueCode {

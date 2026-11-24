@@ -13,7 +13,7 @@
 | 主机存储 | 查看配置路径所在文件系统的容量和只读状态。 |
 | 主机概览 | 在一次响应中获取运行时间、CPU、内存和存储信息。 |
 | Xray 实例 | 通过 HTTP 和 gRPC 启动、停止以及查询状态和版本。两种接口均可提交带类型的初始账户。启动支持保活、在线应用兼容配置变更，以及重启恢复。 |
-| Xray 配置验证 | 通过 HTTP 和 gRPC 在重启实例之前验证已配置的 JSON。 |
+| Xray 配置验证 | 通过 HTTP 和 gRPC 验证拟提交的 Xray JSON 或已配置的文件。 |
 | Xray 运行统计 | 通过 HTTP 和 gRPC 查询活动实例的运行时间、内存分配、goroutine 和垃圾回收计数。 |
 | Xray 流量计数器 | 通过 HTTP 和 gRPC 读取单个或全部账户、入站标签或出站标签的上行与下行字节数。 |
 | Xray 流量清零 | 显式启用后，通过 HTTP 和 gRPC 清零单个计数器、指定名称的两个方向或有数量上限的范围。 |
@@ -43,7 +43,7 @@ HTTP `GET /v1/host/stats` 和 gRPC `HostService.GetSystemStats` 返回 `uptime_s
 
 启动失败时，HTTP 返回 `503` 和 JSON `reason` 字段，gRPC 返回 `UNAVAILABLE` 和 `XrayStartFailure` 详情。原因包括 `launch_failed`、`exited_before_ready`、`readiness_timeout` 和 `readiness_failed`。如果 Xray 在就绪前退出并返回退出码，响应会包含 `exit_code`。
 
-发送空请求体的 `POST /v1/xray/instances/{id}/config-validations`，或使用实例 ID 调用 `XrayConfigsService.ValidateConfig`。Node 使用与启动时相同的选项验证配置文件。无效配置返回 `valid: false` 和问题代码，并在 Xray 提供时返回行号和列号。验证执行失败时返回 API 错误。[gRPC 接口](../internal/engines/xray/configs/bridge/grpc/proto/v1/configs.proto)
+将原始 JSON 对象作为请求体发送到 `POST /v1/xray/instances/{id}/config-validations`，或将其字节传入 `XrayConfigsService.ValidateConfig` 的可选字段 `config_json`。HTTP 请求无请求体或 gRPC 请求省略该字段时，验证已配置的文件。gRPC 显式空值与仅含空白的请求体均无效。拟提交 JSON 的上限为 1 MiB。Node 同时只执行一次验证，时限为四秒。验证拟提交配置不会改变运行中的实例，也不会打开拟提交配置的日志目标。无效配置返回 `valid: false`、类型化问题代码及可用的行列信息。执行失败或超时返回 API 错误。[gRPC 接口](../internal/engines/xray/configs/bridge/grpc/proto/v1/configs.proto)
 
 使用 `GET /v1/xray/instances/{id}/stats/runtime` 或 `XrayStatsService.GetRuntimeStats`。每个响应都使用正在运行的 Xray 实例的新样本。并发请求可以共享下一次采样结果。内存以字节计，运行时间以 Xray 统计服务启动后的整秒计，GC 累计暂停以纳秒计。实例不可用时，HTTP 返回 `503`，gRPC 返回 `UNAVAILABLE`。等待读取的缓冲区可容纳 128 个请求。缓冲区满时，HTTP 返回 `429`，gRPC 返回 `RESOURCE_EXHAUSTED`。[gRPC 接口](../internal/engines/xray/stats/bridge/grpc/proto/v1/runtime_stats.proto) · [基准测试和原始结果](../benchmarks/xray/runtime/README.md#xray-runtime-statistics-after-the-rewrite)
 
