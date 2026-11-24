@@ -3,7 +3,7 @@ package membership
 const MaxSyncInbounds = 32
 
 // InboundSnapshot describes complete named membership to initialize on startup.
-type InboundSnapshot = struct {
+type InboundSnapshot struct {
 	InboundTag string
 	Accounts   []AccountInput
 }

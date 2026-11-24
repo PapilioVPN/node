@@ -210,13 +210,11 @@ func TestSyncNativeAccountProtocols(t *testing.T) {
 					t.Fatal("Shadowsocks cipher was not replaced")
 				}
 			}
-			if f.hasManagedAccountInitializer() {
-				f.request(t, http.MethodDelete, executionPath, nil, http.StatusOK)
-				f.request(t, http.MethodPut, executionPath, nil, http.StatusOK)
-				restored := f.nativeUsers(t, "subject")
-				if len(restored) != 1 || !proto.Equal(restored[0], users[0]) {
-					t.Fatal("replacement core did not restore the accepted credential")
-				}
+			f.request(t, http.MethodDelete, executionPath, nil, http.StatusOK)
+			f.request(t, http.MethodPut, executionPath, nil, http.StatusOK)
+			restored := f.nativeUsers(t, "subject")
+			if len(restored) != 1 || !proto.Equal(restored[0], users[0]) {
+				t.Fatal("replacement core did not restore the accepted credential")
 			}
 
 			deleteFrame := `{"index":0,"last":true,"accounts":[{"email":"sync@example.test"}]}`

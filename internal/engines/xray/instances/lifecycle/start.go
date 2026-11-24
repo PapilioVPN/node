@@ -28,10 +28,7 @@ type StartRequest struct {
 	KeepAliveSeconds *uint32 // nil preserves the current interval, zero disables it
 }
 
-type InboundUsers = struct {
-	InboundTag string
-	Accounts   []membership.AccountInput
-}
+type InboundUsers = membership.InboundSnapshot
 
 type AccountInitializer = func(context.Context, string, *grpc.ClientConn, []InboundUsers, []string) (commit func(), err error)
 
