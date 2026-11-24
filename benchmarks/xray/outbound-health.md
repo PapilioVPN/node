@@ -111,7 +111,7 @@ contracts were exercised by integration tests.
 ## Reproduce
 
 Build the two binaries and reference descriptor with the
-[lifecycle benchmark setup](../README.md#reproduce). Use the same verified
+[lifecycle benchmark setup](../reports/instances.md#reproduce). Use the same verified
 Xray executable and run from the repository root.
 
 ```bash

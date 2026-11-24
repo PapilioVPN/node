@@ -58,7 +58,7 @@ only (466 / 770 versus 446 / 1082 µs), and removal led on p50 only
 in each build. The integrated gRPC results were slower than the earlier
 Node build in both passes for these single-account cases.
 
-Run the [lifecycle fixture](../README.md#xray-instance-lifecycle) with
+Run the [lifecycle fixture](../reports/instances.md#xray-instance-lifecycle) with
 `XRAY_BENCH_ROUNDS=5`, `XRAY_BENCH_CYCLES=6`, and `XRAY_BENCH_READS=12` for
 the final lifecycle sample. For the account rows, use the
 [VLESS sync fixture](vless-sync.md#benchmark-method) with `XRAY_BENCH_READS=20`.

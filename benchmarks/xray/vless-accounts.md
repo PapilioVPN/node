@@ -126,7 +126,7 @@ workloads.
 ## Reproduce
 
 Build both Node binaries and the client with the
-[lifecycle benchmark setup](../README.md#reproduce). Run from the repository
+[lifecycle benchmark setup](../reports/instances.md#reproduce). Run from the repository
 root with the same verified Xray binary and the built reference descriptor.
 
 ```bash

@@ -96,7 +96,7 @@ HTTP-запрос `GET /v1/host/stats` и метод gRPC `HostService.GetSystem
 
 Отправьте пустой запрос `POST /v1/xray/instances/{id}/config-validations` или вызовите `XrayConfigsService.ValidateConfig` с идентификатором экземпляра. Node проверяет настроенный файл с теми же параметрами, что при запуске. Недопустимая конфигурация возвращает `valid: false` и код проблемы, а также строку и столбец, если их сообщил Xray. Сбой выполнения проверки возвращает ошибку API. [Контракт gRPC](internal/engines/xray/configs/bridge/grpc/proto/v1/configs.proto)
 
-Используйте `GET /v1/xray/instances/{id}/stats/runtime` или `XrayStatsService.GetRuntimeStats`. Каждый ответ использует свежий снимок активного процесса Xray. Одновременные запросы могут получить один и тот же следующий снимок. Память измеряется в байтах, время работы — в целых секундах с запуска службы статистики Xray, суммарная пауза GC — в наносекундах. Для недоступного экземпляра HTTP возвращает `503`, а gRPC — `UNAVAILABLE`. Буфер ожидающих чтений вмещает 128 запросов. При заполнении буфера HTTP возвращает `429`, а gRPC — `RESOURCE_EXHAUSTED`. [Контракт gRPC](internal/engines/xray/stats/bridge/grpc/proto/v1/runtime_stats.proto) · [Бенчмарк и исходные результаты](benchmarks/README.md#xray-runtime-statistics-after-the-rewrite)
+Используйте `GET /v1/xray/instances/{id}/stats/runtime` или `XrayStatsService.GetRuntimeStats`. Каждый ответ использует свежий снимок активного процесса Xray. Одновременные запросы могут получить один и тот же следующий снимок. Память измеряется в байтах, время работы — в целых секундах с запуска службы статистики Xray, суммарная пауза GC — в наносекундах. Для недоступного экземпляра HTTP возвращает `503`, а gRPC — `UNAVAILABLE`. Буфер ожидающих чтений вмещает 128 запросов. При заполнении буфера HTTP возвращает `429`, а gRPC — `RESOURCE_EXHAUSTED`. [Контракт gRPC](internal/engines/xray/stats/bridge/grpc/proto/v1/runtime_stats.proto) · [Бенчмарк и исходные результаты](benchmarks/reports/runtime.md#xray-runtime-statistics-after-the-rewrite)
 
 Используйте `GET /v1/xray/instances/{id}/stats/traffic/{scope}` с `user`, `inbound` или `outbound`. Добавьте `?name=...` для одной учётной записи или тега. Методы gRPC — `XrayStatsService.GetTraffic` и `ListTraffic`. Чтение сохраняет значения счётчиков. Отсутствующее направление пропускается, а значение ноль возвращается как ноль. Для отсутствующего имени HTTP возвращает `404`, а gRPC — `NOT_FOUND`. Порядок списка не задан. Включите статистику трафика для нужной области в политике Xray. [Контракт gRPC](internal/engines/xray/stats/bridge/grpc/proto/v1/traffic.proto)
 
@@ -128,7 +128,13 @@ HTTP-запрос `GET /v1/host/stats` и метод gRPC `HostService.GetSystem
 
 ## Бенчмарки
 
-В [отчёте о бенчмарках](benchmarks/README.md) приведены сравнения Host и Xray с PasarGuard 0.5.7, результаты каждого раунда и инструкции для повторного запуска.
+<!-- benchmark-summary -->
+**PapilioVPN лидирует в 82 из 102 сопоставимых сценариев**. В 13 сценариях результаты смешанные, в 7 лидирует PasarGuard 0.5.7. Сводка также содержит 20 сценариев на общей тестовой установке, в которых различаются входные данные, поля ответа или гарантии.
+<!-- /benchmark-summary -->
+
+![Результаты бенчмарков по группам](benchmarks/charts/outcomes.png)
+
+[Сводка, отчёты по группам и исходные данные](benchmarks/README.md)
 
 <a name="development"></a>
 

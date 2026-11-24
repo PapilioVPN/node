@@ -76,7 +76,7 @@ one native write for each changed add or removal, with two for a rotation.
 
 ## Benchmark method
 
-Build and run using [the common fixture setup](../README.md#reproduce).
+Build and run using [the common fixture setup](../reports/instances.md#reproduce).
 Both nodes use the same isolated VLESS fixture and same Xray v26.11.9
 (`676eaf6`) executable. PasarGuard Node 0.5.7 uses [739eab9](https://github.com/PasarGuard/node/commit/739eab94a9343d9f0035baf7162796844109f4c4)
 and was built with Go 1.27.3. PapilioVPN and the driver use Go 1.27.4 with

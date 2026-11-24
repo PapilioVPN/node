@@ -112,7 +112,7 @@ Increasing parallelism overlaps those round trips and does not remove them.
 
 ### Reproduce
 
-Follow the [lifecycle setup](../README.md#reproduce) to obtain Xray, build
+Follow the [lifecycle setup](../reports/instances.md#reproduce) to obtain Xray, build
 PasarGuard and generate its descriptor. Use Go 1.27.4 for both servers and
 the benchmark driver. Run from the repository root and set the counter
 count through the number of accounts, with two directions per account.
