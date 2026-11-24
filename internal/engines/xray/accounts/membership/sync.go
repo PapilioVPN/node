@@ -75,6 +75,7 @@ type PlannedMember struct {
 
 // EditSession stages accepted membership across all selected inbounds.
 type EditSession interface {
+	// Inbounds follows the requested tag order. An excluded tag has a nil editor.
 	Inbounds() []Editor
 	CheckStaged() error
 }

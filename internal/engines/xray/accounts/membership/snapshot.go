@@ -89,8 +89,12 @@ func preparePlan(editor Editor, changes []change, full bool) (plan, error) {
 func applyPlans(session EditSession, groups [][]change, full bool, result *SyncResult) error {
 	editors := session.Inbounds()
 	plans := make([]plan, len(editors))
-	var growth int
+	var growth, capacity int
 	for i, editor := range editors {
+		if editor == nil {
+			continue
+		}
+		capacity = editor.Capacity()
 		plan, err := preparePlan(editor, groups[i], full)
 		if err != nil {
 			return err
@@ -101,7 +105,7 @@ func applyPlans(session EditSession, groups [][]change, full bool, result *SyncR
 		plans[i] = plan
 		growth += len(plan.additions) - len(plan.removals)
 	}
-	if growth > editors[0].Capacity() {
+	if growth > capacity {
 		return ErrTooLarge
 	}
 	if err := session.CheckStaged(); err != nil {

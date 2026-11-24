@@ -30,6 +30,11 @@ type activeInstances interface {
 	NativeConnection(string) (*grpc.ClientConn, error)
 }
 
+type syncExclusions struct {
+	conn *grpc.ClientConn
+	tags map[string]bool
+}
+
 type Client struct {
 	instances activeInstances
 	loading   *semaphore.Weighted
@@ -37,6 +42,7 @@ type Client struct {
 	mutation  *semaphore.Weighted
 	accepted  atomic.Pointer[acceptedMembership]
 	recovery  *recoveryStore
+	excluded  atomic.Pointer[syncExclusions]
 }
 
 func New(instances activeInstances) *Client {
@@ -72,27 +78,44 @@ func (c *Client) editInbounds(ctx context.Context, instanceID string, tags []str
 	}
 	defer c.mutation.Release(1)
 
-	state, err := c.inventory(ctx, instanceID)
+	conn, err := c.connection(instanceID)
 	if err != nil {
 		return err
 	}
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	if !c.current(instanceID, state.conn) {
-		return membership.ErrUnavailable
+	var excluded map[string]bool
+	if policy := c.excluded.Load(); !vlessOnly && policy != nil && policy.conn == conn {
+		excluded = policy.tags
 	}
-	session := &editSession{editors: make([]membership.Editor, 0, len(tags))}
-	if !vlessOnly {
-		session.staged = c.accepted.Load().clone()
-	}
-	for _, tag := range tags {
+	session := &editSession{editors: make([]membership.Editor, len(tags))}
+	var state *inventory
+	for i, tag := range tags {
+		if excluded[tag] {
+			continue
+		}
+		if state == nil {
+			state, err = c.inventoryOn(ctx, instanceID, conn)
+			if err != nil {
+				return err
+			}
+			if !vlessOnly {
+				session.staged = c.accepted.Load().clone()
+			}
+		}
 		e, err := c.openEditor(ctx, state, membership.Scope{InstanceID: instanceID, InboundTag: tag}, vlessOnly)
 		if err != nil {
 			return err
 		}
 		e.staged = session.staged
-		session.editors = append(session.editors, e)
+		session.editors[i] = e
+	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if !c.current(instanceID, conn) {
+		return membership.ErrUnavailable
 	}
 	if err := apply(session); err != nil {
 		return err

@@ -41,6 +41,10 @@ func (c *Client) inventory(ctx context.Context, instanceID string) (*inventory, 
 	if err != nil {
 		return nil, err
 	}
+	return c.inventoryOn(ctx, instanceID, conn)
+}
+
+func (c *Client) inventoryOn(ctx context.Context, instanceID string, conn *grpc.ClientConn) (*inventory, error) {
 	if cached := c.cached.Load(); cached != nil && cached.conn == conn {
 		return cached, nil
 	}
@@ -56,7 +60,7 @@ func (c *Client) inventory(ctx context.Context, instanceID string) (*inventory, 
 	}
 
 	var response ListInboundsResponse
-	err = conn.Invoke(ctx, listInbounds, &ListInboundsRequest{}, &response,
+	err := conn.Invoke(ctx, listInbounds, &ListInboundsRequest{}, &response,
 		grpc.StaticMethod(), grpc.MaxCallRecvMsgSize(16<<20))
 	if err := c.readResult(ctx, instanceID, conn, err); err != nil {
 		return nil, err

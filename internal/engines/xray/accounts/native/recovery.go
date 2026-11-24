@@ -20,9 +20,17 @@ func (c *Client) Initialize(ctx context.Context, id string, conn *grpc.ClientCon
 	}
 	defer c.mutation.Release(1)
 
+	skip := make(map[string]bool, len(excluded))
+	var policy *syncExclusions
+	if len(excluded) != 0 {
+		for _, tag := range excluded {
+			skip[tag] = true
+		}
+		policy = &syncExclusions{conn: conn, tags: skip}
+	}
 	previous := c.accepted.Load()
 	if len(initial) == 0 && (previous == nil || len(previous.inbounds) == 0) {
-		return nil, nil
+		return func() { c.excluded.Store(policy) }, nil
 	}
 	if len(initial) > membership.MaxSyncAccounts {
 		return nil, membership.ErrTooLarge
@@ -33,10 +41,6 @@ func (c *Client) Initialize(ctx context.Context, id string, conn *grpc.ClientCon
 		return nil, err
 	}
 
-	skip := make(map[string]bool, len(excluded))
-	for _, tag := range excluded {
-		skip[tag] = true
-	}
 	seeds := make(map[string]bool, len(initial))
 	var count int
 	for _, snapshot := range initial {
@@ -104,6 +108,7 @@ func (c *Client) Initialize(ctx context.Context, id string, conn *grpc.ClientCon
 	return func() {
 		c.accepted.Store(accepted)
 		c.cached.Store(state)
+		c.excluded.Store(policy)
 	}, nil
 }
 

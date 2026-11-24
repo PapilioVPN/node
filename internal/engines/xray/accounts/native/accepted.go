@@ -38,6 +38,9 @@ type editSession struct {
 func (s *editSession) Inbounds() []membership.Editor { return s.editors }
 
 func (s *editSession) CheckStaged() error {
+	if s.staged == nil {
+		return nil
+	}
 	var records, size int
 	for _, inbound := range s.staged.inbounds {
 		records += len(inbound.accounts)

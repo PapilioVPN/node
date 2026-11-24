@@ -22,6 +22,13 @@ native acknowledgement fences mutations on that inbound until execution
 replacement. Count remains available. Changes apply to the active Xray
 execution. Removing a user denies fresh connections.
 
+All live Sync methods skip inbounds listed in the active execution's Start
+`exclude_inbounds`. Other selected inbounds still converge. A valid request
+selecting only excluded tags returns `confirmed` with zero additions and removals.
+Direct VLESS account operations remain available on those inbounds. On restart,
+excluded inbounds load their configured accounts from the Xray source, while
+configured and manually added live accounts survive Sync in the active execution.
+
 ## SyncUser
 
 HTTP `PUT /v1/xray/instances/{id}/inbounds/{tag}/accounts/membership` or
