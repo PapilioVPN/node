@@ -1,16 +1,73 @@
 package integration_test
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"os/exec"
 	"slices"
 	"strconv"
 	"strings"
 	"testing"
+	"time"
+
+	interfacesv1 "github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/bridge/grpc/proto/v1"
 )
+
+func BenchmarkConfigValidation(b *testing.B) {
+	f := newFixture(b)
+	for _, count := range []int{1, 16} {
+		key := sha256.Sum256([]byte("WireGuard validation benchmark"))
+		addresses := make([]string, count)
+		for i := range addresses {
+			addresses[i] = fmt.Sprintf("192.0.2.%d/24", i+1)
+		}
+		source, err := json.Marshal(struct {
+			PrivateKey []byte   `json:"private_key"`
+			Addresses  []string `json:"addresses"`
+		}{PrivateKey: key[:], Addresses: addresses})
+		if err != nil {
+			b.Fatal(err)
+		}
+		b.Run(fmt.Sprintf("addresses-%d", count), func(b *testing.B) {
+			b.Run("HTTP", func(b *testing.B) {
+				benchValidation(b, source, func() bool {
+					return f.validateHTTP(b, interfaceName, source, http.StatusOK).Valid
+				})
+			})
+			b.Run("gRPC", func(b *testing.B) {
+				client := f.grpcClient(b)
+				req := &interfacesv1.WireGuardValidateConfigRequest{Name: interfaceName, ConfigJson: source}
+				benchValidation(b, source, func() bool {
+					ctx, cancel := context.WithTimeout(b.Context(), time.Second)
+					defer cancel()
+					reply, err := client.ValidateConfig(ctx, req)
+					if err != nil {
+						b.Fatal(err)
+					}
+					return reply.GetValid()
+				})
+			})
+		})
+	}
+}
+
+func benchValidation(b *testing.B, source []byte, validate func() bool) {
+	b.Helper()
+	if !validate() {
+		b.Fatal("warm-up rejected the fixture")
+	}
+	b.SetBytes(int64(len(source)))
+	b.ReportAllocs()
+	for b.Loop() {
+		if !validate() {
+			b.Fatal("validation rejected the fixture")
+		}
+	}
+}
 
 func BenchmarkInterfaceStatus(b *testing.B) {
 	for _, peers := range []int{0, 1000} {

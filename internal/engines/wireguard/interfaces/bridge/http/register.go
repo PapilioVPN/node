@@ -1,4 +1,4 @@
-// Package http exposes WireGuard interface status over HTTP.
+// Package http exposes WireGuard interface operations over HTTP.
 package http
 
 import (
@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"time"
 
 	"github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/lifecycle"
@@ -22,7 +23,7 @@ type response struct {
 	AppliedSHA256 string `json:"applied_config_sha256,omitempty"`
 }
 
-func Register(router chi.Router, service *status.Service, managed *lifecycle.Service) {
+func Register(router chi.Router, service *status.Service, managed *lifecycle.Service, validator *lifecycle.Validator) {
 	const path = "/v1/wireguard/interfaces/{name}"
 	router.Get(path, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
@@ -33,23 +34,32 @@ func Register(router chi.Router, service *status.Service, managed *lifecycle.Ser
 		}
 		writeStatus(w, result)
 	})
+	router.Post(path+"/config-validations", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-store")
+		source, err := readConfig(w, r)
+		if err != nil {
+			writeError(w, err)
+			return
+		}
+		issue, err := validator.Check(r.Context(), interfaceName(r), source)
+		if err != nil {
+			writeError(w, err)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(struct {
+			Valid bool   `json:"valid"`
+			Issue string `json:"issue,omitempty"`
+		}{Valid: issue == lifecycle.ConfigIssueNone, Issue: issue.Error()})
+	})
 	if managed == nil {
 		return
 	}
 	router.Put(path+"/execution", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
-		controller := http.NewResponseController(w)
-		if err := controller.SetReadDeadline(time.Now().Add(lifecycle.OperationTimeout)); err == nil {
-			defer controller.SetReadDeadline(time.Time{})
-		}
-		source, err := io.ReadAll(http.MaxBytesReader(w, r.Body, lifecycle.MaxConfigBytes))
+		source, err := readConfig(w, r)
 		if err != nil {
-			var tooLarge *http.MaxBytesError
-			if errors.As(err, &tooLarge) {
-				writeError(w, lifecycle.ErrTooLarge)
-				return
-			}
-			writeError(w, lifecycle.ErrInvalid)
+			writeError(w, err)
 			return
 		}
 		result, err := managed.Start(r.Context(), interfaceName(r), source)
@@ -67,6 +77,38 @@ func Register(router chi.Router, service *status.Service, managed *lifecycle.Ser
 		}
 		w.WriteHeader(http.StatusNoContent)
 	})
+}
+
+func readConfig(w http.ResponseWriter, r *http.Request) ([]byte, error) {
+	controller := http.NewResponseController(w)
+	deadline := time.Now().Add(lifecycle.OperationTimeout)
+	if requestDeadline, ok := r.Context().Deadline(); ok && requestDeadline.Before(deadline) {
+		deadline = requestDeadline
+	}
+	deadlineSet := controller.SetReadDeadline(deadline) == nil
+	source, err := io.ReadAll(http.MaxBytesReader(w, r.Body, lifecycle.MaxConfigBytes))
+	if err == nil {
+		if deadlineSet {
+			_ = controller.SetReadDeadline(time.Time{})
+		}
+		return source, nil
+	}
+	// An incomplete HTTP/1 body cannot be drained safely before replying.
+	if r.ProtoMajor == 1 {
+		w.Header().Set("Connection", "close")
+	}
+	var tooLarge *http.MaxBytesError
+	switch {
+	case errors.As(err, &tooLarge):
+		return nil, lifecycle.ErrTooLarge
+	case errors.Is(err, os.ErrDeadlineExceeded):
+		return nil, context.DeadlineExceeded
+	default:
+		if canceled := r.Context().Err(); canceled != nil {
+			return nil, canceled
+		}
+		return nil, lifecycle.ErrInvalid
+	}
 }
 
 func interfaceName(r *http.Request) string {

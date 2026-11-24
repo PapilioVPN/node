@@ -1,0 +1,25 @@
+goos: linux
+goarch: amd64
+pkg: github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/integration
+cpu: AMD Ryzen 7 3750H with Radeon Vega Mobile Gfx
+BenchmarkConfigValidation/addresses-1/HTTP    	    2853	    119216 ns/op	   0.76 MB/s	   11254 B/op	     124 allocs/op
+BenchmarkConfigValidation/addresses-1/HTTP    	    3214	    196643 ns/op	   0.46 MB/s	   11254 B/op	     124 allocs/op
+BenchmarkConfigValidation/addresses-1/HTTP    	    3464	    128583 ns/op	   0.71 MB/s	   11254 B/op	     124 allocs/op
+BenchmarkConfigValidation/addresses-1/HTTP    	    3615	    116706 ns/op	   0.78 MB/s	   11254 B/op	     124 allocs/op
+BenchmarkConfigValidation/addresses-1/HTTP    	    3633	    115835 ns/op	   0.79 MB/s	   11254 B/op	     124 allocs/op
+BenchmarkConfigValidation/addresses-1/gRPC    	    2428	    154757 ns/op	   0.59 MB/s	   11090 B/op	     178 allocs/op
+BenchmarkConfigValidation/addresses-1/gRPC    	    2542	    132118 ns/op	   0.69 MB/s	   11090 B/op	     178 allocs/op
+BenchmarkConfigValidation/addresses-1/gRPC    	    2774	    153883 ns/op	   0.59 MB/s	   11091 B/op	     178 allocs/op
+BenchmarkConfigValidation/addresses-1/gRPC    	    2481	    145376 ns/op	   0.63 MB/s	   11090 B/op	     178 allocs/op
+BenchmarkConfigValidation/addresses-1/gRPC    	    2731	    139228 ns/op	   0.65 MB/s	   11091 B/op	     178 allocs/op
+BenchmarkConfigValidation/addresses-16/HTTP   	    3112	    131632 ns/op	   2.45 MB/s	   12983 B/op	     131 allocs/op
+BenchmarkConfigValidation/addresses-16/HTTP   	    2478	    157432 ns/op	   2.05 MB/s	   12983 B/op	     131 allocs/op
+BenchmarkConfigValidation/addresses-16/HTTP   	    3178	    112409 ns/op	   2.87 MB/s	   12983 B/op	     131 allocs/op
+BenchmarkConfigValidation/addresses-16/HTTP   	    3494	    114680 ns/op	   2.82 MB/s	   12983 B/op	     131 allocs/op
+BenchmarkConfigValidation/addresses-16/HTTP   	    3450	    113799 ns/op	   2.84 MB/s	   12983 B/op	     131 allocs/op
+BenchmarkConfigValidation/addresses-16/gRPC   	    3549	    121297 ns/op	   2.66 MB/s	   13552 B/op	     184 allocs/op
+BenchmarkConfigValidation/addresses-16/gRPC   	    2992	    124769 ns/op	   2.59 MB/s	   13553 B/op	     184 allocs/op
+BenchmarkConfigValidation/addresses-16/gRPC   	    3062	    124654 ns/op	   2.59 MB/s	   13553 B/op	     184 allocs/op
+BenchmarkConfigValidation/addresses-16/gRPC   	    3308	    126506 ns/op	   2.55 MB/s	   13552 B/op	     184 allocs/op
+BenchmarkConfigValidation/addresses-16/gRPC   	    2856	    139285 ns/op	   2.32 MB/s	   13554 B/op	     184 allocs/op
+PASS

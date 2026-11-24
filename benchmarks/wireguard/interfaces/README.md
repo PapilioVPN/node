@@ -1,6 +1,6 @@
 # WireGuard interface status
 
-[Start and Stop benchmark](lifecycle.md)
+[Start and Stop benchmark](lifecycle.md) · [Configuration validation benchmark](validation.md)
 
 Each operation reads the same Linux WireGuard interface and verifies its name,
 MTU, and administrative `IFF_UP` flag. Node makes a fresh, targeted

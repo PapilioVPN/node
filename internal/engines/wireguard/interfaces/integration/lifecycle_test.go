@@ -59,6 +59,12 @@ func TestManagedExecution(t *testing.T) {
 	executionRequest(t, f, http.MethodPut, source, http.StatusConflict)
 	executionRequest(t, f, http.MethodDelete, nil, http.StatusConflict)
 	runIP(t, "link", "del", "dev", interfaceName)
+	if got := f.validateHTTP(t, interfaceName, source, http.StatusOK); !got.Valid {
+		t.Fatalf("validation before Start = %+v", got)
+	}
+	if _, err := net.InterfaceByName(interfaceName); err == nil {
+		t.Fatal("validation created an interface")
+	}
 	executionRequest(t, f, http.MethodPut, []byte("{}"), http.StatusBadRequest)
 	executionRequest(t, f, http.MethodPut, bytes.Repeat([]byte(" "), lifecycle.MaxConfigBytes+1), http.StatusRequestEntityTooLarge)
 
@@ -78,6 +84,7 @@ func TestManagedExecution(t *testing.T) {
 	if got := readGRPC(t, client); !got.Up || got.AppliedSHA256 != want {
 		t.Fatalf("unexpected gRPC readback: %+v", got)
 	}
+	assertValidation(t, f, client, append(bytes.Clone(source), '\n'), bytes.Replace(source, []byte(`"mtu":1380`), []byte(`"mtu":1`), 1), want)
 	configured, err := exec.CommandContext(t.Context(), "wg", "show", interfaceName, "listen-port").Output()
 	if err != nil || strings.TrimSpace(string(configured)) == "0" {
 		t.Fatalf("expected a bound WireGuard port, got %q (%v)", configured, err)

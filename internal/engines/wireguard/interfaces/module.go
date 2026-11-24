@@ -35,6 +35,7 @@ func register(lifecycle fx.Lifecycle, config settings.WireGuard, router *chi.Mux
 		}})
 	}
 	service := status.New(config.Interface, reader, appliedHash)
-	bridgehttp.Register(router, service, managed)
-	bridgegrpc.Register(server, service, managed)
+	validator := wglifecycle.NewValidator(config.Interface)
+	bridgehttp.Register(router, service, managed, validator)
+	bridgegrpc.Register(server, service, managed, validator)
 }

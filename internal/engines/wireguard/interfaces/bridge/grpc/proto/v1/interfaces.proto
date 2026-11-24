@@ -8,6 +8,7 @@ service WireGuardInterfacesService {
   rpc GetStatus(WireGuardInterfaceRequest) returns (WireGuardInterfaceStatus);
   rpc Start(WireGuardStartRequest) returns (WireGuardInterfaceStatus);
   rpc Stop(WireGuardInterfaceRequest) returns (WireGuardStopResponse);
+  rpc ValidateConfig(WireGuardValidateConfigRequest) returns (WireGuardConfigValidation);
 }
 
 message WireGuardInterfaceRequest {
@@ -28,3 +29,23 @@ message WireGuardStartRequest {
 }
 
 message WireGuardStopResponse {}
+
+message WireGuardValidateConfigRequest {
+  string name = 1;
+  bytes config_json = 2;
+}
+
+message WireGuardConfigValidation {
+  bool valid = 1;
+  WireGuardConfigIssue issue = 2;
+}
+
+enum WireGuardConfigIssue {
+  WIRE_GUARD_CONFIG_ISSUE_UNSPECIFIED = 0;
+  WIRE_GUARD_CONFIG_ISSUE_INVALID_JSON = 1;
+  WIRE_GUARD_CONFIG_ISSUE_INVALID_PRIVATE_KEY = 2;
+  WIRE_GUARD_CONFIG_ISSUE_INVALID_ADDRESSES = 3;
+  WIRE_GUARD_CONFIG_ISSUE_DUPLICATE_ADDRESS = 4;
+  WIRE_GUARD_CONFIG_ISSUE_INVALID_MTU = 5;
+  WIRE_GUARD_CONFIG_ISSUE_INVALID_LISTEN_PORT = 6;
+}

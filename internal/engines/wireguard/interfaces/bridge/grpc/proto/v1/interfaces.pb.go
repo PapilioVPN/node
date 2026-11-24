@@ -21,6 +21,67 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type WireGuardConfigIssue int32
+
+const (
+	WireGuardConfigIssue_WIRE_GUARD_CONFIG_ISSUE_UNSPECIFIED         WireGuardConfigIssue = 0
+	WireGuardConfigIssue_WIRE_GUARD_CONFIG_ISSUE_INVALID_JSON        WireGuardConfigIssue = 1
+	WireGuardConfigIssue_WIRE_GUARD_CONFIG_ISSUE_INVALID_PRIVATE_KEY WireGuardConfigIssue = 2
+	WireGuardConfigIssue_WIRE_GUARD_CONFIG_ISSUE_INVALID_ADDRESSES   WireGuardConfigIssue = 3
+	WireGuardConfigIssue_WIRE_GUARD_CONFIG_ISSUE_DUPLICATE_ADDRESS   WireGuardConfigIssue = 4
+	WireGuardConfigIssue_WIRE_GUARD_CONFIG_ISSUE_INVALID_MTU         WireGuardConfigIssue = 5
+	WireGuardConfigIssue_WIRE_GUARD_CONFIG_ISSUE_INVALID_LISTEN_PORT WireGuardConfigIssue = 6
+)
+
+// Enum value maps for WireGuardConfigIssue.
+var (
+	WireGuardConfigIssue_name = map[int32]string{
+		0: "WIRE_GUARD_CONFIG_ISSUE_UNSPECIFIED",
+		1: "WIRE_GUARD_CONFIG_ISSUE_INVALID_JSON",
+		2: "WIRE_GUARD_CONFIG_ISSUE_INVALID_PRIVATE_KEY",
+		3: "WIRE_GUARD_CONFIG_ISSUE_INVALID_ADDRESSES",
+		4: "WIRE_GUARD_CONFIG_ISSUE_DUPLICATE_ADDRESS",
+		5: "WIRE_GUARD_CONFIG_ISSUE_INVALID_MTU",
+		6: "WIRE_GUARD_CONFIG_ISSUE_INVALID_LISTEN_PORT",
+	}
+	WireGuardConfigIssue_value = map[string]int32{
+		"WIRE_GUARD_CONFIG_ISSUE_UNSPECIFIED":         0,
+		"WIRE_GUARD_CONFIG_ISSUE_INVALID_JSON":        1,
+		"WIRE_GUARD_CONFIG_ISSUE_INVALID_PRIVATE_KEY": 2,
+		"WIRE_GUARD_CONFIG_ISSUE_INVALID_ADDRESSES":   3,
+		"WIRE_GUARD_CONFIG_ISSUE_DUPLICATE_ADDRESS":   4,
+		"WIRE_GUARD_CONFIG_ISSUE_INVALID_MTU":         5,
+		"WIRE_GUARD_CONFIG_ISSUE_INVALID_LISTEN_PORT": 6,
+	}
+)
+
+func (x WireGuardConfigIssue) Enum() *WireGuardConfigIssue {
+	p := new(WireGuardConfigIssue)
+	*p = x
+	return p
+}
+
+func (x WireGuardConfigIssue) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (WireGuardConfigIssue) Descriptor() protoreflect.EnumDescriptor {
+	return file_proto_v1_interfaces_proto_enumTypes[0].Descriptor()
+}
+
+func (WireGuardConfigIssue) Type() protoreflect.EnumType {
+	return &file_proto_v1_interfaces_proto_enumTypes[0]
+}
+
+func (x WireGuardConfigIssue) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use WireGuardConfigIssue.Descriptor instead.
+func (WireGuardConfigIssue) EnumDescriptor() ([]byte, []int) {
+	return file_proto_v1_interfaces_proto_rawDescGZIP(), []int{0}
+}
+
 type WireGuardInterfaceRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
@@ -222,6 +283,110 @@ func (*WireGuardStopResponse) Descriptor() ([]byte, []int) {
 	return file_proto_v1_interfaces_proto_rawDescGZIP(), []int{3}
 }
 
+type WireGuardValidateConfigRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	ConfigJson    []byte                 `protobuf:"bytes,2,opt,name=config_json,json=configJson,proto3" json:"config_json,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *WireGuardValidateConfigRequest) Reset() {
+	*x = WireGuardValidateConfigRequest{}
+	mi := &file_proto_v1_interfaces_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WireGuardValidateConfigRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WireGuardValidateConfigRequest) ProtoMessage() {}
+
+func (x *WireGuardValidateConfigRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_v1_interfaces_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WireGuardValidateConfigRequest.ProtoReflect.Descriptor instead.
+func (*WireGuardValidateConfigRequest) Descriptor() ([]byte, []int) {
+	return file_proto_v1_interfaces_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *WireGuardValidateConfigRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *WireGuardValidateConfigRequest) GetConfigJson() []byte {
+	if x != nil {
+		return x.ConfigJson
+	}
+	return nil
+}
+
+type WireGuardConfigValidation struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Valid         bool                   `protobuf:"varint,1,opt,name=valid,proto3" json:"valid,omitempty"`
+	Issue         WireGuardConfigIssue   `protobuf:"varint,2,opt,name=issue,proto3,enum=papiliovpn.node.v1.WireGuardConfigIssue" json:"issue,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *WireGuardConfigValidation) Reset() {
+	*x = WireGuardConfigValidation{}
+	mi := &file_proto_v1_interfaces_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WireGuardConfigValidation) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WireGuardConfigValidation) ProtoMessage() {}
+
+func (x *WireGuardConfigValidation) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_v1_interfaces_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WireGuardConfigValidation.ProtoReflect.Descriptor instead.
+func (*WireGuardConfigValidation) Descriptor() ([]byte, []int) {
+	return file_proto_v1_interfaces_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *WireGuardConfigValidation) GetValid() bool {
+	if x != nil {
+		return x.Valid
+	}
+	return false
+}
+
+func (x *WireGuardConfigValidation) GetIssue() WireGuardConfigIssue {
+	if x != nil {
+		return x.Issue
+	}
+	return WireGuardConfigIssue_WIRE_GUARD_CONFIG_ISSUE_UNSPECIFIED
+}
+
 var File_proto_v1_interfaces_proto protoreflect.FileDescriptor
 
 const file_proto_v1_interfaces_proto_rawDesc = "" +
@@ -239,11 +404,27 @@ const file_proto_v1_interfaces_proto_rawDesc = "" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1f\n" +
 	"\vconfig_json\x18\x02 \x01(\fR\n" +
 	"configJson\"\x17\n" +
-	"\x15WireGuardStopResponse2\xca\x02\n" +
+	"\x15WireGuardStopResponse\"U\n" +
+	"\x1eWireGuardValidateConfigRequest\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1f\n" +
+	"\vconfig_json\x18\x02 \x01(\fR\n" +
+	"configJson\"q\n" +
+	"\x19WireGuardConfigValidation\x12\x14\n" +
+	"\x05valid\x18\x01 \x01(\bR\x05valid\x12>\n" +
+	"\x05issue\x18\x02 \x01(\x0e2(.papiliovpn.node.v1.WireGuardConfigIssueR\x05issue*\xd2\x02\n" +
+	"\x14WireGuardConfigIssue\x12'\n" +
+	"#WIRE_GUARD_CONFIG_ISSUE_UNSPECIFIED\x10\x00\x12(\n" +
+	"$WIRE_GUARD_CONFIG_ISSUE_INVALID_JSON\x10\x01\x12/\n" +
+	"+WIRE_GUARD_CONFIG_ISSUE_INVALID_PRIVATE_KEY\x10\x02\x12-\n" +
+	")WIRE_GUARD_CONFIG_ISSUE_INVALID_ADDRESSES\x10\x03\x12-\n" +
+	")WIRE_GUARD_CONFIG_ISSUE_DUPLICATE_ADDRESS\x10\x04\x12'\n" +
+	"#WIRE_GUARD_CONFIG_ISSUE_INVALID_MTU\x10\x05\x12/\n" +
+	"+WIRE_GUARD_CONFIG_ISSUE_INVALID_LISTEN_PORT\x10\x062\xbf\x03\n" +
 	"\x1aWireGuardInterfacesService\x12h\n" +
 	"\tGetStatus\x12-.papiliovpn.node.v1.WireGuardInterfaceRequest\x1a,.papiliovpn.node.v1.WireGuardInterfaceStatus\x12`\n" +
 	"\x05Start\x12).papiliovpn.node.v1.WireGuardStartRequest\x1a,.papiliovpn.node.v1.WireGuardInterfaceStatus\x12`\n" +
-	"\x04Stop\x12-.papiliovpn.node.v1.WireGuardInterfaceRequest\x1a).papiliovpn.node.v1.WireGuardStopResponseBdZbgithub.com/PapilioVPN/node/internal/engines/wireguard/interfaces/bridge/grpc/proto/v1;interfacesv1b\x06proto3"
+	"\x04Stop\x12-.papiliovpn.node.v1.WireGuardInterfaceRequest\x1a).papiliovpn.node.v1.WireGuardStopResponse\x12s\n" +
+	"\x0eValidateConfig\x122.papiliovpn.node.v1.WireGuardValidateConfigRequest\x1a-.papiliovpn.node.v1.WireGuardConfigValidationBdZbgithub.com/PapilioVPN/node/internal/engines/wireguard/interfaces/bridge/grpc/proto/v1;interfacesv1b\x06proto3"
 
 var (
 	file_proto_v1_interfaces_proto_rawDescOnce sync.Once
@@ -257,25 +438,32 @@ func file_proto_v1_interfaces_proto_rawDescGZIP() []byte {
 	return file_proto_v1_interfaces_proto_rawDescData
 }
 
-var file_proto_v1_interfaces_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_proto_v1_interfaces_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_proto_v1_interfaces_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_proto_v1_interfaces_proto_goTypes = []any{
-	(*WireGuardInterfaceRequest)(nil), // 0: papiliovpn.node.v1.WireGuardInterfaceRequest
-	(*WireGuardInterfaceStatus)(nil),  // 1: papiliovpn.node.v1.WireGuardInterfaceStatus
-	(*WireGuardStartRequest)(nil),     // 2: papiliovpn.node.v1.WireGuardStartRequest
-	(*WireGuardStopResponse)(nil),     // 3: papiliovpn.node.v1.WireGuardStopResponse
+	(WireGuardConfigIssue)(0),              // 0: papiliovpn.node.v1.WireGuardConfigIssue
+	(*WireGuardInterfaceRequest)(nil),      // 1: papiliovpn.node.v1.WireGuardInterfaceRequest
+	(*WireGuardInterfaceStatus)(nil),       // 2: papiliovpn.node.v1.WireGuardInterfaceStatus
+	(*WireGuardStartRequest)(nil),          // 3: papiliovpn.node.v1.WireGuardStartRequest
+	(*WireGuardStopResponse)(nil),          // 4: papiliovpn.node.v1.WireGuardStopResponse
+	(*WireGuardValidateConfigRequest)(nil), // 5: papiliovpn.node.v1.WireGuardValidateConfigRequest
+	(*WireGuardConfigValidation)(nil),      // 6: papiliovpn.node.v1.WireGuardConfigValidation
 }
 var file_proto_v1_interfaces_proto_depIdxs = []int32{
-	0, // 0: papiliovpn.node.v1.WireGuardInterfacesService.GetStatus:input_type -> papiliovpn.node.v1.WireGuardInterfaceRequest
-	2, // 1: papiliovpn.node.v1.WireGuardInterfacesService.Start:input_type -> papiliovpn.node.v1.WireGuardStartRequest
-	0, // 2: papiliovpn.node.v1.WireGuardInterfacesService.Stop:input_type -> papiliovpn.node.v1.WireGuardInterfaceRequest
-	1, // 3: papiliovpn.node.v1.WireGuardInterfacesService.GetStatus:output_type -> papiliovpn.node.v1.WireGuardInterfaceStatus
-	1, // 4: papiliovpn.node.v1.WireGuardInterfacesService.Start:output_type -> papiliovpn.node.v1.WireGuardInterfaceStatus
-	3, // 5: papiliovpn.node.v1.WireGuardInterfacesService.Stop:output_type -> papiliovpn.node.v1.WireGuardStopResponse
-	3, // [3:6] is the sub-list for method output_type
-	0, // [0:3] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	0, // 0: papiliovpn.node.v1.WireGuardConfigValidation.issue:type_name -> papiliovpn.node.v1.WireGuardConfigIssue
+	1, // 1: papiliovpn.node.v1.WireGuardInterfacesService.GetStatus:input_type -> papiliovpn.node.v1.WireGuardInterfaceRequest
+	3, // 2: papiliovpn.node.v1.WireGuardInterfacesService.Start:input_type -> papiliovpn.node.v1.WireGuardStartRequest
+	1, // 3: papiliovpn.node.v1.WireGuardInterfacesService.Stop:input_type -> papiliovpn.node.v1.WireGuardInterfaceRequest
+	5, // 4: papiliovpn.node.v1.WireGuardInterfacesService.ValidateConfig:input_type -> papiliovpn.node.v1.WireGuardValidateConfigRequest
+	2, // 5: papiliovpn.node.v1.WireGuardInterfacesService.GetStatus:output_type -> papiliovpn.node.v1.WireGuardInterfaceStatus
+	2, // 6: papiliovpn.node.v1.WireGuardInterfacesService.Start:output_type -> papiliovpn.node.v1.WireGuardInterfaceStatus
+	4, // 7: papiliovpn.node.v1.WireGuardInterfacesService.Stop:output_type -> papiliovpn.node.v1.WireGuardStopResponse
+	6, // 8: papiliovpn.node.v1.WireGuardInterfacesService.ValidateConfig:output_type -> papiliovpn.node.v1.WireGuardConfigValidation
+	5, // [5:9] is the sub-list for method output_type
+	1, // [1:5] is the sub-list for method input_type
+	1, // [1:1] is the sub-list for extension type_name
+	1, // [1:1] is the sub-list for extension extendee
+	0, // [0:1] is the sub-list for field type_name
 }
 
 func init() { file_proto_v1_interfaces_proto_init() }
@@ -289,13 +477,14 @@ func file_proto_v1_interfaces_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_v1_interfaces_proto_rawDesc), len(file_proto_v1_interfaces_proto_rawDesc)),
-			NumEnums:      0,
-			NumMessages:   4,
+			NumEnums:      1,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
 		GoTypes:           file_proto_v1_interfaces_proto_goTypes,
 		DependencyIndexes: file_proto_v1_interfaces_proto_depIdxs,
+		EnumInfos:         file_proto_v1_interfaces_proto_enumTypes,
 		MessageInfos:      file_proto_v1_interfaces_proto_msgTypes,
 	}.Build()
 	File_proto_v1_interfaces_proto = out.File

@@ -1,4 +1,4 @@
-// Package grpc exposes WireGuard interface status over gRPC.
+// Package grpc exposes WireGuard interface operations over gRPC.
 package grpc
 
 //go:generate protoc -I . --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative proto/v1/interfaces.proto
@@ -18,12 +18,13 @@ import (
 
 type handlers struct {
 	interfacesv1.UnimplementedWireGuardInterfacesServiceServer
-	service *interfacestatus.Service
-	managed *lifecycle.Service
+	service   *interfacestatus.Service
+	managed   *lifecycle.Service
+	validator *lifecycle.Validator
 }
 
-func Register(server grpc.ServiceRegistrar, service *interfacestatus.Service, managed *lifecycle.Service) {
-	interfacesv1.RegisterWireGuardInterfacesServiceServer(server, &handlers{service: service, managed: managed})
+func Register(server grpc.ServiceRegistrar, service *interfacestatus.Service, managed *lifecycle.Service, validator *lifecycle.Validator) {
+	interfacesv1.RegisterWireGuardInterfacesServiceServer(server, &handlers{service: service, managed: managed, validator: validator})
 }
 
 func (h *handlers) GetStatus(ctx context.Context, req *interfacesv1.WireGuardInterfaceRequest) (*interfacesv1.WireGuardInterfaceStatus, error) {
@@ -53,6 +54,17 @@ func (h *handlers) Stop(ctx context.Context, req *interfacesv1.WireGuardInterfac
 		return nil, readError(err)
 	}
 	return &interfacesv1.WireGuardStopResponse{}, nil
+}
+
+func (h *handlers) ValidateConfig(ctx context.Context, req *interfacesv1.WireGuardValidateConfigRequest) (*interfacesv1.WireGuardConfigValidation, error) {
+	issue, err := h.validator.Check(ctx, req.GetName(), req.GetConfigJson())
+	if err != nil {
+		return nil, readError(err)
+	}
+	return &interfacesv1.WireGuardConfigValidation{
+		Valid: issue == lifecycle.ConfigIssueNone,
+		Issue: interfacesv1.WireGuardConfigIssue(issue),
+	}, nil
 }
 
 func response(result interfacestatus.Interface) *interfacesv1.WireGuardInterfaceStatus {
