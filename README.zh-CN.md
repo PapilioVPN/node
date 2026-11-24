@@ -142,7 +142,9 @@ HTTP `GET /v1/host/stats` 和 gRPC `HostService.GetSystemStats` 返回 `uptime_s
 
 ## 开发
 
-使用 Go 1.26.11 或更高版本运行检查。打包还需要 Docker 和 curl。
+有关提交 Pull Request 和验证改动的说明，请参阅[贡献指南](CONTRIBUTING.md)。
+
+使用 Go 1.27.4 或更高版本运行检查。打包还需要 Docker 和 curl。
 
 ```bash
 bash scripts/ci/check.sh

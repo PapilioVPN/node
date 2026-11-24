@@ -135,7 +135,9 @@ The example binds both listeners to loopback. HTTP `GET /healthz` returns `204 N
 
 ## Development
 
-Run the checks with Go 1.26.11 or newer. The packaging command also requires Docker and curl.
+See the [contribution guide](CONTRIBUTING.md) for opening a pull request and verifying a change.
+
+Run the checks with Go 1.27.4 or newer. The packaging command also requires Docker and curl.
 
 ```bash
 bash scripts/ci/check.sh

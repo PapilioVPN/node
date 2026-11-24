@@ -144,7 +144,9 @@ docker run --rm --network=host --read-only --cap-drop ALL \
 
 ## توسعه
 
-بررسی‌ها را با Go نسخهٔ 1.26.11 یا جدیدتر اجرا کن. بسته‌بندی به Docker و curl هم نیاز دارد.
+برای ارسال Pull Request و بررسی تغییرات، [راهنمای مشارکت](CONTRIBUTING.md) را بخوان.
+
+بررسی‌ها را با Go نسخهٔ 1.27.4 یا جدیدتر اجرا کن. بسته‌بندی به Docker و curl هم نیاز دارد.
 
 ```bash
 bash scripts/ci/check.sh
