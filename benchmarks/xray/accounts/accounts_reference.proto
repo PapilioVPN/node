@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package benchmark.xray;
+option go_package = "github.com/PapilioVPN/node/benchmarks/xray/accounts";
+
+// Wire projection of PasarGuard 739eab9 common/service.proto.
+message ReferenceAccountUser {
+  string email = 1;
+  ReferenceAccountProxy proxies = 2;
+  repeated string inbounds = 3;
+}
+
+message ReferenceAccountProxy {
+  ReferenceVLESS vless = 2;
+}
+
+message ReferenceVLESS {
+  string id = 1;
+}
+
+message ReferenceAccounts {
+  repeated ReferenceAccountUser users = 1;
+}
+
+message ReferenceAccountChunk {
+  repeated ReferenceAccountUser users = 1;
+  uint64 index = 2;
+  bool last = 3;
+}

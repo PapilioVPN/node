@@ -96,7 +96,7 @@ HTTP-запрос `GET /v1/host/stats` и метод gRPC `HostService.GetSystem
 
 Отправьте пустой запрос `POST /v1/xray/instances/{id}/config-validations` или вызовите `XrayConfigsService.ValidateConfig` с идентификатором экземпляра. Node проверяет настроенный файл с теми же параметрами, что при запуске. Недопустимая конфигурация возвращает `valid: false` и код проблемы, а также строку и столбец, если их сообщил Xray. Сбой выполнения проверки возвращает ошибку API. [Контракт gRPC](internal/engines/xray/configs/bridge/grpc/proto/v1/configs.proto)
 
-Используйте `GET /v1/xray/instances/{id}/stats/runtime` или `XrayStatsService.GetRuntimeStats`. Каждый ответ использует свежий снимок активного процесса Xray. Одновременные запросы могут получить один и тот же следующий снимок. Память измеряется в байтах, время работы — в целых секундах с запуска службы статистики Xray, суммарная пауза GC — в наносекундах. Для недоступного экземпляра HTTP возвращает `503`, а gRPC — `UNAVAILABLE`. Буфер ожидающих чтений вмещает 128 запросов. При заполнении буфера HTTP возвращает `429`, а gRPC — `RESOURCE_EXHAUSTED`. [Контракт gRPC](internal/engines/xray/stats/bridge/grpc/proto/v1/runtime_stats.proto) · [Бенчмарк и исходные результаты](benchmarks/reports/runtime.md#xray-runtime-statistics-after-the-rewrite)
+Используйте `GET /v1/xray/instances/{id}/stats/runtime` или `XrayStatsService.GetRuntimeStats`. Каждый ответ использует свежий снимок активного процесса Xray. Одновременные запросы могут получить один и тот же следующий снимок. Память измеряется в байтах, время работы — в целых секундах с запуска службы статистики Xray, суммарная пауза GC — в наносекундах. Для недоступного экземпляра HTTP возвращает `503`, а gRPC — `UNAVAILABLE`. Буфер ожидающих чтений вмещает 128 запросов. При заполнении буфера HTTP возвращает `429`, а gRPC — `RESOURCE_EXHAUSTED`. [Контракт gRPC](internal/engines/xray/stats/bridge/grpc/proto/v1/runtime_stats.proto) · [Бенчмарк и исходные результаты](benchmarks/xray/runtime/README.md#xray-runtime-statistics-after-the-rewrite)
 
 Используйте `GET /v1/xray/instances/{id}/stats/traffic/{scope}` с `user`, `inbound` или `outbound`. Добавьте `?name=...` для одной учётной записи или тега. Методы gRPC — `XrayStatsService.GetTraffic` и `ListTraffic`. Чтение сохраняет значения счётчиков. Отсутствующее направление пропускается, а значение ноль возвращается как ноль. Для отсутствующего имени HTTP возвращает `404`, а gRPC — `NOT_FOUND`. Порядок списка не задан. Включите статистику трафика для нужной области в политике Xray. [Контракт gRPC](internal/engines/xray/stats/bridge/grpc/proto/v1/traffic.proto)
 
@@ -104,7 +104,7 @@ HTTP-запрос `GET /v1/host/stats` и метод gRPC `HostService.GetSystem
 
 Для обоих направлений используйте `POST /v1/xray/instances/{id}/stats/traffic/{scope}/pair-resets?name=...` или `XrayStatsService.ResetTrafficPair`. Xray обнуляет каждое направление отдельно. HTTP возвращает оба результата в теле ответа, в том числе при прерывании. gRPC передаёт частичный результат в деталях статуса. Прежнее количество байтов возвращается для подтверждённых направлений.
 
-Для сброса области используйте `POST /v1/xray/instances/{id}/stats/traffic/{scope}/scope-resets?max_counters=...` или `XrayStatsService.ResetTrafficScope`. Задайте лимит от 1 до 1000 счётчиков отдельных направлений. Превышение лимита отклоняет запрос до первого сброса. Проверяйте общий итог и результат каждого счётчика. gRPC передаёт отчёт о прерывании или неизвестном результате в теле ответа. По умолчанию сброс области выполняется последовательно. Для параллельного сброса задайте `xray.reset_scope_concurrency` от 2 до 8. [Контракт и замеры](benchmarks/xray/traffic-scope-reset.md)
+Для сброса области используйте `POST /v1/xray/instances/{id}/stats/traffic/{scope}/scope-resets?max_counters=...` или `XrayStatsService.ResetTrafficScope`. Задайте лимит от 1 до 1000 счётчиков отдельных направлений. Превышение лимита отклоняет запрос до первого сброса. Проверяйте общий итог и результат каждого счётчика. gRPC передаёт отчёт о прерывании или неизвестном результате в теле ответа. По умолчанию сброс области выполняется последовательно. Для параллельного сброса задайте `xray.reset_scope_concurrency` от 2 до 8. [Контракт и замеры](benchmarks/xray/traffic/scope-reset.md)
 
 Для сброса одним вызовом используйте `/node-xray` из пакета и задайте `xray.native_scope_reset: true`. Со стандартным Xray сброс выполняется последовательно или с настроенным параллелизмом.
 
@@ -114,11 +114,11 @@ HTTP-запрос `GET /v1/host/stats` и метод gRPC `HostService.GetSystem
 
 Используйте `GET /v1/xray/instances/{id}/routing/rules` и `GET /v1/xray/instances/{id}/routing/balancer?tag=...` для чтения состояния маршрутизации. Методы gRPC — `XrayRoutingService.ListRoutingRules` и `GetBalancerInfo`. Переопределённая цель и цели, указанные Xray, передаются раздельно. [Контракт gRPC](internal/engines/xray/routing/bridge/grpc/proto/v1/routing.proto)
 
-Используйте `XrayRoutingService.TestRoute`, `AddRoutingRule`, `RemoveRoutingRule` и `OverrideBalancerTarget` для проверки и изменения активной маршрутизации. Маршруты HTTP и подтверждение замены правил описаны в отчёте. [Управление маршрутизацией](benchmarks/xray/routing-rule-writes.md)
+Используйте `XrayRoutingService.TestRoute`, `AddRoutingRule`, `RemoveRoutingRule` и `OverrideBalancerTarget` для проверки и изменения активной маршрутизации. Маршруты HTTP и подтверждение замены правил описаны в отчёте. [Управление маршрутизацией](benchmarks/xray/routing/rule-writes.md)
 
-Используйте `XrayAccountsService.AddVLESSAccount`, `RemoveVLESSAccount` и `CountVLESSAccounts` или HTTP-маршруты под `/v1/xray/instances/{id}/inbounds/{tag}/accounts`. Операции применяются к активному запуску. [Контракт VLESS](benchmarks/xray/vless-accounts.md)
+Используйте `XrayAccountsService.AddVLESSAccount`, `RemoveVLESSAccount` и `CountVLESSAccounts` или HTTP-маршруты под `/v1/xray/instances/{id}/inbounds/{tag}/accounts`. Операции применяются к активному запуску. [Контракт VLESS](benchmarks/xray/accounts/vless.md)
 
-[Синхронизация VLESS](benchmarks/xray/vless-sync.md) · [Поток журналов Xray](benchmarks/xray/log-stream-contract.md)
+[Синхронизация VLESS](benchmarks/xray/accounts/sync.md) · [Поток журналов Xray](benchmarks/xray/logs/contract.md)
 
 Используйте `GET /v1/xray/instances/{id}/outbounds/health` или `XrayOutboundsService.GetOutboundHealth` для чтения обычных наблюдений Observatory. Для одного исходящего подключения укажите его тег. Ответ различает успешную проверку, сбой и отсутствие наблюдения. [Контракт gRPC](internal/engines/xray/outbounds/bridge/grpc/proto/v1/outbounds.proto)
 
@@ -129,12 +129,12 @@ HTTP-запрос `GET /v1/host/stats` и метод gRPC `HostService.GetSystem
 ## Бенчмарки
 
 <!-- benchmark-summary -->
-**PapilioVPN лидирует в 82 из 102 сопоставимых сценариев**. В 13 сценариях результаты смешанные, в 7 лидирует PasarGuard 0.5.7. Сводка также содержит 20 сценариев на общей тестовой установке, в которых различаются входные данные, поля ответа или гарантии.
+**PapilioVPN лидирует в 82 из 102 сопоставимых сценариев Xray**. В 13 сценариях результаты смешанные, в 7 лидирует PasarGuard 0.5.7. Сводка также содержит 16 сценариев на общей тестовой установке, в которых различаются входные данные, поля ответа или гарантии.
 <!-- /benchmark-summary -->
 
-![Результаты бенчмарков по группам](benchmarks/charts/outcomes.png)
+![Результаты бенчмарков по группам](benchmarks/xray/charts/outcomes.png)
 
-[Сводка, отчёты по группам и исходные данные](benchmarks/README.md)
+[Сводка, отчёты по группам и исходные данные](benchmarks/xray/README.md)
 
 <a name="development"></a>
 

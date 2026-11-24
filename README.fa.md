@@ -98,7 +98,7 @@ docker run --rm --network=host --read-only --cap-drop ALL \
 
 با بدنهٔ خالی به `POST /v1/xray/instances/{id}/config-validations` درخواست بفرست یا `XrayConfigsService.ValidateConfig` را با شناسهٔ نمونه صدا بزن. Node فایل تنظیم‌شده را با همان گزینه‌های راه‌اندازی بررسی می‌کند. فایل نامعتبر با `valid: false` و کد ایراد برمی‌گردد. اگر Xray خط و ستون را گزارش کرده باشد، در پاسخ می‌آیند. شکست اجرای آزمون خطای API دارد. [قرارداد gRPC](internal/engines/xray/configs/bridge/grpc/proto/v1/configs.proto)
 
-از `GET /v1/xray/instances/{id}/stats/runtime` یا `XrayStatsService.GetRuntimeStats` استفاده کن. هر پاسخ از نمونه‌ای تازه از اجرای فعال Xray استفاده می‌کند. درخواست‌های هم‌زمان می‌توانند نمونهٔ بعدی را مشترک بخوانند. واحد حافظه بایت، زمان کارکرد ثانیهٔ کامل از آغاز سرویس آمار Xray و مجموع مکث GC نانوثانیه است. اگر نمونهٔ تنظیم‌شده در دسترس نباشد، HTTP پاسخ `503` و gRPC وضعیت `UNAVAILABLE` می‌دهد. صف انتظار ظرفیت ۱۲۸ درخواست دارد. اگر صف پر باشد، درخواست در HTTP پاسخ `429` و در gRPC وضعیت `RESOURCE_EXHAUSTED` می‌گیرد. [قرارداد gRPC](internal/engines/xray/stats/bridge/grpc/proto/v1/runtime_stats.proto) · [بنچمارک و نتایج خام](benchmarks/reports/runtime.md#xray-runtime-statistics-after-the-rewrite)
+از `GET /v1/xray/instances/{id}/stats/runtime` یا `XrayStatsService.GetRuntimeStats` استفاده کن. هر پاسخ از نمونه‌ای تازه از اجرای فعال Xray استفاده می‌کند. درخواست‌های هم‌زمان می‌توانند نمونهٔ بعدی را مشترک بخوانند. واحد حافظه بایت، زمان کارکرد ثانیهٔ کامل از آغاز سرویس آمار Xray و مجموع مکث GC نانوثانیه است. اگر نمونهٔ تنظیم‌شده در دسترس نباشد، HTTP پاسخ `503` و gRPC وضعیت `UNAVAILABLE` می‌دهد. صف انتظار ظرفیت ۱۲۸ درخواست دارد. اگر صف پر باشد، درخواست در HTTP پاسخ `429` و در gRPC وضعیت `RESOURCE_EXHAUSTED` می‌گیرد. [قرارداد gRPC](internal/engines/xray/stats/bridge/grpc/proto/v1/runtime_stats.proto) · [بنچمارک و نتایج خام](benchmarks/xray/runtime/README.md#xray-runtime-statistics-after-the-rewrite)
 
 از `GET /v1/xray/instances/{id}/stats/traffic/{scope}` با `user`، `inbound` یا `outbound` استفاده کن. برای یک حساب یا تگ، `?name=...` را اضافه کن. متدهای gRPC، `XrayStatsService.GetTraffic` و `ListTraffic` هستند. خواندن، شمارنده‌ها را تغییر نمی‌دهد. جهت غایب در پاسخ نمی‌آید و مقدار صفر به‌صورت صفر برمی‌گردد. اگر نام پیدا نشود، HTTP پاسخ `404` و gRPC وضعیت `NOT_FOUND` می‌دهد. فهرست ترتیب ثابتی ندارد. آمار ترافیک محدودهٔ موردنیاز را در سیاست Xray فعال کن. [قرارداد gRPC](internal/engines/xray/stats/bridge/grpc/proto/v1/traffic.proto)
 
@@ -106,7 +106,7 @@ docker run --rm --network=host --read-only --cap-drop ALL \
 
 برای هر دو جهت از `POST /v1/xray/instances/{id}/stats/traffic/{scope}/pair-resets?name=...` یا `XrayStatsService.ResetTrafficPair` استفاده کن. Xray هر جهت را جدا صفر می‌کند. HTTP نتیجهٔ هر جهت را حتی در اجرای ناقص در بدنه برمی‌گرداند و gRPC نتیجهٔ ناقص را در جزئیات خطا می‌دهد. مقدار قبلی فقط برای جهت تأییدشده برمی‌گردد.
 
-برای ریست کل یک محدوده از `POST /v1/xray/instances/{id}/stats/traffic/{scope}/scope-resets?max_counters=...` یا `XrayStatsService.ResetTrafficScope` استفاده کن. سقف را از ۱ تا ۱۰۰۰ شمارندهٔ جهت‌دار بده. اگر انتخاب از سقف بیشتر باشد، درخواست پیش از اولین ریست رد می‌شود. وضعیت کلی و نتیجهٔ هر شمارنده را بررسی کن. gRPC گزارش ناقص یا نامعلوم را در بدنهٔ پاسخ می‌دهد. ریست محدوده به‌طور پیش‌فرض ترتیبی است. برای اجرای موازی، `xray.reset_scope_concurrency` را روی ۲ تا ۸ بگذار. [قرارداد و بنچمارک](benchmarks/xray/traffic-scope-reset.md)
+برای ریست کل یک محدوده از `POST /v1/xray/instances/{id}/stats/traffic/{scope}/scope-resets?max_counters=...` یا `XrayStatsService.ResetTrafficScope` استفاده کن. سقف را از ۱ تا ۱۰۰۰ شمارندهٔ جهت‌دار بده. اگر انتخاب از سقف بیشتر باشد، درخواست پیش از اولین ریست رد می‌شود. وضعیت کلی و نتیجهٔ هر شمارنده را بررسی کن. gRPC گزارش ناقص یا نامعلوم را در بدنهٔ پاسخ می‌دهد. ریست محدوده به‌طور پیش‌فرض ترتیبی است. برای اجرای موازی، `xray.reset_scope_concurrency` را روی ۲ تا ۸ بگذار. [قرارداد و بنچمارک](benchmarks/xray/traffic/scope-reset.md)
 
 برای ریست یک‌تماسی، از باینری `/node-xray` داخل پکیج استفاده کن و `xray.native_scope_reset: true` را تنظیم کن. مسیر Xray رسمی اجرای ترتیبی یا موازیِ تنظیم‌شده را دارد.
 
@@ -116,11 +116,11 @@ docker run --rm --network=host --read-only --cap-drop ALL \
 
 برای خواندن وضعیت مسیریابی از `GET /v1/xray/instances/{id}/routing/rules` و `GET /v1/xray/instances/{id}/routing/balancer?tag=...` استفاده کن. متدهای gRPC، `XrayRoutingService.ListRoutingRules` و `GetBalancerInfo` هستند. پاسخ مقصد override و گزینه‌های گزارش‌شدهٔ Xray را جدا برمی‌گرداند. [قرارداد gRPC](internal/engines/xray/routing/bridge/grpc/proto/v1/routing.proto)
 
-برای ارزیابی یا تغییر مسیریابی اجرای فعال از `XrayRoutingService.TestRoute`، `AddRoutingRule`، `RemoveRoutingRule` و `OverrideBalancerTarget` استفاده کن. مسیرهای HTTP و تأیید جایگزینی قوانین در گزارش آمده‌اند. [قرارداد کنترل مسیر](benchmarks/xray/routing-rule-writes.md)
+برای ارزیابی یا تغییر مسیریابی اجرای فعال از `XrayRoutingService.TestRoute`، `AddRoutingRule`، `RemoveRoutingRule` و `OverrideBalancerTarget` استفاده کن. مسیرهای HTTP و تأیید جایگزینی قوانین در گزارش آمده‌اند. [قرارداد کنترل مسیر](benchmarks/xray/routing/rule-writes.md)
 
-از `XrayAccountsService.AddVLESSAccount`، `RemoveVLESSAccount` و `CountVLESSAccounts` یا مسیرهای HTTP زیر `/v1/xray/instances/{id}/inbounds/{tag}/accounts` استفاده کن. این عملیات روی اجرای فعال اعمال می‌شوند. [قرارداد VLESS](benchmarks/xray/vless-accounts.md)
+از `XrayAccountsService.AddVLESSAccount`، `RemoveVLESSAccount` و `CountVLESSAccounts` یا مسیرهای HTTP زیر `/v1/xray/instances/{id}/inbounds/{tag}/accounts` استفاده کن. این عملیات روی اجرای فعال اعمال می‌شوند. [قرارداد VLESS](benchmarks/xray/accounts/vless.md)
 
-[همگام‌سازی VLESS](benchmarks/xray/vless-sync.md) · [جریان لاگ Xray](benchmarks/xray/log-stream-contract.md)
+[همگام‌سازی VLESS](benchmarks/xray/accounts/sync.md) · [جریان لاگ Xray](benchmarks/xray/logs/contract.md)
 
 برای خواندن نمونه‌های Observatory معمولی از `GET /v1/xray/instances/{id}/outbounds/health` یا `XrayOutboundsService.GetOutboundHealth` استفاده کن. برای یک خروجی تگش را بده. پاسخ سه حالت سالم، ناموفق و بدون نمونه را مشخص می‌کند. [قرارداد gRPC](internal/engines/xray/outbounds/bridge/grpc/proto/v1/outbounds.proto)
 
@@ -131,12 +131,12 @@ docker run --rm --network=host --read-only --cap-drop ALL \
 ## بنچمارک‌ها
 
 <!-- benchmark-summary -->
-**در ۸۲ از ۱۰۲ سناریوی هم‌ارز جلو بودیم**. نتیجهٔ ۱۳ سناریو ترکیبی بود و PasarGuard 0.5.7 در ۷ سناریو جلو بود. گزارش کامل ۲۰ سناریوی دیگر با ورودی، خروجی یا تضمین‌های متفاوت را هم پوشش می‌دهد.
+**در ۸۲ از ۱۰۲ سناریوی هم‌ارز Xray جلو بودیم**. نتیجهٔ ۱۳ سناریو ترکیبی بود و PasarGuard 0.5.7 در ۷ سناریو جلو بود. گزارش کامل ۱۶ سناریوی دیگر با ورودی، خروجی یا تضمین‌های متفاوت را هم پوشش می‌دهد.
 <!-- /benchmark-summary -->
 
-![نتیجهٔ بنچمارک به تفکیک گروه](benchmarks/charts/outcomes.png)
+![نتیجهٔ بنچمارک به تفکیک گروه](benchmarks/xray/charts/outcomes.png)
 
-[خلاصهٔ بنچمارک، گزارش گروه‌ها و داده‌های خام](benchmarks/README.md)
+[خلاصهٔ بنچمارک، گزارش گروه‌ها و داده‌های خام](benchmarks/xray/README.md)
 
 <a name="development"></a>
 

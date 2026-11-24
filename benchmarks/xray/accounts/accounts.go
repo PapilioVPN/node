@@ -1,0 +1,338 @@
+package accounts
+
+//go:generate protoc -I . --go_out=. --go_opt=paths=source_relative accounts_reference.proto
+
+import (
+	"bytes"
+	"compress/gzip"
+	"context"
+	"encoding/csv"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
+	"net/http"
+	"net/url"
+	"os"
+	"path/filepath"
+	"slices"
+	"strconv"
+	"time"
+
+	"github.com/PapilioVPN/node/benchmarks/xray/internal/fixture"
+
+	accountsv1 "github.com/PapilioVPN/node/internal/engines/xray/accounts/bridge/grpc/proto/v1"
+	"github.com/PapilioVPN/node/internal/engines/xray/accounts/native"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/emptypb"
+)
+
+const accountPath = "/v1/xray/instances/primary/inbounds/vless/accounts"
+
+type Workload struct {
+	RuntimeDir, Generated, Samples string
+	Mutations                      int
+	Sync                           string
+}
+
+type Calls struct {
+	syncUser    syncAccounts
+	syncUsers   syncAccounts
+	syncChunk   syncAccounts
+	add, remove func(context.Context, string, string) error
+	count       func(context.Context) (uint32, error)
+}
+
+func HTTP(client *http.Client, node, reference string) (Calls, Calls) {
+	type body struct {
+		Email string `json:"email"`
+		UUID  string `json:"uuid,omitempty"`
+	}
+	mutate := func(ctx context.Context, method string, input body) error {
+		wire, err := json.Marshal(input)
+		if err != nil {
+			return err
+		}
+		_, err = accountHTTPCall(ctx, client, method, "https://"+node+accountPath, wire, http.StatusNoContent)
+		return err
+	}
+	syncUser := func(ctx context.Context, email, uuid string) error {
+		wire, err := proto.Marshal(referenceAccount(email, uuid))
+		if err != nil {
+			return err
+		}
+		_, err = accountHTTPCall(ctx, client, http.MethodPut, "https://"+reference+"/user/sync", wire, http.StatusOK)
+		return err
+	}
+	syncNode := func(ctx context.Context, endpoint string, input any) error {
+		wire, err := json.Marshal(input)
+		if err != nil {
+			return err
+		}
+		body, err := accountHTTPCall(ctx, client, http.MethodPut, "https://"+endpoint, wire, http.StatusOK)
+		if err != nil {
+			return err
+		}
+		return syncHTTPResult(body)
+	}
+	syncRef := func(ctx context.Context, accounts []syncAccount) error {
+		return syncUser(ctx, accounts[0].Email, accounts[0].UUID)
+	}
+	nodeCalls := Calls{
+		syncUser:  syncUserHTTP(syncNode, node),
+		syncUsers: syncUsersHTTP(syncNode, node),
+		syncChunk: syncChunkHTTP(client, node),
+		add: func(ctx context.Context, email, uuid string) error {
+			return mutate(ctx, http.MethodPost, body{Email: email, UUID: uuid})
+		},
+		remove: func(ctx context.Context, email, _ string) error {
+			return mutate(ctx, http.MethodDelete, body{Email: email})
+		},
+		count: func(ctx context.Context) (uint32, error) {
+			wire, err := accountHTTPCall(ctx, client, http.MethodGet, "https://"+node+accountPath+"/count", nil, http.StatusOK)
+			if err != nil {
+				return 0, err
+			}
+			var result struct{ Count uint32 }
+			err = json.Unmarshal(wire, &result)
+			return result.Count, err
+		},
+	}
+	referenceCalls := Calls{
+		syncChunk: referenceChunkHTTP(client, reference),
+		syncUser:  syncRef,
+		add:       syncUser,
+		remove:    func(ctx context.Context, email, _ string) error { return syncUser(ctx, email, "") },
+		syncUsers: func(ctx context.Context, accounts []syncAccount) error {
+			wire, err := proto.Marshal(&ReferenceAccounts{Users: referenceUsers(accounts)})
+			if err != nil {
+				return err
+			}
+			_, err = accountHTTPCall(ctx, client, http.MethodPut, "https://"+reference+"/users/sync", wire, http.StatusOK)
+			return err
+		},
+	}
+	return nodeCalls, referenceCalls
+}
+
+func accountHTTPCall(ctx context.Context, client *http.Client, method, endpoint string, body []byte, want int) ([]byte, error) {
+	req, err := http.NewRequestWithContext(ctx, method, endpoint, bytes.NewReader(body))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("X-API-Key", fixture.Key)
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != want {
+		return nil, fmt.Errorf("account operation returned HTTP %s", resp.Status)
+	}
+	return io.ReadAll(resp.Body)
+}
+
+func GRPC(node, reference *grpc.ClientConn) (Calls, Calls) {
+	client := accountsv1.NewXrayAccountsServiceClient(node)
+	auth := func(ctx context.Context) context.Context {
+		return metadata.AppendToOutgoingContext(ctx, "x-api-key", fixture.Key)
+	}
+	syncUser := func(ctx context.Context, email, uuid string) error {
+		desc := &grpc.StreamDesc{ClientStreams: true}
+		stream, err := reference.NewStream(auth(ctx), desc, "/service.NodeService/SyncUser", grpc.StaticMethod())
+		if err != nil {
+			return err
+		}
+		wrapped := grpc.GenericClientStream[ReferenceAccountUser, emptypb.Empty]{ClientStream: stream}
+		if err := wrapped.Send(referenceAccount(email, uuid)); err != nil && !errors.Is(err, io.EOF) {
+			return err
+		}
+		_, err = wrapped.CloseAndRecv()
+		return err
+	}
+	syncRef := func(ctx context.Context, accounts []syncAccount) error {
+		return syncUser(ctx, accounts[0].Email, accounts[0].UUID)
+	}
+	nodeCalls := Calls{
+		syncUser:  syncUserGRPC(node),
+		syncUsers: syncUsersGRPC(node),
+		syncChunk: syncChunkGRPC(node),
+		add: func(ctx context.Context, email, uuid string) error {
+			_, err := client.AddVLESSAccount(auth(ctx), &accountsv1.AddVLESSAccountRequest{Id: "primary", InboundTag: "vless", Email: email, Uuid: uuid})
+			return err
+		},
+		remove: func(ctx context.Context, email, _ string) error {
+			_, err := client.RemoveVLESSAccount(auth(ctx), &accountsv1.RemoveVLESSAccountRequest{Id: "primary", InboundTag: "vless", Email: email})
+			return err
+		},
+		count: func(ctx context.Context) (uint32, error) {
+			resp, err := client.CountVLESSAccounts(auth(ctx), &accountsv1.CountVLESSAccountsRequest{Id: "primary", InboundTag: "vless"})
+			return uint32(resp.GetCount()), err
+		},
+	}
+	referenceCalls := Calls{
+		syncChunk: referenceChunkGRPC(reference),
+		syncUser:  syncRef,
+		add:       syncUser,
+		remove:    func(ctx context.Context, email, _ string) error { return syncUser(ctx, email, "") },
+		syncUsers: func(ctx context.Context, accounts []syncAccount) error {
+			return reference.Invoke(auth(ctx), "/service.NodeService/SyncUsers", &ReferenceAccounts{Users: referenceUsers(accounts)}, &emptypb.Empty{}, grpc.StaticMethod())
+		},
+	}
+	return nodeCalls, referenceCalls
+}
+
+func referenceAccount(email, uuid string) *ReferenceAccountUser {
+	request := &ReferenceAccountUser{Email: email}
+	if uuid != "" {
+		request.Proxies = &ReferenceAccountProxy{Vless: &ReferenceVLESS{Id: uuid}}
+		request.Inbounds = []string{"vless"}
+	}
+	return request
+}
+
+func Benchmark(protocol string, targets [2]fixture.Target[Calls], rounds int, clients []int, window time.Duration, workload Workload) {
+	summary := csv.NewWriter(os.Stdout)
+	fixture.Check(summary.Write([]string{"transport", "round", "target", "operation", "clients", "success", "seconds", "success_per_sec", "p50_us", "p95_us"}))
+	var raw *csv.Writer
+	if workload.Samples != "" {
+		file, err := os.Create(workload.Samples)
+		fixture.Check(err)
+		defer func() { fixture.Check(file.Close()) }()
+		compressed := gzip.NewWriter(file)
+		defer func() { fixture.Check(compressed.Close()) }()
+		raw = csv.NewWriter(compressed)
+		fixture.Check(raw.Write([]string{"transport", "round", "target", "operation", "clients", "duration_ns"}))
+	}
+	record := func(round int, target, operation string, clients int, timings []time.Duration, elapsed time.Duration) {
+		slices.Sort(timings)
+		fields := []string{protocol, strconv.Itoa(round + 1), target, operation, strconv.Itoa(clients)}
+		if raw != nil {
+			for _, elapsed := range timings {
+				fixture.Check(raw.Write(append(fields, strconv.FormatInt(elapsed.Nanoseconds(), 10))))
+			}
+		}
+		fixture.Check(summary.Write(append(fields, strconv.Itoa(len(timings)), fmt.Sprintf("%.6f", elapsed.Seconds()),
+			fmt.Sprintf("%.2f", float64(len(timings))/elapsed.Seconds()), fixture.Percentile(timings, 50), fixture.Percentile(timings, 95))))
+	}
+	identities := make([][2]string, workload.Mutations)
+	for i := range identities {
+		identities[i] = [2]string{fmt.Sprintf("fixture-%05d@example.invalid", i), fmt.Sprintf("7ccb2c70-6a53-4a6a-85e5-%012x", i+1)}
+	}
+	for round := range rounds {
+		order := []int{0, 1}
+		if round%2 == 1 {
+			slices.Reverse(order)
+		}
+		for _, index := range order {
+			t := targets[index]
+			ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second+time.Duration(len(clients))*window*2)
+			fixture.Check(t.Call(ctx, fixture.Start))
+			conn := accountNativeConn(index, workload)
+			direct := func(ctx context.Context) (uint32, error) {
+				var result native.GetInboundUsersCountResponse
+				err := conn.Invoke(ctx, native.CountUsersMethod, &native.GetInboundUserRequest{Tag: "vless"}, &result, grpc.StaticMethod())
+				return uint32(result.Count), err
+			}
+			verifyCount(ctx, direct, 0)
+			fixture.Check(t.Calls.add(ctx, identities[0][0], identities[0][1]))
+			verifyCount(ctx, direct, 1)
+			fixture.Check(t.Calls.remove(ctx, identities[0][0], identities[0][1]))
+			verifyCount(ctx, direct, 0)
+
+			run := func(op string, call func(context.Context, string, string) error) {
+				timings := make([]time.Duration, len(identities))
+				started := time.Now()
+				for i, account := range identities {
+					request := time.Now()
+					fixture.Check(call(ctx, account[0], account[1]))
+					timings[i] = time.Since(request)
+				}
+				record(round, t.Name, op, 1, timings, time.Since(started))
+			}
+			run("add", t.Calls.add)
+			verifyCount(ctx, direct, uint32(len(identities)))
+			if index == 0 {
+				measure := []struct {
+					name string
+					call func(context.Context) (uint32, error)
+				}{{t.Name, t.Calls.count}, {"direct-xray", direct}}
+				if round%2 == 1 {
+					slices.Reverse(measure)
+				}
+				for _, target := range measure {
+					for _, count := range clients {
+						call := func(ctx context.Context) (uint32, error) {
+							got, err := target.call(ctx)
+							if err == nil && got != uint32(len(identities)) {
+								err = fmt.Errorf("account count = %d, want %d", got, len(identities))
+							}
+							return got, err
+						}
+						result, err := fixture.Poll(ctx, call, count, window)
+						fixture.Check(err)
+						if result.Rejected != 0 {
+							fixture.Check(fmt.Errorf("%s rejected %d account count reads", target.name, result.Rejected))
+						}
+						record(round, target.name, "count", count, result.Timings, result.Elapsed)
+					}
+				}
+			}
+			run("remove", t.Calls.remove)
+			verifyCount(ctx, direct, 0)
+			fixture.Check(conn.Close())
+			fixture.Check(t.Call(ctx, fixture.Stop))
+			cancel()
+			summary.Flush()
+			fixture.Check(summary.Error())
+			if raw != nil {
+				raw.Flush()
+				fixture.Check(raw.Error())
+			}
+		}
+	}
+}
+
+func verifyCount(ctx context.Context, direct func(context.Context) (uint32, error), want uint32) {
+	count, err := direct(ctx)
+	fixture.Check(err)
+	if count != want {
+		fixture.Check(fmt.Errorf("fixture Xray account count = %d, want %d", count, want))
+	}
+}
+
+func accountNativeConn(index int, workload Workload) *grpc.ClientConn {
+	var address string
+	if index == 0 {
+		paths, err := filepath.Glob(filepath.Join(workload.RuntimeDir, "node-xray-*", "api.sock"))
+		fixture.Check(err)
+		if len(paths) != 1 {
+			fixture.Check(fmt.Errorf("found %d fixture native sockets, want one", len(paths)))
+		}
+		socket := url.URL{Scheme: "unix", Path: paths[0]}
+		address = socket.String()
+	} else {
+		var config struct {
+			Inbounds []struct {
+				Tag  string
+				Port int
+			}
+		}
+		fixture.Check(json.Unmarshal(fixture.Read(workload.Generated), &config))
+		for _, inbound := range config.Inbounds {
+			if inbound.Tag == "API_INBOUND" && inbound.Port > 0 {
+				address = "127.0.0.1:" + strconv.Itoa(inbound.Port)
+				break
+			}
+		}
+		if address == "" {
+			fixture.Check(errors.New("missing PasarGuard fixture native inbound"))
+		}
+	}
+	conn, err := grpc.NewClient(address, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	fixture.Check(err)
+	return conn
+}

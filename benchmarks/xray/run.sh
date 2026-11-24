@@ -9,6 +9,7 @@ if [[ ${XRAY_BENCH_ISOLATED:-} != 1 ]]; then
   exec unshare --user --map-root-user --net --pid --fork --mount-proc env XRAY_BENCH_ISOLATED=1 bash "$0" "$@"
 fi
 
+runner_dir=$(dirname "$(realpath "$0")")
 node=$(realpath "$1")
 reference=$(realpath "$2")
 xray=$(realpath "$3")
@@ -38,106 +39,15 @@ reference_xray=$(realpath "${XRAY_BENCH_REFERENCE_XRAY:-$xray}")
 mkdir "$work/run" "$work/generated"
 openssl req -x509 -newkey ed25519 -days 1 -nodes -subj '/CN=benchmark' \
   -addext 'subjectAltName=IP:127.0.0.1' -keyout "$work/key.pem" -out "$work/cert.pem" 2>/dev/null
-cat > "$work/xray.json" <<'JSON'
-{
-  "log": {"loglevel":"none"},
-  "inbounds": [{"tag":"fixture","listen":"127.0.0.1","port":24440,"protocol":"socks","settings":{"auth":"noauth"}}],
-  "outbounds": [{"tag":"direct","protocol":"freedom"}]
-}
-JSON
+cp "$runner_dir/instances/fixture.json" "$work/xray.json"
 if [[ ${XRAY_BENCH_VLESS_ACCOUNTS:-0} == 1 ]]; then
-  cat > "$work/xray.json" <<'JSON'
-{
-  "log":{"loglevel":"none"},
-  "inbounds":[{"tag":"vless","listen":"127.0.0.1","port":24440,"protocol":"vless",
-    "settings":{"clients":[],"decryption":"none"}}],
-  "outbounds":[{"tag":"direct","protocol":"freedom"}]
-}
-JSON
+  cp "$runner_dir/accounts/fixture.json" "$work/xray.json"
 elif [[ ${XRAY_BENCH_ROUTING_RULES:-0} != 0 ]]; then
-  python3 - "$XRAY_BENCH_ROUTING_RULES" "$work" <<'PYTHON'
-import json
-from pathlib import Path
-import sys
-
-total = int(sys.argv[1])
-if not 2 <= total <= 10000:
-    raise SystemExit("expected 2 to 10000 active routing rules")
-rules = []
-for i in range(1, total):
-    rule = {"type": "field", "port": str(2000 + i)}
-    if i % 4 == 1:
-        rule["balancerTag"] = "pool"
-    else:
-        rule.update(ruleTag=f"rule-{total-i:04}", outboundTag="direct")
-    rules.append(rule)
-config = {
-    "log": {"loglevel": "none"},
-    "outbounds": [{"protocol": "freedom", "tag": tag} for tag in ("direct", "pool-a", "pool-b")],
-    "routing": {
-        "balancers": [{"tag": "pool", "selector": ["pool-"], "strategy": {"type": "roundRobin"}}],
-        "rules": rules,
-    },
-}
-directory = Path(sys.argv[2])
-(directory / "reference-xray.json").write_text(json.dumps(config))
-# The reference inserts this list row for its management inbound. Give Node's
-# otherwise identical fixture the same row so all returned pairs are equal.
-rules.insert(0, {"type": "field", "inboundTag": ["API_INBOUND"], "outboundTag": "API"})
-(directory / "xray.json").write_text(json.dumps(config))
-PYTHON
+  python3 "$runner_dir/routing/fixture.py" "$XRAY_BENCH_ROUTING_RULES" "$work"
 elif [[ ${XRAY_BENCH_OUTBOUND_HEALTH:-0} == 1 ]]; then
-  python3 - "$work/xray.json" <<'PYTHON'
-import json
-import sys
-
-outbounds = [{"tag": f"sample-{i:02}", "protocol": "freedom"} for i in range(16)]
-outbounds[-1]["settings"] = {"redirect": "127.0.0.1:24443"}
-outbounds.append({"tag": "unobserved", "protocol": "freedom"})
-with open(sys.argv[1], "w") as output:
-    json.dump({
-        "log": {"loglevel": "none"},
-        "observatory": {
-            "subjectSelector": ["sample-"],
-            "probeURL": "http://127.0.0.1:24442/health",
-            "probeInterval": "1h",
-            "enableConcurrency": True,
-        },
-        "outbounds": outbounds,
-    }, output)
-PYTHON
+  python3 "$runner_dir/outbounds/fixture.py" "$work/xray.json"
 elif [[ ${XRAY_BENCH_TRAFFIC_NAMES:-0} != 0 ]]; then
-  python3 - "${XRAY_BENCH_TRAFFIC_NAMES}" "$work" "${XRAY_BENCH_TRAFFIC_CASE:-}" <<'PYTHON'
-import json
-from pathlib import Path
-import sys
-
-names = int(sys.argv[1])
-if not 1 <= names <= 10000:
-    raise SystemExit("expected 1 to 10000 traffic accounts")
-config = {
-    "log": {"loglevel": "none"},
-    "stats": {},
-    "policy": {
-        "levels": {"0": {"statsUserUplink": True, "statsUserDownlink": True}},
-        "system": {
-            "statsInboundUplink": True, "statsInboundDownlink": True,
-            "statsOutboundUplink": True, "statsOutboundDownlink": True,
-        },
-    },
-    "inbounds": [{
-        "tag": "fixture", "listen": "127.0.0.1", "port": 24440, "protocol": "http",
-        "settings": {"accounts": [{"user": f"account-{i:04}", "pass": "fixture"} for i in range(names)]},
-    }],
-    "outbounds": [{"tag": "direct", "protocol": "freedom"}],
-}
-if sys.argv[3] == "online" or sys.argv[3].startswith("online-"):
-    config["policy"]["levels"]["0"]["statsUserOnline"] = True
-directory = Path(sys.argv[2])
-(directory / "xray.json").write_text(json.dumps(config))
-config["inbounds"][0]["port"] = 24441
-(directory / "reference-xray.json").write_text(json.dumps(config))
-PYTHON
+  python3 "$runner_dir/traffic/fixture.py" "${XRAY_BENCH_TRAFFIC_NAMES}" "$work" "${XRAY_BENCH_TRAFFIC_CASE:-}"
 fi
 cat > "$work/node.yml" <<YAML
 management:

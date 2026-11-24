@@ -96,7 +96,7 @@ HTTP `GET /v1/host/stats` 和 gRPC `HostService.GetSystemStats` 返回 `uptime_s
 
 发送空请求体的 `POST /v1/xray/instances/{id}/config-validations`，或使用实例 ID 调用 `XrayConfigsService.ValidateConfig`。Node 使用与启动时相同的选项验证配置文件。无效配置返回 `valid: false` 和问题代码，并在 Xray 提供时返回行号和列号。验证执行失败时返回 API 错误。[gRPC 接口](internal/engines/xray/configs/bridge/grpc/proto/v1/configs.proto)
 
-使用 `GET /v1/xray/instances/{id}/stats/runtime` 或 `XrayStatsService.GetRuntimeStats`。每个响应都使用正在运行的 Xray 实例的新样本。并发请求可以共享下一次采样结果。内存以字节计，运行时间以 Xray 统计服务启动后的整秒计，GC 累计暂停以纳秒计。实例不可用时，HTTP 返回 `503`，gRPC 返回 `UNAVAILABLE`。等待读取的缓冲区可容纳 128 个请求。缓冲区满时，HTTP 返回 `429`，gRPC 返回 `RESOURCE_EXHAUSTED`。[gRPC 接口](internal/engines/xray/stats/bridge/grpc/proto/v1/runtime_stats.proto) · [基准测试和原始结果](benchmarks/reports/runtime.md#xray-runtime-statistics-after-the-rewrite)
+使用 `GET /v1/xray/instances/{id}/stats/runtime` 或 `XrayStatsService.GetRuntimeStats`。每个响应都使用正在运行的 Xray 实例的新样本。并发请求可以共享下一次采样结果。内存以字节计，运行时间以 Xray 统计服务启动后的整秒计，GC 累计暂停以纳秒计。实例不可用时，HTTP 返回 `503`，gRPC 返回 `UNAVAILABLE`。等待读取的缓冲区可容纳 128 个请求。缓冲区满时，HTTP 返回 `429`，gRPC 返回 `RESOURCE_EXHAUSTED`。[gRPC 接口](internal/engines/xray/stats/bridge/grpc/proto/v1/runtime_stats.proto) · [基准测试和原始结果](benchmarks/xray/runtime/README.md#xray-runtime-statistics-after-the-rewrite)
 
 使用 `GET /v1/xray/instances/{id}/stats/traffic/{scope}`，范围为 `user`、`inbound` 或 `outbound`。添加 `?name=...` 可读取单个账户或标签。gRPC 方法为 `XrayStatsService.GetTraffic` 和 `ListTraffic`。读取时保留原计数值。缺少某个方向时省略对应字段，零值仍返回零。找不到指定名称时，HTTP 返回 `404`，gRPC 返回 `NOT_FOUND`。列表顺序不固定。请在 Xray 策略中启用相应范围的流量统计。[gRPC 接口](internal/engines/xray/stats/bridge/grpc/proto/v1/traffic.proto)
 
@@ -104,7 +104,7 @@ HTTP `GET /v1/host/stats` 和 gRPC `HostService.GetSystemStats` 返回 `uptime_s
 
 使用 `POST /v1/xray/instances/{id}/stats/traffic/{scope}/pair-resets?name=...` 或 `XrayStatsService.ResetTrafficPair` 清零两个方向。Xray 分别清零每个方向。即使操作中断，HTTP 也在响应体中返回两个方向的结果。gRPC 通过状态详情返回部分结果。只有已确认的方向会返回原字节数。
 
-使用 `POST /v1/xray/instances/{id}/stats/traffic/{scope}/scope-resets?max_counters=...` 或 `XrayStatsService.ResetTrafficScope` 清零一个范围。将上限设为 1 到 1000 个方向计数器。选中的计数器超过上限时，请求会在首次清零之前被拒绝。请检查整体结果和每个计数器的结果。gRPC 在响应体中返回中断或结果未知的报告。 范围清零默认顺序执行。将 `xray.reset_scope_concurrency` 设为 2 到 8 可启用并行清零。[接口约定与基准测试](benchmarks/xray/traffic-scope-reset.md)
+使用 `POST /v1/xray/instances/{id}/stats/traffic/{scope}/scope-resets?max_counters=...` 或 `XrayStatsService.ResetTrafficScope` 清零一个范围。将上限设为 1 到 1000 个方向计数器。选中的计数器超过上限时，请求会在首次清零之前被拒绝。请检查整体结果和每个计数器的结果。gRPC 在响应体中返回中断或结果未知的报告。 范围清零默认顺序执行。将 `xray.reset_scope_concurrency` 设为 2 到 8 可启用并行清零。[接口约定与基准测试](benchmarks/xray/traffic/scope-reset.md)
 
 如需单次调用清零，请使用包内的 `/node-xray` 并设置 `xray.native_scope_reset: true`。标准 Xray 仍支持顺序或按配置并行执行。
 
@@ -114,11 +114,11 @@ HTTP `GET /v1/host/stats` 和 gRPC `HostService.GetSystemStats` 返回 `uptime_s
 
 使用 `GET /v1/xray/instances/{id}/routing/rules` 和 `GET /v1/xray/instances/{id}/routing/balancer?tag=...` 读取路由状态。gRPC 方法为 `XrayRoutingService.ListRoutingRules` 和 `GetBalancerInfo`。响应分别返回覆盖目标和 Xray 报告的目标。 [gRPC 接口](internal/engines/xray/routing/bridge/grpc/proto/v1/routing.proto)
 
-使用 `XrayRoutingService.TestRoute`、`AddRoutingRule`、`RemoveRoutingRule` 和 `OverrideBalancerTarget` 评估或修改当前路由。报告记录了 HTTP 路径和替换规则所需的确认。 [路由控制](benchmarks/xray/routing-rule-writes.md)
+使用 `XrayRoutingService.TestRoute`、`AddRoutingRule`、`RemoveRoutingRule` 和 `OverrideBalancerTarget` 评估或修改当前路由。报告记录了 HTTP 路径和替换规则所需的确认。 [路由控制](benchmarks/xray/routing/rule-writes.md)
 
-使用 `XrayAccountsService.AddVLESSAccount`、`RemoveVLESSAccount` 和 `CountVLESSAccounts`，或使用 `/v1/xray/instances/{id}/inbounds/{tag}/accounts` 下的 HTTP 路径。操作作用于当前运行的实例。 [VLESS 接口](benchmarks/xray/vless-accounts.md)
+使用 `XrayAccountsService.AddVLESSAccount`、`RemoveVLESSAccount` 和 `CountVLESSAccounts`，或使用 `/v1/xray/instances/{id}/inbounds/{tag}/accounts` 下的 HTTP 路径。操作作用于当前运行的实例。 [VLESS 接口](benchmarks/xray/accounts/vless.md)
 
-[VLESS 同步](benchmarks/xray/vless-sync.md) · [Xray 日志流](benchmarks/xray/log-stream-contract.md)
+[VLESS 同步](benchmarks/xray/accounts/sync.md) · [Xray 日志流](benchmarks/xray/logs/contract.md)
 
 使用 `GET /v1/xray/instances/{id}/outbounds/health` 或 `XrayOutboundsService.GetOutboundHealth` 读取普通 Observatory 观测结果。提供标签可查询单个出站。响应区分健康、探测失败和缺少样本。 [gRPC 接口](internal/engines/xray/outbounds/bridge/grpc/proto/v1/outbounds.proto)
 
@@ -129,12 +129,12 @@ HTTP `GET /v1/host/stats` 和 gRPC `HostService.GetSystemStats` 返回 `uptime_s
 ## 基准测试
 
 <!-- benchmark-summary -->
-**PapilioVPN 在 102 个可比场景中的 82 个领先**。13 个场景的结果各有优劣，PasarGuard 0.5.7 在 7 个场景领先。汇总还列出 20 个使用同一测试环境、但输入、输出字段或保证不同的场景。
+**PapilioVPN 在 102 个可比的 Xray 场景中的 82 个领先**。13 个场景的结果各有优劣，PasarGuard 0.5.7 在 7 个场景领先。汇总还列出 16 个使用同一测试环境、但输入、输出字段或保证不同的场景。
 <!-- /benchmark-summary -->
 
-![按组划分的基准测试结果](benchmarks/charts/outcomes.png)
+![按组划分的基准测试结果](benchmarks/xray/charts/outcomes.png)
 
-[基准测试汇总、分组报告和原始数据](benchmarks/README.md)
+[基准测试汇总、分组报告和原始数据](benchmarks/xray/README.md)
 
 <a name="development"></a>
 

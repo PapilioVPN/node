@@ -1,0 +1,6 @@
+{
+  "log":{"loglevel":"none"},
+  "inbounds":[{"tag":"vless","listen":"127.0.0.1","port":24440,"protocol":"vless",
+    "settings":{"clients":[],"decryption":"none"}}],
+  "outbounds":[{"tag":"direct","protocol":"freedom"}]
+}

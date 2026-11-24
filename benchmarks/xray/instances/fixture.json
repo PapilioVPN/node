@@ -1,0 +1,5 @@
+{
+  "log": {"loglevel":"none"},
+  "inbounds": [{"tag":"fixture","listen":"127.0.0.1","port":24440,"protocol":"socks","settings":{"auth":"noauth"}}],
+  "outbounds": [{"tag":"direct","protocol":"freedom"}]
+}
