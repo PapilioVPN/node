@@ -32,10 +32,10 @@
 
 ## Быстрый старт
 
-Скачайте артефакт для Linux amd64 из успешного [запуска проверок](https://github.com/PapilioVPN/node/actions/workflows/check.yml). В каталоге распакованного артефакта проверьте архив и запустите Node с примером настроек.
+Скачайте архив для Linux amd64 и его контрольную сумму из [релизов GitHub](https://github.com/PapilioVPN/node/releases/latest). Проверьте и распакуйте архив, затем запустите Node с примером настроек.
 
 ```bash
-archive=node-0.0.0-linux-amd64-YOUR_COMMIT_SHA.tar.gz
+archive=node-1.0.0-linux-amd64-YOUR_COMMIT_SHA.tar.gz
 sha256sum -c "$archive.sha256" && tar -xzf "$archive"
 cp -n node/config.example.yml config.yml
 ./node/node -config config.yml
