@@ -29,6 +29,27 @@ deletion before responding.
 Linux `6.17.0-41-generic`, AMD Ryzen 7 3750H, Go `1.27.4` for both
 servers. [Raw request durations](results/lifecycle-http.csv)
 
+## Same-source Start and Stop recheck
+
+Node `a25ec75` and the same pinned PasarGuard build ran five alternating
+20-request blocks. The timer ends when the response body has arrived, and
+each Stop is followed by an interface absence check. After each block the
+fixture also runs four timed `ip link del` calls against interfaces created
+with the same Node configuration. The command measurement includes process
+startup. [Raw timings](results/lifecycle-recheck-https.csv)
+
+| Operation | Node p50, ms | PasarGuard p50, ms | Node p95, ms | PasarGuard p95, ms |
+| --- | ---: | ---: | ---: | ---: |
+| Cold Start | 2.743 | 5.543 | 4.436 | 11.090 |
+| Same-source Start | 0.836 | 1.154 | 1.409 | 3.296 |
+| Stop | 78.737 | 74.939 | 92.591 | 94.851 |
+
+Same-source Start had a lower median in every block. Direct `ip link del`
+measured 79.984 ms at p50 and 98.432 ms at p95. In a separate isolated probe
+of 24 deletions, Node's native ownership lookup measured 70 µs at p50 and
+174 µs at p95. The subsequent `LinkDel` call through kernel acknowledgement
+measured 83.893 ms at p50 and 94.255 ms at p95. Stop waits for this acknowledgement.
+
 ## Changing an active interface's MTU
 
 The same HTTPS fixture alternates MTU 1380 and 1360 while retaining the key,
@@ -68,4 +89,5 @@ NODE_TEST_WIREGUARD_PARENT_NETNS=$(readlink /proc/self/ns/net) \
   > "$work/lifecycle-http.csv"
 ```
 
-To measure the MTU changes, add `--live-mtu` after the PasarGuard binary path.
+Add `--lifecycle-check` after the PasarGuard binary path for the shorter
+lifecycle run with the kernel deletion samples. Use `--live-mtu` for MTU changes.

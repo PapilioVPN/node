@@ -80,11 +80,29 @@ def sample(conn, start_method, start_path, source, stop_method, stop_path, valid
     same_ns, payload = request(conn, start_method, start_path, source)
     assert valid(payload) and socket.if_nametoindex(peer_interface) == index
     stop_ns, _ = request(conn, stop_method, stop_path)
+    check_link_removed()
+    return start_ns, same_ns, stop_ns
+
+
+def check_link_removed():
     try:
         socket.if_nametoindex(peer_interface)
     except OSError:
-        return start_ns, same_ns, stop_ns
+        return
     raise RuntimeError("Stop left an interface")
+
+
+def measure_kernel_delete(args, block):
+    conn, start_method, start_path, source, stop_method, stop_path, valid = args
+    for index in range(4):
+        _, payload = request(conn, start_method, start_path, source)
+        assert valid(payload)
+        start = time.perf_counter_ns()
+        subprocess.run(["ip", "link", "del", "dev", peer_interface], check=True)
+        elapsed = time.perf_counter_ns() - start
+        check_link_removed()
+        request(conn, stop_method, stop_path)
+        print(f"{block},ip,kernel_delete,{index + 1},{elapsed}")
 
 
 def measure_mtu(cases, config_sources):
@@ -224,10 +242,10 @@ def measure_peer_delta(cases):
 
 def main():
     mode = sys.argv[3] if len(sys.argv) >= 4 else ""
-    valid_args = (len(sys.argv) == 3 or len(sys.argv) == 4 and mode in ("--live-mtu", "--peer-sync", "--peer-delta")
+    valid_args = (len(sys.argv) == 3 or len(sys.argv) == 4 and mode in ("--lifecycle-check", "--live-mtu", "--peer-sync", "--peer-delta")
                   or len(sys.argv) == 5 and mode in ("--peer-sync", "--peer-replay", "--peer-delta"))
     if not valid_args:
-        raise SystemExit("usage: measure-lifecycle.py NODE PASARGUARD [--live-mtu|--peer-sync [PREVIOUS_NODE]|--peer-replay PREVIOUS_NODE|--peer-delta [PREVIOUS_NODE]]")
+        raise SystemExit("usage: measure-lifecycle.py NODE PASARGUARD [--lifecycle-check|--live-mtu|--peer-sync [PREVIOUS_NODE]|--peer-replay PREVIOUS_NODE|--peer-delta [PREVIOUS_NODE]]")
     parent = os.environ.get("NODE_TEST_WIREGUARD_PARENT_NETNS")
     if not parent or parent == os.readlink("/proc/self/ns/net"):
         raise RuntimeError("run in a separate network namespace")
@@ -309,9 +327,11 @@ wireguard:
         for repeat in range(5):
             for label, args in cases if repeat % 2 == 0 else reversed(cases):
                 sample(*args)
-                for index in range(100):
+                for index in range(20 if mode == "--lifecycle-check" else 100):
                     for op, elapsed in zip(("cold_start", "same_start", "stop"), sample(*args)):
                         print(f"{repeat + 1},{label},{op},{index + 1},{elapsed}")
+            if mode == "--lifecycle-check":
+                measure_kernel_delete(cases[0][1], repeat + 1)
 
 
 if __name__ == "__main__":

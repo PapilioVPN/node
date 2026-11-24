@@ -31,7 +31,7 @@ This measurement uses the Linux command-line reference for per-interface reads.
 | --- | --- |
 | Interface status | Lower latency than `ip` using a direct link read. |
 | Cold Start | Lower median in all five blocks of the lifecycle benchmark. |
-| Same-source Start and Stop | The lower median switched between implementations across blocks. The kernel link deletion probe accounts for most of Stop latency. |
+| Same-source Start and Stop | Same-source Start led in all five blocks of the latest recheck. Stop trailed at p50 and led at p95, with most of the time spent waiting for kernel deletion. |
 | Live MTU change | Node keeps the link. PasarGuard recreates it. The measured transition times reflect different effects. |
 | Configuration validation and restart recovery | Node has isolated native measurements. The pinned reference has different operations. |
 | Full peer synchronization | One changed peer benefits from sparse writes. Managed replay uses confirmed state, and explicit reconciliation reads the live kernel. The replay comparison is reported by peer count. |
