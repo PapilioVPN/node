@@ -66,13 +66,14 @@ func Register(router chi.Router, service *status.Service, managed *lifecycle.Ser
 			return
 		}
 		var body struct {
-			Peers []peers.Input `json:"peers"`
+			Peers     []peers.Input `json:"peers"`
+			Reconcile bool          `json:"reconcile"`
 		}
 		if err := jsonv2.Unmarshal(source, &body, json.DefaultOptionsV1(), jsonv2.RejectUnknownMembers(true)); err != nil || body.Peers == nil {
 			writeError(w, peers.ErrInvalid)
 			return
 		}
-		result, err := managed.SyncPeers(r.Context(), interfaceName(r), body.Peers)
+		result, err := managed.SyncPeers(r.Context(), interfaceName(r), body.Peers, body.Reconcile)
 		if err != nil {
 			writeError(w, err)
 			return

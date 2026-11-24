@@ -49,8 +49,11 @@ func assertPeerSync(t *testing.T, f fixture, client interfacesv1.WireGuardInterf
 	if err := exec.CommandContext(t.Context(), "wg", "set", interfaceName, "peer", added, "allowed-ips", "192.0.2.9/32").Run(); err != nil {
 		t.Fatal(err)
 	}
-	if got := syncPeersHTTP(t, f, input, http.StatusOK); got != (peerSyncReply{Updated: 1}) {
-		t.Fatalf("replay with kernel drift returned %+v", got)
+	if got := syncPeersHTTP(t, f, input, http.StatusOK); got != (peerSyncReply{}) {
+		t.Fatalf("managed replay returned %+v", got)
+	}
+	if got := syncPeersHTTP(t, f, append([]byte(`{"reconcile":true,`), input[1:]...), http.StatusOK); got != (peerSyncReply{Updated: 1}) {
+		t.Fatalf("explicit reconcile with kernel drift returned %+v", got)
 	}
 	changed := bytes.Replace(input, []byte("192.0.2.3/32"), []byte("192.0.2.4/32"), 1)
 	if got := syncPeersHTTP(t, f, changed, http.StatusOK); got != (peerSyncReply{Updated: 1}) {
@@ -109,6 +112,18 @@ func assertBulkPeerSync(t *testing.T, f fixture, client interfacesv1.WireGuardIn
 	}
 	if got := syncPeersGRPC(t, client, desired); got.Added != 0 || got.Updated != 0 || got.Removed != 0 {
 		t.Fatalf("bulk replay returned %+v", got)
+	}
+	firstKey := base64.StdEncoding.EncodeToString(desired[0].GetPublicKey())
+	if err := exec.CommandContext(t.Context(), "wg", "set", interfaceName, "peer", firstKey, "allowed-ips", "fd00::ffff/128").Run(); err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel = context.WithTimeout(t.Context(), 3*time.Second)
+	reply, err := client.SyncPeers(ctx, &interfacesv1.WireGuardSyncPeersRequest{Name: interfaceName,
+		Desired: &interfacesv1.WireGuardPeerSet{Peers: desired}, Reconcile: true,
+	})
+	cancel()
+	if err != nil || reply.GetUpdated() != 1 || reply.GetAdded() != 0 || reply.GetRemoved() != 0 {
+		t.Fatalf("gRPC reconcile returned %v, %v", reply, err)
 	}
 	lines := strings.Split(strings.TrimSpace(wgOutput(t, "allowed-ips")), "\n")
 	if len(lines) != 1000 {

@@ -62,6 +62,30 @@ func TestManagedPeerStateRecoversAPartialDelta(t *testing.T) {
 	}
 }
 
+func TestManagedFullSyncReplaysAndReconciles(t *testing.T) {
+	first, second := [32]byte{1}, [32]byte{2}
+	prefix := netip.MustParsePrefix("192.0.2.1/32")
+	control := &peerControlFixture{snapshot: peers.Snapshot{PublicKey: [32]byte{9}, Peers: []peers.Peer{
+		{PublicKey: first, AllowedIPs: []netip.Prefix{prefix}}, {PublicKey: second},
+	}}}
+	service := New("wg0", nil, control, nil)
+	service.applied.Store(&Checkpoint{Link: Link{Name: "wg0", Index: 3, Alias: "fixture"}})
+	input := []peers.Input{{PublicKey: first[:], AllowedIPs: []string{prefix.String()}}}
+	if got, err := service.SyncPeers(t.Context(), "wg0", input, false); err != nil || got != (peers.Result{Removed: 1}) {
+		t.Fatalf("initial sync = %+v, %v", got, err)
+	}
+	control.snapshot.Peers[0].AllowedIPs = []netip.Prefix{netip.MustParsePrefix("192.0.2.2/32")}
+	if got, err := service.SyncPeers(t.Context(), "wg0", input, false); err != nil || got != (peers.Result{}) || control.reads != 1 || control.writes != 1 {
+		t.Fatalf("managed replay = %+v, %v, reads %d, writes %d", got, err, control.reads, control.writes)
+	}
+	if got, err := service.SyncPeers(t.Context(), "wg0", input, true); err != nil || got != (peers.Result{Updated: 1}) || control.reads != 2 {
+		t.Fatalf("reconcile = %+v, %v, reads %d", got, err, control.reads)
+	}
+	if got, err := service.SyncPeers(t.Context(), "wg0", []peers.Input{}, false); err != nil || got != (peers.Result{Removed: 1}) || control.reads != 2 {
+		t.Fatalf("managed clear = %+v, %v, reads %d", got, err, control.reads)
+	}
+}
+
 type peerControlFixture struct {
 	snapshot      peers.Snapshot
 	reads, writes int

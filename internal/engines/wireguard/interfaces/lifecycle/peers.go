@@ -17,31 +17,48 @@ type PeerControl interface {
 	WritePeerChanges(context.Context, Link, []peers.Change, []peers.Change) error
 }
 
-func (service *Service) SyncPeers(ctx context.Context, name string, input []peers.Input) (peers.Result, error) {
+func (service *Service) SyncPeers(ctx context.Context, name string, input []peers.Input, reconcile bool) (peers.Result, error) {
 	return service.withPeerLink(ctx, name, func(ctx context.Context, link Link) (peers.Result, error) {
 		desired, err := peers.Prepare(input)
 		if err != nil {
 			return peers.Result{}, err
 		}
-		service.peerState = nil
-		if err := service.peers.CheckPeerLink(ctx, link); err != nil {
+		if err := service.checkPeerLink(ctx, link); err != nil {
 			return peers.Result{}, err
 		}
-		snapshot, err := service.peers.ReadPeerSet(ctx, link)
+		state := service.peerState
+		if reconcile || state == nil {
+			return service.syncLivePeerSet(ctx, link, desired)
+		}
+		updates, removals, result, err := state.PlanSync(desired)
 		if err != nil {
 			return peers.Result{}, err
 		}
-		for _, peer := range desired {
-			if peer.PublicKey == snapshot.PublicKey {
-				return peers.Result{}, peers.ErrInvalid
-			}
-		}
-		updates, removals, result := peers.Diff(snapshot.Peers, desired)
 		if err := service.writePeerChanges(ctx, link, updates, removals); err != nil {
 			return peers.Result{}, err
 		}
+		state.CommitDelta(updates, removals)
 		return result, nil
 	})
+}
+
+func (service *Service) syncLivePeerSet(ctx context.Context, link Link, desired []peers.Peer) (peers.Result, error) {
+	service.peerState = nil
+	snapshot, err := service.peers.ReadPeerSet(ctx, link)
+	if err != nil {
+		return peers.Result{}, err
+	}
+	for _, peer := range desired {
+		if peer.PublicKey == snapshot.PublicKey {
+			return peers.Result{}, peers.ErrInvalid
+		}
+	}
+	updates, removals, result := peers.Diff(snapshot.Peers, desired)
+	if err := service.writePeerChanges(ctx, link, updates, removals); err != nil {
+		return peers.Result{}, err
+	}
+	service.peerState = peers.NewState(peers.Snapshot{PublicKey: snapshot.PublicKey, Peers: desired})
+	return result, nil
 }
 
 func (service *Service) UpsertPeer(ctx context.Context, name string, input peers.Input) (peers.Result, error) {

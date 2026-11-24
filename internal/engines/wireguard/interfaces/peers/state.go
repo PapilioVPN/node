@@ -40,6 +40,35 @@ func NewState(snapshot Snapshot) *State {
 	return state
 }
 
+func (state *State) PlanSync(desired []Peer) (updates, removals []Change, result Result, err error) {
+	for _, peer := range desired {
+		if peer.PublicKey == state.self {
+			return nil, nil, Result{}, ErrInvalid
+		}
+		change, count := state.plan(peer)
+		if count == (Result{}) {
+			continue
+		}
+		updates = append(updates, change)
+		result.Added += count.Added
+		result.Updated += count.Updated
+	}
+	if len(desired)-int(result.Added) == len(state.byKey) {
+		return updates, nil, result, nil
+	}
+	wanted := make(map[[32]byte]bool, len(desired))
+	for _, peer := range desired {
+		wanted[peer.PublicKey] = true
+	}
+	for key := range state.byKey {
+		if !wanted[key] {
+			removals = append(removals, Change{Peer: Peer{PublicKey: key}, Remove: true})
+			result.Removed++
+		}
+	}
+	return updates, removals, result, nil
+}
+
 func (state *State) PlanPeer(desired Peer) (Change, Result, error) {
 	if desired.PublicKey == state.self {
 		return Change{}, Result{}, ErrInvalid

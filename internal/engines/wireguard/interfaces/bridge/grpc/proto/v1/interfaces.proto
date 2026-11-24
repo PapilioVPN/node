@@ -68,6 +68,8 @@ message WireGuardSyncPeersRequest {
   string name = 1;
   // Presence is required. A present empty set removes all peers.
   WireGuardPeerSet desired = 2;
+  // Read the current kernel peer set before applying the desired set.
+  bool reconcile = 3;
 }
 
 message WireGuardPeerSyncResult {

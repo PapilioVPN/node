@@ -83,7 +83,7 @@ func (h *handlers) SyncPeers(ctx context.Context, req *interfacesv1.WireGuardSyn
 	for i, peer := range desired.GetPeers() {
 		input[i] = peerInput(peer)
 	}
-	return peerResult(h.managed.SyncPeers(ctx, req.GetName(), input))
+	return peerResult(h.managed.SyncPeers(ctx, req.GetName(), input, req.GetReconcile()))
 }
 
 func response(result interfacestatus.Interface) *interfacesv1.WireGuardInterfaceStatus {

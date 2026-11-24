@@ -495,7 +495,9 @@ type WireGuardSyncPeersRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	Name  string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// Presence is required. A present empty set removes all peers.
-	Desired       *WireGuardPeerSet `protobuf:"bytes,2,opt,name=desired,proto3" json:"desired,omitempty"`
+	Desired *WireGuardPeerSet `protobuf:"bytes,2,opt,name=desired,proto3" json:"desired,omitempty"`
+	// Read the current kernel peer set before applying the desired set.
+	Reconcile     bool `protobuf:"varint,3,opt,name=reconcile,proto3" json:"reconcile,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -542,6 +544,13 @@ func (x *WireGuardSyncPeersRequest) GetDesired() *WireGuardPeerSet {
 		return x.Desired
 	}
 	return nil
+}
+
+func (x *WireGuardSyncPeersRequest) GetReconcile() bool {
+	if x != nil {
+		return x.Reconcile
+	}
+	return false
 }
 
 type WireGuardPeerSyncResult struct {
@@ -836,10 +845,11 @@ const file_proto_v1_interfaces_proto_rawDesc = "" +
 	"allowedIps\x12#\n" +
 	"\rpreshared_key\x18\x03 \x01(\fR\fpresharedKey\"K\n" +
 	"\x10WireGuardPeerSet\x127\n" +
-	"\x05peers\x18\x01 \x03(\v2!.papiliovpn.node.v1.WireGuardPeerR\x05peers\"o\n" +
+	"\x05peers\x18\x01 \x03(\v2!.papiliovpn.node.v1.WireGuardPeerR\x05peers\"\x8d\x01\n" +
 	"\x19WireGuardSyncPeersRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12>\n" +
-	"\adesired\x18\x02 \x01(\v2$.papiliovpn.node.v1.WireGuardPeerSetR\adesired\"c\n" +
+	"\adesired\x18\x02 \x01(\v2$.papiliovpn.node.v1.WireGuardPeerSetR\adesired\x12\x1c\n" +
+	"\treconcile\x18\x03 \x01(\bR\treconcile\"c\n" +
 	"\x17WireGuardPeerSyncResult\x12\x14\n" +
 	"\x05added\x18\x01 \x01(\rR\x05added\x12\x18\n" +
 	"\aupdated\x18\x02 \x01(\rR\aupdated\x12\x18\n" +
