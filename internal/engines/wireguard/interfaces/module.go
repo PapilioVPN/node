@@ -9,6 +9,7 @@ import (
 	bridgehttp "github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/bridge/http"
 	wglifecycle "github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/lifecycle"
 	"github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/native"
+	"github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/peers"
 	"github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/status"
 	"github.com/PapilioVPN/node/internal/settings"
 	"github.com/go-chi/chi/v5"
@@ -53,10 +54,11 @@ func register(lifecycle fx.Lifecycle, config settings.WireGuard, router *chi.Mux
 			},
 		})
 	}
-	stats := new(native.PeerStatsReader)
-	lifecycle.Append(fx.Hook{OnStop: stats.Close})
-	service := status.New(config.Interface, reader, stats, appliedHash)
+	statsReader := new(native.PeerStatsReader)
+	lifecycle.Append(fx.Hook{OnStop: statsReader.Close})
+	peerStats := peers.NewStatsService(config.Interface, statsReader)
+	service := status.New(config.Interface, reader, appliedHash)
 	validator := wglifecycle.NewValidator(config.Interface)
-	bridgehttp.Register(router, service, managed, validator)
-	bridgegrpc.Register(server, service, managed, validator)
+	bridgehttp.Register(router, service, peerStats, managed, validator)
+	bridgegrpc.Register(server, service, peerStats, managed, validator)
 }

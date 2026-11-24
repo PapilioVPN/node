@@ -20,12 +20,15 @@ import (
 type handlers struct {
 	interfacesv1.UnimplementedWireGuardInterfacesServiceServer
 	service   *interfacestatus.Service
+	peerStats *peers.StatsService
 	managed   *lifecycle.Service
 	validator *lifecycle.Validator
 }
 
-func Register(server grpc.ServiceRegistrar, service *interfacestatus.Service, managed *lifecycle.Service, validator *lifecycle.Validator) {
-	interfacesv1.RegisterWireGuardInterfacesServiceServer(server, &handlers{service: service, managed: managed, validator: validator})
+func Register(server grpc.ServiceRegistrar, service *interfacestatus.Service, peerStats *peers.StatsService, managed *lifecycle.Service, validator *lifecycle.Validator) {
+	interfacesv1.RegisterWireGuardInterfacesServiceServer(server, &handlers{
+		service: service, peerStats: peerStats, managed: managed, validator: validator,
+	})
 }
 
 func (h *handlers) GetStatus(ctx context.Context, req *interfacesv1.WireGuardInterfaceRequest) (*interfacesv1.WireGuardInterfaceStatus, error) {

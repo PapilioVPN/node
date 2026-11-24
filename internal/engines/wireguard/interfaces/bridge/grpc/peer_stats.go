@@ -8,7 +8,7 @@ import (
 )
 
 func (h *handlers) ListPeerStats(ctx context.Context, req *interfacesv1.WireGuardInterfaceRequest) (*interfacesv1.WireGuardPeerStatsList, error) {
-	observations, err := h.service.ListPeerStats(ctx, req.GetName())
+	observations, err := h.peerStats.ListPeerStats(ctx, req.GetName())
 	if err != nil {
 		return nil, readError(err)
 	}

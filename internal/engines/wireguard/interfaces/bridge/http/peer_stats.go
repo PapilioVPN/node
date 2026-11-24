@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/status"
+	"github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/peers"
 )
 
 type peerStatsResponse struct {
@@ -15,7 +15,7 @@ type peerStatsResponse struct {
 	LastHandshake time.Time `json:"last_handshake,omitzero"`
 }
 
-func listPeerStats(service *status.Service) http.HandlerFunc {
+func listPeerStats(service *peers.StatsService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
 		observations, err := service.ListPeerStats(r.Context(), interfaceName(r))
