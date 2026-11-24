@@ -224,6 +224,60 @@ func (x *WireGuardPeerTraffic) GetTxBytes() uint64 {
 	return 0
 }
 
+type WireGuardInterfaceUsage struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Bytes since the first successful usage read or most recent logical reset.
+	// ResetInterfaceUsage returns the preceding period.
+	RxBytes       uint64 `protobuf:"varint,1,opt,name=rx_bytes,json=rxBytes,proto3" json:"rx_bytes,omitempty"`
+	TxBytes       uint64 `protobuf:"varint,2,opt,name=tx_bytes,json=txBytes,proto3" json:"tx_bytes,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *WireGuardInterfaceUsage) Reset() {
+	*x = WireGuardInterfaceUsage{}
+	mi := &file_proto_v1_wireguard_stats_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WireGuardInterfaceUsage) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WireGuardInterfaceUsage) ProtoMessage() {}
+
+func (x *WireGuardInterfaceUsage) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_v1_wireguard_stats_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WireGuardInterfaceUsage.ProtoReflect.Descriptor instead.
+func (*WireGuardInterfaceUsage) Descriptor() ([]byte, []int) {
+	return file_proto_v1_wireguard_stats_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *WireGuardInterfaceUsage) GetRxBytes() uint64 {
+	if x != nil {
+		return x.RxBytes
+	}
+	return 0
+}
+
+func (x *WireGuardInterfaceUsage) GetTxBytes() uint64 {
+	if x != nil {
+		return x.TxBytes
+	}
+	return 0
+}
+
 var File_proto_v1_wireguard_stats_proto protoreflect.FileDescriptor
 
 const file_proto_v1_wireguard_stats_proto_rawDesc = "" +
@@ -240,11 +294,16 @@ const file_proto_v1_wireguard_stats_proto_rawDesc = "" +
 	"public_key\x18\x02 \x01(\fR\tpublicKey\"L\n" +
 	"\x14WireGuardPeerTraffic\x12\x19\n" +
 	"\brx_bytes\x18\x01 \x01(\x04R\arxBytes\x12\x19\n" +
-	"\btx_bytes\x18\x02 \x01(\x04R\atxBytes2\xef\x02\n" +
+	"\btx_bytes\x18\x02 \x01(\x04R\atxBytes\"O\n" +
+	"\x17WireGuardInterfaceUsage\x12\x19\n" +
+	"\brx_bytes\x18\x01 \x01(\x04R\arxBytes\x12\x19\n" +
+	"\btx_bytes\x18\x02 \x01(\x04R\atxBytes2\xe1\x04\n" +
 	"\x15WireGuardStatsService\x12z\n" +
 	"\x13GetInterfaceTraffic\x124.papiliovpn.node.v1.WireGuardInterfaceTrafficRequest\x1a-.papiliovpn.node.v1.WireGuardInterfaceTraffic\x12k\n" +
 	"\x0eGetPeerTraffic\x12/.papiliovpn.node.v1.WireGuardPeerTrafficRequest\x1a(.papiliovpn.node.v1.WireGuardPeerTraffic\x12m\n" +
-	"\x10ResetPeerTraffic\x12/.papiliovpn.node.v1.WireGuardPeerTrafficRequest\x1a(.papiliovpn.node.v1.WireGuardPeerTrafficBZZXgithub.com/PapilioVPN/node/internal/engines/wireguard/stats/bridge/grpc/proto/v1;statsv1b\x06proto3"
+	"\x10ResetPeerTraffic\x12/.papiliovpn.node.v1.WireGuardPeerTrafficRequest\x1a(.papiliovpn.node.v1.WireGuardPeerTraffic\x12v\n" +
+	"\x11GetInterfaceUsage\x124.papiliovpn.node.v1.WireGuardInterfaceTrafficRequest\x1a+.papiliovpn.node.v1.WireGuardInterfaceUsage\x12x\n" +
+	"\x13ResetInterfaceUsage\x124.papiliovpn.node.v1.WireGuardInterfaceTrafficRequest\x1a+.papiliovpn.node.v1.WireGuardInterfaceUsageBZZXgithub.com/PapilioVPN/node/internal/engines/wireguard/stats/bridge/grpc/proto/v1;statsv1b\x06proto3"
 
 var (
 	file_proto_v1_wireguard_stats_proto_rawDescOnce sync.Once
@@ -258,22 +317,27 @@ func file_proto_v1_wireguard_stats_proto_rawDescGZIP() []byte {
 	return file_proto_v1_wireguard_stats_proto_rawDescData
 }
 
-var file_proto_v1_wireguard_stats_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_proto_v1_wireguard_stats_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_proto_v1_wireguard_stats_proto_goTypes = []any{
 	(*WireGuardInterfaceTrafficRequest)(nil), // 0: papiliovpn.node.v1.WireGuardInterfaceTrafficRequest
 	(*WireGuardInterfaceTraffic)(nil),        // 1: papiliovpn.node.v1.WireGuardInterfaceTraffic
 	(*WireGuardPeerTrafficRequest)(nil),      // 2: papiliovpn.node.v1.WireGuardPeerTrafficRequest
 	(*WireGuardPeerTraffic)(nil),             // 3: papiliovpn.node.v1.WireGuardPeerTraffic
+	(*WireGuardInterfaceUsage)(nil),          // 4: papiliovpn.node.v1.WireGuardInterfaceUsage
 }
 var file_proto_v1_wireguard_stats_proto_depIdxs = []int32{
 	0, // 0: papiliovpn.node.v1.WireGuardStatsService.GetInterfaceTraffic:input_type -> papiliovpn.node.v1.WireGuardInterfaceTrafficRequest
 	2, // 1: papiliovpn.node.v1.WireGuardStatsService.GetPeerTraffic:input_type -> papiliovpn.node.v1.WireGuardPeerTrafficRequest
 	2, // 2: papiliovpn.node.v1.WireGuardStatsService.ResetPeerTraffic:input_type -> papiliovpn.node.v1.WireGuardPeerTrafficRequest
-	1, // 3: papiliovpn.node.v1.WireGuardStatsService.GetInterfaceTraffic:output_type -> papiliovpn.node.v1.WireGuardInterfaceTraffic
-	3, // 4: papiliovpn.node.v1.WireGuardStatsService.GetPeerTraffic:output_type -> papiliovpn.node.v1.WireGuardPeerTraffic
-	3, // 5: papiliovpn.node.v1.WireGuardStatsService.ResetPeerTraffic:output_type -> papiliovpn.node.v1.WireGuardPeerTraffic
-	3, // [3:6] is the sub-list for method output_type
-	0, // [0:3] is the sub-list for method input_type
+	0, // 3: papiliovpn.node.v1.WireGuardStatsService.GetInterfaceUsage:input_type -> papiliovpn.node.v1.WireGuardInterfaceTrafficRequest
+	0, // 4: papiliovpn.node.v1.WireGuardStatsService.ResetInterfaceUsage:input_type -> papiliovpn.node.v1.WireGuardInterfaceTrafficRequest
+	1, // 5: papiliovpn.node.v1.WireGuardStatsService.GetInterfaceTraffic:output_type -> papiliovpn.node.v1.WireGuardInterfaceTraffic
+	3, // 6: papiliovpn.node.v1.WireGuardStatsService.GetPeerTraffic:output_type -> papiliovpn.node.v1.WireGuardPeerTraffic
+	3, // 7: papiliovpn.node.v1.WireGuardStatsService.ResetPeerTraffic:output_type -> papiliovpn.node.v1.WireGuardPeerTraffic
+	4, // 8: papiliovpn.node.v1.WireGuardStatsService.GetInterfaceUsage:output_type -> papiliovpn.node.v1.WireGuardInterfaceUsage
+	4, // 9: papiliovpn.node.v1.WireGuardStatsService.ResetInterfaceUsage:output_type -> papiliovpn.node.v1.WireGuardInterfaceUsage
+	5, // [5:10] is the sub-list for method output_type
+	0, // [0:5] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
@@ -290,7 +354,7 @@ func file_proto_v1_wireguard_stats_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_v1_wireguard_stats_proto_rawDesc), len(file_proto_v1_wireguard_stats_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   4,
+			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

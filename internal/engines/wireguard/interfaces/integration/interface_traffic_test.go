@@ -20,6 +20,50 @@ type trafficCounters struct {
 	TXBytes uint64 `json:"tx_bytes,string"`
 }
 
+func assertInterfaceUsage(t *testing.T, f fixture, client statsv1.WireGuardStatsServiceClient, ping func()) {
+	t.Helper()
+	initial := readTrafficCountersHTTP(t, f, http.MethodGet, "/traffic", http.StatusOK)
+	if initial.RXBytes == 0 || initial.TXBytes == 0 {
+		t.Fatalf("need traffic before establishing the usage baseline, got %+v", initial)
+	}
+	if got := readTrafficCountersHTTP(t, f, http.MethodGet, "/usage", http.StatusOK); got != (trafficCounters{}) {
+		t.Fatalf("first usage read = %+v, want zero", got)
+	}
+	ping()
+	current := readTrafficCountersHTTP(t, f, http.MethodGet, "/traffic", http.StatusOK)
+	want := trafficCounters{RXBytes: current.RXBytes - initial.RXBytes, TXBytes: current.TXBytes - initial.TXBytes}
+	if want.RXBytes == 0 || want.TXBytes == 0 {
+		t.Fatalf("need traffic in both directions after establishing the baseline, got %+v", want)
+	}
+	if got := readTrafficCountersHTTP(t, f, http.MethodGet, "/usage", http.StatusOK); got != want {
+		t.Fatalf("usage = %+v, want %+v", got, want)
+	}
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	defer cancel()
+	request := &statsv1.WireGuardInterfaceTrafficRequest{Name: interfaceName}
+	if got, err := client.GetInterfaceUsage(ctx, request); err != nil || got.GetRxBytes() != want.RXBytes || got.GetTxBytes() != want.TXBytes {
+		t.Fatalf("gRPC usage = %v, %v, want %+v", got, err, want)
+	}
+	if got := readTrafficCountersHTTP(t, f, http.MethodPost, "/usage/resets", http.StatusOK); got != want {
+		t.Fatalf("reset = %+v, want %+v", got, want)
+	}
+	if got := readTrafficCountersHTTP(t, f, http.MethodGet, "/usage", http.StatusOK); got != (trafficCounters{}) {
+		t.Fatalf("usage after reset = %+v, want zero", got)
+	}
+	if got := readTrafficCountersHTTP(t, f, http.MethodGet, "/traffic", http.StatusOK); got != current {
+		t.Fatalf("kernel counters after reset = %+v, want %+v", got, current)
+	}
+	ping()
+	next := readTrafficCountersHTTP(t, f, http.MethodGet, "/traffic", http.StatusOK)
+	want = trafficCounters{RXBytes: next.RXBytes - current.RXBytes, TXBytes: next.TXBytes - current.TXBytes}
+	if got, err := client.ResetInterfaceUsage(ctx, request); err != nil || got.GetRxBytes() != want.RXBytes || got.GetTxBytes() != want.TXBytes {
+		t.Fatalf("gRPC reset = %v, %v, want %+v", got, err, want)
+	}
+	if got := readTrafficCountersHTTP(t, f, http.MethodGet, "/usage", http.StatusOK); got != (trafficCounters{}) {
+		t.Fatalf("usage after gRPC reset = %+v, want zero", got)
+	}
+}
+
 func trafficClient(t *testing.T, f fixture) statsv1.WireGuardStatsServiceClient {
 	t.Helper()
 	conn, err := grpc.NewClient(f.grpc, grpc.WithTransportCredentials(insecure.NewCredentials()))

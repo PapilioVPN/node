@@ -8,6 +8,8 @@ service WireGuardStatsService {
   rpc GetInterfaceTraffic(WireGuardInterfaceTrafficRequest) returns (WireGuardInterfaceTraffic);
   rpc GetPeerTraffic(WireGuardPeerTrafficRequest) returns (WireGuardPeerTraffic);
   rpc ResetPeerTraffic(WireGuardPeerTrafficRequest) returns (WireGuardPeerTraffic);
+  rpc GetInterfaceUsage(WireGuardInterfaceTrafficRequest) returns (WireGuardInterfaceUsage);
+  rpc ResetInterfaceUsage(WireGuardInterfaceTrafficRequest) returns (WireGuardInterfaceUsage);
 }
 
 message WireGuardInterfaceTrafficRequest {
@@ -28,6 +30,13 @@ message WireGuardPeerTrafficRequest {
 message WireGuardPeerTraffic {
   // Bytes since the latest logical reset in this Node process, or since the
   // current peer was created. ResetPeerTraffic returns the preceding period.
+  uint64 rx_bytes = 1;
+  uint64 tx_bytes = 2;
+}
+
+message WireGuardInterfaceUsage {
+  // Bytes since the first successful usage read or most recent logical reset.
+  // ResetInterfaceUsage returns the preceding period.
   uint64 rx_bytes = 1;
   uint64 tx_bytes = 2;
 }

@@ -99,6 +99,7 @@ func TestManagedExecution(t *testing.T) {
 		assertActivePeerStats(t, f, client, peer)
 		assertPeerTraffic(t, f, stats, peer, ping)
 		assertInterfaceTraffic(t, f, stats, true)
+		assertInterfaceUsage(t, f, stats, ping)
 		assertPeerSync(t, f, client, peer)
 		assertPeerDelta(t, f, client, privateKey.PublicKey().Bytes())
 		before, err := net.InterfaceByName(interfaceName)

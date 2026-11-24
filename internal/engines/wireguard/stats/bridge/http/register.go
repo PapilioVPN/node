@@ -16,13 +16,19 @@ import (
 
 func Register(router chi.Router, service *traffic.Service) {
 	const path = "/v1/wireguard/interfaces/{name}"
-	router.Get(path+"/traffic", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Cache-Control", "no-store")
-		counters, err := service.GetInterfaceTraffic(r.Context(), interfaceName(r))
-		writeCounters(w, counters, err)
-	})
+	router.Get(path+"/traffic", linkTraffic(service.GetInterfaceTraffic))
+	router.Get(path+"/usage", linkTraffic(service.GetInterfaceUsage))
+	router.Post(path+"/usage/resets", linkTraffic(service.ResetInterfaceUsage))
 	router.Get(path+"/peers/{key}/traffic", peerTraffic(service.GetPeerTraffic))
 	router.Post(path+"/peers/{key}/traffic/resets", peerTraffic(service.ResetPeerTraffic))
+}
+
+func linkTraffic(read func(context.Context, string) (traffic.Counters, error)) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-store")
+		counters, err := read(r.Context(), interfaceName(r))
+		writeCounters(w, counters, err)
+	}
 }
 
 func interfaceName(r *http.Request) string {
@@ -71,8 +77,8 @@ func writeError(w http.ResponseWriter, err error) {
 		http.Error(w, err.Error(), http.StatusNotFound)
 	case errors.Is(err, traffic.ErrResetCapacity), errors.Is(err, status.ErrBusy):
 		http.Error(w, err.Error(), http.StatusTooManyRequests)
-	case errors.Is(err, traffic.ErrResetDisabled):
-		http.Error(w, traffic.ErrResetDisabled.Error(), http.StatusConflict)
+	case errors.Is(err, traffic.ErrResetDisabled), errors.Is(err, traffic.ErrLinkResetDisabled):
+		http.Error(w, err.Error(), http.StatusConflict)
 	case errors.Is(err, context.DeadlineExceeded):
 		http.Error(w, "wireguard traffic deadline exceeded", http.StatusGatewayTimeout)
 	case errors.Is(err, context.Canceled):

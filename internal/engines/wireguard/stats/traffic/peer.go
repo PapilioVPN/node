@@ -105,4 +105,6 @@ func (service *Service) ForgetLinkTraffic() {
 	defer service.mu.Unlock()
 	service.revision++
 	clear(service.resets)
+	service.linkRevision++
+	service.linkBase = LinkTrafficSample{}
 }

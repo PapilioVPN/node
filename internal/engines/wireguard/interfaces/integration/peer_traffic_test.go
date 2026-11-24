@@ -28,16 +28,16 @@ func assertPeerTraffic(t *testing.T, f fixture, client statsv1.WireGuardStatsSer
 	request := &statsv1.WireGuardPeerTrafficRequest{Name: interfaceName, PublicKey: publicKey}
 	before := readPeerStatsHTTP(t, f).Peers[0]
 	want := trafficCounters{RXBytes: before.RXBytes, TXBytes: before.TXBytes}
-	if got := readPeerTrafficHTTP(t, f, http.MethodGet, path, http.StatusOK); got != want {
+	if got := readTrafficCountersHTTP(t, f, http.MethodGet, path, http.StatusOK); got != want {
 		t.Fatalf("initial peer traffic = %+v, want %+v", got, want)
 	}
 	if response, err := client.GetPeerTraffic(ctx, request); err != nil || response.GetRxBytes() != want.RXBytes || response.GetTxBytes() != want.TXBytes {
 		t.Fatalf("initial gRPC peer traffic = %v, %v, want %+v", response, err, want)
 	}
-	if got := readPeerTrafficHTTP(t, f, http.MethodPost, path+"/resets", http.StatusOK); got != want {
+	if got := readTrafficCountersHTTP(t, f, http.MethodPost, path+"/resets", http.StatusOK); got != want {
 		t.Fatalf("reset peer traffic = %+v, want %+v", got, want)
 	}
-	if got := readPeerTrafficHTTP(t, f, http.MethodGet, path, http.StatusOK); got != (trafficCounters{}) {
+	if got := readTrafficCountersHTTP(t, f, http.MethodGet, path, http.StatusOK); got != (trafficCounters{}) {
 		t.Fatalf("peer traffic after reset = %+v", got)
 	}
 	after := readPeerStatsHTTP(t, f).Peers[0]
@@ -53,12 +53,12 @@ func assertPeerTraffic(t *testing.T, f fixture, client statsv1.WireGuardStatsSer
 	if response, err := client.ResetPeerTraffic(ctx, request); err != nil || response.GetRxBytes() != want.RXBytes || response.GetTxBytes() != want.TXBytes {
 		t.Fatalf("gRPC reset = %v, %v, want %+v", response, err, want)
 	}
-	if got := readPeerTrafficHTTP(t, f, http.MethodGet, path, http.StatusOK); got != (trafficCounters{}) {
+	if got := readTrafficCountersHTTP(t, f, http.MethodGet, path, http.StatusOK); got != (trafficCounters{}) {
 		t.Fatalf("peer traffic after gRPC reset = %+v", got)
 	}
 	missing := sha256.Sum256([]byte("unconfigured WireGuard peer"))
-	readPeerTrafficHTTP(t, f, http.MethodGet, "/peers/"+base64.RawURLEncoding.EncodeToString(missing[:])+"/traffic", http.StatusNotFound)
-	readPeerTrafficHTTP(t, f, http.MethodGet, "/peers/invalid/traffic", http.StatusBadRequest)
+	readTrafficCountersHTTP(t, f, http.MethodGet, "/peers/"+base64.RawURLEncoding.EncodeToString(missing[:])+"/traffic", http.StatusNotFound)
+	readTrafficCountersHTTP(t, f, http.MethodGet, "/peers/invalid/traffic", http.StatusBadRequest)
 	request.PublicKey = missing[:]
 	if _, err := client.GetPeerTraffic(ctx, request); status.Code(err) != codes.NotFound {
 		t.Fatalf("missing peer returned %v, want NotFound", err)
@@ -69,7 +69,7 @@ func assertPeerTraffic(t *testing.T, f fixture, client statsv1.WireGuardStatsSer
 	}
 }
 
-func readPeerTrafficHTTP(t testing.TB, f fixture, method, path string, wantStatus int) trafficCounters {
+func readTrafficCountersHTTP(t testing.TB, f fixture, method, path string, wantStatus int) trafficCounters {
 	t.Helper()
 	request, err := http.NewRequestWithContext(t.Context(), method, f.address+interfaceURL+path, nil)
 	if err != nil {
@@ -81,7 +81,7 @@ func readPeerTrafficHTTP(t testing.TB, f fixture, method, path string, wantStatu
 	}
 	defer reply.Body.Close()
 	if reply.StatusCode != wantStatus {
-		t.Fatalf("peer traffic %s %s = %s, want %d", method, path, reply.Status, wantStatus)
+		t.Fatalf("traffic %s %s = %s, want %d", method, path, reply.Status, wantStatus)
 	}
 	var result trafficCounters
 	if wantStatus == http.StatusOK {
@@ -105,7 +105,7 @@ func BenchmarkPeerTraffic(b *testing.B) {
 			b.Run("SelectedHTTP", func(b *testing.B) {
 				b.ReportAllocs()
 				for b.Loop() {
-					if got := readPeerTrafficHTTP(b, f, http.MethodGet, path, http.StatusOK); got != (trafficCounters{}) {
+					if got := readTrafficCountersHTTP(b, f, http.MethodGet, path, http.StatusOK); got != (trafficCounters{}) {
 						b.Fatalf("idle peer counters = %+v", got)
 					}
 				}
@@ -131,7 +131,7 @@ func BenchmarkPeerTraffic(b *testing.B) {
 			b.Run("ResetHTTP", func(b *testing.B) {
 				b.ReportAllocs()
 				for b.Loop() {
-					if got := readPeerTrafficHTTP(b, f, http.MethodPost, path+"/resets", http.StatusOK); got != (trafficCounters{}) {
+					if got := readTrafficCountersHTTP(b, f, http.MethodPost, path+"/resets", http.StatusOK); got != (trafficCounters{}) {
 						b.Fatalf("idle peer counters = %+v", got)
 					}
 				}

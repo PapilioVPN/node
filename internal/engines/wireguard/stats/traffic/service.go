@@ -21,7 +21,7 @@ type PeerStats struct {
 }
 
 type LinkReader interface {
-	ReadInterfaceTraffic(context.Context, string) (Counters, error)
+	ReadInterfaceTraffic(context.Context, string) (LinkTrafficSample, error)
 }
 
 type PeerReader interface {
@@ -35,10 +35,13 @@ type Service struct {
 	peers   PeerReader
 	managed bool
 
-	peerRead sync.Mutex
-	mu       sync.Mutex
-	revision uint64
-	resets   map[[32]byte]peerReset
+	peerRead     sync.Mutex
+	linkRead     sync.Mutex
+	mu           sync.Mutex
+	revision     uint64
+	resets       map[[32]byte]peerReset
+	linkRevision uint64
+	linkBase     LinkTrafficSample
 }
 
 func New(name string, links LinkReader, peers PeerReader, managed bool) *Service {
@@ -49,7 +52,8 @@ func (service *Service) GetInterfaceTraffic(ctx context.Context, name string) (C
 	if name == "" || name != service.name {
 		return Counters{}, status.ErrNotFound
 	}
-	return service.links.ReadInterfaceTraffic(ctx, name)
+	sample, err := service.links.ReadInterfaceTraffic(ctx, name)
+	return sample.Counters, err
 }
 
 func (service *Service) ListPeerStats(ctx context.Context, name string) ([]PeerStats, error) {

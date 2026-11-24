@@ -40,6 +40,21 @@ func (h *handlers) ResetPeerTraffic(ctx context.Context, req *statsv1.WireGuardP
 	return peerResponse(h.service.ResetPeerTraffic(ctx, req.GetName(), req.GetPublicKey()))
 }
 
+func (h *handlers) GetInterfaceUsage(ctx context.Context, req *statsv1.WireGuardInterfaceTrafficRequest) (*statsv1.WireGuardInterfaceUsage, error) {
+	return usageResponse(h.service.GetInterfaceUsage(ctx, req.GetName()))
+}
+
+func (h *handlers) ResetInterfaceUsage(ctx context.Context, req *statsv1.WireGuardInterfaceTrafficRequest) (*statsv1.WireGuardInterfaceUsage, error) {
+	return usageResponse(h.service.ResetInterfaceUsage(ctx, req.GetName()))
+}
+
+func usageResponse(counters traffic.Counters, err error) (*statsv1.WireGuardInterfaceUsage, error) {
+	if err != nil {
+		return nil, trafficError(err)
+	}
+	return &statsv1.WireGuardInterfaceUsage{RxBytes: counters.RXBytes, TxBytes: counters.TXBytes}, nil
+}
+
 func peerResponse(counters traffic.Counters, err error) (*statsv1.WireGuardPeerTraffic, error) {
 	if err != nil {
 		return nil, trafficError(err)
@@ -55,8 +70,8 @@ func trafficError(err error) error {
 		return status.Error(codes.NotFound, err.Error())
 	case errors.Is(err, interfacestatus.ErrBusy), errors.Is(err, traffic.ErrResetCapacity):
 		return status.Error(codes.ResourceExhausted, err.Error())
-	case errors.Is(err, traffic.ErrResetDisabled):
-		return status.Error(codes.FailedPrecondition, traffic.ErrResetDisabled.Error())
+	case errors.Is(err, traffic.ErrResetDisabled), errors.Is(err, traffic.ErrLinkResetDisabled):
+		return status.Error(codes.FailedPrecondition, err.Error())
 	case errors.Is(err, context.Canceled):
 		return status.Error(codes.Canceled, "wireguard request canceled")
 	case errors.Is(err, context.DeadlineExceeded):

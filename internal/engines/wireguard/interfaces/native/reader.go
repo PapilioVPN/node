@@ -59,16 +59,20 @@ func (reader *Reader) Read(ctx context.Context, name string) (status.Interface, 
 	return interfaceStatus(link), nil
 }
 
-func (reader *Reader) ReadInterfaceTraffic(ctx context.Context, name string) (traffic.Counters, error) {
+func (reader *Reader) ReadInterfaceTraffic(ctx context.Context, name string) (traffic.LinkTrafficSample, error) {
 	link, err := reader.readLink(ctx, name)
 	if err != nil {
-		return traffic.Counters{}, err
+		return traffic.LinkTrafficSample{}, err
 	}
-	counters := link.Attrs().Statistics
+	attrs := link.Attrs()
+	counters := attrs.Statistics
 	if counters == nil {
-		return traffic.Counters{}, status.ErrUnavailable
+		return traffic.LinkTrafficSample{}, status.ErrUnavailable
 	}
-	return traffic.Counters{RXBytes: counters.RxBytes, TXBytes: counters.TxBytes}, nil
+	return traffic.LinkTrafficSample{
+		Counters: traffic.Counters{RXBytes: counters.RxBytes, TXBytes: counters.TxBytes},
+		Index:    attrs.Index, Alias: attrs.Alias,
+	}, nil
 }
 
 func (reader *Reader) readLink(ctx context.Context, name string) (netlink.Link, error) {
