@@ -133,17 +133,20 @@ def proto_bytes(field, content):
     return varint((field << 3) | 2) + varint(len(content)) + content
 
 
-def peer_records(count, changed):
-    addresses = [f"198.18.{(i + 2) // 256}.{(i + 2) % 256}/32" for i in range(count)]
+def peer_record(key, address, email, name):
+    wireguard = proto_bytes(1, key) + proto_bytes(2, address.encode())
+    user = (proto_bytes(1, email.encode()) + proto_bytes(2, proto_bytes(5, wireguard))
+            + proto_bytes(3, name.encode()))
+    return {"public_key": key.decode(), "allowed_ips": [address]}, user
+
+
+def peer_records(count, changed, name=peer_interface, pool="198.18", first_host=2):
+    addresses = [f"{pool}.{host // 256}.{host % 256}/32" for host in range(first_host, first_host + count)]
     if changed:
-        addresses[0] = "198.18.255.254/32"
+        addresses[0] = f"{pool}.255.254/32"
     for i, address in enumerate(addresses):
         key = base64.b64encode(hashlib.sha256(f"isolated peer {i}".encode()).digest())
-        wireguard = proto_bytes(1, key) + proto_bytes(2, address.encode())
-        user = (proto_bytes(1, f"bench-{i}@example.invalid".encode())
-                + proto_bytes(2, proto_bytes(5, wireguard))
-                + proto_bytes(3, peer_interface.encode()))
-        yield {"public_key": key.decode(), "allowed_ips": [address]}, user
+        yield peer_record(key, address, f"bench-{i}@example.invalid", name)
 
 
 def peer_payloads(count, changed):
@@ -195,6 +198,107 @@ def measure_interface_traffic(cases, reference_name, usage=False):
     for label, (conn, _, _, _, method, path, _) in cases:
         request(conn, method, path)
         check_link_removed(names[label])
+
+
+def usage_client(stack, index, server_ip, client_ip, server_port, secret):
+    child = subprocess.Popen(["unshare", "--net", "sh", "-c", "echo ready; read -r hold"],
+                             stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
+
+    def close():
+        child.stdin.close()
+        try:
+            child.wait(timeout=3)
+        except subprocess.TimeoutExpired:
+            child.kill()
+            child.wait()
+        child.stdout.close()
+
+    stack.callback(close)
+    if child.stdout.readline() != "ready\n":
+        raise RuntimeError("client network namespace failed")
+    run = ["nsenter", "--target", str(child.pid), "--net", "--"]
+    wire = f"wguplink{index}"
+    server_underlay = f"198.51.100.{4 * index + 1}"
+    client_underlay = f"198.51.100.{4 * index + 2}"
+    subprocess.run(["ip", "link", "add", wire, "type", "veth", "peer", "name", "underlay", "netns", str(child.pid)], check=True)
+    subprocess.run(["ip", "addr", "add", server_underlay + "/30", "dev", wire], check=True)
+    subprocess.run(["ip", "link", "set", wire, "up"], check=True)
+    subprocess.run(run + ["ip", "addr", "add", client_underlay + "/30", "dev", "underlay"], check=True)
+    subprocess.run(run + ["ip", "link", "set", "underlay", "up"], check=True)
+    subprocess.run(run + ["ip", "link", "add", "wg-client", "type", "wireguard"], check=True)
+    subprocess.run(run + ["ip", "addr", "add", client_ip + "/24", "dev", "wg-client"], check=True)
+    server_key = subprocess.check_output(["wg", "pubkey"], input=private_key + "\n", text=True).strip()
+    settings = (f"[Interface]\nPrivateKey = {secret}\n[Peer]\nPublicKey = {server_key}\n"
+                f"AllowedIPs = {server_ip}/32\nEndpoint = {server_underlay}:{server_port}\n")
+    subprocess.run(run + ["wg", "setconf", "wg-client", "/dev/stdin"], input=settings, text=True, check=True)
+    subprocess.run(run + ["ip", "link", "set", "wg-client", "up"], check=True)
+    subprocess.run(run + ["ping", "-n", "-c", "1", "-W", "3", server_ip], check=True, stdout=subprocess.DEVNULL)
+
+
+def measure_sampled_usage(cases, reference_name):
+    name_by_label = {"node": peer_interface, "pasarguard": reference_name}
+    email = "sampled-peer@example.invalid"
+    node_root = f"/v1/wireguard/interfaces/{peer_interface}/peers"
+    for count in (1, 1000):
+        operations = {}
+        with ExitStack() as clients:
+            for index, (label, args) in enumerate(cases):
+                conn, method, path, source, _, _, valid = args
+                _, reply = request(conn, method, path, source)
+                assert valid(reply)
+                name = name_by_label[label]
+                pool = "198.18" if label == "node" else "198.19"
+                client_ip, server_ip = f"{pool}.0.2", f"{pool}.0.1"
+                secret = subprocess.check_output(["wg", "genkey"], text=True).strip()
+                key = subprocess.check_output(["wg", "pubkey"], input=secret + "\n", text=True).strip()
+                active = peer_record(key.encode(), client_ip + "/32", email, name)
+                peers, users = zip(active, *peer_records(count - 1, False, name, pool=pool, first_host=3))
+                if label == "node":
+                    request(conn, "PUT", node_root, json.dumps({"peers": peers}).encode())
+                    key_path = base64.urlsafe_b64encode(base64.b64decode(key)).decode().rstrip("=")
+                    single, group = f"{node_root}/{key_path}/usage", node_root + "/usage"
+                    operations[label] = [("GET", single, None), ("GET", group, None),
+                                         ("POST", single + "/resets", None), ("POST", group + "/resets", None)]
+                else:
+                    request(conn, "PUT", "/users/sync", b"".join(proto_bytes(1, user) for user in users))
+                    single, group = proto_bytes(1, email.encode()) + b"\x18\x05", b"\x18\x04"
+                    operations[label] = [("GET", "/stats/", body) for body in (single, group, single + b"\x10\x01", group + b"\x10\x01")]
+                check_peers({peer["public_key"]: peer["allowed_ips"][0] for peer in peers}, name)
+                usage_client(clients, index, server_ip, client_ip, 51820 + index, secret)
+
+            def read(label, conn, operation, nonzero):
+                elapsed, payload = request(conn, *operations[label][operation])
+                if label == "node":
+                    usage = json.loads(payload).get("peer" if operation % 2 == 0 else "peers")
+                    seen = bool(usage)
+                else:
+                    seen = bool(payload)
+                assert seen == nonzero, (label, operation, payload)
+                return elapsed
+
+            for label, (conn, *_) in cases:
+                deadline = time.monotonic() + 15
+                while True:
+                    _, payload = request(conn, *operations[label][0])
+                    if (bool(json.loads(payload).get("peer")) if label == "node" else bool(payload)):
+                        break
+                    if time.monotonic() >= deadline:
+                        raise RuntimeError(f"{label} sampled usage was empty after exchanging traffic")
+                    time.sleep(.05)
+
+            for operation, operation_name in enumerate(("peer_read", "group_read", "peer_reset", "group_reset")):
+                if operation == 2:
+                    for label, (conn, *_) in cases:
+                        read(label, conn, 3, nonzero=True)
+                for block in range(1, 5):
+                    for label, (conn, *_) in cases if block % 2 else reversed(cases):
+                        for iteration in range(-5, 40):
+                            elapsed = read(label, conn, operation, nonzero=operation < 2)
+                            if iteration >= 0:
+                                print(f"{block},{label},{operation_name}_{count}_peers,{iteration + 1},{elapsed}")
+        for label, (conn, _, _, _, method, path, _) in cases:
+            request(conn, method, path)
+            check_link_removed(name_by_label[label])
 
 
 def measure_peers(cases, phases=("noop", "changed")):
@@ -281,11 +385,11 @@ def measure_peer_delta(cases):
 
 def main():
     mode = sys.argv[3] if len(sys.argv) >= 4 else ""
-    link_test = mode in ("--interface-traffic", "--interface-usage")
+    link_test = mode in ("--interface-traffic", "--interface-usage", "--sampled-peer-usage")
     valid_args = (len(sys.argv) == 3 or len(sys.argv) == 4 and (link_test or mode in ("--lifecycle-check", "--live-mtu", "--peer-sync", "--peer-delta"))
                   or len(sys.argv) == 5 and mode in ("--peer-sync", "--peer-replay", "--peer-delta"))
     if not valid_args:
-        raise SystemExit("usage: measure-lifecycle.py NODE PASARGUARD [--lifecycle-check|--live-mtu|--interface-traffic|--interface-usage|--peer-sync [PREVIOUS_NODE]|--peer-replay PREVIOUS_NODE|--peer-delta [PREVIOUS_NODE]]")
+        raise SystemExit("usage: measure-lifecycle.py NODE PASARGUARD [--lifecycle-check|--live-mtu|--interface-traffic|--interface-usage|--sampled-peer-usage|--peer-sync [PREVIOUS_NODE]|--peer-replay PREVIOUS_NODE|--peer-delta [PREVIOUS_NODE]]")
     parent = os.environ.get("NODE_TEST_WIREGUARD_PARENT_NETNS")
     if not parent or parent == os.readlink("/proc/self/ns/net"):
         raise RuntimeError("run in a separate network namespace")
@@ -329,7 +433,7 @@ wireguard:
                      "PG_NODE_WG_HOST_ROUTING": "false", "PG_NODE_WG_NAT_DISABLE": "true"},
                      "reference", directory, context, ref_port, "/info", timeout)
         local = {"listen_port": 51820, "private_key": private_key}
-        address = "198.18.0.1/16" if peer_test else "192.0.2.1/24"
+        address = "198.18.0.1/16" if peer_test or mode == "--sampled-peer-usage" else "192.0.2.1/24"
         reference_name = "wg-bench1" if link_test else peer_interface
 
         def node_config(mtu):
@@ -338,7 +442,8 @@ wireguard:
         def ref_config(mtu):
             reference = {**local, "mtu": mtu, "interface_name": reference_name, "address": [address]}
             if link_test:
-                reference.update(listen_port=51821, address=["192.0.2.2/24"])
+                ref_address = "198.19.0.1/16" if mode == "--sampled-peer-usage" else "192.0.2.2/24"
+                reference.update(listen_port=51821, address=[ref_address])
             config = json.dumps(reference).encode()
             return b"\x08\x01\x12" + varint(len(config)) + config
 
@@ -356,6 +461,9 @@ wireguard:
             ("pasarguard", (ref, "POST", "/start", pg_source, "PUT", "/stop", ref_valid)),
         ]
         print("run,implementation,operation,iteration,nanoseconds")
+        if mode == "--sampled-peer-usage":
+            measure_sampled_usage(cases, reference_name)
+            return
         if link_test:
             measure_interface_traffic(cases, reference_name, usage=mode == "--interface-usage")
             return
