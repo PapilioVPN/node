@@ -128,7 +128,7 @@ func (control *Control) Create(ctx context.Context, owner lifecycle.Link, config
 }
 
 func (control *Control) configure(ctx context.Context, index int, config lifecycle.Config) error {
-	if err := control.prepareWireGuard(ctx); err != nil {
+	if err := control.prepareWireGuard(ctx, wireGuardDeadline(ctx)); err != nil {
 		return err
 	}
 	encoder := gennetlink.NewAttributeEncoder()
@@ -143,7 +143,7 @@ func (control *Control) configure(ctx context.Context, index int, config lifecyc
 	return control.setWireGuard(data)
 }
 
-func (control *Control) prepareWireGuard(ctx context.Context) error {
+func (control *Control) prepareWireGuard(ctx context.Context, deadline time.Time) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -154,7 +154,7 @@ func (control *Control) prepareWireGuard(ctx context.Context) error {
 		}
 		control.generic = generic
 	}
-	if err := control.generic.SetDeadline(wireGuardDeadline(ctx)); err != nil {
+	if err := control.generic.SetDeadline(deadline); err != nil {
 		return err
 	}
 	if control.family.ID == 0 {

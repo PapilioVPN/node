@@ -2,9 +2,9 @@
 package http
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
+	jsonv2 "encoding/json/v2"
 	"errors"
 	"io"
 	"net/http"
@@ -67,9 +67,7 @@ func Register(router chi.Router, service *status.Service, managed *lifecycle.Ser
 		var body struct {
 			Peers []peers.Input `json:"peers"`
 		}
-		decoder := json.NewDecoder(bytes.NewReader(source))
-		decoder.DisallowUnknownFields()
-		if err := decoder.Decode(&body); err != nil || body.Peers == nil || decoder.Decode(new(json.RawMessage)) != io.EOF {
+		if err := jsonv2.Unmarshal(source, &body, json.DefaultOptionsV1(), jsonv2.RejectUnknownMembers(true)); err != nil || body.Peers == nil {
 			writeError(w, peers.ErrInvalid)
 			return
 		}

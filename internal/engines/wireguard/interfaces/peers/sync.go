@@ -92,6 +92,12 @@ func Prepare(input []Input) ([]Peer, error) {
 }
 
 func Diff(current, desired []Peer) (updates, removals []Change, result Result) {
+	if slices.EqualFunc(current, desired, func(before, next Peer) bool {
+		return before.PublicKey == next.PublicKey && before.PresharedKey == next.PresharedKey &&
+			samePrefixes(before.AllowedIPs, next.AllowedIPs)
+	}) {
+		return nil, nil, result
+	}
 	byKey := make(map[[32]byte]int, len(current))
 	for i := range current {
 		byKey[current[i].PublicKey] = i

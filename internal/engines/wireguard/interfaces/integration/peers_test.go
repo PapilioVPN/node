@@ -40,6 +40,12 @@ func assertPeerSync(t *testing.T, f fixture, client interfacesv1.WireGuardInterf
 	if got := syncPeersHTTP(t, f, input, http.StatusOK); got != (peerSyncReply{}) {
 		t.Fatalf("idempotent sync returned %+v", got)
 	}
+	legacy := bytes.Replace(input, []byte(`"peers"`), []byte(`"PEERS"`), 1)
+	if got := syncPeersHTTP(t, f, legacy, http.StatusOK); got != (peerSyncReply{}) {
+		t.Fatalf("replay with a case-insensitive field returned %+v", got)
+	}
+	syncPeersHTTP(t, f, append(bytes.Clone(input), []byte(` {}`)...), http.StatusBadRequest)
+	syncPeersHTTP(t, f, []byte(`{"peers":[],"unexpected":true}`), http.StatusBadRequest)
 	if err := exec.CommandContext(t.Context(), "wg", "set", interfaceName, "peer", added, "allowed-ips", "192.0.2.9/32").Run(); err != nil {
 		t.Fatal(err)
 	}
@@ -65,6 +71,12 @@ func assertPeerSync(t *testing.T, f fixture, client interfacesv1.WireGuardInterf
 	if rpc.Updated != 1 || rpc.Added != 0 || rpc.Removed != 0 ||
 		!strings.Contains(wgOutput(t, "preshared-keys"), added+"\t"+base64.StdEncoding.EncodeToString(psk[:])) {
 		t.Fatal("gRPC did not update the preshared key")
+	}
+	if got := syncPeersHTTP(t, f, changed, http.StatusOK); got != (peerSyncReply{Updated: 1}) {
+		t.Fatalf("HTTP replay after gRPC updated the PSK returned %+v", got)
+	}
+	if !strings.Contains(wgOutput(t, "preshared-keys"), added+"\t(none)") {
+		t.Fatal("HTTP replay did not clear the preshared key")
 	}
 	if got := syncPeersHTTP(t, f, fmt.Appendf(nil, `{"peers":[%s]}`, activePeer), http.StatusOK); got != (peerSyncReply{Removed: 1}) {
 		t.Fatalf("remove returned %+v", got)

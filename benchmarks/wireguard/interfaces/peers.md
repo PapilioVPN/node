@@ -50,6 +50,35 @@ Each cell is the median of 50 authenticated HTTPS requests.
 
 [Raw replay request durations](results/peer-replay-https.csv)
 
+## Replay request and comparison costs
+
+The HTTP handler decodes the bounded request body directly using the existing
+JSON semantics. When the live and desired peers match in order, reconciliation
+finishes without building a key index. A different kernel order or a difference
+in a peer falls through to keyed reconciliation. Both paths read the kernel on
+every request. Integration tests check correction of both prefix and PSK drift.
+
+The three-build fixture uses `2d8cb42` as the previous Node build. The newer
+Node build also uses the peer operation's single deadline for all kernel reads
+and writes. The measurements below cover replay with no peer writes.
+
+| Peers | Previous Node p50, ms | Node p50, ms | PasarGuard p50, ms | Previous Node p95, ms | Node p95, ms | PasarGuard p95, ms |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 1 | 1.434 | 1.147 | 0.899 | 3.190 | 5.678 | 2.588 |
+| 100 | 2.242 | 1.584 | 1.750 | 5.345 | 3.035 | 4.317 |
+| 1,000 | 9.327 | 7.656 | 10.511 | 15.637 | 61.305 | 19.228 |
+
+Each column contains 50 requests across five alternating blocks. An earlier
+run of the same replay changes, before the write deadline adjustment, measured
+Node p50 at 0.874, 1.584 and 7.107 ms and PasarGuard at 0.721, 1.269 and
+7.939 ms. The relative result at 100 peers varied. Four 1,000-peer Node
+requests exceeded 50 ms in the first block of the final run and contribute
+to the reported tail. The reference answers replay from its in-memory store
+while Node verifies the live peer set and repairs drift.
+
+[Final request durations](results/peer-replay-overhead-https.csv)
+· [Earlier request durations](results/peer-replay-overhead-preliminary-https.csv)
+
 Use the setup in [the lifecycle benchmark](lifecycle.md#reproduce) with
 two allowed logical CPUs in `taskset` and add `--peer-sync` after the
 PasarGuard binary path. For the three-build replay fixture, use

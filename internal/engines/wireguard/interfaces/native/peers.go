@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/netip"
 	"os"
+	"time"
 
 	"github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/lifecycle"
 	"github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/peers"
@@ -37,7 +38,11 @@ func (control *Control) SyncPeers(ctx context.Context, owner lifecycle.Link, des
 	if !link.Up || link.Name != owner.Name {
 		return peers.Result{}, status.ErrUnavailable
 	}
-	snapshot, err := control.readPeers(ctx, owner.Index, len(desired))
+	allowedIPCount := 0
+	for i := range desired {
+		allowedIPCount += len(desired[i].AllowedIPs)
+	}
+	snapshot, err := control.readPeers(ctx, owner.Index, len(desired), allowedIPCount)
 	if err != nil {
 		if errors.Is(err, os.ErrDeadlineExceeded) {
 			return peers.Result{}, context.DeadlineExceeded
@@ -61,12 +66,13 @@ func (control *Control) SyncPeers(ctx context.Context, owner lifecycle.Link, des
 	return result, nil
 }
 
-func (control *Control) readPeers(ctx context.Context, index, expected int) (snapshot peerSnapshot, err error) {
+func (control *Control) readPeers(ctx context.Context, index, expectedPeers, expectedIPs int) (snapshot peerSnapshot, err error) {
 	if err := ctx.Err(); err != nil {
 		return snapshot, err
 	}
+	deadline := peerDeadline(ctx)
 	if control.family.ID == 0 {
-		if err := control.prepareWireGuard(ctx); err != nil {
+		if err := control.prepareWireGuard(ctx, deadline); err != nil {
 			return snapshot, err
 		}
 	}
@@ -83,10 +89,6 @@ func (control *Control) readPeers(ctx context.Context, index, expected int) (sna
 		}
 	}()
 	// A multipart dump shares the operation deadline across all datagrams.
-	deadline, ok := ctx.Deadline()
-	if !ok {
-		deadline = wireGuardDeadline(ctx)
-	}
 	if err := control.peerDump.SetDeadline(deadline); err != nil {
 		return peerSnapshot{}, err
 	}
@@ -103,8 +105,8 @@ func (control *Control) readPeers(ctx context.Context, index, expected int) (sna
 	if err != nil {
 		return peerSnapshot{}, err
 	}
-	snapshot.peers = make([]peers.Peer, 0, expected)
-	snapshot.allowedIPs = make([]netip.Prefix, 0, expected)
+	snapshot.peers = make([]peers.Peer, 0, expectedPeers)
+	snapshot.allowedIPs = make([]netip.Prefix, 0, expectedIPs)
 	seen := false
 	for message, err := range control.peerDump.ReceiveIter() {
 		if err != nil {
@@ -269,6 +271,12 @@ func decodeAllowedIP(data []byte) (netip.Prefix, error) {
 }
 
 func (control *Control) writePeers(ctx context.Context, index int, changes []peers.Change) error {
+	if len(changes) == 0 {
+		return nil
+	}
+	// Kernel batches may wait for affected peers to retire. Use the shared
+	// operation deadline so individual writes cannot extend the total budget.
+	deadline := peerDeadline(ctx)
 	for len(changes) != 0 {
 		size, end := 0, 0
 		for end < len(changes) {
@@ -279,7 +287,7 @@ func (control *Control) writePeers(ctx context.Context, index int, changes []pee
 			}
 			end++
 		}
-		if err := control.prepareWireGuard(ctx); err != nil {
+		if err := control.prepareWireGuard(ctx, deadline); err != nil {
 			return err
 		}
 		encoder := gennetlink.NewAttributeEncoder()
@@ -306,6 +314,13 @@ func (control *Control) writePeers(ctx context.Context, index int, changes []pee
 		changes = changes[end:]
 	}
 	return nil
+}
+
+func peerDeadline(ctx context.Context) time.Time {
+	if deadline, ok := ctx.Deadline(); ok {
+		return deadline
+	}
+	return wireGuardDeadline(ctx)
 }
 
 func encodePeerChange(encoder *gennetlink.AttributeEncoder, change *peers.Change) {
