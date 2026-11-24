@@ -27,25 +27,34 @@ import (
 
 var operations = [3]string{"start", "status", "stop"}
 
-func HTTP(client *http.Client, node, reference string, payload []byte, methods protoreflect.MethodDescriptors) (nodeCall, referenceCall fixture.LifecycleCall) {
+func HTTP(client *http.Client, node, reference string, nodeConfig, referencePayload []byte, methods protoreflect.MethodDescriptors) (nodeCall, referenceCall fixture.LifecycleCall) {
+	var nodePayload []byte
+	if nodeConfig != nil {
+		nodePayload = append([]byte(`{"config":`), nodeConfig...)
+		nodePayload = append(nodePayload, '}')
+	}
 	nodeCall = httpCall(client, node, [3]string{"PUT", "GET", "DELETE"},
 		[3]string{"/v1/xray/instances/primary/execution", "/v1/xray/instances/primary", "/v1/xray/instances/primary/execution"},
-		nil, verifyNodeJSON)
+		nodePayload, verifyNodeJSON)
 	referenceCall = httpCall(client, reference, [3]string{"POST", "GET", "PUT"},
-		[3]string{"/start", "/info", "/stop"}, payload, func(op fixture.Action, data []byte) error {
+		[3]string{"/start", "/info", "/stop"}, referencePayload, func(op fixture.Action, data []byte) error {
 			return verifyReference(op, methods.ByName("GetBaseInfo").Output(), data)
 		})
 	return
 }
 
-func GRPC(nodeConn, refConn *grpc.ClientConn, refStart *dynamicpb.Message, methods protoreflect.MethodDescriptors) (nodeCall, referenceCall fixture.LifecycleCall) {
+func GRPC(nodeConn, refConn *grpc.ClientConn, nodeConfig []byte, refStart *dynamicpb.Message, methods protoreflect.MethodDescriptors) (nodeCall, referenceCall fixture.LifecycleCall) {
 	nodeClient := instancesv1.NewXrayInstancesServiceClient(nodeConn)
 	nodeCall = func(ctx context.Context, op fixture.Action) error {
 		ctx = metadata.AppendToOutgoingContext(ctx, "x-api-key", fixture.Key)
 		calls := [...]func(context.Context, *instancesv1.XrayInstanceRequest, ...grpc.CallOption) (*instancesv1.XrayInstanceStatus, error){
 			nodeClient.Start, nodeClient.GetStatus, nodeClient.Stop,
 		}
-		resp, err := calls[op](ctx, &instancesv1.XrayInstanceRequest{Id: "primary"})
+		req := &instancesv1.XrayInstanceRequest{Id: "primary"}
+		if op == fixture.Start {
+			req.ConfigJson = nodeConfig
+		}
+		resp, err := calls[op](ctx, req)
 		if err != nil {
 			return err
 		}

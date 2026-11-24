@@ -2,6 +2,7 @@
 package main
 
 import (
+	"bytes"
 	"crypto/tls"
 	"crypto/x509"
 	"errors"
@@ -32,6 +33,7 @@ import (
 func main() {
 	var protocol, node, nodePID, reference, referencePID, cert, descriptor, config string
 	var rounds, cycles, reads, trafficNames int
+	var startPathsDir string
 	var runtimeStats, outboundHealth bool
 	var outboundCase, outboundSamples string
 	var routingWork routing.Workload
@@ -50,6 +52,7 @@ func main() {
 	flag.StringVar(&config, "config", "", "common Xray JSON configuration")
 	flag.IntVar(&rounds, "rounds", 5, "alternating rounds")
 	flag.IntVar(&cycles, "cycles", 30, "lifecycle cycles per node per round")
+	flag.StringVar(&startPathsDir, "start-paths-dir", "", "write matched gRPC Start path samples to this directory")
 	flag.IntVar(&reads, "reads", 12, "status reads per running instance per cycle")
 	flag.BoolVar(&runtimeStats, "runtime-stats", false, "measure backend runtime statistics")
 	flag.StringVar(&runtimeStatsClients, "runtime-stats-clients", "1,8", "comma-separated client counts for runtime statistics")
@@ -75,6 +78,9 @@ func main() {
 	flag.Parse()
 	if (protocol != "http" && protocol != "grpc") || rounds < 1 || cycles < 1 || reads < 1 {
 		log.Fatal("specify http or grpc and positive workloads")
+	}
+	if startPathsDir != "" && protocol != "grpc" {
+		log.Fatal("Start path comparison requires gRPC")
 	}
 	var clientCounts []int
 	if trafficNames < 0 || trafficNames > 10000 || (trafficNames > 0 && runtimeStats) || (outboundHealth && (runtimeStats || trafficNames > 0)) {
@@ -124,8 +130,15 @@ func main() {
 	if routingWork.Rules > 0 {
 		config = routingConfig
 	}
+	configJSON := fixture.Read(config)
+	var nodeStartConfig []byte
+	if startPathsDir == "" && !runtimeStats && trafficNames == 0 && routingWork.Rules == 0 &&
+		!outboundHealth && accountWork.RuntimeDir == "" && logWork.Proxy == "" {
+		configJSON = bytes.TrimSpace(configJSON)
+		nodeStartConfig = configJSON
+	}
 	refStart := dynamicpb.NewMessage(methods.ByName("Start").Input())
-	refStart.Set(refStart.Descriptor().Fields().ByName("config"), protoreflect.ValueOfString(string(fixture.Read(config))))
+	refStart.Set(refStart.Descriptor().Fields().ByName("config"), protoreflect.ValueOfString(string(configJSON)))
 	payload, err := proto.Marshal(refStart)
 	fixture.Check(err)
 
@@ -144,7 +157,7 @@ func main() {
 		}
 		defer transport.CloseIdleConnections()
 		client := &http.Client{Transport: transport}
-		targets[0].Call, targets[1].Call = instances.HTTP(client, node, reference, payload, methods)
+		targets[0].Call, targets[1].Call = instances.HTTP(client, node, reference, nodeStartConfig, payload, methods)
 		if logWork.Proxy != "" {
 			logCalls[0] = logs.HTTP(client, node, false)
 			logCalls[1] = logs.HTTP(client, reference, true)
@@ -172,7 +185,11 @@ func main() {
 		refConn, err := grpc.NewClient(reference, grpc.WithTransportCredentials(credentials.NewTLS(tlsConfig)))
 		fixture.Check(err)
 		defer refConn.Close()
-		targets[0].Call, targets[1].Call = instances.GRPC(nodeConn, refConn, refStart, methods)
+		targets[0].Call, targets[1].Call = instances.GRPC(nodeConn, refConn, nodeStartConfig, refStart, methods)
+		if startPathsDir != "" {
+			instances.BenchmarkStartPaths(targets, nodeConn, refConn, methods.ByName("Start"), startPathsDir, rounds, cycles)
+			return
+		}
 		if logWork.Proxy != "" {
 			logCalls[0], logCalls[1] = logs.GRPC(nodeConn, refConn)
 		}

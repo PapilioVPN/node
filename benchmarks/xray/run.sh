@@ -104,7 +104,11 @@ elif [[ ${XRAY_BENCH_RUNTIME_STATS:-0} == 1 ]]; then
 fi
 taskset -c "${XRAY_BENCH_SERVER_CPU:-2}" "$node" -config "$work/node.yml" >"$work/node.log" 2>&1 &
 node_pid=$!
-IFS=, read -r -a protocols <<< "${XRAY_BENCH_TRANSPORTS:-http,grpc}"
+if [[ ${XRAY_BENCH_START_PATHS:-0} == 1 ]]; then
+  protocols=(grpc)
+else
+  IFS=, read -r -a protocols <<< "${XRAY_BENCH_TRANSPORTS:-http,grpc}"
+fi
 for protocol in "${protocols[@]}"; do
   if [[ $protocol != http && $protocol != grpc ]]; then
     echo "Unknown benchmark transport: $protocol" >&2
@@ -137,7 +141,11 @@ for protocol in "${protocols[@]}"; do
     fi
   done
   samples=()
-  if [[ ${XRAY_BENCH_VLESS_ACCOUNTS:-0} == 1 ]]; then
+  summary="$output/$protocol.csv"
+  if [[ ${XRAY_BENCH_START_PATHS:-0} == 1 ]]; then
+    samples+=(-start-paths-dir "$output")
+    summary=/dev/null
+  elif [[ ${XRAY_BENCH_VLESS_ACCOUNTS:-0} == 1 ]]; then
     if [[ -n ${XRAY_BENCH_ACCOUNT_SYNC:-} ]]; then
       samples+=(-account-samples "$output/$protocol-samples.csv")
     else
@@ -152,7 +160,7 @@ for protocol in "${protocols[@]}"; do
     -node "127.0.0.1:$node_port" -node-pid "$node_pid" -reference 127.0.0.1:20883 \
     -reference-pid "$reference_pid" -cert "$work/cert.pem" -reference-proto "$descriptor" \
     -config "$work/xray.json" -rounds "${XRAY_BENCH_ROUNDS:-5}" -cycles "${XRAY_BENCH_CYCLES:-30}" \
-    -reads "${XRAY_BENCH_READS:-12}" > "$output/$protocol.csv"; then
+    -reads "${XRAY_BENCH_READS:-12}" > "$summary"; then
     if [[ -z ${XRAY_BENCH_ACCOUNT_SYNC:-} ]]; then
       tail -n 30 "$work/node.log" "$work/reference.log" >&2
     fi

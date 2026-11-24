@@ -52,23 +52,24 @@ func WithCalls[C any](instances [2]Instance, calls [2]C) [2]Target[C] {
 
 type ReadCall func(context.Context) (uint32, error)
 
-func HasChild(pid string) bool {
+func HasChild(pid string) bool { return len(ChildPIDs(pid)) != 0 }
+
+func ChildPIDs(pid string) []string {
 	paths, err := filepath.Glob("/proc/" + pid + "/task/*/children")
 	Check(err)
 	if len(paths) == 0 {
 		log.Fatalf("cannot observe server %s children", pid)
 	}
+	var children []string
 	for _, path := range paths {
 		data, err := os.ReadFile(path)
 		if errors.Is(err, os.ErrNotExist) {
 			continue
 		}
 		Check(err)
-		if strings.TrimSpace(string(data)) != "" {
-			return true
-		}
+		children = append(children, strings.Fields(string(data))...)
 	}
-	return false
+	return children
 }
 
 func Percentile(sorted []time.Duration, p int) string {

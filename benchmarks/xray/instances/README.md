@@ -2,6 +2,62 @@
 
 [Benchmark dashboard](../README.md)
 
+## Matched gRPC Start paths with initial accounts
+
+Both servers receive byte-identical Xray JSON in `Start` and the same
+fixture VLESS account in their respective request schemas. PapilioVPN sends
+it as `XrayInitialAccount.credential`. The legacy `email` and `uuid` fields
+continue to encode a VLESS account. Initial snapshots take effect when
+launching an execution. Heartbeat and live configuration updates keep the
+running membership.
+
+| Start path | PapilioVPN p50 / p95 (ms) | PasarGuard p50 / p95 (ms) | Raw samples |
+| --- | ---: | ---: | --- |
+| Cold start with one account | 48.576 / 58.988 | 1030.175 / 1055.202 | [CSV](results/2026-11-24-grpc-startup.csv) |
+| Heartbeat | 1.265 / 3.435 | 1.739 / 5.605 | [CSV](results/2026-11-24-grpc-heartbeat.csv) |
+| Live routing update | 62.049 / 74.586 | 35.267 / 50.682 | [CSV](results/2026-11-24-grpc-live-update.csv) |
+| Restart with one account resent | 85.226 / 113.046 | 1034.784 / 1054.500 | [CSV](results/2026-11-24-grpc-restart.csv) |
+| Restart with account replay | 90.041 / 128.133 | — | [CSV](results/2026-11-24-grpc-restart-replay.csv) |
+
+- The 2026-11-24 run used five alternating rounds with 12 measured cycles and
+  one warm-up cycle per server per round. The table gives nearest-rank p50 and
+  p95 over 60 samples per server and path, in milliseconds. Both servers and
+  the driver were built with Go 1.27.4, `CGO_ENABLED=0`, and `-trimpath`.
+- Both servers used the same stock Xray v26.11.9 binary. The pinned reference
+  was PasarGuard Node `739eab94a9343d9f0035baf7162796844109f4c4`. Servers and
+  Xray children were pinned to CPU 2 with `GOMAXPROCS=1`, and the driver used CPU 6
+  on a different physical core of the same AMD Ryzen 7 3750H workstation.
+  The fixture ran in PID and network namespaces on Linux 6.17.0-41. The driver
+  reused one TLS 1.3 gRPC connection per server.
+- Each cycle starts a fresh Xray child, repeats the same request for heartbeat,
+  changes a routing rule live, and changes the inbound port to force replacement.
+  The driver checks the child PID after each operation and sends authenticated
+  VLESS traffic to verify the expected loopback origin. It checks that Stop
+  reaps the child after each cycle. Times cover the public RPC through response
+  decoding. External PID and traffic checks run outside the timed interval.
+- The paired restart resends the account to both servers. The replay row times a
+  second inbound port change with `initial_users` omitted on PapilioVPN. It
+  exercises replay from confirmed membership within the same Node process.
+  The reference controller constructs a new backend using the incoming users
+  and offers no equivalent replay guarantee for this config-triggered restart.
+  [PasarGuard controller](https://github.com/PasarGuard/node/blob/739eab94a9343d9f0035baf7162796844109f4c4/controller/controller.go#L177-L312)
+- PasarGuard's startup readiness loop first probes after one second. A separate
+  process trace confirmed that PapilioVPN runs `xray run -test` to validate the
+  entire candidate before `xray convert pb` prepares the live routing update.
+  PasarGuard uses `xray convert pb` for its live plan. The table measures those
+  end-to-end server policies on a one-account workload.
+  [PasarGuard readiness loop](https://github.com/PasarGuard/node/blob/739eab94a9343d9f0035baf7162796844109f4c4/backend/xray/jobs.go#L43-L67)
+
+Use the binaries, descriptor, and verified stock Xray from the setup below.
+Build the reference with `GOTOOLCHAIN=go1.27.4` for this run.
+
+```bash
+GOMAXPROCS=1 XRAY_BENCH_START_PATHS=1 XRAY_BENCH_ROUNDS=5 \
+  XRAY_BENCH_CYCLES=12 XRAY_BENCH_SERVER_CPU=2 XRAY_BENCH_CLIENT_CPU=6 \
+  bash benchmarks/xray/run.sh "$work/node" "$work/pasarguard" "$work/xray/xray" \
+  "$work/bench" "$work/reference.pb" "$work/start-paths"
+```
+
 ## Xray instance lifecycle
 
 The [integrated lifecycle and account report](../integration/README.md)
@@ -25,7 +81,7 @@ On 2026-11-23, PapilioVPN Node had lower p50 and p95 latencies in all six tested
 
 - Both Node binaries and the benchmark client were built with Go 1.27.3, `CGO_ENABLED=0`, and `-trimpath`. The host ran Linux 6.17 on an AMD Ryzen 7 3750H. Both servers and their children used `GOMAXPROCS=1` and were pinned to CPU 2. The client used CPU 4 on a different physical core. The fixture used isolated Linux PID and network namespaces with loopback.
 - Both servers ran the same Xray v26.11.9 executable and started from the same JSON with one idle loopback SOCKS inbound, one direct outbound, and zero users. Each product supplied its own native management configuration. The public client used a single persistent TLS 1.3 connection per server and transport, provided an API key, and decoded each response. HTTP used HTTP/1.1.
-- `Start` measures a cold start from no running process to successful native `GetSysStats`. The client sends the configuration to PasarGuard and the instance ID to PapilioVPN, where the configuration is already on disk. PasarGuard's native readiness loop probes once per second. PapilioVPN uses a private Unix socket with short reconnect delays. [PasarGuard readiness loop](https://github.com/PasarGuard/node/blob/739eab94a9343d9f0035baf7162796844109f4c4/backend/xray/jobs.go#L43-L67)
+- `Start` measures a cold start from no running process to successful native `GetSysStats`. In the historical run, the client sent the configuration to PasarGuard and the instance ID to PapilioVPN, where the configuration was already on disk. Reruns now supply the same configuration in both Start requests. PasarGuard's native readiness loop probes once per second. PapilioVPN uses a private Unix socket with short reconnect delays. [PasarGuard readiness loop](https://github.com/PasarGuard/node/blob/739eab94a9343d9f0035baf7162796844109f4c4/backend/xray/jobs.go#L43-L67)
 - `Status` compares reads of the running lifecycle state. PasarGuard also returns version fields. `Stop` measures from the request until a successful response, then the client independently checks that Linux lists no remaining child process. PapilioVPN sends SIGTERM with a bounded SIGKILL fallback. PasarGuard sends SIGKILL first. The workload contains no active client traffic. The reference version is PasarGuard 0.5.7 at `739eab94a9343d9f0035baf7162796844109f4c4`. [PasarGuard stop implementation](https://github.com/PasarGuard/node/blob/739eab94a9343d9f0035baf7162796844109f4c4/backend/xray/core.go#L308-L352)
 
 ### Reproduce
