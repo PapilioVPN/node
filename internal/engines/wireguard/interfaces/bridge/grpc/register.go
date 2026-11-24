@@ -11,6 +11,7 @@ import (
 	"github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/lifecycle"
 	"github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/peers"
 	interfacestatus "github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/status"
+	"github.com/PapilioVPN/node/internal/engines/wireguard/stats/traffic"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -20,12 +21,12 @@ import (
 type handlers struct {
 	interfacesv1.UnimplementedWireGuardInterfacesServiceServer
 	service   *interfacestatus.Service
-	peerStats *peers.StatsService
+	peerStats *traffic.Service
 	managed   *lifecycle.Service
 	validator *lifecycle.Validator
 }
 
-func Register(server grpc.ServiceRegistrar, service *interfacestatus.Service, peerStats *peers.StatsService, managed *lifecycle.Service, validator *lifecycle.Validator) {
+func Register(server grpc.ServiceRegistrar, service *interfacestatus.Service, peerStats *traffic.Service, managed *lifecycle.Service, validator *lifecycle.Validator) {
 	interfacesv1.RegisterWireGuardInterfacesServiceServer(server, &handlers{
 		service: service, peerStats: peerStats, managed: managed, validator: validator,
 	})

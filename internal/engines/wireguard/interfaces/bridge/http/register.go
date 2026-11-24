@@ -15,6 +15,7 @@ import (
 	"github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/lifecycle"
 	"github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/peers"
 	"github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/status"
+	"github.com/PapilioVPN/node/internal/engines/wireguard/stats/traffic"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -25,7 +26,7 @@ type response struct {
 	AppliedSHA256 string `json:"applied_config_sha256,omitempty"`
 }
 
-func Register(router chi.Router, service *status.Service, peerStats *peers.StatsService, managed *lifecycle.Service, validator *lifecycle.Validator) {
+func Register(router chi.Router, service *status.Service, peerStats *traffic.Service, managed *lifecycle.Service, validator *lifecycle.Validator) {
 	const path = "/v1/wireguard/interfaces/{name}"
 	router.Get(path+"/peers/stats", listPeerStats(peerStats))
 	router.Get(path, func(w http.ResponseWriter, r *http.Request) {

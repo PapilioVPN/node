@@ -8,8 +8,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/peers"
 	"github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/status"
+	"github.com/PapilioVPN/node/internal/engines/wireguard/stats/traffic"
 	"github.com/mdlayher/genetlink"
 	gennetlink "github.com/mdlayher/netlink"
 	"golang.org/x/sys/unix"
@@ -39,7 +39,7 @@ func (reader *PeerStatsReader) closeDump() error {
 	return err
 }
 
-func (reader *PeerStatsReader) ReadPeerStats(ctx context.Context, name string) (_ []peers.Stats, err error) {
+func (reader *PeerStatsReader) ReadPeerStats(ctx context.Context, name string) (_ []traffic.PeerStats, err error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -74,7 +74,7 @@ func (reader *PeerStatsReader) ReadPeerStats(ctx context.Context, name string) (
 	if err != nil {
 		return nil, err
 	}
-	snapshot := peerStatsSnapshot{name: name, peers: make([]peers.Stats, 0, reader.dump.peerCount)}
+	snapshot := peerStatsSnapshot{name: name, peers: make([]traffic.PeerStats, 0, reader.dump.peerCount)}
 	if err := reader.dump.query(ctx, reader.family, data, snapshot.decode); err != nil {
 		return nil, peerStatsError(err)
 	}
@@ -99,7 +99,7 @@ func peerStatsError(err error) error {
 type peerStatsSnapshot struct {
 	name     string
 	seenName bool
-	peers    []peers.Stats
+	peers    []traffic.PeerStats
 }
 
 func (snapshot *peerStatsSnapshot) decode(data []byte) error {
@@ -133,7 +133,7 @@ func (snapshot *peerStatsSnapshot) appendPeer(data []byte) error {
 		tx
 		handshake
 	)
-	var peer peers.Stats
+	var peer traffic.PeerStats
 	var fields uint8
 	attributes := snapshotAttributes{remaining: data}
 	for attributes.next() {

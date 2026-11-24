@@ -39,6 +39,8 @@ func TestInterfaceStatus(t *testing.T) {
 
 	f := newFixture(t)
 	client := f.grpcClient(t)
+	stats := trafficClient(t, f)
+	assertInterfaceTraffic(t, f, stats, false)
 	want := observation{Name: interfaceName, MTU: 1420}
 	assertStatus(t, f, client, want)
 	runIP(t, "link", "set", "dev", interfaceName, "mtu", "1380", "up")
@@ -49,10 +51,12 @@ func TestInterfaceStatus(t *testing.T) {
 	t.Cleanup(func() { runIP(t, "link", "set", "dev", "wg-other", "name", interfaceName) })
 	for _, name := range []string{interfaceName, "wg-other"} {
 		assertNotFound(t, f, client, name)
+		assertMissingInterfaceTraffic(t, f, stats, name)
 	}
 	runIP(t, "link", "add", "dev", interfaceName, "type", "dummy")
 	t.Cleanup(func() { runIP(t, "link", "del", "dev", interfaceName) })
 	assertNotFound(t, f, client, interfaceName)
+	assertMissingInterfaceTraffic(t, f, stats, interfaceName)
 }
 
 func assertStatus(t *testing.T, f fixture, client interfacesv1.WireGuardInterfacesServiceClient, want observation) {

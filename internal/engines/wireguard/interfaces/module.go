@@ -9,8 +9,8 @@ import (
 	bridgehttp "github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/bridge/http"
 	wglifecycle "github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/lifecycle"
 	"github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/native"
-	"github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/peers"
 	"github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/status"
+	"github.com/PapilioVPN/node/internal/engines/wireguard/stats/traffic"
 	"github.com/PapilioVPN/node/internal/settings"
 	"github.com/go-chi/chi/v5"
 	"go.uber.org/fx"
@@ -19,7 +19,7 @@ import (
 
 var Module = fx.Module("wireguard-interfaces", fx.Invoke(register))
 
-func register(lifecycle fx.Lifecycle, config settings.WireGuard, router *chi.Mux, server *grpc.Server) {
+func register(lifecycle fx.Lifecycle, config settings.WireGuard, router *chi.Mux, server *grpc.Server, peerStats *traffic.Service) {
 	if !config.Enabled() {
 		return
 	}
@@ -54,9 +54,6 @@ func register(lifecycle fx.Lifecycle, config settings.WireGuard, router *chi.Mux
 			},
 		})
 	}
-	statsReader := new(native.PeerStatsReader)
-	lifecycle.Append(fx.Hook{OnStop: statsReader.Close})
-	peerStats := peers.NewStatsService(config.Interface, statsReader)
 	service := status.New(config.Interface, reader, appliedHash)
 	validator := wglifecycle.NewValidator(config.Interface)
 	bridgehttp.Register(router, service, peerStats, managed, validator)

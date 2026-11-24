@@ -54,6 +54,7 @@ func TestManagedExecution(t *testing.T) {
 	digest := sha256.Sum256(source)
 	want := hex.EncodeToString(digest[:])
 	client := f.grpcClient(t)
+	stats := trafficClient(t, f)
 
 	runIP(t, "link", "add", "dev", interfaceName, "type", "wireguard")
 	executionRequest(t, f, http.MethodPut, source, http.StatusConflict)
@@ -87,6 +88,7 @@ func TestManagedExecution(t *testing.T) {
 	if peers := readPeerStatsHTTP(t, f).Peers; peers == nil || len(peers) != 0 {
 		t.Fatalf("new interface statistics = %v, want an empty list", peers)
 	}
+	assertInterfaceTraffic(t, f, stats, false)
 	assertMissingPeerStats(t, client, "wg-other")
 	assertValidation(t, f, client, append(bytes.Clone(source), '\n'), bytes.Replace(source, []byte(`"mtu":1380`), []byte(`"mtu":1`), 1), want)
 	configured, err := exec.CommandContext(t.Context(), "wg", "show", interfaceName, "listen-port").Output()
@@ -95,6 +97,7 @@ func TestManagedExecution(t *testing.T) {
 	}
 	exchangePacket(t, base64.StdEncoding.EncodeToString(privateKey.PublicKey().Bytes()), strings.TrimSpace(string(configured)), func(peer string) {
 		assertActivePeerStats(t, f, client, peer)
+		assertInterfaceTraffic(t, f, stats, true)
 		assertPeerSync(t, f, client, peer)
 		assertPeerDelta(t, f, client, privateKey.PublicKey().Bytes())
 		before, err := net.InterfaceByName(interfaceName)
@@ -150,6 +153,7 @@ func TestManagedExecution(t *testing.T) {
 		t.Fatal("managed interface survived Stop")
 	}
 	assertMissingPeerStats(t, client, interfaceName)
+	assertMissingInterfaceTraffic(t, f, stats, interfaceName)
 	blocked, err := net.ListenUDP("udp4", &net.UDPAddr{IP: net.IPv4zero})
 	if err != nil {
 		t.Fatal(err)

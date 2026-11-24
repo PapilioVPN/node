@@ -63,9 +63,10 @@ when changing runtime packaging or deployment behavior. It requires Linux,
 Docker with Compose, curl, and jq.
 
 If a protobuf contract changes, use `protoc` 36.2, `protoc-gen-go`
-v1.36.12, and `protoc-gen-go-grpc` v1.6.0 for Xray services. Run
+v1.36.12, and `protoc-gen-go-grpc` v1.6.0 for engine services. Run
 `go generate ./internal/host/bridge/grpc` for Host or
-`go generate ./internal/engines/xray/...` for Xray. Include the schema and
+`go generate ./internal/engines/xray/...` for Xray. For WireGuard, run
+`go generate ./internal/engines/wireguard/...`. Include the schema and
 source-relative generated files in the same change.
 
 For performance changes, provide the workload, engine and tool versions,
