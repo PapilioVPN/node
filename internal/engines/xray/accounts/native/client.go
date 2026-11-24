@@ -36,6 +36,7 @@ type Client struct {
 	cached    atomic.Pointer[inventory]
 	mutation  *semaphore.Weighted
 	accepted  atomic.Pointer[acceptedMembership]
+	recovery  *recoveryStore
 }
 
 func New(instances activeInstances) *Client {
@@ -97,7 +98,7 @@ func (c *Client) editInbounds(ctx context.Context, instanceID string, tags []str
 		return err
 	}
 	if session.staged != nil {
-		c.accepted.Store(session.staged)
+		return c.accept(session.staged)
 	}
 	return nil
 }

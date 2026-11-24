@@ -70,7 +70,7 @@ docker run --rm --network=host --read-only --cap-drop ALL \
 | Xray 流量清零 | 显式启用后，通过 HTTP 和 gRPC 清零单个计数器、指定名称的两个方向或有数量上限的范围。 |
 | Xray 在线账户和 IP | 通过 HTTP 和 gRPC 查询在线账户、不同来源 IP 数量及其最近出现时间。 |
 | Xray 路由 | 通过 HTTP 和 gRPC 读取与修改规则、测试路由，并查询或覆盖负载均衡目标。 |
-| Xray 账户 | 通过 HTTP 和 gRPC 在选定入站上按账户、完整列表或分块增量同步，并在受管重启时恢复已确认的账户。支持 VLESS、VMess、Trojan、Shadowsocks、兼容的 Shadowsocks 2022 服务器、Hysteria、MASQUE 和 Xray 内的 WireGuard。VLESS 还支持直接添加、删除和计数。 |
+| Xray 账户 | 通过 HTTP 和 gRPC 在选定入站上按账户、完整列表或分块增量同步，并在受管重启时恢复已确认的账户。启用持久化后，重启 Node 也可以恢复账户。支持 VLESS、VMess、Trojan、Shadowsocks、兼容的 Shadowsocks 2022 服务器、Hysteria、MASQUE 和 Xray 内的 WireGuard。VLESS 还支持直接添加、删除和计数。 |
 | Xray 日志流 | 通过 HTTP 和 gRPC 持续接收运行实例的 stdout 和 stderr。 |
 | Xray 出站健康状态 | 通过 HTTP 和 gRPC 读取全部 Observatory 观测结果，或按出站标签查询。 |
 
@@ -119,6 +119,8 @@ HTTP `GET /v1/host/stats` 和 gRPC `HostService.GetSystemStats` 返回 `uptime_s
 使用 `XrayAccountsService.AddVLESSAccount`、`RemoveVLESSAccount` 和 `CountVLESSAccounts`，或使用 `/v1/xray/instances/{id}/inbounds/{tag}/accounts` 下的 HTTP 路径。操作作用于当前运行的实例。 [VLESS 接口](benchmarks/xray/accounts/vless.md)
 
 [VLESS 同步](benchmarks/xray/accounts/sync.md) · [Xray 日志流](benchmarks/xray/logs/contract.md)
+
+要在重启 Node 后保留已确认的同步结果，请将 `xray.state_directory` 指向 Node 用户拥有且权限为 `0700` 的现有目录。使用 Docker 时，请将其挂载为可写的持久存储。Node 会在确认同步前保存账户状态，并在下一次 `Start` 报告就绪之前恢复账户。重启时请保留实例 ID 和兼容的入站配置。
 
 使用 `GET /v1/xray/instances/{id}/outbounds/health` 或 `XrayOutboundsService.GetOutboundHealth` 读取普通 Observatory 观测结果。提供标签可查询单个出站。响应区分健康、探测失败和缺少样本。 [gRPC 接口](internal/engines/xray/outbounds/bridge/grpc/proto/v1/outbounds.proto)
 

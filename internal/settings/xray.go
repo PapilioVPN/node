@@ -12,6 +12,7 @@ type Xray struct {
 	Executable            string `yaml:"executable"`
 	ConfigFile            string `yaml:"config_file"`
 	RuntimeDirectory      string `yaml:"runtime_directory"`
+	StateDirectory        string `yaml:"state_directory"`
 	ResetEngineStats      bool   `yaml:"reset_engine_stats"`
 	ResetScopeConcurrency uint32 `yaml:"reset_scope_concurrency"`
 	NativeScopeReset      bool   `yaml:"native_scope_reset"`
@@ -32,7 +33,7 @@ func (xray *Xray) validate(dir string, management Management) error {
 	if xray.ResetScopeConcurrency > 8 {
 		return errors.New("xray.reset_scope_concurrency must be at most 8")
 	}
-	for _, path := range []*string{&xray.Executable, &xray.ConfigFile, &xray.RuntimeDirectory} {
+	for _, path := range []*string{&xray.Executable, &xray.ConfigFile, &xray.RuntimeDirectory, &xray.StateDirectory} {
 		if *path == "" {
 			continue
 		}

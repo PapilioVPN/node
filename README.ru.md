@@ -70,7 +70,7 @@ docker run --rm --network=host --read-only --cap-drop ALL \
 | Сброс трафика Xray | Сбросить один счётчик, оба направления для имени или ограниченную область по HTTP и gRPC после явного включения. |
 | Онлайн-аккаунты и IP в Xray | Получить список онлайн-аккаунтов, число уникальных IP или время их последнего обнаружения по HTTP и gRPC. |
 | Маршрутизация Xray | Читать и изменять правила, проверять маршрут и управлять целью балансировщика по HTTP и gRPC. |
-| Учётные записи Xray | Синхронизация по имени, полным списком или порциями изменений для выбранных входов по HTTP и gRPC. Подтверждённый состав восстанавливается при управляемом перезапуске. Поддерживаются VLESS, VMess, Trojan, Shadowsocks, совместимые серверы Shadowsocks 2022, Hysteria, MASQUE и WireGuard в Xray. Для VLESS доступны прямое добавление, удаление и подсчёт. |
+| Учётные записи Xray | Синхронизация по имени, полным списком или порциями изменений для выбранных входов по HTTP и gRPC. Подтверждённый состав восстанавливается при управляемом перезапуске. При включённом постоянном хранении он также переживает перезапуск Node. Поддерживаются VLESS, VMess, Trojan, Shadowsocks, совместимые серверы Shadowsocks 2022, Hysteria, MASQUE и WireGuard в Xray. Для VLESS доступны прямое добавление, удаление и подсчёт. |
 | Поток журналов Xray | Получать stdout и stderr активного процесса по HTTP и gRPC. |
 | Состояние исходящих подключений Xray | Получить все наблюдения Observatory или выбрать исходящее подключение по тегу через HTTP и gRPC. |
 
@@ -119,6 +119,8 @@ HTTP-запрос `GET /v1/host/stats` и метод gRPC `HostService.GetSystem
 Используйте `XrayAccountsService.AddVLESSAccount`, `RemoveVLESSAccount` и `CountVLESSAccounts` или HTTP-маршруты под `/v1/xray/instances/{id}/inbounds/{tag}/accounts`. Операции применяются к активному запуску. [Контракт VLESS](benchmarks/xray/accounts/vless.md)
 
 [Синхронизация VLESS](benchmarks/xray/accounts/sync.md) · [Поток журналов Xray](benchmarks/xray/logs/contract.md)
+
+Чтобы сохранить подтверждённую синхронизацию при перезапуске Node, укажите в `xray.state_directory` существующий каталог с правами `0700`, принадлежащий пользователю Node. В Docker подключите его как постоянное хранилище с записью. Node записывает состояние до подтверждения синхронизации и восстанавливает его до готовности при следующем `Start`. Сохраните идентификатор экземпляра и совместимые входы.
 
 Используйте `GET /v1/xray/instances/{id}/outbounds/health` или `XrayOutboundsService.GetOutboundHealth` для чтения обычных наблюдений Observatory. Для одного исходящего подключения укажите его тег. Ответ различает успешную проверку, сбой и отсутствие наблюдения. [Контракт gRPC](internal/engines/xray/outbounds/bridge/grpc/proto/v1/outbounds.proto)
 

@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package papiliovpn.node.xray.accounts.native;
+option go_package = "github.com/PapilioVPN/node/internal/engines/xray/accounts/native";
+
+import "handler.proto";
+
+// Private account recovery file. User uses the exact native wire representation.
+message AccountRecoveryState {
+  uint32 version = 1;
+  string instance_id = 2;
+  map<string, RecoveryInbound> inbounds = 3;
+}
+
+message RecoveryInbound {
+  string account_type = 1;
+  uint32 ss2022_key_size = 2;
+  bool full = 3;
+  map<string, RecoveryMember> members = 4;
+}
+
+message RecoveryMember {
+  // Absence means explicitly removed in a delta.
+  User user = 1;
+}

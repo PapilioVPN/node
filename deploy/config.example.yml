@@ -13,6 +13,9 @@ host:
 #   executable: "/usr/local/bin/xray"
 #   config_file: "/etc/xray/config.json"
 #   runtime_directory: "/tmp"
+#   # Optional private directory for confirmed account sync recovery across Node restarts.
+#   # Create it before use with mode 0700 and ownership matching the Node process.
+#   state_directory: "/var/lib/papiliovpn/xray"
 #   reset_engine_stats: true
 # For one-call scoped resets, set executable to "/node-xray" and enable:
 #   native_scope_reset: true

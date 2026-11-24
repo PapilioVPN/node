@@ -72,7 +72,7 @@ docker run --rm --network=host --read-only --cap-drop ALL \
 | ریست ترافیک Xray | با فعال‌سازی صریح، یک شمارنده، هر دو جهت یک حساب یا تگ، یا یک محدودهٔ سقف‌دار را با HTTP و gRPC ریست کن. |
 | حساب‌ها و IPهای آنلاین Xray | فهرست حساب‌های آنلاین، تعداد IPهای مبدأ یکتا و زمان آخرین مشاهده را با HTTP و gRPC بخوان. |
 | مسیریابی Xray | قوانین فعال را بخوان، مسیر را آزمایش کن، قوانین را تغییر بده و وضعیت یا مقصد balancer را با HTTP و gRPC مدیریت کن. |
-| حساب‌های Xray | همگام‌سازی تکی، فهرست کامل یا تغییرات تکه‌ای روی ورودی‌های انتخاب‌شده از HTTP و gRPC، با بازیابی حساب‌های تأییدشده هنگام راه‌اندازی مجدد تحت مدیریت Node. شامل VLESS، VMess، Trojan، Shadowsocks، سرورهای پشتیبانی‌شدهٔ Shadowsocks 2022، Hysteria، MASQUE و WireGuard داخل Xray. افزودن، حذف و شمارش مستقیم برای VLESS هم در دسترس است. |
+| حساب‌های Xray | همگام‌سازی تکی، فهرست کامل یا تغییرات تکه‌ای روی ورودی‌های انتخاب‌شده از HTTP و gRPC، با بازیابی حساب‌های تأییدشده هنگام راه‌اندازی مجدد تحت مدیریت Node. با فعال‌سازی ذخیرهٔ پایدار، حساب‌ها بعد از ری‌استارت خود Node هم برمی‌گردند. شامل VLESS، VMess، Trojan، Shadowsocks، سرورهای پشتیبانی‌شدهٔ Shadowsocks 2022، Hysteria، MASQUE و WireGuard داخل Xray. افزودن، حذف و شمارش مستقیم برای VLESS هم در دسترس است. |
 | جریان لاگ Xray | خروجی زندهٔ stdout و stderr اجرای فعال را روی HTTP و gRPC دریافت کن. |
 | سلامت خروجی‌های Xray | نمونه‌های ثبت‌شدهٔ Observatory را برای همهٔ خروجی‌ها یا یک تگ با HTTP و gRPC بخوان. |
 
@@ -121,6 +121,8 @@ docker run --rm --network=host --read-only --cap-drop ALL \
 از `XrayAccountsService.AddVLESSAccount`، `RemoveVLESSAccount` و `CountVLESSAccounts` یا مسیرهای HTTP زیر `/v1/xray/instances/{id}/inbounds/{tag}/accounts` استفاده کن. این عملیات روی اجرای فعال اعمال می‌شوند. [قرارداد VLESS](benchmarks/xray/accounts/vless.md)
 
 [همگام‌سازی VLESS](benchmarks/xray/accounts/sync.md) · [جریان لاگ Xray](benchmarks/xray/logs/contract.md)
+
+برای بازیابی حساب‌های تأییدشده بعد از ری‌استارت Node، مسیر `xray.state_directory` را به دایرکتوری موجود با سطح دسترسی `0700` بده که مالک آن کاربر فرایند Node است. در Docker این مسیر را روی فضای پایدار و قابل‌نوشتن mount کن. Node وضعیت حساب‌ها را قبل از تأیید Sync ثبت می‌کند و در `Start` بعدی پیش از `Ready` شدن برمی‌گرداند. شناسهٔ نمونه و ورودی‌های سازگار را هنگام ری‌استارت حفظ کن.
 
 برای خواندن نمونه‌های Observatory معمولی از `GET /v1/xray/instances/{id}/outbounds/health` یا `XrayOutboundsService.GetOutboundHealth` استفاده کن. برای یک خروجی تگش را بده. پاسخ سه حالت سالم، ناموفق و بدون نمونه را مشخص می‌کند. [قرارداد gRPC](internal/engines/xray/outbounds/bridge/grpc/proto/v1/outbounds.proto)
 

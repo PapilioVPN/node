@@ -67,7 +67,7 @@ docker run --rm --network=host --read-only --cap-drop ALL \
 | Xray traffic counters | Read upload and download bytes for one or all accounts, inbound tags, or outbound tags over HTTP and gRPC. |
 | Xray online accounts and IPs | List online accounts, count distinct source IPs, or read their last-seen times over HTTP and gRPC. |
 | Xray routing | Read active rules, test a route, edit rules and inspect or override a balancer over HTTP and gRPC. |
-| Xray accounts | Synchronize named accounts, full lists, or chunked deltas across selected inbounds over HTTP and gRPC, with confirmed membership restored on managed restart. Supports VLESS, VMess, Trojan, Shadowsocks, supported Shadowsocks 2022 servers, Hysteria, MASQUE, and Xray WireGuard. VLESS also supports direct add, remove, and count. |
+| Xray accounts | Synchronize named accounts, full lists, or chunked deltas across selected inbounds over HTTP and gRPC, with confirmed membership restored on managed restart. Optional durable recovery also survives a Node restart. Supports VLESS, VMess, Trojan, Shadowsocks, supported Shadowsocks 2022 servers, Hysteria, MASQUE, and Xray WireGuard. VLESS also supports direct add, remove, and count. |
 | Xray log stream | Follow live stdout and stderr for the active Xray execution over HTTP and gRPC. |
 | Xray outbound health | Read all recorded Observatory samples or select an outbound by tag over HTTP and gRPC. |
 
@@ -116,6 +116,8 @@ Use `XrayRoutingService.TestRoute`, `AddRoutingRule`, `RemoveRoutingRule` and `O
 Use `XrayAccountsService.AddVLESSAccount`, `RemoveVLESSAccount` and `CountVLESSAccounts` or the HTTP routes under `/v1/xray/instances/{id}/inbounds/{tag}/accounts`. These operations apply to the active execution. [VLESS contract](benchmarks/xray/accounts/vless.md)
 
 [VLESS synchronization](benchmarks/xray/accounts/sync.md) · [Xray log stream](benchmarks/xray/logs/contract.md)
+
+To retain confirmed synchronization after a Node restart, set `xray.state_directory` to an existing directory owned by the Node user with mode `0700`. Mount it as writable persistent storage when running in Docker. Node writes the private account state before acknowledging synchronization and restores it before the next `Start` reports ready. Keep the configured instance ID and its compatible inbounds when restarting.
 
 Use `GET /v1/xray/instances/{id}/outbounds/health` or `XrayOutboundsService.GetOutboundHealth` to read ordinary Observatory samples. Provide a tag for one outbound. The response distinguishes healthy, failed and missing samples. [gRPC contract](internal/engines/xray/outbounds/bridge/grpc/proto/v1/outbounds.proto)
 

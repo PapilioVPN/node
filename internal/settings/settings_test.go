@@ -82,6 +82,7 @@ xray:
   executable: bin/xray
   config_file: xray.json
   runtime_directory: run
+  state_directory: state
 `)
 	config, err := Load(path)
 	if err != nil {
@@ -90,6 +91,7 @@ xray:
 	want := Xray{
 		ID: "primary", Executable: filepath.Join(dir, "bin", "xray"),
 		ConfigFile: filepath.Join(dir, "xray.json"), RuntimeDirectory: filepath.Join(dir, "run"),
+		StateDirectory: filepath.Join(dir, "state"),
 	}
 	if config.Xray != want {
 		t.Fatalf("xray config = %+v, want %+v", config.Xray, want)

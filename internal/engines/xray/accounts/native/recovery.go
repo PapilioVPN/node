@@ -96,6 +96,11 @@ func (c *Client) Initialize(ctx context.Context, id string, conn *grpc.ClientCon
 		return nil, err
 	}
 	accepted := candidate.accepted.Load()
+	if c.recovery != nil {
+		if err := c.accept(accepted); err != nil {
+			return nil, err
+		}
+	}
 	return func() {
 		c.accepted.Store(accepted)
 		c.cached.Store(state)

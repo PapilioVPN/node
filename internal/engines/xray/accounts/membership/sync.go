@@ -21,6 +21,11 @@ type SyncUserRequest struct {
 
 type Outcome string
 
+var (
+	ErrRecoveryWrite         = errors.New("Xray account recovery state was not written")
+	ErrRecoveryCommitUnknown = errors.New("Xray account recovery state durability is unknown")
+)
+
 const (
 	Confirmed  Outcome = "confirmed"
 	Partial    Outcome = "partial"
@@ -122,7 +127,7 @@ func (s *Service) reconcile(ctx context.Context, scope Scope, tags []string, tim
 	switch {
 	case err == nil:
 		result.Outcome = Confirmed
-	case errors.Is(err, ErrUnknownEffect):
+	case errors.Is(err, ErrUnknownEffect), errors.Is(err, ErrRecoveryCommitUnknown):
 		result.Outcome = Unknown
 	case result.Added+result.Removed > 0:
 		result.Outcome = Partial
@@ -175,6 +180,10 @@ func syncFailure(err error) string {
 		return "capacity"
 	case errors.Is(err, ErrUnknownEffect):
 		return "native_acknowledgement_unknown"
+	case errors.Is(err, ErrRecoveryWrite):
+		return "recovery_write_failed"
+	case errors.Is(err, ErrRecoveryCommitUnknown):
+		return "recovery_commit_unknown"
 	default:
 		return "unavailable"
 	}

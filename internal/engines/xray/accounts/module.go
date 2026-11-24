@@ -2,6 +2,9 @@
 package accounts
 
 import (
+	"context"
+	"fmt"
+
 	"github.com/PapilioVPN/node/internal/engines/xray/accounts/bridge/grpc"
 	"github.com/PapilioVPN/node/internal/engines/xray/accounts/bridge/http"
 	"github.com/PapilioVPN/node/internal/engines/xray/accounts/membership"
@@ -15,11 +18,22 @@ import (
 
 var Module = fx.Module("xray-accounts", fx.Invoke(register))
 
-func register(config settings.Xray, instances *lifecycle.Service, router *chi.Mux, server *grpcserver.Server) {
+func register(life fx.Lifecycle, config settings.Xray, instances *lifecycle.Service, router *chi.Mux, server *grpcserver.Server) {
 	if !config.Enabled() {
 		return
 	}
 	client := native.New(instances)
+	if config.StateDirectory != "" {
+		life.Append(fx.Hook{
+			OnStart: func(context.Context) error {
+				if err := client.OpenRecovery(config.StateDirectory, config.ID); err != nil {
+					return fmt.Errorf("open Xray account recovery state: %w", err)
+				}
+				return nil
+			},
+			OnStop: client.CloseRecovery,
+		})
+	}
 	instances.SetAccountInitializer(client.Initialize)
 	service := membership.New(client)
 	http.Register(router, service)
