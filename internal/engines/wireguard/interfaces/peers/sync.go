@@ -62,12 +62,12 @@ func Prepare(input []Input) ([]Peer, error) {
 	prefixes := make(map[netip.Prefix]bool, prefixCount)
 	addresses := make([]netip.Prefix, 0, prefixCount)
 	for i, item := range input {
-		if len(item.PublicKey) != 32 || [32]byte(item.PublicKey) == [32]byte{} ||
-			len(item.PresharedKey) != 0 && len(item.PresharedKey) != 32 {
+		key, err := Key(item.PublicKey)
+		if err != nil || !validPresharedKey(item.PresharedKey) {
 			return nil, ErrInvalid
 		}
 		peer := &desired[i]
-		peer.PublicKey = [32]byte(item.PublicKey)
+		peer.PublicKey = key
 		if keys[peer.PublicKey] {
 			return nil, ErrInvalid
 		}
@@ -75,11 +75,10 @@ func Prepare(input []Input) ([]Peer, error) {
 		copy(peer.PresharedKey[:], item.PresharedKey)
 		start := len(addresses)
 		for _, raw := range item.AllowedIPs {
-			prefix, err := netip.ParsePrefix(raw)
-			if err != nil || prefix.Addr().Is4In6() {
+			prefix, err := parsePrefix(raw)
+			if err != nil {
 				return nil, ErrInvalid
 			}
-			prefix = prefix.Masked()
 			if prefixes[prefix] {
 				return nil, ErrInvalid
 			}
@@ -92,10 +91,7 @@ func Prepare(input []Input) ([]Peer, error) {
 }
 
 func Diff(current, desired []Peer) (updates, removals []Change, result Result) {
-	if slices.EqualFunc(current, desired, func(before, next Peer) bool {
-		return before.PublicKey == next.PublicKey && before.PresharedKey == next.PresharedKey &&
-			samePrefixes(before.AllowedIPs, next.AllowedIPs)
-	}) {
+	if samePeerOrder(current, desired) {
 		return nil, nil, result
 	}
 	byKey := make(map[[32]byte]int, len(current))
@@ -107,16 +103,14 @@ func Diff(current, desired []Peer) (updates, removals []Change, result Result) {
 		index, exists := byKey[next.PublicKey]
 		if !exists {
 			result.Added++
-			updates = append(updates, Change{Peer: *next, ReplaceAllowedIPs: true, SetPresharedKey: next.PresharedKey != [32]byte{}})
+			updates = append(updates, peerChange(nil, *next))
 			continue
 		}
 		delete(byKey, next.PublicKey)
-		before := &current[index]
-		changeIPs := !samePrefixes(before.AllowedIPs, next.AllowedIPs)
-		changeKey := before.PresharedKey != next.PresharedKey
-		if changeIPs || changeKey {
+		change := peerChange(&current[index], *next)
+		if change.ReplaceAllowedIPs || change.SetPresharedKey {
 			result.Updated++
-			updates = append(updates, Change{Peer: *next, ReplaceAllowedIPs: changeIPs, SetPresharedKey: changeKey})
+			updates = append(updates, change)
 		}
 	}
 	for key := range byKey {
@@ -124,6 +118,30 @@ func Diff(current, desired []Peer) (updates, removals []Change, result Result) {
 		removals = append(removals, Change{Peer: Peer{PublicKey: key}, Remove: true})
 	}
 	return updates, removals, result
+}
+
+func samePeerOrder(current, desired []Peer) bool {
+	return slices.EqualFunc(current, desired, func(before, next Peer) bool {
+		return before.PublicKey == next.PublicKey && before.PresharedKey == next.PresharedKey &&
+			samePrefixes(before.AllowedIPs, next.AllowedIPs)
+	})
+}
+
+func validPresharedKey(key []byte) bool { return len(key) == 0 || len(key) == 32 }
+
+func parsePrefix(raw string) (netip.Prefix, error) {
+	prefix, err := netip.ParsePrefix(raw)
+	if err != nil || prefix.Addr().Is4In6() {
+		return netip.Prefix{}, ErrInvalid
+	}
+	return prefix.Masked(), nil
+}
+
+func peerChange(before *Peer, next Peer) Change {
+	if before == nil {
+		return Change{Peer: next, ReplaceAllowedIPs: true, SetPresharedKey: next.PresharedKey != [32]byte{}}
+	}
+	return Change{Peer: next, ReplaceAllowedIPs: !samePrefixes(before.AllowedIPs, next.AllowedIPs), SetPresharedKey: before.PresharedKey != next.PresharedKey}
 }
 
 func samePrefixes(a, b []netip.Prefix) bool {

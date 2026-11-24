@@ -24,6 +24,9 @@ const (
 	WireGuardInterfacesService_Stop_FullMethodName           = "/papiliovpn.node.v1.WireGuardInterfacesService/Stop"
 	WireGuardInterfacesService_ValidateConfig_FullMethodName = "/papiliovpn.node.v1.WireGuardInterfacesService/ValidateConfig"
 	WireGuardInterfacesService_SyncPeers_FullMethodName      = "/papiliovpn.node.v1.WireGuardInterfacesService/SyncPeers"
+	WireGuardInterfacesService_UpsertPeer_FullMethodName     = "/papiliovpn.node.v1.WireGuardInterfacesService/UpsertPeer"
+	WireGuardInterfacesService_RemovePeer_FullMethodName     = "/papiliovpn.node.v1.WireGuardInterfacesService/RemovePeer"
+	WireGuardInterfacesService_ApplyPeerDelta_FullMethodName = "/papiliovpn.node.v1.WireGuardInterfacesService/ApplyPeerDelta"
 )
 
 // WireGuardInterfacesServiceClient is the client API for WireGuardInterfacesService service.
@@ -35,6 +38,9 @@ type WireGuardInterfacesServiceClient interface {
 	Stop(ctx context.Context, in *WireGuardInterfaceRequest, opts ...grpc.CallOption) (*WireGuardStopResponse, error)
 	ValidateConfig(ctx context.Context, in *WireGuardValidateConfigRequest, opts ...grpc.CallOption) (*WireGuardConfigValidation, error)
 	SyncPeers(ctx context.Context, in *WireGuardSyncPeersRequest, opts ...grpc.CallOption) (*WireGuardPeerSyncResult, error)
+	UpsertPeer(ctx context.Context, in *WireGuardUpsertPeerRequest, opts ...grpc.CallOption) (*WireGuardPeerSyncResult, error)
+	RemovePeer(ctx context.Context, in *WireGuardRemovePeerRequest, opts ...grpc.CallOption) (*WireGuardRemovePeerResponse, error)
+	ApplyPeerDelta(ctx context.Context, in *WireGuardApplyPeerDeltaRequest, opts ...grpc.CallOption) (*WireGuardPeerSyncResult, error)
 }
 
 type wireGuardInterfacesServiceClient struct {
@@ -95,6 +101,36 @@ func (c *wireGuardInterfacesServiceClient) SyncPeers(ctx context.Context, in *Wi
 	return out, nil
 }
 
+func (c *wireGuardInterfacesServiceClient) UpsertPeer(ctx context.Context, in *WireGuardUpsertPeerRequest, opts ...grpc.CallOption) (*WireGuardPeerSyncResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(WireGuardPeerSyncResult)
+	err := c.cc.Invoke(ctx, WireGuardInterfacesService_UpsertPeer_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *wireGuardInterfacesServiceClient) RemovePeer(ctx context.Context, in *WireGuardRemovePeerRequest, opts ...grpc.CallOption) (*WireGuardRemovePeerResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(WireGuardRemovePeerResponse)
+	err := c.cc.Invoke(ctx, WireGuardInterfacesService_RemovePeer_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *wireGuardInterfacesServiceClient) ApplyPeerDelta(ctx context.Context, in *WireGuardApplyPeerDeltaRequest, opts ...grpc.CallOption) (*WireGuardPeerSyncResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(WireGuardPeerSyncResult)
+	err := c.cc.Invoke(ctx, WireGuardInterfacesService_ApplyPeerDelta_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // WireGuardInterfacesServiceServer is the server API for WireGuardInterfacesService service.
 // All implementations must embed UnimplementedWireGuardInterfacesServiceServer
 // for forward compatibility.
@@ -104,6 +140,9 @@ type WireGuardInterfacesServiceServer interface {
 	Stop(context.Context, *WireGuardInterfaceRequest) (*WireGuardStopResponse, error)
 	ValidateConfig(context.Context, *WireGuardValidateConfigRequest) (*WireGuardConfigValidation, error)
 	SyncPeers(context.Context, *WireGuardSyncPeersRequest) (*WireGuardPeerSyncResult, error)
+	UpsertPeer(context.Context, *WireGuardUpsertPeerRequest) (*WireGuardPeerSyncResult, error)
+	RemovePeer(context.Context, *WireGuardRemovePeerRequest) (*WireGuardRemovePeerResponse, error)
+	ApplyPeerDelta(context.Context, *WireGuardApplyPeerDeltaRequest) (*WireGuardPeerSyncResult, error)
 	mustEmbedUnimplementedWireGuardInterfacesServiceServer()
 }
 
@@ -128,6 +167,15 @@ func (UnimplementedWireGuardInterfacesServiceServer) ValidateConfig(context.Cont
 }
 func (UnimplementedWireGuardInterfacesServiceServer) SyncPeers(context.Context, *WireGuardSyncPeersRequest) (*WireGuardPeerSyncResult, error) {
 	return nil, status.Error(codes.Unimplemented, "method SyncPeers not implemented")
+}
+func (UnimplementedWireGuardInterfacesServiceServer) UpsertPeer(context.Context, *WireGuardUpsertPeerRequest) (*WireGuardPeerSyncResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpsertPeer not implemented")
+}
+func (UnimplementedWireGuardInterfacesServiceServer) RemovePeer(context.Context, *WireGuardRemovePeerRequest) (*WireGuardRemovePeerResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RemovePeer not implemented")
+}
+func (UnimplementedWireGuardInterfacesServiceServer) ApplyPeerDelta(context.Context, *WireGuardApplyPeerDeltaRequest) (*WireGuardPeerSyncResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method ApplyPeerDelta not implemented")
 }
 func (UnimplementedWireGuardInterfacesServiceServer) mustEmbedUnimplementedWireGuardInterfacesServiceServer() {
 }
@@ -241,6 +289,60 @@ func _WireGuardInterfacesService_SyncPeers_Handler(srv interface{}, ctx context.
 	return interceptor(ctx, in, info, handler)
 }
 
+func _WireGuardInterfacesService_UpsertPeer_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(WireGuardUpsertPeerRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WireGuardInterfacesServiceServer).UpsertPeer(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WireGuardInterfacesService_UpsertPeer_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WireGuardInterfacesServiceServer).UpsertPeer(ctx, req.(*WireGuardUpsertPeerRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _WireGuardInterfacesService_RemovePeer_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(WireGuardRemovePeerRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WireGuardInterfacesServiceServer).RemovePeer(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WireGuardInterfacesService_RemovePeer_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WireGuardInterfacesServiceServer).RemovePeer(ctx, req.(*WireGuardRemovePeerRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _WireGuardInterfacesService_ApplyPeerDelta_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(WireGuardApplyPeerDeltaRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WireGuardInterfacesServiceServer).ApplyPeerDelta(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WireGuardInterfacesService_ApplyPeerDelta_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WireGuardInterfacesServiceServer).ApplyPeerDelta(ctx, req.(*WireGuardApplyPeerDeltaRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // WireGuardInterfacesService_ServiceDesc is the grpc.ServiceDesc for WireGuardInterfacesService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -267,6 +369,18 @@ var WireGuardInterfacesService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SyncPeers",
 			Handler:    _WireGuardInterfacesService_SyncPeers_Handler,
+		},
+		{
+			MethodName: "UpsertPeer",
+			Handler:    _WireGuardInterfacesService_UpsertPeer_Handler,
+		},
+		{
+			MethodName: "RemovePeer",
+			Handler:    _WireGuardInterfacesService_RemovePeer_Handler,
+		},
+		{
+			MethodName: "ApplyPeerDelta",
+			Handler:    _WireGuardInterfacesService_ApplyPeerDelta_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

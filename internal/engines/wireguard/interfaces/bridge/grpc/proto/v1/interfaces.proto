@@ -10,6 +10,9 @@ service WireGuardInterfacesService {
   rpc Stop(WireGuardInterfaceRequest) returns (WireGuardStopResponse);
   rpc ValidateConfig(WireGuardValidateConfigRequest) returns (WireGuardConfigValidation);
   rpc SyncPeers(WireGuardSyncPeersRequest) returns (WireGuardPeerSyncResult);
+  rpc UpsertPeer(WireGuardUpsertPeerRequest) returns (WireGuardPeerSyncResult);
+  rpc RemovePeer(WireGuardRemovePeerRequest) returns (WireGuardRemovePeerResponse);
+  rpc ApplyPeerDelta(WireGuardApplyPeerDeltaRequest) returns (WireGuardPeerSyncResult);
 }
 
 message WireGuardInterfaceRequest {
@@ -71,4 +74,22 @@ message WireGuardPeerSyncResult {
   uint32 added = 1;
   uint32 updated = 2;
   uint32 removed = 3;
+}
+
+message WireGuardUpsertPeerRequest {
+  string name = 1;
+  WireGuardPeer peer = 2;
+}
+
+message WireGuardRemovePeerRequest {
+  string name = 1;
+  bytes public_key = 2;
+}
+
+message WireGuardRemovePeerResponse {}
+
+message WireGuardApplyPeerDeltaRequest {
+  string name = 1;
+  repeated WireGuardPeer upsert = 2;
+  repeated bytes remove = 3;
 }

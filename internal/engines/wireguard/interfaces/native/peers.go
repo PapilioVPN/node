@@ -31,39 +31,58 @@ type peerSnapshot struct {
 }
 
 func (control *Control) SyncPeers(ctx context.Context, owner lifecycle.Link, desired []peers.Peer) (peers.Result, error) {
-	link, err := control.Inspect(ctx, owner)
+	snapshot, err := control.peerState(ctx, owner, desired)
 	if err != nil {
 		return peers.Result{}, err
 	}
+	updates, removals, result := peers.Diff(snapshot.peers, desired)
+	return control.applyPeerChanges(ctx, owner.Index, updates, removals, result)
+}
+
+func (control *Control) applyPeerChanges(ctx context.Context, index int, updates, removals []peers.Change, result peers.Result) (peers.Result, error) {
+	if err := ctx.Err(); err != nil {
+		return peers.Result{}, err
+	}
+	for _, batch := range [][]peers.Change{removals, updates} {
+		if err := control.writePeers(ctx, index, batch); err != nil {
+			return peers.Result{}, errors.Join(peers.ErrUnconfirmed, err)
+		}
+	}
+	return result, nil
+}
+
+func (control *Control) checkPeerLink(ctx context.Context, owner lifecycle.Link) error {
+	link, err := control.Inspect(ctx, owner)
+	if err != nil {
+		return err
+	}
 	if !link.Up || link.Name != owner.Name {
-		return peers.Result{}, status.ErrUnavailable
+		return status.ErrUnavailable
+	}
+	return nil
+}
+
+func (control *Control) peerState(ctx context.Context, owner lifecycle.Link, desired []peers.Peer) (peerSnapshot, error) {
+	if err := control.checkPeerLink(ctx, owner); err != nil {
+		return peerSnapshot{}, err
 	}
 	allowedIPCount := 0
 	for i := range desired {
 		allowedIPCount += len(desired[i].AllowedIPs)
 	}
 	snapshot, err := control.readPeers(ctx, owner.Index, len(desired), allowedIPCount)
+	if errors.Is(err, os.ErrDeadlineExceeded) {
+		return peerSnapshot{}, context.DeadlineExceeded
+	}
 	if err != nil {
-		if errors.Is(err, os.ErrDeadlineExceeded) {
-			return peers.Result{}, context.DeadlineExceeded
-		}
-		return peers.Result{}, err
+		return peerSnapshot{}, err
 	}
 	for i := range desired {
 		if desired[i].PublicKey == snapshot.self {
-			return peers.Result{}, peers.ErrInvalid
+			return peerSnapshot{}, peers.ErrInvalid
 		}
 	}
-	updates, removals, result := peers.Diff(snapshot.peers, desired)
-	if err := ctx.Err(); err != nil {
-		return peers.Result{}, err
-	}
-	for _, batch := range [][]peers.Change{removals, updates} {
-		if err := control.writePeers(ctx, owner.Index, batch); err != nil {
-			return peers.Result{}, errors.Join(peers.ErrUnconfirmed, err)
-		}
-	}
-	return result, nil
+	return snapshot, nil
 }
 
 func (control *Control) readPeers(ctx context.Context, index, expectedPeers, expectedIPs int) (snapshot peerSnapshot, err error) {
@@ -287,33 +306,35 @@ func (control *Control) writePeers(ctx context.Context, index int, changes []pee
 			}
 			end++
 		}
-		if err := control.prepareWireGuard(ctx, deadline); err != nil {
-			return err
-		}
-		encoder := gennetlink.NewAttributeEncoder()
-		encoder.Uint32(unix.WGDEVICE_A_IFINDEX, uint32(index))
-		encoder.Nested(unix.WGDEVICE_A_PEERS, func(list *gennetlink.AttributeEncoder) error {
-			for i := range changes[:end] {
-				change := &changes[i]
-				list.Nested(uint16(i), func(peer *gennetlink.AttributeEncoder) error {
-					encodePeerChange(peer, change)
-					return nil
-				})
-			}
-			return nil
-		})
-		data, err := encoder.Encode()
-		if err != nil {
-			return err
-		}
-		err = control.setWireGuard(data)
-		clear(data)
-		if err != nil {
+		if err := control.writePeerMessage(ctx, deadline, index, changes[:end]); err != nil {
 			return err
 		}
 		changes = changes[end:]
 	}
 	return nil
+}
+
+func (control *Control) writePeerMessage(ctx context.Context, deadline time.Time, index int, changes []peers.Change) error {
+	if err := control.prepareWireGuard(ctx, deadline); err != nil {
+		return err
+	}
+	encoder := gennetlink.NewAttributeEncoder()
+	encoder.Uint32(unix.WGDEVICE_A_IFINDEX, uint32(index))
+	encoder.Nested(unix.WGDEVICE_A_PEERS, func(list *gennetlink.AttributeEncoder) error {
+		for i := range changes {
+			list.Nested(uint16(i), func(peer *gennetlink.AttributeEncoder) error {
+				encodePeerChange(peer, &changes[i])
+				return nil
+			})
+		}
+		return nil
+	})
+	data, err := encoder.Encode()
+	if err != nil {
+		return err
+	}
+	defer clear(data)
+	return control.setWireGuard(data)
 }
 
 func peerDeadline(ctx context.Context) time.Time {

@@ -35,6 +35,9 @@ type Control interface {
 	Inspect(context.Context, Link) (status.Interface, error)
 	UpdateMTU(context.Context, Link, uint32, uint32) (status.Interface, error)
 	SyncPeers(context.Context, Link, []peers.Peer) (peers.Result, error)
+	UpsertPeer(context.Context, Link, peers.Peer) (peers.Result, error)
+	RemovePeer(context.Context, Link, [32]byte) error
+	ApplyPeerDelta(context.Context, Link, peers.Delta) (peers.Result, error)
 	Remove(context.Context, Link) error
 }
 

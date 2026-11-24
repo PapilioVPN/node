@@ -57,6 +57,7 @@ func Register(router chi.Router, service *status.Service, managed *lifecycle.Ser
 	if managed == nil {
 		return
 	}
+	registerPeerDelta(router, path+"/peers", managed)
 	router.Put(path+"/peers", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
 		source, err := readConfig(w, r)
@@ -158,6 +159,8 @@ func writeError(w http.ResponseWriter, err error) {
 		http.Error(w, peers.ErrTooMany.Error(), http.StatusRequestEntityTooLarge)
 	case errors.Is(err, peers.ErrUnconfirmed):
 		http.Error(w, peers.ErrUnconfirmed.Error(), http.StatusServiceUnavailable)
+	case errors.Is(err, peers.ErrPrefixConflict), errors.Is(err, peers.ErrCapacity):
+		http.Error(w, err.Error(), http.StatusConflict)
 	case errors.Is(err, lifecycle.ErrConflict):
 		http.Error(w, lifecycle.ErrConflict.Error(), http.StatusConflict)
 	case errors.Is(err, lifecycle.ErrInvalid):

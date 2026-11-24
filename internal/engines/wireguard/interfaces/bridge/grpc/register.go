@@ -81,13 +81,9 @@ func (h *handlers) SyncPeers(ctx context.Context, req *interfacesv1.WireGuardSyn
 	}
 	input := make([]peers.Input, len(desired.GetPeers()))
 	for i, peer := range desired.GetPeers() {
-		input[i] = peers.Input{PublicKey: peer.GetPublicKey(), PresharedKey: peer.GetPresharedKey(), AllowedIPs: peer.GetAllowedIps()}
+		input[i] = peerInput(peer)
 	}
-	result, err := h.managed.SyncPeers(ctx, req.GetName(), input)
-	if err != nil {
-		return nil, readError(err)
-	}
-	return &interfacesv1.WireGuardPeerSyncResult{Added: result.Added, Updated: result.Updated, Removed: result.Removed}, nil
+	return peerResult(h.managed.SyncPeers(ctx, req.GetName(), input))
 }
 
 func response(result interfacestatus.Interface) *interfacesv1.WireGuardInterfaceStatus {
@@ -106,6 +102,8 @@ func readError(err error) error {
 		return status.Error(codes.ResourceExhausted, peers.ErrTooMany.Error())
 	case errors.Is(err, peers.ErrUnconfirmed):
 		return status.Error(codes.Unavailable, peers.ErrUnconfirmed.Error())
+	case errors.Is(err, peers.ErrPrefixConflict), errors.Is(err, peers.ErrCapacity):
+		return status.Error(codes.FailedPrecondition, err.Error())
 	case errors.Is(err, lifecycle.ErrConflict):
 		return status.Error(codes.FailedPrecondition, lifecycle.ErrConflict.Error())
 	case errors.Is(err, lifecycle.ErrInvalid):

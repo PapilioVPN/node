@@ -91,6 +91,7 @@ func TestManagedExecution(t *testing.T) {
 	}
 	exchangePacket(t, base64.StdEncoding.EncodeToString(privateKey.PublicKey().Bytes()), strings.TrimSpace(string(configured)), func(peer string) {
 		assertPeerSync(t, f, client, peer)
+		assertPeerDelta(t, f, client, privateKey.PublicKey().Bytes())
 		before, err := net.InterfaceByName(interfaceName)
 		if err != nil {
 			t.Fatal(err)

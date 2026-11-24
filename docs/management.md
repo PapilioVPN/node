@@ -23,7 +23,7 @@
 | Xray log stream | Follow live stdout and stderr for the active Xray execution over HTTP and gRPC. |
 | Xray outbound health | Read all recorded Observatory samples or select an outbound by tag over HTTP and gRPC. |
 | WireGuard interface | Read status, validate configuration, start or stop a Linux interface, update MTU live, and optionally recover across Node restarts. HTTP and gRPC. |
-| WireGuard peers | Reconcile the complete peer set by public key over HTTP and gRPC. Preserve unchanged peers and report added, updated and removed counts. |
+| WireGuard peers | Reconcile the full set, upsert or remove one peer, or apply a bounded set of changes by public key over HTTP and gRPC. |
 
 <a name="management"></a>
 
@@ -88,3 +88,7 @@ Send the proposed JSON to `POST /v1/wireguard/interfaces/{name}/config-validatio
 Set `wireguard.state_directory` to an existing dedicated directory owned by Node with mode `0700` to enable recovery. Node leaves its owned interface running during a process restart and records its ownership and confirmed source metadata in a `0600` file. The raw private key and JSON stay out of the file. Recovery checks the boot, network namespace, link identity, administrative state and MTU before publishing the recorded fingerprint. An owned interface with an unconfirmed config is available to Stop. Explicit Stop also removes the checkpoint. Recovery of the same live interface applies within one kernel boot and network namespace.
 
 Send the full desired set to `PUT /v1/wireguard/interfaces/{name}/peers` with a `peers` array, or call `WireGuardInterfacesService.SyncPeers` with a present `desired` message. Use an explicit empty set to remove all peers. Each peer has a 32-byte `public_key`, up to 16 IPv4 or IPv6 `allowed_ips` prefixes, and an optional 32-byte `preshared_key`. HTTP keys use base64. Omit the PSK to request a peer without a PSK. The set supports up to 1,000 peers. Keys and normalized prefixes must be unique. Node reads the live interface and writes only the differences using bounded kernel batches. A failed native batch can leave partial changes. Resend the desired set to reconcile against the live kernel state. Replies contain counts rather than key material.
+
+Use `PUT /v1/wireguard/interfaces/{name}/peers/{key}` to upsert one peer and `DELETE` on the same resource to remove it. The path key is unpadded base64url. The PUT body takes `allowed_ips` and optional `preshared_key` and replaces both values for that peer. Deleting an absent peer also succeeds with HTTP `204`. The matching gRPC methods are `UpsertPeer` and `RemovePeer`.
+
+Use `PATCH /v1/wireguard/interfaces/{name}/peers` or `ApplyPeerDelta` to submit one independent chunk with `upsert` peer records and `remove` public keys. Split larger changes into requests of 1 to 1,000 operations. Each key may appear once per chunk. An exact prefix cannot be taken from a peer outside the chunk. New additions must keep the managed set at or below 1,000 peers. A conflict returns HTTP `409` or gRPC `FAILED_PRECONDITION`. Upserts and chunks return `added`, `updated`, and `removed`. If a kernel write has an unconfirmed outcome, the caller can resend the same chunk to reconcile against live state. Each chunk has its own acknowledgment, and the kernel provides no rollback across writes.
