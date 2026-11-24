@@ -39,6 +39,10 @@ GOMAXPROCS=1 go test ./benchmarks/host -run '^$' -bench . -benchmem -benchtime=2
 
 ## Xray instance lifecycle
 
+The [integrated lifecycle and account report](xray/integrated-lifecycle-accounts.md)
+includes measured launch, stop, status, single-account sync, and log delivery
+after the account and lifecycle branches were combined.
+
 On 2026-11-23, PapilioVPN Node had lower p50 and p95 latencies in all six tested transport and operation pairs. The table shows the median of five per-round percentiles, in milliseconds. Each round includes 30 cold starts, 360 status reads while ready, and 30 joined stops per server.
 
 | Transport | Operation | PapilioVPN p50 | PapilioVPN p95 | PasarGuard p50 | PasarGuard p95 |

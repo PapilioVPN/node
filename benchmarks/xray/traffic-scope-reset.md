@@ -233,3 +233,39 @@ instrumentation for both builds. Node p50/p95 went from 3.577/5.379 ms
 to 3.006/4.891 ms. PasarGuard measured 2.650/4.065 ms in the tuned run.
 Both products processed all requests without rejections.
 [Per-round data](results/2026-11-23-scope-http-allocation.csv)
+
+#### Compact native acknowledgements
+
+The bundled engine sends a compact private protobuf reply for selections of
+256 or more counters when the caller requests it. The reply preserves each
+name, direction, and signed value. The old row reply remains supported in
+both directions of an upgrade. The public HTTP and gRPC schemas are unchanged.
+
+Decoding the private reply for 1,000 counters with zero previous values used
+113,608 bytes and 2,012 allocations for rows and 60,592 bytes and 1,015
+allocations for the compact reply. Their wire sizes were 17,000 and 16,009
+bytes. Reproduce with the following command.
+
+```bash
+GOMAXPROCS=1 go test ./benchmarks/xray -run '^$' \
+  -bench '^BenchmarkScopeResetDecode$' -benchmem -benchtime=200ms -count=5
+```
+
+The integrated build at `59ddc16` was measured with the bundled Xray and
+PasarGuard `739eab9` with stock Xray v26.11.9. Each row uses the median of
+five rounds with one client and a 750 ms window. Server CPU was 0 and client
+CPU was 4. Latencies are in milliseconds, PapilioVPN / PasarGuard.
+
+| Transport | Counters | p50 | p95 | Successful requests per second |
+| --- | ---: | ---: | ---: | ---: |
+| HTTP | 100 | 0.854 / 0.708 | 2.345 / 1.630 | 973.3 / 1194.5 |
+| gRPC | 100 | 0.848 / 0.687 | 2.044 / 1.297 | 1017.2 / 1311.2 |
+| HTTP | 1000 | 3.362 / 2.733 | 5.737 / 4.253 | 276.3 / 353.1 |
+| gRPC | 1000 | 2.315 / 2.845 | 4.741 / 4.368 | 388.2 / 333.9 |
+
+There were no rejected requests. The 1,000-counter gRPC result has a lower
+median and higher successful throughput, with a higher p95. The 100-counter
+results use the row reply. Earlier compact trials compared the same binaries
+in both orders, and the smaller workload showed no consistent end-to-end gain.
+
+[Per-round data](results/2026-11-24-compact-scope-reset.csv)
