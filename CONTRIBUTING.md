@@ -60,11 +60,13 @@ binary from the [Checks workflow](.github/workflows/check.yml) and set
 `NODE_TEST_XRAY` to its absolute path before running checks. Note any
 environment-dependent checks you skipped. Run `bash scripts/ci/package.sh`
 when changing runtime packaging or deployment behavior. It requires Linux,
-Docker and curl.
+Docker with Compose, curl, and jq.
 
-If a protobuf contract changes, regenerate the Go files beside it with the
-versions in the [development instructions](README.md#development). Include
-the schema and generated files in the same change.
+If a protobuf contract changes, use `protoc` 36.2, `protoc-gen-go`
+v1.36.12, and `protoc-gen-go-grpc` v1.6.0 for Xray services. Run
+`go generate ./internal/host/bridge/grpc` for Host or
+`go generate ./internal/engines/xray/...` for Xray. Include the schema and
+source-relative generated files in the same change.
 
 For performance changes, provide the workload, engine and tool versions,
 machine details, command to reproduce, and before-and-after measurements for

@@ -1,0 +1,19 @@
+services:
+  node:
+    image: ${NODE_IMAGE:?Set NODE_IMAGE to the PapilioVPN Node image}
+    platform: linux/amd64
+    network_mode: host
+    restart: unless-stopped
+    read_only: true
+    cap_drop:
+      - ALL
+    tmpfs:
+      - /tmp:mode=1777
+    volumes:
+      - type: bind
+        source: ./config
+        target: /etc/node
+        read_only: true
+        bind:
+          create_host_path: false
+    entrypoint: ["/node", "-config", "/etc/node/config.yml"]

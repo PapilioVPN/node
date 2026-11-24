@@ -30,8 +30,9 @@ jobs:
     permissions:
       actions: read
       contents: write
+      packages: write
     steps:
-      - name: Verify and publish the checked Linux package
+      - name: Verify and publish the checked Linux packages
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -49,8 +50,10 @@ jobs:
           evidence=$(gh api "$run" --jq '[.path, .head_branch, .head_sha, .head_repository.full_name, .event, .status, .conclusion] | join(" ")')
           test "$evidence" = ".github/workflows/check.yml main $GITHUB_SHA $GH_REPO push completed success"
 
-          package="node-${TAG#v}-linux-amd64-$GITHUB_SHA"
+          version="${TAG#v}"
+          package="node-$version-linux-amd64"
           archive="$package.tar.gz"
+          compose_archive="$package-compose.tar.gz"
           metadata=$(gh api "$run/artifacts")
           artifact=$(jq -er --arg name "$package" '.artifacts[] | select(.name == $name and .expired == false) | .id' <<< "$metadata")
           digest=$(jq -er --arg name "$package" '.artifacts[] | select(.name == $name and .expired == false) | .digest' <<< "$metadata")
@@ -59,12 +62,27 @@ jobs:
           cd "$(mktemp -d)"
           gh api "repos/$GH_REPO/actions/artifacts/$artifact/zip" > artifact.zip
           printf '%s  artifact.zip\n' "${digest#sha256:}" | sha256sum -c
-          unzip -q artifact.zip "$archive" "$archive.sha256"
-          sha256sum -c "$archive.sha256"
-          tar -xzf "$archive" node/node
-          test "$(./node/node -version)" = "${TAG#v}"
+          unzip -q artifact.zip "$archive" "$archive.sha256" "$compose_archive" "$compose_archive.sha256"
+          sha256sum -c "$archive.sha256" -c "$compose_archive.sha256"
+          tar -xzf "$archive" node/node node/image.tar node/image-name
+          test "$(./node/node -version)" = "$version"
 
           test "$(gh api "repos/$GH_REPO/git/ref/heads/main" --jq .object.sha)" = "$GITHUB_SHA"
+          registry_image="ghcr.io/${GH_REPO,,}:$version"
+          test "$(tar -xOzf "$compose_archive" node/.env)" = "NODE_IMAGE=$registry_image"
+          docker load -i node/image.tar
+          local_image=$(cat node/image-name)
+          config_path=$(tar -xOf node/image.tar manifest.json | jq -er 'if length == 1 then .[0].Config else error("expected one image") end')
+          config_digest=$(tar -xOf node/image.tar "$config_path" | sha256sum | cut -d ' ' -f 1)
+          identity=$(docker image inspect "$local_image" --format '{{.Os}}/{{.Architecture}} {{index .Config.Labels "org.opencontainers.image.revision"}} {{index .Config.Labels "org.opencontainers.image.version"}}')
+          test "$identity" = "linux/amd64 $GITHUB_SHA $version"
+          docker tag "$local_image" "$registry_image"
+          printf '%s' "$GH_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+          docker push --platform linux/amd64 "$registry_image"
+          published_config=$(docker buildx imagetools inspect --raw "$registry_image" | jq -er .config.digest)
+          test "$published_config" = "sha256:$config_digest"
+          docker logout ghcr.io
+
           printf '%s\n' "$RELEASE_NOTES" > notes.md
           gh release create "$TAG" --target "$GITHUB_SHA" --title "PapilioVPN Node $TAG" \
-            --notes-file notes.md --latest "$archive" "$archive.sha256"
+            --notes-file notes.md --latest "$archive" "$archive.sha256" "$compose_archive" "$compose_archive.sha256"

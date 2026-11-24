@@ -32,99 +32,37 @@
 
 ## Быстрый старт
 
-Скачайте архив для Linux amd64 и его контрольную сумму из [релизов GitHub](https://github.com/PapilioVPN/node/releases/latest). Проверьте и распакуйте архив, затем запустите Node с примером настроек.
+На Linux amd64 с Docker Compose скачайте пакет нужной версии и запустите Node.
 
 ```bash
-archive=node-1.0.0-linux-amd64-YOUR_COMMIT_SHA.tar.gz
-sha256sum -c "$archive.sha256" && tar -xzf "$archive"
-cp -n node/config.example.yml config.yml
-./node/node -config config.yml
+(
+  set -eu
+  version=1.0.1
+  bundle="node-$version-linux-amd64-compose.tar.gz"
+  release="https://github.com/PapilioVPN/node/releases/download/v$version"
+  curl -fLO "$release/$bundle" -fLO "$release/$bundle.sha256"
+  sha256sum -c "$bundle.sha256"
+  tar -xzf "$bundle"
+  cd node
+  mkdir -p config
+  test -e config/config.yml || cp config.example.yml config/config.yml
+  docker compose up -d
+)
 ```
 
-Чтобы запустить ту же сборку в Docker, загрузите образ из архива и подключите файл настроек.
-
-```bash
-docker load -i node/image.tar
-docker run --rm --network=host --read-only --cap-drop ALL \
-  --mount "type=bind,source=$PWD/config.yml,target=/config.yml,readonly" \
-  "$(cat node/image-name)"
-```
+API управления по умолчанию слушает loopback. Проверьте его командой `curl -fsS http://127.0.0.1:8080/healthz`. Установка бинарного файла, автономная установка и настройка Xray описаны в [руководстве по установке](docs/install.md).
 
 <a name="capabilities"></a>
 <a name="current-capabilities"></a>
 
 ## Возможности
 
-| Раздел | Доступные операции |
-| --- | --- |
-| Готовность Node | Проверка готовности интерфейсов управления Node по HTTP и gRPC. |
-| Время работы хоста | Время с момента загрузки Linux в целых секундах по HTTP и gRPC. |
-| Память хоста | Общий и доступный объём ОЗУ, а также общий и свободный объём swap, в байтах по HTTP и gRPC. |
-| Процессор хоста | Суммарная загрузка CPU по HTTP и gRPC. |
-| Хранилище хоста | Объём и режим чтения файловой системы для настроенного пути. |
-| Сводка хоста | Время работы, загрузка CPU, память и хранилище в одном ответе. |
-| Экземпляр Xray | Запуск, остановка, чтение состояния и версий по HTTP и gRPC. Запуск принимает типизированные начальные учётные записи по обоим протоколам и поддерживает keep-alive, применение совместимых изменений без перезапуска и восстановление с перезапуском. |
-| Проверка конфигурации Xray | Проверка настроенного JSON по HTTP и gRPC перед перезапуском экземпляра. |
-| Статистика Xray | Время работы, выделение памяти, количество горутин и счётчики сборки мусора активного экземпляра по HTTP и gRPC. |
-| Счётчики трафика Xray | Чтение входящих и исходящих байтов для одной или всех учётных записей, входящих или исходящих тегов через HTTP и gRPC. |
-| Сброс трафика Xray | Сбросить один счётчик, оба направления для имени или ограниченную область по HTTP и gRPC после явного включения. |
-| Онлайн-аккаунты и IP в Xray | Получить список онлайн-аккаунтов, число уникальных IP или время их последнего обнаружения по HTTP и gRPC. |
-| Маршрутизация Xray | Читать и изменять правила, проверять маршрут и управлять целью балансировщика по HTTP и gRPC. |
-| Учётные записи Xray | Синхронизация по имени, полным списком или порциями изменений для выбранных входов по HTTP и gRPC. Подтверждённый состав восстанавливается при управляемом перезапуске. При включённом постоянном хранении он также переживает перезапуск Node. Синхронизация пропускает входы, указанные при запуске в `exclude_inbounds`. Поддерживаются VLESS, VMess, Trojan, Shadowsocks, совместимые серверы Shadowsocks 2022, Hysteria, MASQUE и WireGuard в Xray. Для VLESS доступны прямое добавление, удаление и подсчёт. |
-| Поток журналов Xray | Получать stdout и stderr активного процесса по HTTP и gRPC. |
-| Состояние исходящих подключений Xray | Получить все наблюдения Observatory или выбрать исходящее подключение по тегу через HTTP и gRPC. |
+- **Хост** — время работы, CPU, память и дисковое пространство.
+- **Xray** — запуск и остановка, проверка конфигурации, синхронизация и восстановление учётных записей, трафик, онлайн-статистика, маршрутизация, журналы и состояние исходящих подключений.
 
 <a name="management"></a>
 
-## API управления
-
-HTTP-запрос `GET /v1/host/uptime` возвращает поле `uptime_seconds`. В gRPC метод `HostService.GetUptime` возвращает ту же величину согласно [контракту API хоста](internal/host/bridge/grpc/proto/v1/host.proto). Оба метода используют часы загрузки из пространства имён времени Linux, доступного Node.
-
-HTTP-запрос `GET /v1/host/memory` и метод gRPC `HostService.GetMemory` читают доступный Node файл Linux `/proc/meminfo`. Значения указаны в байтах. Поле `available_bytes` содержит оценку доступной без подкачки памяти и присутствует, когда ядро сообщает это значение.
-
-HTTP-запрос `GET /v1/host/cpu` и метод gRPC `HostService.GetCPU` возвращают общий замер загрузки процессора Linux, обновляемый примерно раз в секунду. Ответ содержит `busy_percent`, `window_milliseconds`, `observed_at` и `steal_percent`, если его сообщает Linux. Время ожидания ввода-вывода и время, отнятое гипервизором, не входят в загрузку. Пока корректного замера нет, HTTP возвращает `503`, а gRPC возвращает `UNAVAILABLE`.
-
-HTTP-запрос `GET /v1/host/storage` и метод gRPC `HostService.GetStorage` возвращают `path`, `total_bytes`, `used_bytes`, `available_bytes` и `read_only`. В `available_bytes` не входит пространство, зарезервированное для привилегированных пользователей. Укажите в `host.storage_path` абсолютный путь на нужном томе. По умолчанию используется `/` в пространстве имён монтирования Node. В Docker укажите путь, видимый внутри контейнера. Если проверить путь невозможно, HTTP возвращает `503`, а gRPC возвращает `UNAVAILABLE`.
-
-HTTP-запрос `GET /v1/host/stats` и метод gRPC `HostService.GetSystemStats` возвращают `uptime_seconds`, `cpu`, `memory` и `storage` с теми же данными и единицами, что и отдельные операции. Недоступные поля пропускаются. Поле `cpu` появляется после первого корректного замера.
-
-Для включения одного экземпляра задайте `xray.id`, `xray.executable` и `xray.config_file` по [примеру настройки](deploy/config.example.yml). Используйте Xray v26.11.9 и JSON-файл, которым управляет оператор. При запуске Node заменяет его блок `api` приватным Unix-сокетом для проверки готовности. В Docker смонтируйте исполняемый файл и JSON и предоставьте каталог с правом записи, например с помощью `--tmpfs /tmp`. Для удалённого управления требуются TLS и ключ API или клиентский CA.
-
-Запрос `GET /v1/xray/instances/{id}` возвращает состояние. Запросы `PUT` и `DELETE /v1/xray/instances/{id}/execution` с пустым телом запускают и останавливают процесс. [Контракт gRPC](internal/engines/xray/instances/bridge/grpc/proto/v1/instances.proto) предоставляет `XrayInstancesService.Start`, `GetStatus` и `Stop`. Запуск ждёт ответа API Xray, остановка ждёт завершения процесса.
-
-При сбое запуска HTTP возвращает `503` с полем JSON `reason`, а gRPC возвращает `UNAVAILABLE` с деталями `XrayStartFailure`. Возможные причины: `launch_failed`, `exited_before_ready`, `readiness_timeout` и `readiness_failed`. Если Xray завершился до готовности и вернул код, ответ содержит `exit_code`.
-
-Отправьте пустой запрос `POST /v1/xray/instances/{id}/config-validations` или вызовите `XrayConfigsService.ValidateConfig` с идентификатором экземпляра. Node проверяет настроенный файл с теми же параметрами, что при запуске. Недопустимая конфигурация возвращает `valid: false` и код проблемы, а также строку и столбец, если их сообщил Xray. Сбой выполнения проверки возвращает ошибку API. [Контракт gRPC](internal/engines/xray/configs/bridge/grpc/proto/v1/configs.proto)
-
-Используйте `GET /v1/xray/instances/{id}/stats/runtime` или `XrayStatsService.GetRuntimeStats`. Каждый ответ использует свежий снимок активного процесса Xray. Одновременные запросы могут получить один и тот же следующий снимок. Память измеряется в байтах, время работы — в целых секундах с запуска службы статистики Xray, суммарная пауза GC — в наносекундах. Для недоступного экземпляра HTTP возвращает `503`, а gRPC — `UNAVAILABLE`. Буфер ожидающих чтений вмещает 128 запросов. При заполнении буфера HTTP возвращает `429`, а gRPC — `RESOURCE_EXHAUSTED`. [Контракт gRPC](internal/engines/xray/stats/bridge/grpc/proto/v1/runtime_stats.proto) · [Бенчмарк и исходные результаты](benchmarks/xray/runtime/README.md#xray-runtime-statistics-after-the-rewrite)
-
-Используйте `GET /v1/xray/instances/{id}/stats/traffic/{scope}` с `user`, `inbound` или `outbound`. Добавьте `?name=...` для одной учётной записи или тега. Методы gRPC — `XrayStatsService.GetTraffic` и `ListTraffic`. Чтение сохраняет значения счётчиков. Отсутствующее направление пропускается, а значение ноль возвращается как ноль. Для отсутствующего имени HTTP возвращает `404`, а gRPC — `NOT_FOUND`. Порядок списка не задан. Включите статистику трафика для нужной области в политике Xray. [Контракт gRPC](internal/engines/xray/stats/bridge/grpc/proto/v1/traffic.proto)
-
-Включите `xray.reset_engine_stats: true`, чтобы разрешить сброс через API управления. Используйте `POST /v1/xray/instances/{id}/stats/traffic/{scope}/resets?name=...&direction=uplink` или `XrayStatsService.ResetTrafficCounter`. Для другого направления укажите `downlink`. Xray атомарно возвращает прежнее количество байтов и обнуляет выбранный счётчик. При неизвестном результате или потере ответа перед повтором сверяйте состояние.
-
-Для обоих направлений используйте `POST /v1/xray/instances/{id}/stats/traffic/{scope}/pair-resets?name=...` или `XrayStatsService.ResetTrafficPair`. Xray обнуляет каждое направление отдельно. HTTP возвращает оба результата в теле ответа, в том числе при прерывании. gRPC передаёт частичный результат в деталях статуса. Прежнее количество байтов возвращается для подтверждённых направлений.
-
-Для сброса области используйте `POST /v1/xray/instances/{id}/stats/traffic/{scope}/scope-resets?max_counters=...` или `XrayStatsService.ResetTrafficScope`. Задайте лимит от 1 до 1000 счётчиков отдельных направлений. Превышение лимита отклоняет запрос до первого сброса. Проверяйте общий итог и результат каждого счётчика. gRPC передаёт отчёт о прерывании или неизвестном результате в теле ответа. По умолчанию сброс области выполняется последовательно. Для параллельного сброса задайте `xray.reset_scope_concurrency` от 2 до 8. [Контракт и замеры](benchmarks/xray/traffic/scope-reset.md)
-
-Для сброса одним вызовом используйте `/node-xray` из пакета и задайте `xray.native_scope_reset: true`. Со стандартным Xray сброс выполняется последовательно или с настроенным параллелизмом.
-
-Используйте `GET /v1/xray/instances/{id}/stats/online/count?name=...` для подсчёта и `/stats/online/ips?name=...` для списка в том же экземпляре. Методы gRPC — `XrayStatsService.GetOnlineIPCount` и `ListOnlineIPs`. Включите `statsUserOnline` на уровне политики учётной записи. Время указано в секундах Unix. Пустая карта отслеживаемых IP даёт ноль или пустую карту. При отсутствии наблюдения HTTP возвращает `404`, а gRPC — `NOT_FOUND`. [Контракт gRPC](internal/engines/xray/stats/bridge/grpc/proto/v1/online.proto)
-
-Используйте `GET /v1/xray/instances/{id}/stats/online/users` или `XrayStatsService.ListOnlineUsers`, чтобы получить имена аккаунтов, для которых Xray отслеживает хотя бы один IP-адрес источника. Порядок списка не задан. Когда онлайн-аккаунтов нет, HTTP возвращает `{"names":[]}`.
-
-Используйте `GET /v1/xray/instances/{id}/routing/rules` и `GET /v1/xray/instances/{id}/routing/balancer?tag=...` для чтения состояния маршрутизации. Методы gRPC — `XrayRoutingService.ListRoutingRules` и `GetBalancerInfo`. Переопределённая цель и цели, указанные Xray, передаются раздельно. [Контракт gRPC](internal/engines/xray/routing/bridge/grpc/proto/v1/routing.proto)
-
-Используйте `XrayRoutingService.TestRoute`, `AddRoutingRule`, `RemoveRoutingRule` и `OverrideBalancerTarget` для проверки и изменения активной маршрутизации. Маршруты HTTP и подтверждение замены правил описаны в отчёте. [Управление маршрутизацией](benchmarks/xray/routing/rule-writes.md)
-
-Используйте `XrayAccountsService.AddVLESSAccount`, `RemoveVLESSAccount` и `CountVLESSAccounts` или HTTP-маршруты под `/v1/xray/instances/{id}/inbounds/{tag}/accounts`. Операции применяются к активному запуску. [Контракт VLESS](benchmarks/xray/accounts/vless.md)
-
-[Синхронизация VLESS](benchmarks/xray/accounts/sync.md) · [Поток журналов Xray](benchmarks/xray/logs/contract.md)
-
-Чтобы сохранить подтверждённую синхронизацию при перезапуске Node, укажите в `xray.state_directory` существующий каталог с правами `0700`, принадлежащий пользователю Node. В Docker подключите его как постоянное хранилище с записью. Node записывает состояние до подтверждения синхронизации и восстанавливает его до готовности при следующем `Start`. Сохраните идентификатор экземпляра и совместимые входы.
-
-Используйте `GET /v1/xray/instances/{id}/outbounds/health` или `XrayOutboundsService.GetOutboundHealth` для чтения обычных наблюдений Observatory. Для одного исходящего подключения укажите его тег. Ответ различает успешную проверку, сбой и отсутствие наблюдения. [Контракт gRPC](internal/engines/xray/outbounds/bridge/grpc/proto/v1/outbounds.proto)
-
-В примере оба интерфейса привязаны к loopback. HTTP-запрос `GET /healthz` возвращает `204 No Content`, когда Node готов. Служба проверки gRPC на порту 8081 возвращает `SERVING` для пустого имени службы. Для TLS укажите `management.tls.cert_file` и `management.tls.key_file`. Необязательный параметр `management.tls.client_ca_file` включает mTLS, а `management.api_key` задаёт ключ для заголовка или метаданных `x-api-key`.
+[Справочник HTTP и gRPC](docs/management.ru.md)
 
 <a name="benchmarks"></a>
 
@@ -134,28 +72,13 @@ HTTP-запрос `GET /v1/host/stats` и метод gRPC `HostService.GetSystem
 **PapilioVPN лидирует в 82 из 102 сопоставимых сценариев Xray**. В 13 сценариях результаты смешанные, в 7 лидирует PasarGuard 0.5.7. Сводка также содержит 16 сценариев на общей тестовой установке, в которых различаются входные данные, поля ответа или гарантии.
 <!-- /benchmark-summary -->
 
-![Результаты бенчмарков по группам](benchmarks/xray/charts/outcomes.png)
-
 [Сводка, отчёты по группам и исходные данные](benchmarks/xray/README.md)
 
 <a name="development"></a>
 
 ## Разработка
 
-Порядок проверки изменений и открытия pull request описан в [руководстве для участников](CONTRIBUTING.md).
-
-Для проверок используйте Go 1.27.4 или новее. Для сборки архива также требуются Docker и curl.
-
-```bash
-bash scripts/ci/check.sh
-bash scripts/ci/package.sh
-```
-
-После изменения `host.proto` заново сгенерируйте `host.pb.go` в том же каталоге. Добавьте `protoc` 36.2 и `protoc-gen-go` v1.36.12 в `PATH` и выполните команду из корня репозитория.
-
-```bash
-go generate ./internal/host/bridge/grpc
-```
+Локальные проверки и порядок открытия pull request описаны в [руководстве для участников](CONTRIBUTING.md).
 
 ## Лицензия
 
