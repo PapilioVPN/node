@@ -22,6 +22,7 @@
 | حساب‌های Xray | همگام‌سازی تکی، فهرست کامل یا تغییرات تکه‌ای روی ورودی‌های انتخاب‌شده از HTTP و gRPC، با بازیابی حساب‌های تأییدشده هنگام راه‌اندازی مجدد تحت مدیریت Node. با فعال‌سازی ذخیرهٔ پایدار، حساب‌ها بعد از ری‌استارت خود Node هم برمی‌گردند. همگام‌سازی از ورودی‌های مشخص‌شده در `exclude_inbounds` هنگام راه‌اندازی صرف‌نظر می‌کند. شامل VLESS، VMess، Trojan، Shadowsocks، سرورهای پشتیبانی‌شدهٔ Shadowsocks 2022، Hysteria، MASQUE و WireGuard داخل Xray. افزودن، حذف و شمارش مستقیم برای VLESS هم در دسترس است. |
 | جریان لاگ Xray | خروجی زندهٔ stdout و stderr اجرای فعال را روی HTTP و gRPC دریافت کن. |
 | سلامت خروجی‌های Xray | نمونه‌های ثبت‌شدهٔ Observatory را برای همهٔ خروجی‌ها یا یک تگ با HTTP و gRPC بخوان. |
+| رابط WireGuard | خواندن نام، MTU بر حسب بایت و وضعیت مدیریتی رابط تنظیم‌شده در لینوکس از طریق HTTP و gRPC. |
 
 <a name="management"></a>
 
@@ -76,3 +77,5 @@
 برای خواندن نمونه‌های Observatory معمولی از `GET /v1/xray/instances/{id}/outbounds/health` یا `XrayOutboundsService.GetOutboundHealth` استفاده کن. برای یک خروجی تگش را بده. پاسخ سه حالت سالم، ناموفق و بدون نمونه را مشخص می‌کند. [قرارداد gRPC](../internal/engines/xray/outbounds/bridge/grpc/proto/v1/outbounds.proto)
 
 در نمونه، هر دو listener روی loopback باز می‌شوند. درخواست HTTP به `GET /healthz` هنگام آمادگی پاسخ `204 No Content` دارد. سرویس health در gRPC روی پورت 8081 برای نام سرویس خالی وضعیت `SERVING` را می‌دهد. برای فعال‌کردن TLS، فیلدهای `management.tls.cert_file` و `management.tls.key_file` را تنظیم کن. فیلد `management.tls.client_ca_file` برای mTLS و `management.api_key` برای هدر یا متادیتای `x-api-key` اختیاری‌اند.
+
+نام رابط را در فیلد `interface` زیر بخش `wireguard` در [نمونهٔ تنظیمات](../deploy/config.example.yml) بگذار. برای خواندن رابط تنظیم‌شده در فضای نام شبکهٔ لینوکس Node از `GET /v1/wireguard/interfaces/{name}` یا `WireGuardInterfacesService.GetStatus` استفاده کن. پاسخ شامل `name`، `mtu` بر حسب بایت و `up` بر اساس پرچم مدیریتی `IFF_UP` کرنل است. اگر رابط وجود نداشته باشد، نام آن تنظیم نشده باشد یا از نوع WireGuard نباشد، HTTP پاسخ `404` و gRPC وضعیت `NOT_FOUND` می‌دهد. اگر سوکت مشغول باشد، درخواست هم‌زمان می‌تواند پاسخ HTTP `429` یا وضعیت gRPC `RESOURCE_EXHAUSTED` بگیرد. دسترسی راه دور به TLS همراه با کلید API یا CA کلاینت نیاز دارد. [gRPC](../internal/engines/wireguard/interfaces/bridge/grpc/proto/v1/interfaces.proto)

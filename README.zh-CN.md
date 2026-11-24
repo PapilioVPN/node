@@ -37,7 +37,7 @@
 ```bash
 (
   set -eu
-  version=1.1.0
+  version=1.2.0
   bundle="node-$version-linux-amd64-compose.tar.gz"
   release="https://github.com/PapilioVPN/node/releases/download/v$version"
   curl -fLO "$release/$bundle" -fLO "$release/$bundle.sha256"
@@ -59,6 +59,7 @@
 
 - **主机** — 运行时间、CPU、内存和存储。
 - **Xray** — 生命周期管理、配置验证、账户同步和恢复、流量和在线统计、路由、日志和出站健康状态。
+- **WireGuard** — 查询已配置 Linux 接口的名称、MTU 和管理启用状态。
 
 <a name="management"></a>
 
@@ -72,7 +73,7 @@
 **PapilioVPN 在 102 个可比的 Xray 场景中的 82 个领先**。13 个场景的结果各有优劣，PasarGuard 0.5.7 在 7 个场景领先。汇总还列出 16 个使用同一测试环境、但输入、输出字段或保证不同的场景。
 <!-- /benchmark-summary -->
 
-[基准测试汇总、分组报告和原始数据](benchmarks/xray/README.md)
+[基准测试汇总、分组报告和原始数据](benchmarks/xray/README.md) · [WireGuard 接口基准测试](benchmarks/wireguard/interfaces/README.md)
 
 <a name="development"></a>
 

@@ -37,7 +37,7 @@
 ```bash
 (
   set -eu
-  version=1.1.0
+  version=1.2.0
   bundle="node-$version-linux-amd64-compose.tar.gz"
   release="https://github.com/PapilioVPN/node/releases/download/v$version"
   curl -fLO "$release/$bundle" -fLO "$release/$bundle.sha256"
@@ -59,6 +59,7 @@ API управления по умолчанию слушает loopback. Про
 
 - **Хост** — время работы, CPU, память и дисковое пространство.
 - **Xray** — запуск и остановка, проверка конфигурации, синхронизация и восстановление учётных записей, трафик, онлайн-статистика, маршрутизация, журналы и состояние исходящих подключений.
+- **WireGuard** — чтение имени, MTU и административного состояния настроенного интерфейса Linux.
 
 <a name="management"></a>
 
@@ -72,7 +73,7 @@ API управления по умолчанию слушает loopback. Про
 **PapilioVPN лидирует в 82 из 102 сопоставимых сценариев Xray**. В 13 сценариях результаты смешанные, в 7 лидирует PasarGuard 0.5.7. Сводка также содержит 16 сценариев на общей тестовой установке, в которых различаются входные данные, поля ответа или гарантии.
 <!-- /benchmark-summary -->
 
-[Сводка, отчёты по группам и исходные данные](benchmarks/xray/README.md)
+[Сводка, отчёты по группам и исходные данные](benchmarks/xray/README.md) · [Бенчмарк интерфейса WireGuard](benchmarks/wireguard/interfaces/README.md)
 
 <a name="development"></a>
 

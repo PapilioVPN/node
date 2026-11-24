@@ -22,6 +22,7 @@
 | Xray accounts | Synchronize named accounts, full lists, or chunked deltas across selected inbounds over HTTP and gRPC, with confirmed membership restored on managed restart. Optional durable recovery also survives a Node restart. Sync skips inbounds listed in `exclude_inbounds` when the execution starts. Supports VLESS, VMess, Trojan, Shadowsocks, supported Shadowsocks 2022 servers, Hysteria, MASQUE, and Xray WireGuard. VLESS also supports direct add, remove, and count. |
 | Xray log stream | Follow live stdout and stderr for the active Xray execution over HTTP and gRPC. |
 | Xray outbound health | Read all recorded Observatory samples or select an outbound by tag over HTTP and gRPC. |
+| WireGuard interface | Read a configured Linux interface's name, MTU in bytes, and administrative state over HTTP and gRPC. |
 
 <a name="management"></a>
 
@@ -76,3 +77,5 @@ To retain confirmed synchronization after a Node restart, set `xray.state_direct
 Use `GET /v1/xray/instances/{id}/outbounds/health` or `XrayOutboundsService.GetOutboundHealth` to read ordinary Observatory samples. Provide a tag for one outbound. The response distinguishes healthy, failed and missing samples. [gRPC contract](../internal/engines/xray/outbounds/bridge/grpc/proto/v1/outbounds.proto)
 
 The example binds both listeners to loopback. HTTP `GET /healthz` returns `204 No Content` when ready. The gRPC health service on port 8081 reports `SERVING` for the empty service name. Set `management.tls.cert_file` and `management.tls.key_file` to enable TLS. Optionally configure `management.tls.client_ca_file` for mutual TLS and `management.api_key` for the `x-api-key` header or metadata.
+
+Set `interface` under `wireguard` in the [example configuration](../deploy/config.example.yml). Use `GET /v1/wireguard/interfaces/{name}` or `WireGuardInterfacesService.GetStatus` to read the configured interface in Node’s Linux network namespace. The response contains `name`, `mtu` in bytes, and `up` from the kernel’s administrative `IFF_UP` flag. An absent, unconfigured, or non-WireGuard interface returns HTTP `404` or gRPC `NOT_FOUND`. A concurrent read can return HTTP `429` or gRPC `RESOURCE_EXHAUSTED` while the socket is in use. Remote access requires TLS with an API key or client CA. [gRPC contract](../internal/engines/wireguard/interfaces/bridge/grpc/proto/v1/interfaces.proto)

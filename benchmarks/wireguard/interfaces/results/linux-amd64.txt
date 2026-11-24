@@ -1,0 +1,35 @@
+goos: linux
+goarch: amd64
+pkg: github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/integration
+cpu: AMD Ryzen 7 3750H with Radeon Vega Mobile Gfx
+BenchmarkInterfaceStatus/peers-0/HTTP    	    1926	    174841 ns/op	   14255 B/op	     133 allocs/op
+BenchmarkInterfaceStatus/peers-0/HTTP    	    2376	    191875 ns/op	   14254 B/op	     133 allocs/op
+BenchmarkInterfaceStatus/peers-0/HTTP    	    2326	    213241 ns/op	   14255 B/op	     133 allocs/op
+BenchmarkInterfaceStatus/peers-0/HTTP    	    1369	    235257 ns/op	   14254 B/op	     133 allocs/op
+BenchmarkInterfaceStatus/peers-0/HTTP    	    1296	    267087 ns/op	   14255 B/op	     133 allocs/op
+BenchmarkInterfaceStatus/peers-0/gRPC    	    1512	    240692 ns/op	   15931 B/op	     206 allocs/op
+BenchmarkInterfaceStatus/peers-0/gRPC    	    1227	    313741 ns/op	   15934 B/op	     206 allocs/op
+BenchmarkInterfaceStatus/peers-0/gRPC    	    1447	    257484 ns/op	   15932 B/op	     206 allocs/op
+BenchmarkInterfaceStatus/peers-0/gRPC    	    1506	    223096 ns/op	   15926 B/op	     206 allocs/op
+BenchmarkInterfaceStatus/peers-0/gRPC    	    1580	    418110 ns/op	   15930 B/op	     206 allocs/op
+BenchmarkInterfaceStatus/peers-0/ip      	      90	   5120040 ns/op	   54795 B/op	     104 allocs/op
+BenchmarkInterfaceStatus/peers-0/ip      	      96	   3488467 ns/op	   54796 B/op	     104 allocs/op
+BenchmarkInterfaceStatus/peers-0/ip      	     120	   3057508 ns/op	   54803 B/op	     104 allocs/op
+BenchmarkInterfaceStatus/peers-0/ip      	     124	   2908295 ns/op	   54795 B/op	     104 allocs/op
+BenchmarkInterfaceStatus/peers-0/ip      	     134	   2705215 ns/op	   54802 B/op	     104 allocs/op
+BenchmarkInterfaceStatus/peers-1000/HTTP 	    2076	    175510 ns/op	   14254 B/op	     133 allocs/op
+BenchmarkInterfaceStatus/peers-1000/HTTP 	    1830	    256796 ns/op	   14254 B/op	     133 allocs/op
+BenchmarkInterfaceStatus/peers-1000/HTTP 	    1749	    194007 ns/op	   14255 B/op	     133 allocs/op
+BenchmarkInterfaceStatus/peers-1000/HTTP 	    2403	    200234 ns/op	   14254 B/op	     133 allocs/op
+BenchmarkInterfaceStatus/peers-1000/HTTP 	    1934	    197821 ns/op	   14255 B/op	     133 allocs/op
+BenchmarkInterfaceStatus/peers-1000/gRPC 	    1681	    253088 ns/op	   15926 B/op	     206 allocs/op
+BenchmarkInterfaceStatus/peers-1000/gRPC 	    1012	    393163 ns/op	   15937 B/op	     206 allocs/op
+BenchmarkInterfaceStatus/peers-1000/gRPC 	    1255	    336082 ns/op	   15930 B/op	     206 allocs/op
+BenchmarkInterfaceStatus/peers-1000/gRPC 	    1273	    315597 ns/op	   15933 B/op	     206 allocs/op
+BenchmarkInterfaceStatus/peers-1000/gRPC 	    1236	    339043 ns/op	   15934 B/op	     206 allocs/op
+BenchmarkInterfaceStatus/peers-1000/ip   	     100	   3855573 ns/op	   54794 B/op	     104 allocs/op
+BenchmarkInterfaceStatus/peers-1000/ip   	      86	   4844117 ns/op	   54807 B/op	     104 allocs/op
+BenchmarkInterfaceStatus/peers-1000/ip   	     100	   3398155 ns/op	   54794 B/op	     104 allocs/op
+BenchmarkInterfaceStatus/peers-1000/ip   	     100	   3083993 ns/op	   54794 B/op	     104 allocs/op
+BenchmarkInterfaceStatus/peers-1000/ip   	     100	   3130431 ns/op	   54804 B/op	     104 allocs/op
+PASS

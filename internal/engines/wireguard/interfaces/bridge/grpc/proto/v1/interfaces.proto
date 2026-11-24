@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package papiliovpn.node.v1;
+
+option go_package = "github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/bridge/grpc/proto/v1;interfacesv1";
+
+service WireGuardInterfacesService {
+  rpc GetStatus(WireGuardInterfaceRequest) returns (WireGuardInterfaceStatus);
+}
+
+message WireGuardInterfaceRequest {
+  string name = 1;
+}
+
+message WireGuardInterfaceStatus {
+  string name = 1;
+  uint32 mtu = 2;
+  // Linux IFF_UP. It describes administrative state.
+  bool up = 3;
+}

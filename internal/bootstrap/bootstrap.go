@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/PapilioVPN/node/internal/engines/wireguard"
 	"github.com/PapilioVPN/node/internal/engines/xray"
 	"github.com/PapilioVPN/node/internal/host"
 	"github.com/PapilioVPN/node/internal/settings"
@@ -19,10 +20,11 @@ const lifecycleTimeout = 5 * time.Second
 
 func Run(ctx context.Context, config settings.Config, logger *slog.Logger) error {
 	app := fx.New(
-		fx.Supply(config.Management, config.Host, config.Xray, logger),
+		fx.Supply(config.Management, config.Host, config.Xray, config.WireGuard, logger),
 		fx.Provide(loadTLS, newReadiness, newHTTPRouter, newHTTPServer, newGRPCServer),
 		host.Module,
 		xray.Module,
+		wireguard.Module,
 		fx.Invoke(registerListeners),
 		fx.WithLogger(func() fxevent.Logger { return &fxevent.SlogLogger{Logger: logger} }),
 	)

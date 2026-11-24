@@ -35,7 +35,7 @@ On Linux amd64 with Docker Compose, download the versioned setup bundle and star
 ```bash
 (
   set -eu
-  version=1.1.0
+  version=1.2.0
   bundle="node-$version-linux-amd64-compose.tar.gz"
   release="https://github.com/PapilioVPN/node/releases/download/v$version"
   curl -fLO "$release/$bundle" -fLO "$release/$bundle.sha256"
@@ -57,6 +57,7 @@ The management API binds to loopback by default. Check it with `curl -fsS http:/
 
 - **Host** — uptime, CPU, memory, and storage.
 - **Xray** — lifecycle, config validation, live account sync and recovery, traffic and online stats, routing, logs, and outbound health.
+- **WireGuard** — read the name, MTU, and administrative state of a configured Linux interface.
 
 <a name="management"></a>
 
@@ -70,7 +71,7 @@ The management API binds to loopback by default. Check it with `curl -fsS http:/
 **PapilioVPN led in 82 of 102 matched Xray workloads** against PasarGuard 0.5.7. Results were mixed in 13 workloads, and PasarGuard led in 7. The dashboard also covers 16 shared-fixture workloads with different inputs, output fields, or guarantees.
 <!-- /benchmark-summary -->
 
-[Benchmark dashboard, group reports, and raw data](benchmarks/xray/README.md)
+[Benchmark dashboard, group reports, and raw data](benchmarks/xray/README.md) · [WireGuard interface benchmark](benchmarks/wireguard/interfaces/README.md)
 
 <a name="development"></a>
 

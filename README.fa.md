@@ -39,7 +39,7 @@
 ```bash
 (
   set -eu
-  version=1.1.0
+  version=1.2.0
   bundle="node-$version-linux-amd64-compose.tar.gz"
   release="https://github.com/PapilioVPN/node/releases/download/v$version"
   curl -fLO "$release/$bundle" -fLO "$release/$bundle.sha256"
@@ -61,6 +61,7 @@
 
 - **میزبان** — زمان کارکرد، CPU، حافظه و فضای ذخیره‌سازی.
 - **Xray** — چرخهٔ عمر، بررسی کانفیگ، همگام‌سازی و بازیابی حساب‌ها، آمار ترافیک و آنلاین، مسیریابی، لاگ و سلامت خروجی.
+- **WireGuard** — خواندن نام، MTU و وضعیت مدیریتی رابط تنظیم‌شده در لینوکس.
 
 <a name="management"></a>
 
@@ -74,7 +75,7 @@
 **در ۸۲ از ۱۰۲ سناریوی هم‌ارز Xray جلو بودیم**. نتیجهٔ ۱۳ سناریو ترکیبی بود و PasarGuard 0.5.7 در ۷ سناریو جلو بود. گزارش کامل ۱۶ سناریوی دیگر با ورودی، خروجی یا تضمین‌های متفاوت را هم پوشش می‌دهد.
 <!-- /benchmark-summary -->
 
-[خلاصهٔ بنچمارک، گزارش گروه‌ها و داده‌های خام](benchmarks/xray/README.md)
+[خلاصهٔ بنچمارک، گزارش گروه‌ها و داده‌های خام](benchmarks/xray/README.md) · [بنچمارک رابط WireGuard](benchmarks/wireguard/interfaces/README.md)
 
 <a name="development"></a>
 

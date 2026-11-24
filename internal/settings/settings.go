@@ -17,6 +17,7 @@ type Config struct {
 	Management Management `yaml:"management"`
 	Host       Host       `yaml:"host"`
 	Xray       Xray       `yaml:"xray"`
+	WireGuard  WireGuard  `yaml:"wireguard"`
 }
 
 func Load(path string) (Config, error) {
@@ -52,6 +53,9 @@ func Load(path string) (Config, error) {
 		return Config{}, err
 	}
 	if err := config.Xray.validate(dir, config.Management); err != nil {
+		return Config{}, err
+	}
+	if err := config.WireGuard.validate(config.Management); err != nil {
 		return Config{}, err
 	}
 	return config, nil

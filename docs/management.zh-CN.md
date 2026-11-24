@@ -22,6 +22,7 @@
 | Xray 账户 | 通过 HTTP 和 gRPC 在选定入站上按账户、完整列表或分块增量同步，并在受管重启时恢复已确认的账户。启用持久化后，重启 Node 也可以恢复账户。同步会跳过启动时在 `exclude_inbounds` 中列出的入站。支持 VLESS、VMess、Trojan、Shadowsocks、兼容的 Shadowsocks 2022 服务器、Hysteria、MASQUE 和 Xray 内的 WireGuard。VLESS 还支持直接添加、删除和计数。 |
 | Xray 日志流 | 通过 HTTP 和 gRPC 持续接收运行实例的 stdout 和 stderr。 |
 | Xray 出站健康状态 | 通过 HTTP 和 gRPC 读取全部 Observatory 观测结果，或按出站标签查询。 |
+| WireGuard 接口 | 通过 HTTP 和 gRPC 读取已配置 Linux 接口的名称、以字节计的 MTU 和管理启用状态。 |
 
 <a name="management"></a>
 
@@ -76,3 +77,5 @@ HTTP `GET /v1/host/stats` 和 gRPC `HostService.GetSystemStats` 返回 `uptime_s
 使用 `GET /v1/xray/instances/{id}/outbounds/health` 或 `XrayOutboundsService.GetOutboundHealth` 读取普通 Observatory 观测结果。提供标签可查询单个出站。响应区分健康、探测失败和缺少样本。 [gRPC 接口](../internal/engines/xray/outbounds/bridge/grpc/proto/v1/outbounds.proto)
 
 示例中的两个监听端口都绑定到环回地址。Node 就绪时，HTTP `GET /healthz` 返回 `204 No Content`。端口 8081 上的 gRPC 健康检查对空服务名返回 `SERVING`。设置 `management.tls.cert_file` 和 `management.tls.key_file` 可启用 TLS。可选项 `management.tls.client_ca_file` 启用 mTLS，`management.api_key` 用于 `x-api-key` 请求头或元数据。
+
+参照[配置示例](../deploy/config.example.yml)，在 `wireguard` 下的 `interface` 字段中填写接口名称。使用 `GET /v1/wireguard/interfaces/{name}` 或 `WireGuardInterfacesService.GetStatus` 读取 Node 所在 Linux 网络命名空间中的已配置接口。响应包含 `name`、以字节计的 `mtu`，以及来自内核管理标志 `IFF_UP` 的 `up`。接口不存在、未配置或类型不是 WireGuard 时，HTTP 返回 `404`，gRPC 返回 `NOT_FOUND`。套接字忙时，并发请求可能收到 HTTP `429` 或 gRPC `RESOURCE_EXHAUSTED`。远程访问需要 TLS 与 API 密钥或客户端 CA。 [gRPC](../internal/engines/wireguard/interfaces/bridge/grpc/proto/v1/interfaces.proto)

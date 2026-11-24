@@ -19,3 +19,7 @@ host:
 #   reset_engine_stats: true
 # For one-call scoped resets, set executable to "/node-xray" and enable:
 #   native_scope_reset: true
+
+# Optional WireGuard status for an interface in Node's Linux network namespace.
+# wireguard:
+#   interface: "wg0"

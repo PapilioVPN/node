@@ -22,6 +22,7 @@
 | Учётные записи Xray | Синхронизация по имени, полным списком или порциями изменений для выбранных входов по HTTP и gRPC. Подтверждённый состав восстанавливается при управляемом перезапуске. При включённом постоянном хранении он также переживает перезапуск Node. Синхронизация пропускает входы, указанные при запуске в `exclude_inbounds`. Поддерживаются VLESS, VMess, Trojan, Shadowsocks, совместимые серверы Shadowsocks 2022, Hysteria, MASQUE и WireGuard в Xray. Для VLESS доступны прямое добавление, удаление и подсчёт. |
 | Поток журналов Xray | Получать stdout и stderr активного процесса по HTTP и gRPC. |
 | Состояние исходящих подключений Xray | Получить все наблюдения Observatory или выбрать исходящее подключение по тегу через HTTP и gRPC. |
+| Интерфейс WireGuard | Чтение имени, MTU в байтах и административного состояния настроенного интерфейса Linux по HTTP и gRPC. |
 
 <a name="management"></a>
 
@@ -76,3 +77,5 @@ HTTP-запрос `GET /v1/host/stats` и метод gRPC `HostService.GetSystem
 Используйте `GET /v1/xray/instances/{id}/outbounds/health` или `XrayOutboundsService.GetOutboundHealth` для чтения обычных наблюдений Observatory. Для одного исходящего подключения укажите его тег. Ответ различает успешную проверку, сбой и отсутствие наблюдения. [Контракт gRPC](../internal/engines/xray/outbounds/bridge/grpc/proto/v1/outbounds.proto)
 
 В примере оба интерфейса привязаны к loopback. HTTP-запрос `GET /healthz` возвращает `204 No Content`, когда Node готов. Служба проверки gRPC на порту 8081 возвращает `SERVING` для пустого имени службы. Для TLS укажите `management.tls.cert_file` и `management.tls.key_file`. Необязательный параметр `management.tls.client_ca_file` включает mTLS, а `management.api_key` задаёт ключ для заголовка или метаданных `x-api-key`.
+
+Укажите имя в поле `interface` секции `wireguard` в [примере конфигурации](../deploy/config.example.yml). Запрос `GET /v1/wireguard/interfaces/{name}` или `WireGuardInterfacesService.GetStatus` читает настроенный интерфейс в сетевом пространстве имён Linux, где работает Node. Ответ содержит `name`, `mtu` в байтах и `up` по административному флагу ядра `IFF_UP`. Отсутствующий, ненастроенный интерфейс или интерфейс другого типа возвращает HTTP `404` или gRPC `NOT_FOUND`. Пока сокет занят, параллельный запрос может вернуть HTTP `429` или gRPC `RESOURCE_EXHAUSTED`. Для удалённого доступа нужны TLS и ключ API или клиентский CA. [gRPC](../internal/engines/wireguard/interfaces/bridge/grpc/proto/v1/interfaces.proto)
