@@ -24,6 +24,7 @@
 | Xray outbound health | Read all recorded Observatory samples or select an outbound by tag over HTTP and gRPC. |
 | WireGuard interface | Read status, validate configuration, start or stop a Linux interface, update MTU live, and optionally recover across Node restarts. HTTP and gRPC. |
 | WireGuard peers | Reconcile the full set, upsert or remove one peer, or apply a bounded set of changes by public key over HTTP and gRPC. |
+| WireGuard peer statistics | Read live received and transmitted bytes and the last handshake by public key over HTTP and gRPC. |
 
 <a name="management"></a>
 
@@ -94,3 +95,5 @@ Use `PUT /v1/wireguard/interfaces/{name}/peers/{key}` to upsert one peer and `DE
 Send peer mutations on a managed interface through Node. Full sync, targeted upserts, and chunks check link ownership and plan from the initial kernel snapshot and acknowledged Node writes. The first request after restart or an unconfirmed write rebuilds this state. To reconcile after an out-of-band `wg set`, submit the full desired set with `reconcile: true` in the HTTP JSON body or set `reconcile` on the gRPC `SyncPeers` request. That request reads the live kernel configuration before applying changes.
 
 Use `PATCH /v1/wireguard/interfaces/{name}/peers` or `ApplyPeerDelta` to submit one independent chunk with `upsert` peer records and `remove` public keys. Split larger changes into requests of 1 to 1,000 operations. Each key may appear once per chunk. An exact prefix cannot be taken from a peer outside the chunk. New additions must keep the managed set at or below 1,000 peers. A conflict returns HTTP `409` or gRPC `FAILED_PRECONDITION`. Upserts and chunks return `added`, `updated`, and `removed`. If a kernel write has an unconfirmed outcome, the caller can resend the same chunk to reconcile against live state. Each chunk has its own acknowledgment, and the kernel provides no rollback across writes.
+
+Use `GET /v1/wireguard/interfaces/{name}/peers/stats` or `WireGuardInterfacesService.ListPeerStats` to read a live list from the configured interface. The process needs `CAP_NET_ADMIN` in that network namespace. Reads also work when lifecycle management is disabled. Each entry contains `public_key`, cumulative `rx_bytes` and `tx_bytes`, and `last_handshake` when a handshake has occurred. HTTP uses base64 keys, decimal strings for the unsigned 64-bit counters, and a UTC RFC 3339 timestamp. gRPC uses bytes, uint64 counters, and a protobuf timestamp. A successful read preserves the counters and returns an empty list when the interface has no peers. Each read has a two-second deadline and returns up to 4,096 peers. An interrupted or oversized dump returns an error for the request.

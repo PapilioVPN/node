@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package papiliovpn.node.v1;
 
+import "google/protobuf/timestamp.proto";
+
 option go_package = "github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/bridge/grpc/proto/v1;interfacesv1";
 
 service WireGuardInterfacesService {
@@ -13,6 +15,7 @@ service WireGuardInterfacesService {
   rpc UpsertPeer(WireGuardUpsertPeerRequest) returns (WireGuardPeerSyncResult);
   rpc RemovePeer(WireGuardRemovePeerRequest) returns (WireGuardRemovePeerResponse);
   rpc ApplyPeerDelta(WireGuardApplyPeerDeltaRequest) returns (WireGuardPeerSyncResult);
+  rpc ListPeerStats(WireGuardInterfaceRequest) returns (WireGuardPeerStatsList);
 }
 
 message WireGuardInterfaceRequest {
@@ -94,4 +97,16 @@ message WireGuardApplyPeerDeltaRequest {
   string name = 1;
   repeated WireGuardPeer upsert = 2;
   repeated bytes remove = 3;
+}
+
+message WireGuardPeerStats {
+  bytes public_key = 1;
+  uint64 rx_bytes = 2;
+  uint64 tx_bytes = 3;
+  // Absent until the peer has completed a handshake.
+  google.protobuf.Timestamp last_handshake = 4;
+}
+
+message WireGuardPeerStatsList {
+  repeated WireGuardPeerStats peers = 1;
 }

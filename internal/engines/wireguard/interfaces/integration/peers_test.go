@@ -134,6 +134,15 @@ func assertBulkPeerSync(t *testing.T, f fixture, client interfacesv1.WireGuardIn
 			t.Fatal("kernel peer has an incomplete prefix list")
 		}
 	}
+	stats := readPeerStatsHTTP(t, f).Peers
+	if len(stats) != len(desired) {
+		t.Fatalf("multipart statistics returned %d peers, want %d", len(stats), len(desired))
+	}
+	for _, peer := range stats {
+		if len(peer.PublicKey) != 32 || peer.RXBytes != 0 || peer.TXBytes != 0 || peer.LastHandshake != nil {
+			t.Fatal("idle peer has invalid statistics")
+		}
+	}
 	if got := syncPeersHTTP(t, f, []byte(`{"peers":[]}`), http.StatusOK); got.Removed != 1000 {
 		t.Fatalf("explicit clear returned %+v", got)
 	}

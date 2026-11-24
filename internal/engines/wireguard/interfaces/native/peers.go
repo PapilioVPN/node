@@ -11,7 +11,6 @@ import (
 	"github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/lifecycle"
 	"github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/peers"
 	"github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/status"
-	"github.com/mdlayher/genetlink"
 	gennetlink "github.com/mdlayher/netlink"
 	"golang.org/x/sys/unix"
 )
@@ -85,10 +84,6 @@ func (control *Control) readPeers(ctx context.Context, index int) (snapshot peer
 			control.peerDump = nil
 		}
 	}()
-	// A multipart dump shares the operation deadline across all datagrams.
-	if err := control.peerDump.SetDeadline(deadline); err != nil {
-		return peerSnapshot{}, err
-	}
 	encoder := gennetlink.NewAttributeEncoder()
 	encoder.Uint32(unix.WGDEVICE_A_IFINDEX, uint32(index))
 	data, err := encoder.Encode()
@@ -96,17 +91,10 @@ func (control *Control) readPeers(ctx context.Context, index int) (snapshot peer
 		return peerSnapshot{}, err
 	}
 	dump := control.peerDump
-	req, err := dump.Send(genetlink.Message{
-		Header: genetlink.Header{Command: unix.WG_CMD_GET_DEVICE, Version: control.family.Version},
-		Data:   data,
-	}, control.family.ID, gennetlink.Request|gennetlink.Dump)
-	if err != nil {
-		return peerSnapshot{}, err
-	}
 	// Previous counts are allocation hints. Every operation reads a fresh dump.
 	snapshot.peers = make([]peers.Peer, 0, dump.peerCount)
 	snapshot.allowedIPs = make([]netip.Prefix, 0, dump.prefixCount)
-	if err := dump.read(ctx, req.Header, &snapshot); err != nil {
+	if err := dump.query(ctx, control.family, data, snapshot.decode); err != nil {
 		return peerSnapshot{}, err
 	}
 	if snapshot.self == [32]byte{} {

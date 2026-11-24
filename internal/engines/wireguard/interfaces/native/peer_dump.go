@@ -33,7 +33,21 @@ func openPeerDump() (*peerDumpSocket, error) {
 	return &peerDumpSocket{Conn: conn, raw: raw}, nil
 }
 
-func (dump *peerDumpSocket) read(ctx context.Context, request gennetlink.Header, snapshot *peerSnapshot) error {
+func (dump *peerDumpSocket) query(ctx context.Context, family genetlink.Family, data []byte, decode func([]byte) error) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	// A multipart dump shares the operation deadline across all datagrams.
+	if err := dump.SetDeadline(peerDeadline(ctx)); err != nil {
+		return err
+	}
+	request, err := dump.Send(genetlink.Message{
+		Header: genetlink.Header{Command: unix.WG_CMD_GET_DEVICE, Version: family.Version},
+		Data:   data,
+	}, family.ID, gennetlink.Request|gennetlink.Dump)
+	if err != nil {
+		return err
+	}
 	for {
 		if err := ctx.Err(); err != nil {
 			return err
@@ -44,10 +58,13 @@ func (dump *peerDumpSocket) read(ctx context.Context, request gennetlink.Header,
 			return err
 		}
 		data := dump.buffer[:n]
-		done, err := snapshot.decodeDatagram(request, data)
+		done, err := decodePeerDatagram(request.Header, data, decode)
 		clear(data)
-		if done || err != nil {
+		if err != nil {
 			return err
+		}
+		if done {
+			return ctx.Err()
 		}
 	}
 }
@@ -77,7 +94,7 @@ func (dump *peerDumpSocket) receive() (int, error) {
 	return n, nil
 }
 
-func (snapshot *peerSnapshot) decodeDatagram(request gennetlink.Header, data []byte) (bool, error) {
+func decodePeerDatagram(request gennetlink.Header, data []byte, decode func([]byte) error) (bool, error) {
 	messages, err := syscall.ParseNetlinkMessage(data)
 	if err != nil || len(messages) == 0 {
 		return false, errPeerSnapshot
@@ -111,7 +128,7 @@ func (snapshot *peerSnapshot) decodeDatagram(request gennetlink.Header, data []b
 			if header.Type != uint16(request.Type) || len(message.Data) < 4 || message.Data[0] != unix.WG_CMD_GET_DEVICE {
 				return false, errPeerSnapshot
 			}
-			if err := snapshot.decode(message.Data[4:]); err != nil {
+			if err := decode(message.Data[4:]); err != nil {
 				return false, err
 			}
 		}

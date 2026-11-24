@@ -24,6 +24,7 @@
 | Xray 出站健康状态 | 通过 HTTP 和 gRPC 读取全部 Observatory 观测结果，或按出站标签查询。 |
 | WireGuard 接口 | 通过 HTTP 和 gRPC 查询状态、验证配置、启动和停止接口、在线更新 MTU，并可选在 Node 重启后恢复。 |
 | WireGuard 对等端 | 通过 HTTP 和 gRPC 按公钥同步完整列表、添加或更新单个对等端、删除单个对等端以及批量修改。 |
+| WireGuard 对等端统计 | 通过 HTTP 和 gRPC 按公钥读取实时收发字节数和最近一次握手时间。 |
 
 <a name="management"></a>
 
@@ -94,3 +95,5 @@ HTTP `GET /v1/host/stats` 和 gRPC `HostService.GetSystemStats` 返回 `uptime_s
 请通过 Node 修改受管接口的对等端。完整同步、单个更新和批量变更会检查接口的所有权，并根据初始内核快照和 Node 已确认的写入规划变更。重启或写入结果不明后，首次请求会重新读取内核状态。若通过 `wg set` 直接修改了接口，请提交完整目标列表，并在 HTTP JSON 或 gRPC `SyncPeers` 请求中设置 `reconcile: true`。该请求会在应用变更前读取当前内核配置。
 
 通过 `PATCH /v1/wireguard/interfaces/{name}/peers` 或 `ApplyPeerDelta` 提交 `upsert` 对等端记录和 `remove` 公钥。每个独立请求包含 1 到 1,000 项变更，每个公钥仅出现一次。请求与批次外对等端的前缀完全相同，或新增后超过 1,000 个对等端时，返回 `409` 或 `FAILED_PRECONDITION`。内核写入结果无法确认时，可重发同一批次并根据当前内核状态继续同步。每批单独确认，之前已应用的变更可能保留。
+
+通过 `GET /v1/wireguard/interfaces/{name}/peers/stats` 或 `WireGuardInterfacesService.ListPeerStats` 读取已配置接口的实时统计。Node 需要该网络命名空间中的 `CAP_NET_ADMIN`。关闭接口生命周期管理后仍可读取。每条记录包含 `public_key`、累计 `rx_bytes` 和 `tx_bytes`，以及已完成握手时的 `last_handshake`。HTTP 使用 base64 公钥、十进制字符串计数和 UTC RFC 3339 时间。gRPC 使用 `uint64` 与 Timestamp。读取会保留计数器，无对等端时返回空列表。每次请求最多读取 4,096 个对等端，限时两秒。内核数据不完整或超出上限时返回错误。

@@ -28,11 +28,12 @@ type Reader interface {
 type Service struct {
 	name        string
 	reader      Reader
+	peerStats   PeerStatsReader
 	appliedHash func(Interface) string
 }
 
-func New(name string, reader Reader, appliedHash func(Interface) string) *Service {
-	return &Service{name: name, reader: reader, appliedHash: appliedHash}
+func New(name string, reader Reader, peerStats PeerStatsReader, appliedHash func(Interface) string) *Service {
+	return &Service{name: name, reader: reader, peerStats: peerStats, appliedHash: appliedHash}
 }
 
 func (service *Service) GetStatus(ctx context.Context, name string) (Interface, error) {

@@ -53,7 +53,9 @@ func register(lifecycle fx.Lifecycle, config settings.WireGuard, router *chi.Mux
 			},
 		})
 	}
-	service := status.New(config.Interface, reader, appliedHash)
+	stats := new(native.PeerStatsReader)
+	lifecycle.Append(fx.Hook{OnStop: stats.Close})
+	service := status.New(config.Interface, reader, stats, appliedHash)
 	validator := wglifecycle.NewValidator(config.Interface)
 	bridgehttp.Register(router, service, managed, validator)
 	bridgegrpc.Register(server, service, managed, validator)

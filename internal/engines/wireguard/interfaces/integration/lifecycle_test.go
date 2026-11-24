@@ -84,12 +84,17 @@ func TestManagedExecution(t *testing.T) {
 	if got := readGRPC(t, client); !got.Up || got.AppliedSHA256 != want {
 		t.Fatalf("unexpected gRPC readback: %+v", got)
 	}
+	if peers := readPeerStatsHTTP(t, f).Peers; peers == nil || len(peers) != 0 {
+		t.Fatalf("new interface statistics = %v, want an empty list", peers)
+	}
+	assertMissingPeerStats(t, client, "wg-other")
 	assertValidation(t, f, client, append(bytes.Clone(source), '\n'), bytes.Replace(source, []byte(`"mtu":1380`), []byte(`"mtu":1`), 1), want)
 	configured, err := exec.CommandContext(t.Context(), "wg", "show", interfaceName, "listen-port").Output()
 	if err != nil || strings.TrimSpace(string(configured)) == "0" {
 		t.Fatalf("expected a bound WireGuard port, got %q (%v)", configured, err)
 	}
 	exchangePacket(t, base64.StdEncoding.EncodeToString(privateKey.PublicKey().Bytes()), strings.TrimSpace(string(configured)), func(peer string) {
+		assertActivePeerStats(t, f, client, peer)
 		assertPeerSync(t, f, client, peer)
 		assertPeerDelta(t, f, client, privateKey.PublicKey().Bytes())
 		before, err := net.InterfaceByName(interfaceName)
@@ -144,6 +149,7 @@ func TestManagedExecution(t *testing.T) {
 	if err := exec.CommandContext(t.Context(), "ip", "link", "show", "dev", interfaceName).Run(); err == nil {
 		t.Fatal("managed interface survived Stop")
 	}
+	assertMissingPeerStats(t, client, interfaceName)
 	blocked, err := net.ListenUDP("udp4", &net.UDPAddr{IP: net.IPv4zero})
 	if err != nil {
 		t.Fatal(err)

@@ -46,7 +46,7 @@ func TestPeerDumpChecksCompletion(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			var snapshot peerSnapshot
-			completed, err := snapshot.decodeDatagram(request, append(append([]byte{}, device...), tc.tail...))
+			completed, err := decodePeerDatagram(request, append(append([]byte{}, device...), tc.tail...), snapshot.decode)
 			if !errors.Is(err, tc.want) || completed != (tc.want == nil) {
 				t.Fatalf("completion = %v, error = %v, want %v", completed, err, tc.want)
 			}
