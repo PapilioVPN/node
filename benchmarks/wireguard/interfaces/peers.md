@@ -7,8 +7,8 @@ successive requests alternate one peer's allowed prefix. In the replay
 workload, every request repeats the original list. The harness checks the
 kernel's complete peer and prefix set outside timing after each phase.
 
-Node reconciles from a live kernel dump. PasarGuard uses its in-memory
-peer store for replay and recreates the full kernel peer set when any
+The initial Node build reconciled from a live kernel dump. PasarGuard uses its
+in-memory peer store for replay and recreates the full kernel peer set when any
 peer changes. These timings describe the shared desired sets and their
 different reconciliation effects. The separate native integration test
 checks handshake continuity for an unchanged peer.
@@ -101,3 +101,41 @@ pinned reference. Each cell contains 50 requests across five blocks.
 The one-peer result still trails the reference. The reference answers replay
 from memory and Node checks live kernel state. These measurements retain the
 complete replay results for the three builds. [Raw timings](results/peer-replay-managed-https.csv)
+
+## Full sync from confirmed peer state
+
+The normal `SyncPeers` request applies the desired set from the same confirmed
+peer index used by targeted mutations. A cold execution or an unknown write
+loads the initial state from the kernel. `reconcile: true` explicitly reads
+the kernel and repairs out-of-band changes. Each request checks link ownership,
+and Node records a changed peer set after the kernel acknowledges the writes.
+
+The first fixture compares the managed path, the prior live-reading build
+`57860b2`, and pinned PasarGuard on the same peer sets. It warms each set before
+timing 50 replays and 50 one-peer changes. Node's write stays sparse when one
+peer changes. PasarGuard's full-sync path reapplies the set.
+
+| Peers | Workload | Prior Node p50, ms | Node p50, ms | PasarGuard p50, ms | Prior Node p95, ms | Node p95, ms | PasarGuard p95, ms |
+| ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| 1 | Replay | 0.836 | 0.748 | 0.368 | 1.410 | 1.338 | 0.562 |
+| 1 | One change | 0.898 | 0.634 | 0.791 | 1.627 | 1.162 | 1.651 |
+| 100 | Replay | 1.455 | 0.814 | 1.046 | 4.269 | 1.691 | 2.424 |
+| 100 | One change | 1.615 | 0.830 | 21.160 | 5.093 | 1.409 | 101.545 |
+| 1,000 | Replay | 4.990 | 3.154 | 5.630 | 7.294 | 5.265 | 7.429 |
+| 1,000 | One change | 4.897 | 3.155 | 179.346 | 6.689 | 4.937 | 211.920 |
+
+The one-peer service-stage probe measured a 38 µs median across three run
+means, including a live ownership check at 34 µs. The HTTPS comparison includes
+request handling, serialization and transport. [Raw timings](results/peer-sync-confirmed-https.csv)
+
+The repeat used all six server orders to balance run position. Each cell uses
+60 warm replays. The 100-peer p95 varied across the two comparisons.
+
+| Peers | Prior Node p50, ms | Node p50, ms | PasarGuard p50, ms | Prior Node p95, ms | Node p95, ms | PasarGuard p95, ms |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 1 | 0.780 | 0.675 | 0.416 | 1.361 | 1.268 | 0.842 |
+| 100 | 1.076 | 0.738 | 0.991 | 2.939 | 2.687 | 2.049 |
+| 1,000 | 5.309 | 2.849 | 5.801 | 12.446 | 5.296 | 7.954 |
+
+Pass the previous Node binary after `--peer-sync` for the three-build fixture
+with both workloads, or after `--peer-replay` for replays. [Raw replay timings](results/peer-replay-confirmed-https.csv)

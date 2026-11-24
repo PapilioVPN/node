@@ -1,6 +1,7 @@
 import base64
 import hashlib
 import http.client
+import itertools
 import json
 import os
 import socket
@@ -141,8 +142,12 @@ def check_peers(expected):
 
 def measure_peers(cases, phases=("noop", "changed")):
     payloads = {size: (peer_payloads(size, False), peer_payloads(size, True)) for size in (1, 100, 1000)}
-    for repeat in range(5):
-        for label, args in cases if repeat % 2 == 0 else reversed(cases):
+    if len(cases) == 3:
+        orders = itertools.permutations(cases)
+    else:
+        orders = (cases if repeat % 2 == 0 else reversed(cases) for repeat in range(5))
+    for repeat, order in enumerate(orders, start=1):
+        for label, args in order:
             conn, start_method, start_path, source, stop_method, stop_path, valid = args
             _, reply = request(conn, start_method, start_path, source)
             assert valid(reply)
@@ -159,7 +164,7 @@ def measure_peers(cases, phases=("noop", "changed")):
                         elapsed, reply = request(conn, "PUT", path, bodies[encoding])
                         if encoding == "node":
                             assert json.loads(reply) == {"added": 0, "updated": int(phase == "changed"), "removed": 0}
-                        print(f"{repeat + 1},{label},peers_{size}_{phase},{index + 1},{elapsed}")
+                        print(f"{repeat},{label},peers_{size}_{phase},{index + 1},{elapsed}")
                     check_peers(expected)
             request(conn, stop_method, stop_path)
 
@@ -220,9 +225,9 @@ def measure_peer_delta(cases):
 def main():
     mode = sys.argv[3] if len(sys.argv) >= 4 else ""
     valid_args = (len(sys.argv) == 3 or len(sys.argv) == 4 and mode in ("--live-mtu", "--peer-sync", "--peer-delta")
-                  or len(sys.argv) == 5 and mode in ("--peer-replay", "--peer-delta"))
+                  or len(sys.argv) == 5 and mode in ("--peer-sync", "--peer-replay", "--peer-delta"))
     if not valid_args:
-        raise SystemExit("usage: measure-lifecycle.py NODE PASARGUARD [--live-mtu|--peer-sync|--peer-replay PREVIOUS_NODE|--peer-delta [PREVIOUS_NODE]]")
+        raise SystemExit("usage: measure-lifecycle.py NODE PASARGUARD [--live-mtu|--peer-sync [PREVIOUS_NODE]|--peer-replay PREVIOUS_NODE|--peer-delta [PREVIOUS_NODE]]")
     parent = os.environ.get("NODE_TEST_WIREGUARD_PARENT_NETNS")
     if not parent or parent == os.readlink("/proc/self/ns/net"):
         raise RuntimeError("run in a separate network namespace")
@@ -292,19 +297,14 @@ wireguard:
         if mode == "--live-mtu":
             measure_mtu(cases, {"node": node_config, "pasarguard": ref_config})
             return
-        if mode == "--peer-sync":
-            measure_peers(cases)
-            return
-        if mode == "--peer-delta":
-            if len(sys.argv) == 5:
-                previous = launch_node(sys.argv[4], "node-before")
-                cases.insert(0, ("node-before", (previous, "PUT", execution, source, "DELETE", execution, node_valid)))
-            measure_peer_delta(cases)
-            return
-        if mode == "--peer-replay":
+        if len(sys.argv) == 5:
             previous = launch_node(sys.argv[4], "node-before")
             cases.insert(0, ("node-before", (previous, "PUT", execution, source, "DELETE", execution, node_valid)))
-            measure_peers(cases, phases=("noop",))
+        if mode == "--peer-delta":
+            measure_peer_delta(cases)
+            return
+        if mode in ("--peer-sync", "--peer-replay"):
+            measure_peers(cases, phases=("noop",) if mode == "--peer-replay" else ("noop", "changed"))
             return
         for repeat in range(5):
             for label, args in cases if repeat % 2 == 0 else reversed(cases):
