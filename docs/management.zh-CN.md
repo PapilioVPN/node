@@ -91,4 +91,6 @@ HTTP `GET /v1/host/stats` 和 gRPC `HostService.GetSystemStats` 返回 `uptime_s
 
 使用 `PUT /v1/wireguard/interfaces/{name}/peers/{key}` 添加或更新对等端，使用同一路径上的 `DELETE` 删除。路径中的公钥使用无填充 base64url。`PUT` 会替换 `allowed_ips` 和 `preshared_key`。删除不存在的对等端也返回 `204`。对应的 gRPC 方法为 `UpsertPeer` 和 `RemovePeer`。
 
+请通过 Node 修改受管接口的对等端。单个更新和批量变更会检查接口的所有权，并根据初始内核快照和 Node 已确认的写入规划变更。重启、完整同步或写入结果不明后，首次请求会重新读取内核状态。若通过 `wg set` 直接修改了接口，请向 `SyncPeers` 提交完整目标列表，与内核当前配置重新同步。
+
 通过 `PATCH /v1/wireguard/interfaces/{name}/peers` 或 `ApplyPeerDelta` 提交 `upsert` 对等端记录和 `remove` 公钥。每个独立请求包含 1 到 1,000 项变更，每个公钥仅出现一次。请求与批次外对等端的前缀完全相同，或新增后超过 1,000 个对等端时，返回 `409` 或 `FAILED_PRECONDITION`。内核写入结果无法确认时，可重发同一批次并根据当前内核状态继续同步。每批单独确认，之前已应用的变更可能保留。

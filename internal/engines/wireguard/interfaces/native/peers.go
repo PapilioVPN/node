@@ -30,28 +30,18 @@ type peerSnapshot struct {
 	allowedIPs []netip.Prefix
 }
 
-func (control *Control) SyncPeers(ctx context.Context, owner lifecycle.Link, desired []peers.Peer) (peers.Result, error) {
-	snapshot, err := control.peerState(ctx, owner, desired)
-	if err != nil {
-		return peers.Result{}, err
-	}
-	updates, removals, result := peers.Diff(snapshot.peers, desired)
-	return control.applyPeerChanges(ctx, owner.Index, updates, removals, result)
+func (control *Control) WritePeer(ctx context.Context, link lifecycle.Link, change peers.Change) error {
+	return control.writePeerMessage(ctx, peerDeadline(ctx), link.Index, []peers.Change{change})
 }
 
-func (control *Control) applyPeerChanges(ctx context.Context, index int, updates, removals []peers.Change, result peers.Result) (peers.Result, error) {
-	if err := ctx.Err(); err != nil {
-		return peers.Result{}, err
+func (control *Control) WritePeerChanges(ctx context.Context, link lifecycle.Link, updates, removals []peers.Change) error {
+	if err := control.writePeers(ctx, link.Index, removals); err != nil {
+		return err
 	}
-	for _, batch := range [][]peers.Change{removals, updates} {
-		if err := control.writePeers(ctx, index, batch); err != nil {
-			return peers.Result{}, errors.Join(peers.ErrUnconfirmed, err)
-		}
-	}
-	return result, nil
+	return control.writePeers(ctx, link.Index, updates)
 }
 
-func (control *Control) checkPeerLink(ctx context.Context, owner lifecycle.Link) error {
+func (control *Control) CheckPeerLink(ctx context.Context, owner lifecycle.Link) error {
 	link, err := control.Inspect(ctx, owner)
 	if err != nil {
 		return err
@@ -62,30 +52,18 @@ func (control *Control) checkPeerLink(ctx context.Context, owner lifecycle.Link)
 	return nil
 }
 
-func (control *Control) peerState(ctx context.Context, owner lifecycle.Link, desired []peers.Peer) (peerSnapshot, error) {
-	if err := control.checkPeerLink(ctx, owner); err != nil {
-		return peerSnapshot{}, err
-	}
-	allowedIPCount := 0
-	for i := range desired {
-		allowedIPCount += len(desired[i].AllowedIPs)
-	}
-	snapshot, err := control.readPeers(ctx, owner.Index, len(desired), allowedIPCount)
+func (control *Control) ReadPeerSet(ctx context.Context, owner lifecycle.Link) (peers.Snapshot, error) {
+	snapshot, err := control.readPeers(ctx, owner.Index)
 	if errors.Is(err, os.ErrDeadlineExceeded) {
-		return peerSnapshot{}, context.DeadlineExceeded
+		return peers.Snapshot{}, context.DeadlineExceeded
 	}
 	if err != nil {
-		return peerSnapshot{}, err
+		return peers.Snapshot{}, err
 	}
-	for i := range desired {
-		if desired[i].PublicKey == snapshot.self {
-			return peerSnapshot{}, peers.ErrInvalid
-		}
-	}
-	return snapshot, nil
+	return peers.Snapshot{PublicKey: snapshot.self, Peers: snapshot.peers}, nil
 }
 
-func (control *Control) readPeers(ctx context.Context, index, expectedPeers, expectedIPs int) (snapshot peerSnapshot, err error) {
+func (control *Control) readPeers(ctx context.Context, index int) (snapshot peerSnapshot, err error) {
 	if err := ctx.Err(); err != nil {
 		return snapshot, err
 	}
@@ -126,8 +104,8 @@ func (control *Control) readPeers(ctx context.Context, index, expectedPeers, exp
 		return peerSnapshot{}, err
 	}
 	// Previous counts are allocation hints. Every operation reads a fresh dump.
-	snapshot.peers = make([]peers.Peer, 0, max(expectedPeers, dump.peerCount))
-	snapshot.allowedIPs = make([]netip.Prefix, 0, max(expectedIPs, dump.prefixCount))
+	snapshot.peers = make([]peers.Peer, 0, dump.peerCount)
+	snapshot.allowedIPs = make([]netip.Prefix, 0, dump.prefixCount)
 	if err := dump.read(ctx, req.Header, &snapshot); err != nil {
 		return peerSnapshot{}, err
 	}

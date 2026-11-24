@@ -66,7 +66,16 @@ func TestRestartRecovery(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	exchangePacket(t, base64.StdEncoding.EncodeToString(privateKey.PublicKey().Bytes()), strings.TrimSpace(string(port)), func(string) {
+	exchangePacket(t, base64.StdEncoding.EncodeToString(privateKey.PublicKey().Bytes()), strings.TrimSpace(string(port)), func(peer string) {
+		publicKey, err := base64.StdEncoding.DecodeString(peer)
+		if err != nil {
+			t.Fatal(err)
+		}
+		peerPath := "/peers/" + base64.RawURLEncoding.EncodeToString(publicKey)
+		peerSource := []byte(`{"allowed_ips":["192.0.2.2/32"]}`)
+		if got := peerDeltaHTTP(t, f, http.MethodPut, peerPath, peerSource, http.StatusOK); got != (peerSyncReply{}) {
+			t.Fatalf("initial targeted replay returned %+v", got)
+		}
 		source = bytes.Replace(source, []byte(`"mtu":1380`), []byte(`"mtu":1360`), 1)
 		want := fmt.Sprintf("%x", sha256.Sum256(source))
 		if status := executionRequest(t, f, http.MethodPut, source, http.StatusOK); status.AppliedSHA256 != want {
@@ -88,6 +97,12 @@ func TestRestartRecovery(t *testing.T) {
 			if status := executionRequest(t, f, http.MethodPut, source, http.StatusOK); status.AppliedSHA256 != want {
 				t.Fatalf("Start after recovery returned %+v", status)
 			}
+			if got := peerDeltaHTTP(t, f, http.MethodPut, peerPath, peerSource, http.StatusOK); got != (peerSyncReply{}) {
+				t.Fatalf("targeted replay after %v returned %+v", signum, got)
+			}
+			otherKey := sha256.Sum256([]byte("isolated conflicting peer"))
+			otherPath := "/peers/" + base64.RawURLEncoding.EncodeToString(otherKey[:])
+			peerDeltaHTTP(t, f, http.MethodPut, otherPath, peerSource, http.StatusConflict)
 			after, err := net.InterfaceByName(interfaceName)
 			if err != nil || after.Index != before.Index {
 				t.Fatalf("recovery after %v changed the link: %v, %v", signum, after, err)

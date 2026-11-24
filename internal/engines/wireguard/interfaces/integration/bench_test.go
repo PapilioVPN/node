@@ -37,7 +37,7 @@ func BenchmarkCheckpointRecovery(b *testing.B) {
 			if err := control.Open(b.Context()); err != nil {
 				b.Fatal(err)
 			}
-			service := lifecycle.New(interfaceName, control, store)
+			service := lifecycle.New(interfaceName, control, control, store)
 			source := []byte(`{"private_key":"AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=","addresses":["192.0.2.1/24"]}`)
 			link, err := service.Start(b.Context(), interfaceName, source)
 			if err != nil {
@@ -61,7 +61,7 @@ func BenchmarkCheckpointRecovery(b *testing.B) {
 				if err := control.Open(b.Context()); err != nil {
 					b.Fatal(err)
 				}
-				recovered := lifecycle.New(interfaceName, control, reopened)
+				recovered := lifecycle.New(interfaceName, control, control, reopened)
 				if err := recovered.Recover(b.Context()); err != nil {
 					b.Fatal(err)
 				}

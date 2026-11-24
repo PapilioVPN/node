@@ -34,24 +34,22 @@ type Control interface {
 	Create(context.Context, Link, Config) (status.Interface, error)
 	Inspect(context.Context, Link) (status.Interface, error)
 	UpdateMTU(context.Context, Link, uint32, uint32) (status.Interface, error)
-	SyncPeers(context.Context, Link, []peers.Peer) (peers.Result, error)
-	UpsertPeer(context.Context, Link, peers.Peer) (peers.Result, error)
-	RemovePeer(context.Context, Link, [32]byte) error
-	ApplyPeerDelta(context.Context, Link, peers.Delta) (peers.Result, error)
 	Remove(context.Context, Link) error
 }
 
 type Service struct {
-	name    string
-	control Control
-	store   CheckpointStore
-	mu      sync.Mutex
-	owned   Link
-	applied atomic.Pointer[Checkpoint]
+	name      string
+	control   Control
+	peers     PeerControl
+	store     CheckpointStore
+	mu        sync.Mutex
+	owned     Link
+	peerState *peers.State // Protected by mu and bound to the owned execution.
+	applied   atomic.Pointer[Checkpoint]
 }
 
-func New(name string, control Control, store CheckpointStore) *Service {
-	return &Service{name: name, control: control, store: store}
+func New(name string, control Control, peerControl PeerControl, store CheckpointStore) *Service {
+	return &Service{name: name, control: control, peers: peerControl, store: store}
 }
 
 func (service *Service) Start(ctx context.Context, name string, source []byte) (status.Interface, error) {
@@ -179,6 +177,7 @@ func (service *Service) Stop(ctx context.Context, name string) error {
 func (service *Service) Close(ctx context.Context) error {
 	service.mu.Lock()
 	defer service.mu.Unlock()
+	service.peerState = nil
 	if service.store != nil || service.owned.Alias == "" {
 		return nil
 	}
@@ -186,6 +185,7 @@ func (service *Service) Close(ctx context.Context) error {
 }
 
 func (service *Service) remove(ctx context.Context) error {
+	service.peerState = nil
 	err := service.control.Remove(ctx, service.owned)
 	if err == nil || errors.Is(err, ErrConflict) {
 		service.applied.Store(nil)

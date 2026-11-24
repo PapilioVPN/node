@@ -46,7 +46,7 @@ func TestLiveMTUFailure(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			control := &failedUpdateControl{updateErr: tc.updateErr}
-			service := New("wg0", control, nil)
+			service := New("wg0", control, nil, nil)
 			initial, err := service.Start(t.Context(), "wg0", []byte(validSource))
 			if err != nil {
 				t.Fatal(err)
