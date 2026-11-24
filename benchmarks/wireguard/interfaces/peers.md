@@ -84,3 +84,20 @@ two allowed logical CPUs in `taskset` and add `--peer-sync` after the
 PasarGuard binary path. For the three-build replay fixture, use
 `--peer-replay /path/to/previous-node` in place of `--peer-sync`.
 The peer fixture also uses `wg`.
+
+## Live replay after the peer ownership redesign
+
+Full `SyncPeers` continues to read the live kernel peer set. The managed
+index introduced for targeted writes does not supply the full-sync snapshot.
+The fixture compares the redesigned Node with Node `cb19e3e` and the same
+pinned reference. Each cell contains 50 requests across five blocks.
+
+| Peers | Prior Node p50, ms | Node p50, ms | PasarGuard p50, ms | Prior Node p95, ms | Node p95, ms | PasarGuard p95, ms |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 1 | 0.669 | 0.934 | 0.396 | 1.183 | 1.306 | 0.966 |
+| 100 | 0.905 | 0.943 | 0.930 | 2.445 | 1.849 | 2.120 |
+| 1,000 | 4.603 | 4.541 | 5.919 | 9.838 | 6.930 | 9.564 |
+
+The one-peer result still trails the reference. The reference answers replay
+from memory and Node checks live kernel state. These measurements retain the
+complete replay results for the three builds. [Raw timings](results/peer-replay-managed-https.csv)

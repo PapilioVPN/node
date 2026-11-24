@@ -25,6 +25,18 @@ The [pinned PasarGuard Node API](https://github.com/PasarGuard/node/blob/739eab9
 offers `GetBaseInfo`, which returns only backend lifecycle state and versions.
 This measurement uses the Linux command-line reference for per-interface reads.
 
+## Evidence by operation
+
+| Operation | Comparison |
+| --- | --- |
+| Interface status | Lower latency than `ip` using a direct link read. |
+| Cold Start | Lower median in all five blocks of the lifecycle benchmark. |
+| Same-source Start and Stop | The lower median switched between implementations across blocks. The kernel link deletion probe accounts for most of Stop latency. |
+| Live MTU change | Node keeps the link. PasarGuard recreates it. The measured transition times reflect different effects. |
+| Configuration validation and restart recovery | Node has isolated native measurements. The pinned reference has different operations. |
+| Full peer synchronization | One changed peer benefits from writing only the difference. Full replay reads the live kernel and its comparison varies by peer count and run. |
+| Targeted peer changes | The managed peer-state comparison records single changes, replays, removals and chunks. |
+
 ## Reproduce
 
 Use Linux with kernel WireGuard, `ip`, `wg`, and permission to create a user

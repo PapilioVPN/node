@@ -72,3 +72,31 @@ interface by index or name. [First run](results/peer-delta-receive-https.csv)
 
 To repeat the three-build comparison, pass the previous Node binary after
 `--peer-delta`.
+
+## Managed peer state
+
+Targeted operations now use a peer and prefix index owned by the interface
+lifecycle. The first request loads the live configuration. Later requests
+check link ownership and publish changes to the index after kernel
+acknowledgement. Full synchronization still reads the live peer set. An
+unconfirmed write discards the index so the next targeted request reads the
+actual kernel state before planning changes.
+
+The fixture assumes Node is the sole writer of its managed interface. Each
+build gets an untimed targeted replay after full setup. Measurements cover
+the steady path, with 80 requests per operation and build across two runs.
+The previous Node build is `cb19e3e` and the reference pin is unchanged.
+
+| Operation | Prior Node p50, ms | Node p50, ms | PasarGuard p50, ms | Prior Node p95, ms | Node p95, ms | PasarGuard p95, ms |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Change one peer | 2.523 | 0.520 | 0.592 | 3.853 | 0.955 | 1.267 |
+| Replay one peer | 2.411 | 0.460 | 0.616 | 3.842 | 0.790 | 1.591 |
+| Remove one peer | 0.573 | 0.671 | 0.736 | 0.889 | 1.353 | 2.090 |
+| Change one peer in a 100-peer chunk | 2.855 | 0.793 | 1.078 | 4.701 | 1.421 | 2.071 |
+| Replay a 100-peer chunk | 2.804 | 0.859 | 1.098 | 4.279 | 2.104 | 2.246 |
+| Change one peer in a 1,000-peer chunk | 5.394 | 3.119 | 6.215 | 10.203 | 5.294 | 8.905 |
+| Replay a 1,000-peer chunk | 4.445 | 3.102 | 5.691 | 8.554 | 5.469 | 9.742 |
+
+Single updates and removals switched order against PasarGuard across the two
+runs. The median removal time increased relative to the previous Node build.
+[First run](results/peer-delta-managed-https.csv) · [Second run](results/peer-delta-managed-repeat-https.csv)

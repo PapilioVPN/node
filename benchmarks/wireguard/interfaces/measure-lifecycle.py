@@ -196,6 +196,7 @@ def measure_peer_delta(cases):
             assert valid(reply)
             encoding = "pasarguard" if label == "pasarguard" else "node"
             request(conn, "PUT", path if encoding == "node" else "/users/sync", payload[encoding])
+            request(conn, *operations[1][0][encoding])
             check_peers(baseline)
             for size, variants in operations.items():
                 for phase in ("change", "replay"):
