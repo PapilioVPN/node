@@ -2,6 +2,7 @@
 package http
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -12,6 +13,7 @@ import (
 	"time"
 
 	"github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/lifecycle"
+	"github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/peers"
 	"github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/status"
 	"github.com/go-chi/chi/v5"
 )
@@ -55,6 +57,30 @@ func Register(router chi.Router, service *status.Service, managed *lifecycle.Ser
 	if managed == nil {
 		return
 	}
+	router.Put(path+"/peers", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-store")
+		source, err := readConfig(w, r)
+		if err != nil {
+			writeError(w, err)
+			return
+		}
+		var body struct {
+			Peers []peers.Input `json:"peers"`
+		}
+		decoder := json.NewDecoder(bytes.NewReader(source))
+		decoder.DisallowUnknownFields()
+		if err := decoder.Decode(&body); err != nil || body.Peers == nil || decoder.Decode(new(json.RawMessage)) != io.EOF {
+			writeError(w, peers.ErrInvalid)
+			return
+		}
+		result, err := managed.SyncPeers(r.Context(), interfaceName(r), body.Peers)
+		if err != nil {
+			writeError(w, err)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(result)
+	})
 	router.Put(path+"/execution", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
 		source, err := readConfig(w, r)
@@ -128,6 +154,12 @@ func writeStatus(w http.ResponseWriter, link status.Interface) {
 
 func writeError(w http.ResponseWriter, err error) {
 	switch {
+	case errors.Is(err, peers.ErrInvalid):
+		http.Error(w, peers.ErrInvalid.Error(), http.StatusBadRequest)
+	case errors.Is(err, peers.ErrTooMany):
+		http.Error(w, peers.ErrTooMany.Error(), http.StatusRequestEntityTooLarge)
+	case errors.Is(err, peers.ErrUnconfirmed):
+		http.Error(w, peers.ErrUnconfirmed.Error(), http.StatusServiceUnavailable)
 	case errors.Is(err, lifecycle.ErrConflict):
 		http.Error(w, lifecycle.ErrConflict.Error(), http.StatusConflict)
 	case errors.Is(err, lifecycle.ErrInvalid):

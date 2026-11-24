@@ -23,6 +23,7 @@ const (
 	WireGuardInterfacesService_Start_FullMethodName          = "/papiliovpn.node.v1.WireGuardInterfacesService/Start"
 	WireGuardInterfacesService_Stop_FullMethodName           = "/papiliovpn.node.v1.WireGuardInterfacesService/Stop"
 	WireGuardInterfacesService_ValidateConfig_FullMethodName = "/papiliovpn.node.v1.WireGuardInterfacesService/ValidateConfig"
+	WireGuardInterfacesService_SyncPeers_FullMethodName      = "/papiliovpn.node.v1.WireGuardInterfacesService/SyncPeers"
 )
 
 // WireGuardInterfacesServiceClient is the client API for WireGuardInterfacesService service.
@@ -33,6 +34,7 @@ type WireGuardInterfacesServiceClient interface {
 	Start(ctx context.Context, in *WireGuardStartRequest, opts ...grpc.CallOption) (*WireGuardInterfaceStatus, error)
 	Stop(ctx context.Context, in *WireGuardInterfaceRequest, opts ...grpc.CallOption) (*WireGuardStopResponse, error)
 	ValidateConfig(ctx context.Context, in *WireGuardValidateConfigRequest, opts ...grpc.CallOption) (*WireGuardConfigValidation, error)
+	SyncPeers(ctx context.Context, in *WireGuardSyncPeersRequest, opts ...grpc.CallOption) (*WireGuardPeerSyncResult, error)
 }
 
 type wireGuardInterfacesServiceClient struct {
@@ -83,6 +85,16 @@ func (c *wireGuardInterfacesServiceClient) ValidateConfig(ctx context.Context, i
 	return out, nil
 }
 
+func (c *wireGuardInterfacesServiceClient) SyncPeers(ctx context.Context, in *WireGuardSyncPeersRequest, opts ...grpc.CallOption) (*WireGuardPeerSyncResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(WireGuardPeerSyncResult)
+	err := c.cc.Invoke(ctx, WireGuardInterfacesService_SyncPeers_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // WireGuardInterfacesServiceServer is the server API for WireGuardInterfacesService service.
 // All implementations must embed UnimplementedWireGuardInterfacesServiceServer
 // for forward compatibility.
@@ -91,6 +103,7 @@ type WireGuardInterfacesServiceServer interface {
 	Start(context.Context, *WireGuardStartRequest) (*WireGuardInterfaceStatus, error)
 	Stop(context.Context, *WireGuardInterfaceRequest) (*WireGuardStopResponse, error)
 	ValidateConfig(context.Context, *WireGuardValidateConfigRequest) (*WireGuardConfigValidation, error)
+	SyncPeers(context.Context, *WireGuardSyncPeersRequest) (*WireGuardPeerSyncResult, error)
 	mustEmbedUnimplementedWireGuardInterfacesServiceServer()
 }
 
@@ -112,6 +125,9 @@ func (UnimplementedWireGuardInterfacesServiceServer) Stop(context.Context, *Wire
 }
 func (UnimplementedWireGuardInterfacesServiceServer) ValidateConfig(context.Context, *WireGuardValidateConfigRequest) (*WireGuardConfigValidation, error) {
 	return nil, status.Error(codes.Unimplemented, "method ValidateConfig not implemented")
+}
+func (UnimplementedWireGuardInterfacesServiceServer) SyncPeers(context.Context, *WireGuardSyncPeersRequest) (*WireGuardPeerSyncResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method SyncPeers not implemented")
 }
 func (UnimplementedWireGuardInterfacesServiceServer) mustEmbedUnimplementedWireGuardInterfacesServiceServer() {
 }
@@ -207,6 +223,24 @@ func _WireGuardInterfacesService_ValidateConfig_Handler(srv interface{}, ctx con
 	return interceptor(ctx, in, info, handler)
 }
 
+func _WireGuardInterfacesService_SyncPeers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(WireGuardSyncPeersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WireGuardInterfacesServiceServer).SyncPeers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WireGuardInterfacesService_SyncPeers_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WireGuardInterfacesServiceServer).SyncPeers(ctx, req.(*WireGuardSyncPeersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // WireGuardInterfacesService_ServiceDesc is the grpc.ServiceDesc for WireGuardInterfacesService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -229,6 +263,10 @@ var WireGuardInterfacesService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ValidateConfig",
 			Handler:    _WireGuardInterfacesService_ValidateConfig_Handler,
+		},
+		{
+			MethodName: "SyncPeers",
+			Handler:    _WireGuardInterfacesService_SyncPeers_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

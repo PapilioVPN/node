@@ -66,7 +66,7 @@ func TestRestartRecovery(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	exchangePacket(t, base64.StdEncoding.EncodeToString(privateKey.PublicKey().Bytes()), strings.TrimSpace(string(port)), func() {
+	exchangePacket(t, base64.StdEncoding.EncodeToString(privateKey.PublicKey().Bytes()), strings.TrimSpace(string(port)), func(string) {
 		source = bytes.Replace(source, []byte(`"mtu":1380`), []byte(`"mtu":1360`), 1)
 		want := fmt.Sprintf("%x", sha256.Sum256(source))
 		if status := executionRequest(t, f, http.MethodPut, source, http.StatusOK); status.AppliedSHA256 != want {

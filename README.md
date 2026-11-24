@@ -57,7 +57,7 @@ The management API binds to loopback by default. Check it with `curl -fsS http:/
 
 - **Host** — uptime, CPU, memory, and storage.
 - **Xray** — lifecycle, config validation, live account sync and recovery, traffic and online stats, routing, logs, and outbound health.
-- **WireGuard** — read Linux interface status, validate configuration, manage the interface, update MTU live, and recover after a Node restart.
+- **WireGuard** — Linux interface lifecycle and recovery, configuration validation, live MTU updates, and full peer synchronization.
 
 <a name="management"></a>
 

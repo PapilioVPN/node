@@ -9,6 +9,7 @@ import (
 
 	interfacesv1 "github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/bridge/grpc/proto/v1"
 	"github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/lifecycle"
+	"github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/peers"
 	interfacestatus "github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/status"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -67,6 +68,28 @@ func (h *handlers) ValidateConfig(ctx context.Context, req *interfacesv1.WireGua
 	}, nil
 }
 
+func (h *handlers) SyncPeers(ctx context.Context, req *interfacesv1.WireGuardSyncPeersRequest) (*interfacesv1.WireGuardPeerSyncResult, error) {
+	if h.managed == nil {
+		return nil, status.Error(codes.Unimplemented, "wireguard management is disabled")
+	}
+	desired := req.GetDesired()
+	if desired == nil {
+		return nil, readError(peers.ErrInvalid)
+	}
+	if len(desired.GetPeers()) > peers.MaxPeers {
+		return nil, readError(peers.ErrTooMany)
+	}
+	input := make([]peers.Input, len(desired.GetPeers()))
+	for i, peer := range desired.GetPeers() {
+		input[i] = peers.Input{PublicKey: peer.GetPublicKey(), PresharedKey: peer.GetPresharedKey(), AllowedIPs: peer.GetAllowedIps()}
+	}
+	result, err := h.managed.SyncPeers(ctx, req.GetName(), input)
+	if err != nil {
+		return nil, readError(err)
+	}
+	return &interfacesv1.WireGuardPeerSyncResult{Added: result.Added, Updated: result.Updated, Removed: result.Removed}, nil
+}
+
 func response(result interfacestatus.Interface) *interfacesv1.WireGuardInterfaceStatus {
 	reply := &interfacesv1.WireGuardInterfaceStatus{Name: result.Name, Mtu: result.MTU, Up: result.Up}
 	if result.AppliedSHA256 != "" {
@@ -77,6 +100,12 @@ func response(result interfacestatus.Interface) *interfacesv1.WireGuardInterface
 
 func readError(err error) error {
 	switch {
+	case errors.Is(err, peers.ErrInvalid):
+		return status.Error(codes.InvalidArgument, peers.ErrInvalid.Error())
+	case errors.Is(err, peers.ErrTooMany):
+		return status.Error(codes.ResourceExhausted, peers.ErrTooMany.Error())
+	case errors.Is(err, peers.ErrUnconfirmed):
+		return status.Error(codes.Unavailable, peers.ErrUnconfirmed.Error())
 	case errors.Is(err, lifecycle.ErrConflict):
 		return status.Error(codes.FailedPrecondition, lifecycle.ErrConflict.Error())
 	case errors.Is(err, lifecycle.ErrInvalid):

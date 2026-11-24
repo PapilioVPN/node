@@ -23,6 +23,7 @@
 | Xray 日志流 | 通过 HTTP 和 gRPC 持续接收运行实例的 stdout 和 stderr。 |
 | Xray 出站健康状态 | 通过 HTTP 和 gRPC 读取全部 Observatory 观测结果，或按出站标签查询。 |
 | WireGuard 接口 | 通过 HTTP 和 gRPC 查询状态、验证配置、启动和停止接口、在线更新 MTU，并可选在 Node 重启后恢复。 |
+| WireGuard 对等端 | 通过 HTTP 和 gRPC 按公钥同步完整列表，保留未变化的对等端并返回增加、更新和删除数量。 |
 
 <a name="management"></a>
 
@@ -85,3 +86,5 @@ HTTP `GET /v1/host/stats` 和 gRPC `HostService.GetSystemStats` 返回 `uptime_s
 将拟提交的 JSON 发送到 `POST /v1/wireguard/interfaces/{name}/config-validations`，或将其字节传给 `WireGuardInterfacesService.ValidateConfig`。验证采用与 Start 相同的输入检查，上限为 1 MiB，每个已配置接口同时处理一次检查。只读配置也可使用。验证拒绝时返回 `valid: false`，以及 JSON、私钥、地址、重复地址、MTU 或监听端口的类型化问题代码。响应仅包含问题代码。空运行在内存中检查配置。端口可用性和内核就绪状态在 Start 时检查。
 
 将 `wireguard.state_directory` 指向 Node 拥有的现有专用目录，权限为 `0700`，即可启用恢复。进程重启期间接口保持运行，所有权和已确认配置的元数据保存在权限为 `0600` 的文件中。私钥原文和 JSON 保留在文件之外。Node 发布已记录哈希前会核对内核启动标识、网络命名空间、接口标识、管理状态和 MTU。配置无法确认时，仍可用 Stop 停止自有接口。显式 Stop 也会删除检查点。恢复原接口适用于同一次内核启动和同一网络命名空间。
+
+通过 `PUT /v1/wireguard/interfaces/{name}/peers` 的 `peers` 数组提交完整列表，或在 `WireGuardInterfacesService.SyncPeers` 中提交存在的 `desired` 消息。显式空列表会移除所有对等端。每个对等端包含 32 字节的 `public_key`、最多 16 个 IPv4 或 IPv6 `allowed_ips` 前缀，以及可选的 32 字节 `preshared_key`。HTTP 中的密钥使用 base64。省略 PSK 将配置为无 PSK。列表最多含 1,000 个对等端。密钥和规范化后的前缀必须唯一。Node 读取内核状态，并分批写入差异。批次失败可能留下部分变更。重新提交完整列表可根据内核当前状态继续同步。响应返回增加、更新和删除计数。

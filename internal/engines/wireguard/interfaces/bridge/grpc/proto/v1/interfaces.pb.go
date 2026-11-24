@@ -387,6 +387,223 @@ func (x *WireGuardConfigValidation) GetIssue() WireGuardConfigIssue {
 	return WireGuardConfigIssue_WIRE_GUARD_CONFIG_ISSUE_UNSPECIFIED
 }
 
+type WireGuardPeer struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	PublicKey     []byte                 `protobuf:"bytes,1,opt,name=public_key,json=publicKey,proto3" json:"public_key,omitempty"`
+	AllowedIps    []string               `protobuf:"bytes,2,rep,name=allowed_ips,json=allowedIps,proto3" json:"allowed_ips,omitempty"`
+	PresharedKey  []byte                 `protobuf:"bytes,3,opt,name=preshared_key,json=presharedKey,proto3" json:"preshared_key,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *WireGuardPeer) Reset() {
+	*x = WireGuardPeer{}
+	mi := &file_proto_v1_interfaces_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WireGuardPeer) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WireGuardPeer) ProtoMessage() {}
+
+func (x *WireGuardPeer) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_v1_interfaces_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WireGuardPeer.ProtoReflect.Descriptor instead.
+func (*WireGuardPeer) Descriptor() ([]byte, []int) {
+	return file_proto_v1_interfaces_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *WireGuardPeer) GetPublicKey() []byte {
+	if x != nil {
+		return x.PublicKey
+	}
+	return nil
+}
+
+func (x *WireGuardPeer) GetAllowedIps() []string {
+	if x != nil {
+		return x.AllowedIps
+	}
+	return nil
+}
+
+func (x *WireGuardPeer) GetPresharedKey() []byte {
+	if x != nil {
+		return x.PresharedKey
+	}
+	return nil
+}
+
+type WireGuardPeerSet struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Peers         []*WireGuardPeer       `protobuf:"bytes,1,rep,name=peers,proto3" json:"peers,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *WireGuardPeerSet) Reset() {
+	*x = WireGuardPeerSet{}
+	mi := &file_proto_v1_interfaces_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WireGuardPeerSet) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WireGuardPeerSet) ProtoMessage() {}
+
+func (x *WireGuardPeerSet) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_v1_interfaces_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WireGuardPeerSet.ProtoReflect.Descriptor instead.
+func (*WireGuardPeerSet) Descriptor() ([]byte, []int) {
+	return file_proto_v1_interfaces_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *WireGuardPeerSet) GetPeers() []*WireGuardPeer {
+	if x != nil {
+		return x.Peers
+	}
+	return nil
+}
+
+type WireGuardSyncPeersRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Name  string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	// Presence is required. A present empty set removes all peers.
+	Desired       *WireGuardPeerSet `protobuf:"bytes,2,opt,name=desired,proto3" json:"desired,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *WireGuardSyncPeersRequest) Reset() {
+	*x = WireGuardSyncPeersRequest{}
+	mi := &file_proto_v1_interfaces_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WireGuardSyncPeersRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WireGuardSyncPeersRequest) ProtoMessage() {}
+
+func (x *WireGuardSyncPeersRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_v1_interfaces_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WireGuardSyncPeersRequest.ProtoReflect.Descriptor instead.
+func (*WireGuardSyncPeersRequest) Descriptor() ([]byte, []int) {
+	return file_proto_v1_interfaces_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *WireGuardSyncPeersRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *WireGuardSyncPeersRequest) GetDesired() *WireGuardPeerSet {
+	if x != nil {
+		return x.Desired
+	}
+	return nil
+}
+
+type WireGuardPeerSyncResult struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Added         uint32                 `protobuf:"varint,1,opt,name=added,proto3" json:"added,omitempty"`
+	Updated       uint32                 `protobuf:"varint,2,opt,name=updated,proto3" json:"updated,omitempty"`
+	Removed       uint32                 `protobuf:"varint,3,opt,name=removed,proto3" json:"removed,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *WireGuardPeerSyncResult) Reset() {
+	*x = WireGuardPeerSyncResult{}
+	mi := &file_proto_v1_interfaces_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WireGuardPeerSyncResult) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WireGuardPeerSyncResult) ProtoMessage() {}
+
+func (x *WireGuardPeerSyncResult) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_v1_interfaces_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WireGuardPeerSyncResult.ProtoReflect.Descriptor instead.
+func (*WireGuardPeerSyncResult) Descriptor() ([]byte, []int) {
+	return file_proto_v1_interfaces_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *WireGuardPeerSyncResult) GetAdded() uint32 {
+	if x != nil {
+		return x.Added
+	}
+	return 0
+}
+
+func (x *WireGuardPeerSyncResult) GetUpdated() uint32 {
+	if x != nil {
+		return x.Updated
+	}
+	return 0
+}
+
+func (x *WireGuardPeerSyncResult) GetRemoved() uint32 {
+	if x != nil {
+		return x.Removed
+	}
+	return 0
+}
+
 var File_proto_v1_interfaces_proto protoreflect.FileDescriptor
 
 const file_proto_v1_interfaces_proto_rawDesc = "" +
@@ -411,7 +628,22 @@ const file_proto_v1_interfaces_proto_rawDesc = "" +
 	"configJson\"q\n" +
 	"\x19WireGuardConfigValidation\x12\x14\n" +
 	"\x05valid\x18\x01 \x01(\bR\x05valid\x12>\n" +
-	"\x05issue\x18\x02 \x01(\x0e2(.papiliovpn.node.v1.WireGuardConfigIssueR\x05issue*\xd2\x02\n" +
+	"\x05issue\x18\x02 \x01(\x0e2(.papiliovpn.node.v1.WireGuardConfigIssueR\x05issue\"t\n" +
+	"\rWireGuardPeer\x12\x1d\n" +
+	"\n" +
+	"public_key\x18\x01 \x01(\fR\tpublicKey\x12\x1f\n" +
+	"\vallowed_ips\x18\x02 \x03(\tR\n" +
+	"allowedIps\x12#\n" +
+	"\rpreshared_key\x18\x03 \x01(\fR\fpresharedKey\"K\n" +
+	"\x10WireGuardPeerSet\x127\n" +
+	"\x05peers\x18\x01 \x03(\v2!.papiliovpn.node.v1.WireGuardPeerR\x05peers\"o\n" +
+	"\x19WireGuardSyncPeersRequest\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12>\n" +
+	"\adesired\x18\x02 \x01(\v2$.papiliovpn.node.v1.WireGuardPeerSetR\adesired\"c\n" +
+	"\x17WireGuardPeerSyncResult\x12\x14\n" +
+	"\x05added\x18\x01 \x01(\rR\x05added\x12\x18\n" +
+	"\aupdated\x18\x02 \x01(\rR\aupdated\x12\x18\n" +
+	"\aremoved\x18\x03 \x01(\rR\aremoved*\xd2\x02\n" +
 	"\x14WireGuardConfigIssue\x12'\n" +
 	"#WIRE_GUARD_CONFIG_ISSUE_UNSPECIFIED\x10\x00\x12(\n" +
 	"$WIRE_GUARD_CONFIG_ISSUE_INVALID_JSON\x10\x01\x12/\n" +
@@ -419,12 +651,13 @@ const file_proto_v1_interfaces_proto_rawDesc = "" +
 	")WIRE_GUARD_CONFIG_ISSUE_INVALID_ADDRESSES\x10\x03\x12-\n" +
 	")WIRE_GUARD_CONFIG_ISSUE_DUPLICATE_ADDRESS\x10\x04\x12'\n" +
 	"#WIRE_GUARD_CONFIG_ISSUE_INVALID_MTU\x10\x05\x12/\n" +
-	"+WIRE_GUARD_CONFIG_ISSUE_INVALID_LISTEN_PORT\x10\x062\xbf\x03\n" +
+	"+WIRE_GUARD_CONFIG_ISSUE_INVALID_LISTEN_PORT\x10\x062\xa8\x04\n" +
 	"\x1aWireGuardInterfacesService\x12h\n" +
 	"\tGetStatus\x12-.papiliovpn.node.v1.WireGuardInterfaceRequest\x1a,.papiliovpn.node.v1.WireGuardInterfaceStatus\x12`\n" +
 	"\x05Start\x12).papiliovpn.node.v1.WireGuardStartRequest\x1a,.papiliovpn.node.v1.WireGuardInterfaceStatus\x12`\n" +
 	"\x04Stop\x12-.papiliovpn.node.v1.WireGuardInterfaceRequest\x1a).papiliovpn.node.v1.WireGuardStopResponse\x12s\n" +
-	"\x0eValidateConfig\x122.papiliovpn.node.v1.WireGuardValidateConfigRequest\x1a-.papiliovpn.node.v1.WireGuardConfigValidationBdZbgithub.com/PapilioVPN/node/internal/engines/wireguard/interfaces/bridge/grpc/proto/v1;interfacesv1b\x06proto3"
+	"\x0eValidateConfig\x122.papiliovpn.node.v1.WireGuardValidateConfigRequest\x1a-.papiliovpn.node.v1.WireGuardConfigValidation\x12g\n" +
+	"\tSyncPeers\x12-.papiliovpn.node.v1.WireGuardSyncPeersRequest\x1a+.papiliovpn.node.v1.WireGuardPeerSyncResultBdZbgithub.com/PapilioVPN/node/internal/engines/wireguard/interfaces/bridge/grpc/proto/v1;interfacesv1b\x06proto3"
 
 var (
 	file_proto_v1_interfaces_proto_rawDescOnce sync.Once
@@ -439,7 +672,7 @@ func file_proto_v1_interfaces_proto_rawDescGZIP() []byte {
 }
 
 var file_proto_v1_interfaces_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_proto_v1_interfaces_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_proto_v1_interfaces_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_proto_v1_interfaces_proto_goTypes = []any{
 	(WireGuardConfigIssue)(0),              // 0: papiliovpn.node.v1.WireGuardConfigIssue
 	(*WireGuardInterfaceRequest)(nil),      // 1: papiliovpn.node.v1.WireGuardInterfaceRequest
@@ -448,22 +681,30 @@ var file_proto_v1_interfaces_proto_goTypes = []any{
 	(*WireGuardStopResponse)(nil),          // 4: papiliovpn.node.v1.WireGuardStopResponse
 	(*WireGuardValidateConfigRequest)(nil), // 5: papiliovpn.node.v1.WireGuardValidateConfigRequest
 	(*WireGuardConfigValidation)(nil),      // 6: papiliovpn.node.v1.WireGuardConfigValidation
+	(*WireGuardPeer)(nil),                  // 7: papiliovpn.node.v1.WireGuardPeer
+	(*WireGuardPeerSet)(nil),               // 8: papiliovpn.node.v1.WireGuardPeerSet
+	(*WireGuardSyncPeersRequest)(nil),      // 9: papiliovpn.node.v1.WireGuardSyncPeersRequest
+	(*WireGuardPeerSyncResult)(nil),        // 10: papiliovpn.node.v1.WireGuardPeerSyncResult
 }
 var file_proto_v1_interfaces_proto_depIdxs = []int32{
-	0, // 0: papiliovpn.node.v1.WireGuardConfigValidation.issue:type_name -> papiliovpn.node.v1.WireGuardConfigIssue
-	1, // 1: papiliovpn.node.v1.WireGuardInterfacesService.GetStatus:input_type -> papiliovpn.node.v1.WireGuardInterfaceRequest
-	3, // 2: papiliovpn.node.v1.WireGuardInterfacesService.Start:input_type -> papiliovpn.node.v1.WireGuardStartRequest
-	1, // 3: papiliovpn.node.v1.WireGuardInterfacesService.Stop:input_type -> papiliovpn.node.v1.WireGuardInterfaceRequest
-	5, // 4: papiliovpn.node.v1.WireGuardInterfacesService.ValidateConfig:input_type -> papiliovpn.node.v1.WireGuardValidateConfigRequest
-	2, // 5: papiliovpn.node.v1.WireGuardInterfacesService.GetStatus:output_type -> papiliovpn.node.v1.WireGuardInterfaceStatus
-	2, // 6: papiliovpn.node.v1.WireGuardInterfacesService.Start:output_type -> papiliovpn.node.v1.WireGuardInterfaceStatus
-	4, // 7: papiliovpn.node.v1.WireGuardInterfacesService.Stop:output_type -> papiliovpn.node.v1.WireGuardStopResponse
-	6, // 8: papiliovpn.node.v1.WireGuardInterfacesService.ValidateConfig:output_type -> papiliovpn.node.v1.WireGuardConfigValidation
-	5, // [5:9] is the sub-list for method output_type
-	1, // [1:5] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	0,  // 0: papiliovpn.node.v1.WireGuardConfigValidation.issue:type_name -> papiliovpn.node.v1.WireGuardConfigIssue
+	7,  // 1: papiliovpn.node.v1.WireGuardPeerSet.peers:type_name -> papiliovpn.node.v1.WireGuardPeer
+	8,  // 2: papiliovpn.node.v1.WireGuardSyncPeersRequest.desired:type_name -> papiliovpn.node.v1.WireGuardPeerSet
+	1,  // 3: papiliovpn.node.v1.WireGuardInterfacesService.GetStatus:input_type -> papiliovpn.node.v1.WireGuardInterfaceRequest
+	3,  // 4: papiliovpn.node.v1.WireGuardInterfacesService.Start:input_type -> papiliovpn.node.v1.WireGuardStartRequest
+	1,  // 5: papiliovpn.node.v1.WireGuardInterfacesService.Stop:input_type -> papiliovpn.node.v1.WireGuardInterfaceRequest
+	5,  // 6: papiliovpn.node.v1.WireGuardInterfacesService.ValidateConfig:input_type -> papiliovpn.node.v1.WireGuardValidateConfigRequest
+	9,  // 7: papiliovpn.node.v1.WireGuardInterfacesService.SyncPeers:input_type -> papiliovpn.node.v1.WireGuardSyncPeersRequest
+	2,  // 8: papiliovpn.node.v1.WireGuardInterfacesService.GetStatus:output_type -> papiliovpn.node.v1.WireGuardInterfaceStatus
+	2,  // 9: papiliovpn.node.v1.WireGuardInterfacesService.Start:output_type -> papiliovpn.node.v1.WireGuardInterfaceStatus
+	4,  // 10: papiliovpn.node.v1.WireGuardInterfacesService.Stop:output_type -> papiliovpn.node.v1.WireGuardStopResponse
+	6,  // 11: papiliovpn.node.v1.WireGuardInterfacesService.ValidateConfig:output_type -> papiliovpn.node.v1.WireGuardConfigValidation
+	10, // 12: papiliovpn.node.v1.WireGuardInterfacesService.SyncPeers:output_type -> papiliovpn.node.v1.WireGuardPeerSyncResult
+	8,  // [8:13] is the sub-list for method output_type
+	3,  // [3:8] is the sub-list for method input_type
+	3,  // [3:3] is the sub-list for extension type_name
+	3,  // [3:3] is the sub-list for extension extendee
+	0,  // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_proto_v1_interfaces_proto_init() }
@@ -478,7 +719,7 @@ func file_proto_v1_interfaces_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_v1_interfaces_proto_rawDesc), len(file_proto_v1_interfaces_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   6,
+			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

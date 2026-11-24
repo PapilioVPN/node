@@ -16,9 +16,10 @@ import (
 )
 
 type Control struct {
-	route   *netlink.Handle
-	generic *genetlink.Conn
-	family  genetlink.Family
+	route    *netlink.Handle
+	generic  *genetlink.Conn
+	peerDump *gennetlink.Conn
+	family   genetlink.Family
 }
 
 func (control *Control) Open(ctx context.Context) error {
@@ -44,7 +45,14 @@ func (control *Control) Open(ctx context.Context) error {
 
 func (control *Control) Close() error {
 	control.route.Close()
-	return control.generic.Close()
+	var err error
+	if control.peerDump != nil {
+		err = control.peerDump.Close()
+	}
+	if control.generic != nil {
+		err = errors.Join(err, control.generic.Close())
+	}
+	return err
 }
 
 func (control *Control) Create(ctx context.Context, owner lifecycle.Link, config lifecycle.Config) (status.Interface, error) {
@@ -120,22 +128,8 @@ func (control *Control) Create(ctx context.Context, owner lifecycle.Link, config
 }
 
 func (control *Control) configure(ctx context.Context, index int, config lifecycle.Config) error {
-	if err := ctx.Err(); err != nil {
+	if err := control.prepareWireGuard(ctx); err != nil {
 		return err
-	}
-	end := time.Now().Add(socketTimeout)
-	if deadline, ok := ctx.Deadline(); ok && deadline.Before(end) {
-		end = deadline
-	}
-	if err := control.generic.SetDeadline(end); err != nil {
-		return err
-	}
-	if control.family.ID == 0 {
-		family, err := control.generic.GetFamily("wireguard")
-		if err != nil {
-			return err
-		}
-		control.family = family
 	}
 	encoder := gennetlink.NewAttributeEncoder()
 	encoder.Uint32(unix.WGDEVICE_A_IFINDEX, uint32(index))
@@ -146,10 +140,51 @@ func (control *Control) configure(ctx context.Context, index int, config lifecyc
 		return err
 	}
 	defer clear(data)
-	_, err = control.generic.Execute(genetlink.Message{
+	return control.setWireGuard(data)
+}
+
+func (control *Control) prepareWireGuard(ctx context.Context) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if control.generic == nil {
+		generic, err := genetlink.Dial(nil)
+		if err != nil {
+			return err
+		}
+		control.generic = generic
+	}
+	if err := control.generic.SetDeadline(wireGuardDeadline(ctx)); err != nil {
+		return err
+	}
+	if control.family.ID == 0 {
+		family, err := control.generic.GetFamily("wireguard")
+		if err != nil {
+			return err
+		}
+		control.family = family
+	}
+	return nil
+}
+
+func wireGuardDeadline(ctx context.Context) time.Time {
+	end := time.Now().Add(socketTimeout)
+	if deadline, ok := ctx.Deadline(); ok && deadline.Before(end) {
+		return deadline
+	}
+	return end
+}
+
+func (control *Control) setWireGuard(data []byte) error {
+	_, err := control.generic.Execute(genetlink.Message{
 		Header: genetlink.Header{Command: unix.WG_CMD_SET_DEVICE, Version: control.family.Version},
 		Data:   data,
 	}, control.family.ID, gennetlink.Request|gennetlink.Acknowledge)
+	if err != nil {
+		_ = control.generic.Close()
+		control.generic = nil
+		control.family = genetlink.Family{}
+	}
 	return err
 }
 

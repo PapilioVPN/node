@@ -23,6 +23,7 @@
 | Xray log stream | Follow live stdout and stderr for the active Xray execution over HTTP and gRPC. |
 | Xray outbound health | Read all recorded Observatory samples or select an outbound by tag over HTTP and gRPC. |
 | WireGuard interface | Read status, validate configuration, start or stop a Linux interface, update MTU live, and optionally recover across Node restarts. HTTP and gRPC. |
+| WireGuard peers | Reconcile the complete peer set by public key over HTTP and gRPC. Preserve unchanged peers and report added, updated and removed counts. |
 
 <a name="management"></a>
 
@@ -85,3 +86,5 @@ Enable `wireguard.managed: true` for kernel lifecycle management. The Node proce
 Send the proposed JSON to `POST /v1/wireguard/interfaces/{name}/config-validations` or pass its bytes to `WireGuardInterfacesService.ValidateConfig`. Validation uses the same input checks as Start with a 1 MiB limit and one concurrent check per configured interface. It also works with read-only interface configuration. A rejected source returns `valid: false` and a typed issue for JSON, private key, addresses, duplicate addresses, MTU or listening port. Replies contain issue codes only. Dry-run performs source checks in memory. Port availability and kernel readiness are checked at Start.
 
 Set `wireguard.state_directory` to an existing dedicated directory owned by Node with mode `0700` to enable recovery. Node leaves its owned interface running during a process restart and records its ownership and confirmed source metadata in a `0600` file. The raw private key and JSON stay out of the file. Recovery checks the boot, network namespace, link identity, administrative state and MTU before publishing the recorded fingerprint. An owned interface with an unconfirmed config is available to Stop. Explicit Stop also removes the checkpoint. Recovery of the same live interface applies within one kernel boot and network namespace.
+
+Send the full desired set to `PUT /v1/wireguard/interfaces/{name}/peers` with a `peers` array, or call `WireGuardInterfacesService.SyncPeers` with a present `desired` message. Use an explicit empty set to remove all peers. Each peer has a 32-byte `public_key`, up to 16 IPv4 or IPv6 `allowed_ips` prefixes, and an optional 32-byte `preshared_key`. HTTP keys use base64. Omit the PSK to request a peer without a PSK. The set supports up to 1,000 peers. Keys and normalized prefixes must be unique. Node reads the live interface and writes only the differences using bounded kernel batches. A failed native batch can leave partial changes. Resend the desired set to reconcile against the live kernel state. Replies contain counts rather than key material.

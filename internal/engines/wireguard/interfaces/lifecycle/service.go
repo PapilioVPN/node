@@ -10,6 +10,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/peers"
 	"github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/status"
 	"github.com/google/uuid"
 )
@@ -33,6 +34,7 @@ type Control interface {
 	Create(context.Context, Link, Config) (status.Interface, error)
 	Inspect(context.Context, Link) (status.Interface, error)
 	UpdateMTU(context.Context, Link, uint32, uint32) (status.Interface, error)
+	SyncPeers(context.Context, Link, []peers.Peer) (peers.Result, error)
 	Remove(context.Context, Link) error
 }
 

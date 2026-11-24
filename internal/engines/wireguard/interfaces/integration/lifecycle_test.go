@@ -89,7 +89,8 @@ func TestManagedExecution(t *testing.T) {
 	if err != nil || strings.TrimSpace(string(configured)) == "0" {
 		t.Fatalf("expected a bound WireGuard port, got %q (%v)", configured, err)
 	}
-	exchangePacket(t, base64.StdEncoding.EncodeToString(privateKey.PublicKey().Bytes()), strings.TrimSpace(string(configured)), func() {
+	exchangePacket(t, base64.StdEncoding.EncodeToString(privateKey.PublicKey().Bytes()), strings.TrimSpace(string(configured)), func(peer string) {
+		assertPeerSync(t, f, client, peer)
 		before, err := net.InterfaceByName(interfaceName)
 		if err != nil {
 			t.Fatal(err)
@@ -127,6 +128,7 @@ func TestManagedExecution(t *testing.T) {
 			t.Fatalf("rejected port change changed the active config: %+v", got)
 		}
 	})
+	assertBulkPeerSync(t, f, client)
 	executionRequest(t, f, http.MethodPut, append(bytes.Clone(source), '\n'), http.StatusConflict)
 	if got := f.readHTTP(t); got.AppliedSHA256 != want {
 		t.Fatalf("rejected change replaced applied hash: %+v", got)
@@ -159,7 +161,7 @@ func TestManagedExecution(t *testing.T) {
 	executionRequest(t, f, http.MethodDelete, nil, http.StatusNoContent)
 }
 
-func exchangePacket(t *testing.T, serverKey, serverPort string, whileConnected func()) {
+func exchangePacket(t *testing.T, serverKey, serverPort string, whileConnected func(string)) {
 	t.Helper()
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	defer cancel()
@@ -215,7 +217,7 @@ func exchangePacket(t *testing.T, serverKey, serverPort string, whileConnected f
 	inClient(config, "wg", "setconf", "wg-client", "/dev/stdin")
 	inClient("", "ip", "link", "set", "dev", "wg-client", "up")
 	inClient("", "ping", "-n", "-c", "1", "-W", "2", "192.0.2.1")
-	whileConnected()
+	whileConnected(clientPub)
 	inClient("", "ping", "-n", "-c", "1", "-W", "2", "192.0.2.1")
 }
 
