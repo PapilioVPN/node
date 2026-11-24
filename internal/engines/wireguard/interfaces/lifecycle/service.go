@@ -42,12 +42,18 @@ type PeerTrafficObserver interface {
 	ForgetLinkTraffic()
 }
 
+type PeerUsageCapture interface {
+	WithPeerRemoval(context.Context, [][32]byte, func() error) error
+	WithLinkRemoval(context.Context, func() error) error
+}
+
 type Service struct {
 	name      string
 	control   Control
 	peers     PeerControl
 	store     CheckpointStore
 	traffic   PeerTrafficObserver
+	usage     PeerUsageCapture
 	mu        sync.Mutex
 	owned     Link
 	peerState *peers.State // Protected by mu and bound to the owned execution.
@@ -57,6 +63,12 @@ type Service struct {
 // WithPeerTraffic binds observation invalidation during module composition.
 func (service *Service) WithPeerTraffic(observer PeerTrafficObserver) *Service {
 	service.traffic = observer
+	return service
+}
+
+// WithPeerUsage binds pre-removal accounting during module composition.
+func (service *Service) WithPeerUsage(capture PeerUsageCapture) *Service {
+	service.usage = capture
 	return service
 }
 
@@ -198,7 +210,13 @@ func (service *Service) Close(ctx context.Context) error {
 
 func (service *Service) remove(ctx context.Context) error {
 	service.peerState = nil
-	err := service.control.Remove(ctx, service.owned)
+	remove := func() error { return service.control.Remove(ctx, service.owned) }
+	var err error
+	if service.usage != nil && service.applied.Load() != nil {
+		err = service.usage.WithLinkRemoval(ctx, remove)
+	} else {
+		err = remove()
+	}
 	if service.traffic != nil {
 		service.traffic.ForgetLinkTraffic()
 	}

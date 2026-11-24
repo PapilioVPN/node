@@ -8,6 +8,7 @@ import (
 	"errors"
 
 	interfacestatus "github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/status"
+	"github.com/PapilioVPN/node/internal/engines/wireguard/stats/accounting"
 	statsv1 "github.com/PapilioVPN/node/internal/engines/wireguard/stats/bridge/grpc/proto/v1"
 	"github.com/PapilioVPN/node/internal/engines/wireguard/stats/traffic"
 	"google.golang.org/grpc"
@@ -18,10 +19,11 @@ import (
 type handlers struct {
 	statsv1.UnimplementedWireGuardStatsServiceServer
 	service *traffic.Service
+	usage   *accounting.Service
 }
 
-func Register(server grpc.ServiceRegistrar, service *traffic.Service) {
-	statsv1.RegisterWireGuardStatsServiceServer(server, &handlers{service: service})
+func Register(server grpc.ServiceRegistrar, service *traffic.Service, usage *accounting.Service) {
+	statsv1.RegisterWireGuardStatsServiceServer(server, &handlers{service: service, usage: usage})
 }
 
 func (h *handlers) GetInterfaceTraffic(ctx context.Context, req *statsv1.WireGuardInterfaceTrafficRequest) (*statsv1.WireGuardInterfaceTraffic, error) {

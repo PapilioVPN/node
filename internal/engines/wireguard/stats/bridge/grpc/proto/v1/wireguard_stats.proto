@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package papiliovpn.node.v1;
 
+import "google/protobuf/timestamp.proto";
+
 option go_package = "github.com/PapilioVPN/node/internal/engines/wireguard/stats/bridge/grpc/proto/v1;statsv1";
 
 service WireGuardStatsService {
@@ -10,6 +12,10 @@ service WireGuardStatsService {
   rpc ResetPeerTraffic(WireGuardPeerTrafficRequest) returns (WireGuardPeerTraffic);
   rpc GetInterfaceUsage(WireGuardInterfaceTrafficRequest) returns (WireGuardInterfaceUsage);
   rpc ResetInterfaceUsage(WireGuardInterfaceTrafficRequest) returns (WireGuardInterfaceUsage);
+  rpc GetPeerUsage(WireGuardPeerTrafficRequest) returns (WireGuardPeerUsage);
+  rpc ResetPeerUsage(WireGuardPeerTrafficRequest) returns (WireGuardPeerUsage);
+  rpc ListPeerUsage(WireGuardInterfaceTrafficRequest) returns (WireGuardPeerUsageList);
+  rpc ResetAllPeerUsage(WireGuardInterfaceTrafficRequest) returns (WireGuardPeerUsageList);
 }
 
 message WireGuardInterfaceTrafficRequest {
@@ -39,4 +45,24 @@ message WireGuardInterfaceUsage {
   // ResetInterfaceUsage returns the preceding period.
   uint64 rx_bytes = 1;
   uint64 tx_bytes = 2;
+}
+
+message WireGuardUsageRow {
+  bytes public_key = 1;
+  uint64 rx_bytes = 2;
+  uint64 tx_bytes = 3;
+}
+
+message WireGuardPeerUsage {
+  // Omitted when the peer has no unreported usage.
+  WireGuardUsageRow peer = 1;
+  google.protobuf.Timestamp sampled_at = 2;
+  bool incomplete = 3;
+}
+
+message WireGuardPeerUsageList {
+  // Unreported usage keyed by public key, including retired peers.
+  repeated WireGuardUsageRow peers = 1;
+  google.protobuf.Timestamp sampled_at = 2;
+  bool incomplete = 3;
 }

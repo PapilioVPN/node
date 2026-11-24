@@ -88,6 +88,14 @@ func TestManagedExecution(t *testing.T) {
 	if peers := readPeerStatsHTTP(t, f).Peers; peers == nil || len(peers) != 0 {
 		t.Fatalf("new interface statistics = %v, want an empty list", peers)
 	}
+	replyUsage, err := f.http.Get(f.address + interfaceURL + "/peers/usage")
+	if err != nil {
+		t.Fatal(err)
+	}
+	replyUsage.Body.Close()
+	if replyUsage.StatusCode != http.StatusOK {
+		t.Fatalf("sampled group usage returned %s", replyUsage.Status)
+	}
 	assertInterfaceTraffic(t, f, stats, false)
 	assertMissingPeerStats(t, client, "wg-other")
 	assertValidation(t, f, client, append(bytes.Clone(source), '\n'), bytes.Replace(source, []byte(`"mtu":1380`), []byte(`"mtu":1`), 1), want)
@@ -95,8 +103,11 @@ func TestManagedExecution(t *testing.T) {
 	if err != nil || strings.TrimSpace(string(configured)) == "0" {
 		t.Fatalf("expected a bound WireGuard port, got %q (%v)", configured, err)
 	}
+	var sampledKey []byte
+	var consumed trafficCounters
 	exchangePacket(t, base64.StdEncoding.EncodeToString(privateKey.PublicKey().Bytes()), strings.TrimSpace(string(configured)), func(peer string, ping func()) {
 		assertActivePeerStats(t, f, client, peer)
+		sampledKey, consumed = assertSampledPeerRead(t, f, stats, peer)
 		assertPeerTraffic(t, f, stats, peer, ping)
 		assertInterfaceTraffic(t, f, stats, true)
 		assertInterfaceUsage(t, f, stats, ping)
@@ -139,7 +150,11 @@ func TestManagedExecution(t *testing.T) {
 			t.Fatalf("rejected port change changed the active config: %+v", got)
 		}
 	})
+	beforeRemoval := readPeerStatsHTTP(t, f).Peers[0]
 	assertBulkPeerSync(t, f, client)
+	assertSampledPeerRemoval(t, f, stats, sampledKey, trafficCounters{
+		RXBytes: beforeRemoval.RXBytes - consumed.RXBytes, TXBytes: beforeRemoval.TXBytes - consumed.TXBytes,
+	})
 	executionRequest(t, f, http.MethodPut, append(bytes.Clone(source), '\n'), http.StatusConflict)
 	if got := f.readHTTP(t); got.AppliedSHA256 != want {
 		t.Fatalf("rejected change replaced applied hash: %+v", got)
@@ -176,7 +191,7 @@ func TestManagedExecution(t *testing.T) {
 
 func exchangePacket(t *testing.T, serverKey, serverPort string, whileConnected func(string, func())) {
 	t.Helper()
-	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 20*time.Second)
 	defer cancel()
 	child := exec.CommandContext(ctx, "unshare", "--net", "sh", "-c", "echo ready; read -r hold")
 	stdout, err := child.StdoutPipe()

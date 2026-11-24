@@ -155,7 +155,15 @@ func (service *Service) checkPeerLink(ctx context.Context, link Link) error {
 }
 
 func (service *Service) writePeer(ctx context.Context, link Link, change peers.Change) error {
-	err := service.peers.WritePeer(ctx, link, change)
+	var err error
+	if change.Remove && service.usage != nil {
+		keys := [1][32]byte{change.Peer.PublicKey}
+		err = service.usage.WithPeerRemoval(ctx, keys[:], func() error {
+			return service.peers.WritePeer(ctx, link, change)
+		})
+	} else {
+		err = service.peers.WritePeer(ctx, link, change)
+	}
 	if change.Remove && service.traffic != nil {
 		service.traffic.ForgetPeerTraffic(change.Peer.PublicKey)
 	}
@@ -173,7 +181,18 @@ func (service *Service) writePeerChanges(ctx context.Context, link Link, updates
 	if len(updates)+len(removals) == 0 {
 		return nil
 	}
-	err := service.peers.WritePeerChanges(ctx, link, updates, removals)
+	var err error
+	if len(removals) != 0 && service.usage != nil {
+		keys := make([][32]byte, len(removals))
+		for i, removal := range removals {
+			keys[i] = removal.Peer.PublicKey
+		}
+		err = service.usage.WithPeerRemoval(ctx, keys, func() error {
+			return service.peers.WritePeerChanges(ctx, link, updates, removals)
+		})
+	} else {
+		err = service.peers.WritePeerChanges(ctx, link, updates, removals)
+	}
 	if service.traffic != nil {
 		for _, removal := range removals {
 			service.traffic.ForgetPeerTraffic(removal.Peer.PublicKey)

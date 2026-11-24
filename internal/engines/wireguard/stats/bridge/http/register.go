@@ -10,17 +10,22 @@ import (
 	"net/url"
 
 	"github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/status"
+	"github.com/PapilioVPN/node/internal/engines/wireguard/stats/accounting"
 	"github.com/PapilioVPN/node/internal/engines/wireguard/stats/traffic"
 	"github.com/go-chi/chi/v5"
 )
 
-func Register(router chi.Router, service *traffic.Service) {
+func Register(router chi.Router, service *traffic.Service, usage *accounting.Service) {
 	const path = "/v1/wireguard/interfaces/{name}"
 	router.Get(path+"/traffic", linkTraffic(service.GetInterfaceTraffic))
 	router.Get(path+"/usage", linkTraffic(service.GetInterfaceUsage))
 	router.Post(path+"/usage/resets", linkTraffic(service.ResetInterfaceUsage))
 	router.Get(path+"/peers/{key}/traffic", peerTraffic(service.GetPeerTraffic))
 	router.Post(path+"/peers/{key}/traffic/resets", peerTraffic(service.ResetPeerTraffic))
+	router.Get(path+"/peers/{key}/usage", peerUsage(usage, false))
+	router.Post(path+"/peers/{key}/usage/resets", peerUsage(usage, true))
+	router.Get(path+"/peers/usage", allPeerUsage(usage, false))
+	router.Post(path+"/peers/usage/resets", allPeerUsage(usage, true))
 }
 
 func linkTraffic(read func(context.Context, string) (traffic.Counters, error)) http.HandlerFunc {
@@ -42,19 +47,26 @@ func interfaceName(r *http.Request) string {
 func peerTraffic(read func(context.Context, string, []byte) (traffic.Counters, error)) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
-		encoded := chi.URLParam(r, "key")
-		if len(encoded) != base64.RawURLEncoding.EncodedLen(32) {
-			writeError(w, traffic.ErrInvalidPeerKey)
-			return
-		}
-		key, err := base64.RawURLEncoding.Strict().DecodeString(encoded)
+		key, err := peerKey(r)
 		if err != nil {
-			writeError(w, traffic.ErrInvalidPeerKey)
+			writeError(w, err)
 			return
 		}
 		counters, err := read(r.Context(), interfaceName(r), key)
 		writeCounters(w, counters, err)
 	}
+}
+
+func peerKey(r *http.Request) ([]byte, error) {
+	encoded := chi.URLParam(r, "key")
+	if len(encoded) != base64.RawURLEncoding.EncodedLen(32) {
+		return nil, traffic.ErrInvalidPeerKey
+	}
+	key, err := base64.RawURLEncoding.Strict().DecodeString(encoded)
+	if err != nil {
+		return nil, traffic.ErrInvalidPeerKey
+	}
+	return key, nil
 }
 
 func writeCounters(w http.ResponseWriter, counters traffic.Counters, err error) {
