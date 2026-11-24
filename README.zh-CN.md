@@ -63,14 +63,14 @@ docker run --rm --network=host --read-only --cap-drop ALL \
 | 主机 CPU | 通过 HTTP 和 gRPC 读取 CPU 总体使用率。 |
 | 主机存储 | 查看配置路径所在文件系统的容量和只读状态。 |
 | 主机概览 | 在一次响应中获取运行时间、CPU、内存和存储信息。 |
-| Xray 实例 | 通过 HTTP 和 gRPC 启动、查询状态和停止一个已配置的实例，并返回结构化启动错误。 |
+| Xray 实例 | 通过 HTTP 和 gRPC 启动、停止以及查询状态和版本。启动支持初始账户、保活、在线应用兼容配置变更，以及重启恢复。 |
 | Xray 配置验证 | 通过 HTTP 和 gRPC 在重启实例之前验证已配置的 JSON。 |
 | Xray 运行统计 | 通过 HTTP 和 gRPC 查询活动实例的运行时间、内存分配、goroutine 和垃圾回收计数。 |
 | Xray 流量计数器 | 通过 HTTP 和 gRPC 读取单个或全部账户、入站标签或出站标签的上行与下行字节数。 |
 | Xray 流量清零 | 显式启用后，通过 HTTP 和 gRPC 清零单个计数器、指定名称的两个方向或有数量上限的范围。 |
 | Xray 在线账户和 IP | 通过 HTTP 和 gRPC 查询在线账户、不同来源 IP 数量及其最近出现时间。 |
 | Xray 路由 | 通过 HTTP 和 gRPC 读取与修改规则、测试路由，并查询或覆盖负载均衡目标。 |
-| Xray VLESS 账户 | 通过 HTTP 和 gRPC 添加、移除、统计 VLESS 账户，并按单个账户、完整列表或分块增量进行同步。 |
+| Xray 账户 | 通过 HTTP 和 gRPC 在选定入站上按账户、完整列表或分块增量同步，并在受管重启时恢复已确认的账户。支持 VLESS、VMess、Trojan、Shadowsocks、兼容的 Shadowsocks 2022 服务器、Hysteria、MASQUE 和 Xray 内的 WireGuard。VLESS 还支持直接添加、删除和计数。 |
 | Xray 日志流 | 通过 HTTP 和 gRPC 持续接收运行实例的 stdout 和 stderr。 |
 | Xray 出站健康状态 | 通过 HTTP 和 gRPC 读取全部 Observatory 观测结果，或按出站标签查询。 |
 

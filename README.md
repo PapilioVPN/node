@@ -60,14 +60,14 @@ docker run --rm --network=host --read-only --cap-drop ALL \
 | Host CPU | Read aggregate CPU utilization over HTTP and gRPC. |
 | Host storage | Check space and read-only status for the filesystem backing a configured path. |
 | Host system stats | Fetch uptime, CPU, memory and storage in one response. |
-| Xray instance | Start, read lifecycle state, and stop one configured instance over HTTP and gRPC, with typed startup failures. |
+| Xray instance | Start, stop, and read state and versions over HTTP and gRPC. Start supports initial accounts, keep-alive, compatible live configuration changes, and restart recovery. |
 | Xray config validation | Check the configured Xray JSON over HTTP and gRPC before restarting the instance. |
 | Xray runtime statistics | Read the active instance’s uptime, memory allocation, goroutines, and garbage collection counters over HTTP and gRPC. |
 | Xray traffic resets | Read and clear one counter, both directions of a named account or tag, or a bounded scope over HTTP and gRPC when explicitly enabled. |
 | Xray traffic counters | Read upload and download bytes for one or all accounts, inbound tags, or outbound tags over HTTP and gRPC. |
 | Xray online accounts and IPs | List online accounts, count distinct source IPs, or read their last-seen times over HTTP and gRPC. |
 | Xray routing | Read active rules, test a route, edit rules and inspect or override a balancer over HTTP and gRPC. |
-| Xray VLESS accounts | Add, remove, count and synchronize VLESS accounts by name, full list or chunked delta over HTTP and gRPC. |
+| Xray accounts | Synchronize named accounts, full lists, or chunked deltas across selected inbounds over HTTP and gRPC, with confirmed membership restored on managed restart. Supports VLESS, VMess, Trojan, Shadowsocks, supported Shadowsocks 2022 servers, Hysteria, MASQUE, and Xray WireGuard. VLESS also supports direct add, remove, and count. |
 | Xray log stream | Follow live stdout and stderr for the active Xray execution over HTTP and gRPC. |
 | Xray outbound health | Read all recorded Observatory samples or select an outbound by tag over HTTP and gRPC. |
 
