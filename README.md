@@ -60,7 +60,7 @@ docker run --rm --network=host --read-only --cap-drop ALL \
 | Host CPU | Read aggregate CPU utilization over HTTP and gRPC. |
 | Host storage | Check space and read-only status for the filesystem backing a configured path. |
 | Host system stats | Fetch uptime, CPU, memory and storage in one response. |
-| Xray instance | Start, stop, and read state and versions over HTTP and gRPC. Start supports initial accounts, keep-alive, compatible live configuration changes, and restart recovery. |
+| Xray instance | Start, stop, and read state and versions over HTTP and gRPC. Start accepts typed initial accounts over both transports and supports keep-alive, compatible live configuration changes, and restart recovery. |
 | Xray config validation | Check the configured Xray JSON over HTTP and gRPC before restarting the instance. |
 | Xray runtime statistics | Read the active instance’s uptime, memory allocation, goroutines, and garbage collection counters over HTTP and gRPC. |
 | Xray traffic resets | Read and clear one counter, both directions of a named account or tag, or a bounded scope over HTTP and gRPC when explicitly enabled. |
