@@ -62,10 +62,11 @@ const (
 )
 
 type Status struct {
-	ID             string
-	State          State
-	XrayVersion    string
-	NodeVersion    string
-	StartAction    StartAction
-	LeaseExpiresAt time.Time
+	ID                  string
+	State               State
+	XrayVersion         string
+	NodeVersion         string
+	StartAction         StartAction
+	LeaseExpiresAt      time.Time
+	AppliedConfigSHA256 string
 }

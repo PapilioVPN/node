@@ -92,6 +92,9 @@ func encodeStatus(result lifecycle.Status) *instancesv1.XrayInstanceStatus {
 	if !result.LeaseExpiresAt.IsZero() {
 		observed.KeepAliveExpiresAt = timestamppb.New(result.LeaseExpiresAt)
 	}
+	if result.AppliedConfigSHA256 != "" {
+		observed.AppliedConfigSha256 = new(result.AppliedConfigSHA256)
+	}
 	return observed
 }
 

@@ -41,6 +41,8 @@ HTTP `GET /v1/host/stats` 和 gRPC `HostService.GetSystemStats` 返回 `uptime_s
 
 使用 `GET /v1/xray/instances/{id}` 读取状态。使用空请求体的 `PUT` 和 `DELETE /v1/xray/instances/{id}/execution` 启动和停止实例。[gRPC 接口](../internal/engines/xray/instances/bridge/grpc/proto/v1/instances.proto)提供 `XrayInstancesService.Start`、`GetStatus` 和 `Stop`。启动会等待 Xray 原生 API 响应，停止会等待进程退出。
 
+`ready` 状态包括 `applied_config_sha256`，其值为已确认 JSON 原始字节的 SHA-256 小写十六进制摘要。计算时使用 gRPC 的 `config_json` 字节、HTTP 中 `config` 的原始值，或 Start 使用的配置文件字节。GetStatus 和 Start 返回就绪实例记录的值，Start 错误附带的状态也遵循此规则。心跳保留该值。没有已确认的就绪实例时省略该字段。独立的运行时变更有各自的观测接口。
+
 启动失败时，HTTP 返回 `503` 和 JSON `reason` 字段，gRPC 返回 `UNAVAILABLE` 和 `XrayStartFailure` 详情。原因包括 `launch_failed`、`exited_before_ready`、`readiness_timeout` 和 `readiness_failed`。如果 Xray 在就绪前退出并返回退出码，响应会包含 `exit_code`。
 
 将原始 JSON 对象作为请求体发送到 `POST /v1/xray/instances/{id}/config-validations`，或将其字节传入 `XrayConfigsService.ValidateConfig` 的可选字段 `config_json`。HTTP 请求无请求体或 gRPC 请求省略该字段时，验证已配置的文件。gRPC 显式空值与仅含空白的请求体均无效。拟提交 JSON 的上限为 1 MiB。Node 同时只执行一次验证，时限为四秒。验证拟提交配置不会改变运行中的实例，也不会打开拟提交配置的日志目标。无效配置返回 `valid: false`、类型化问题代码及可用的行列信息。执行失败或超时返回 API 错误。[gRPC 接口](../internal/engines/xray/configs/bridge/grpc/proto/v1/configs.proto)

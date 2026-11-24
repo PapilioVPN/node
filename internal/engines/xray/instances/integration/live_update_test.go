@@ -92,7 +92,8 @@ func TestInvalidCandidateKeepsReadyExecution(t *testing.T) {
 }
 
 func TestRejectedLiveStepReplacesPartiallyUpdatedExecution(t *testing.T) {
-	f := newFixture(t, `{"outbounds":[{"tag":"direct","protocol":"freedom"}],"routing":{"rules":[]}}`)
+	const source = `{"outbounds":[{"tag":"direct","protocol":"freedom"}],"routing":{"rules":[]}}`
+	f := newFixture(t, source)
 	f.startHTTP("", "started")
 	previous := f.childPID()
 
@@ -115,6 +116,7 @@ func TestRejectedLiveStepReplacesPartiallyUpdatedExecution(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	f.expectAppliedConfig("ready", configDigest(source))
 	f.startHTTP(`{"config":{"outbounds":[{"tag":"direct","protocol":"freedom"},
 		{"tag":"new","protocol":"blackhole"},{"tag":"collision","protocol":"blackhole"}],
 		"routing":{"rules":[{"ruleTag":"candidate","network":"tcp","outboundTag":"new"}]}}}`, "restarted_after_live_failure")
@@ -141,7 +143,8 @@ func TestRestartFailureReportsObservedState(t *testing.T) {
 	if failure.GetStatus().GetStartAction() != instancesv1.XrayStartAction_XRAY_START_ACTION_RESTARTED {
 		t.Fatalf("restart failure = %v", failure)
 	}
-	f.expectHTTP(http.MethodGet, "", "failed")
+	expectGRPCConfigDigest(t, failure.GetStatus(), "")
+	f.expectAppliedConfig("failed", "")
 	f.expectClean()
 }
 

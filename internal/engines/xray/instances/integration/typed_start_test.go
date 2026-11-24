@@ -103,6 +103,7 @@ func TestTypedAccountsThroughGRPCStart(t *testing.T) {
 		t.Fatal(restartCtx.Err())
 	}
 	f.expectGRPC(f.client.GetStatus, instancesv1.XrayInstanceState_XRAY_INSTANCE_STATE_STARTING)
+	f.expectAppliedConfig("starting", "")
 	if _, err := service.NativeConnection("primary"); !errors.Is(err, lifecycle.ErrNotReady) {
 		t.Fatalf("candidate connection before replay = %v", err)
 	}
@@ -112,6 +113,7 @@ func TestTypedAccountsThroughGRPCStart(t *testing.T) {
 		restarted.GetStartAction() != instancesv1.XrayStartAction_XRAY_START_ACTION_RESTARTED {
 		t.Fatalf("restart = (%v, %v)", restarted, restartErr)
 	}
+	expectGRPCConfigDigest(t, restarted, configDigest(string(req.ConfigJson)))
 	if f.childPID() == pid {
 		t.Fatal("restart retained the original Xray process")
 	}

@@ -11,12 +11,13 @@ import (
 )
 
 type statusResponse struct {
-	ID             string                `json:"id"`
-	State          lifecycle.State       `json:"state"`
-	XrayVersion    string                `json:"xray_version,omitempty"`
-	NodeVersion    string                `json:"node_version"`
-	StartAction    lifecycle.StartAction `json:"start_action,omitempty"`
-	LeaseExpiresAt *time.Time            `json:"keep_alive_expires_at,omitempty"`
+	ID                  string                `json:"id"`
+	State               lifecycle.State       `json:"state"`
+	XrayVersion         string                `json:"xray_version,omitempty"`
+	NodeVersion         string                `json:"node_version"`
+	StartAction         lifecycle.StartAction `json:"start_action,omitempty"`
+	LeaseExpiresAt      *time.Time            `json:"keep_alive_expires_at,omitempty"`
+	AppliedConfigSHA256 string                `json:"applied_config_sha256,omitempty"`
 }
 
 type failureResponse struct {
@@ -28,7 +29,7 @@ type failureResponse struct {
 
 func writeResult(w http.ResponseWriter, result lifecycle.Status, err error) {
 	response := statusResponse{ID: result.ID, State: result.State, XrayVersion: result.XrayVersion,
-		NodeVersion: result.NodeVersion, StartAction: result.StartAction}
+		NodeVersion: result.NodeVersion, StartAction: result.StartAction, AppliedConfigSHA256: result.AppliedConfigSHA256}
 	if !result.LeaseExpiresAt.IsZero() {
 		response.LeaseExpiresAt = new(result.LeaseExpiresAt.UTC())
 	}

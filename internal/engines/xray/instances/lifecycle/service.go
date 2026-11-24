@@ -92,6 +92,7 @@ func (service *Service) statusLocked() Status {
 		status.XrayVersion = service.run.child.version()
 		if service.state == Ready {
 			status.LeaseExpiresAt = service.run.expiresAt
+			status.AppliedConfigSHA256 = service.run.desired.sourceSHA256
 		}
 	}
 	return status
@@ -135,7 +136,7 @@ func (service *Service) launchReady(ctx context.Context, desired desiredConfig, 
 		return &StartError{Reason: LaunchFailed, cause: err}
 	}
 
-	run := &execution{child: process, logs: logs, done: make(chan struct{}), finalState: Failed, desired: desired,
+	run := &execution{child: process, logs: logs, done: make(chan struct{}), finalState: Failed,
 		routingWrites: semaphore.NewWeighted(1)}
 	service.mu.Lock()
 	service.run = run
@@ -157,6 +158,9 @@ func (service *Service) launchReady(ctx context.Context, desired desiredConfig, 
 	} else if probeErr == nil && len(users) > 0 {
 		seedErr = ErrUnavailable
 	}
+	if probeErr == nil && seedErr == nil && startCtx.Err() == nil {
+		desired = desired.confirmed()
+	}
 	service.mu.Lock()
 	startErr := startCtx.Err()
 	if probeErr == nil && seedErr == nil && startErr == nil && !run.exited {
@@ -164,6 +168,7 @@ func (service *Service) launchReady(ctx context.Context, desired desiredConfig, 
 			commitAccounts()
 		}
 		run.conn = conn
+		run.desired = desired
 		service.state = Ready
 		logs.Activate()
 		service.refreshLeaseLocked(run, keepAlive)

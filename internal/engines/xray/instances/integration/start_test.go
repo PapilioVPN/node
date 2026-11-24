@@ -17,8 +17,10 @@ import (
 )
 
 type executionStatus struct {
-	State  string `json:"state"`
-	Action string `json:"start_action"`
+	ID                  string          `json:"id"`
+	State               string          `json:"state"`
+	Action              string          `json:"start_action"`
+	AppliedConfigSHA256 json.RawMessage `json:"applied_config_sha256"`
 }
 
 func TestStartConfigurationAndHeartbeat(t *testing.T) {
@@ -31,7 +33,7 @@ func TestStartConfigurationAndHeartbeat(t *testing.T) {
 	f.expectClean()
 }
 
-func (f fixture) startHTTP(body, wantAction string) {
+func (f fixture) startHTTP(body, wantAction string) executionStatus {
 	f.t.Helper()
 	req, err := http.NewRequestWithContext(f.ctx, http.MethodPut, f.http.URL+"/v1/xray/instances/primary/execution", strings.NewReader(body))
 	if err != nil {
@@ -50,6 +52,7 @@ func (f fixture) startHTTP(body, wantAction string) {
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil || result.State != "ready" || result.Action != wantAction {
 		f.t.Fatalf("start HTTP = (%+v, %v), want ready %s", result, err, wantAction)
 	}
+	return result
 }
 
 func TestKeepAliveRefreshAndExpiry(t *testing.T) {

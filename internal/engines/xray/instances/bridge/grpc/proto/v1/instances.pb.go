@@ -414,8 +414,11 @@ type XrayInstanceStatus struct {
 	// Populated by Start. On error, this is the action attempted.
 	StartAction        XrayStartAction        `protobuf:"varint,5,opt,name=start_action,json=startAction,proto3,enum=papiliovpn.node.v1.XrayStartAction" json:"start_action,omitempty"`
 	KeepAliveExpiresAt *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=keep_alive_expires_at,json=keepAliveExpiresAt,proto3" json:"keep_alive_expires_at,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+	// Lowercase hex SHA-256 of the accepted JSON source bytes for a ready execution.
+	// Independent runtime mutations do not change this value.
+	AppliedConfigSha256 *string `protobuf:"bytes,7,opt,name=applied_config_sha256,json=appliedConfigSha256,proto3,oneof" json:"applied_config_sha256,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *XrayInstanceStatus) Reset() {
@@ -488,6 +491,13 @@ func (x *XrayInstanceStatus) GetKeepAliveExpiresAt() *timestamppb.Timestamp {
 		return x.KeepAliveExpiresAt
 	}
 	return nil
+}
+
+func (x *XrayInstanceStatus) GetAppliedConfigSha256() string {
+	if x != nil && x.AppliedConfigSha256 != nil {
+		return *x.AppliedConfigSha256
+	}
+	return ""
 }
 
 type XrayStartFailure struct {
@@ -574,14 +584,16 @@ const file_proto_v1_instances_proto_rawDesc = "" +
 	"\x04uuid\x18\x02 \x01(\tR\x04uuid\x12L\n" +
 	"\n" +
 	"credential\x18\x03 \x01(\v2,.papiliovpn.node.xray.accounts.v1.CredentialR\n" +
-	"credential\"\xbe\x02\n" +
+	"credential\"\x91\x03\n" +
 	"\x12XrayInstanceStatus\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12;\n" +
 	"\x05state\x18\x02 \x01(\x0e2%.papiliovpn.node.v1.XrayInstanceStateR\x05state\x12!\n" +
 	"\fxray_version\x18\x03 \x01(\tR\vxrayVersion\x12!\n" +
 	"\fnode_version\x18\x04 \x01(\tR\vnodeVersion\x12F\n" +
 	"\fstart_action\x18\x05 \x01(\x0e2#.papiliovpn.node.v1.XrayStartActionR\vstartAction\x12M\n" +
-	"\x15keep_alive_expires_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\x12keepAliveExpiresAt\"\xc6\x01\n" +
+	"\x15keep_alive_expires_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\x12keepAliveExpiresAt\x127\n" +
+	"\x15applied_config_sha256\x18\a \x01(\tH\x00R\x13appliedConfigSha256\x88\x01\x01B\x18\n" +
+	"\x16_applied_config_sha256\"\xc6\x01\n" +
 	"\x10XrayStartFailure\x12B\n" +
 	"\x06reason\x18\x01 \x01(\x0e2*.papiliovpn.node.v1.XrayStartFailureReasonR\x06reason\x12 \n" +
 	"\texit_code\x18\x02 \x01(\x05H\x00R\bexitCode\x88\x01\x01\x12>\n" +
@@ -673,6 +685,7 @@ func file_proto_v1_instances_proto_init() {
 		return
 	}
 	file_proto_v1_instances_proto_msgTypes[0].OneofWrappers = []any{}
+	file_proto_v1_instances_proto_msgTypes[3].OneofWrappers = []any{}
 	file_proto_v1_instances_proto_msgTypes[4].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

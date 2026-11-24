@@ -51,7 +51,8 @@ func TestInstanceLifecycle(t *testing.T) {
 }
 
 func TestInstanceVersions(t *testing.T) {
-	f := newFixture(t, `{"log":{"loglevel":"none"}}`)
+	const source = `{"log":{"loglevel":"none"}}` + "\n"
+	f := newFixture(t, source)
 	output, err := exec.CommandContext(f.ctx, os.Getenv("NODE_TEST_XRAY"), "version").Output()
 	if err != nil {
 		t.Fatal(err)
@@ -61,7 +62,8 @@ func TestInstanceVersions(t *testing.T) {
 		t.Fatalf("unexpected Xray version output %q", output)
 	}
 	wantXray := fields[1]
-	f.expectHTTP(http.MethodPut, "/execution", "ready")
+	started := f.expectHTTP(http.MethodPut, "/execution", "ready")
+	expectHTTPConfigDigest(t, started, configDigest(source))
 
 	result, err := f.client.GetStatus(f.ctx, &instancesv1.XrayInstanceRequest{Id: "primary"})
 	if err != nil {
@@ -70,6 +72,7 @@ func TestInstanceVersions(t *testing.T) {
 	if result.GetXrayVersion() != wantXray || result.GetNodeVersion() != buildinfo.Version {
 		t.Fatalf("gRPC versions = %q and %q, want %q and %q", result.GetXrayVersion(), result.GetNodeVersion(), wantXray, buildinfo.Version)
 	}
+	expectGRPCConfigDigest(t, result, configDigest(source))
 
 	response, err := f.http.Client().Get(f.http.URL + "/v1/xray/instances/primary")
 	if err != nil {
@@ -251,7 +254,7 @@ func (f fixture) expectHTTPStartFailure(reason string, exitCode bool) {
 	}
 }
 
-func (f fixture) expectHTTP(method, suffix, want string) {
+func (f fixture) expectHTTP(method, suffix, want string) executionStatus {
 	f.t.Helper()
 	req, err := http.NewRequestWithContext(f.ctx, method, f.http.URL+"/v1/xray/instances/primary"+suffix, nil)
 	if err != nil {
@@ -266,10 +269,11 @@ func (f fixture) expectHTTP(method, suffix, want string) {
 		body, _ := io.ReadAll(res.Body)
 		f.t.Fatalf("%s %s = %s: %s", method, suffix, res.Status, body)
 	}
-	var result struct{ ID, State string }
+	var result executionStatus
 	if err := json.NewDecoder(res.Body).Decode(&result); err != nil || result.ID != "primary" || result.State != want {
 		f.t.Fatalf("%s %s = (%+v, %v), want primary %s", method, suffix, result, err, want)
 	}
+	return result
 }
 
 func (f fixture) expectGRPC(call func(context.Context, *instancesv1.XrayInstanceRequest, ...grpc.CallOption) (*instancesv1.XrayInstanceStatus, error), want instancesv1.XrayInstanceState) {

@@ -59,6 +59,9 @@ message XrayInstanceStatus {
   // Populated by Start. On error, this is the action attempted.
   XrayStartAction start_action = 5;
   google.protobuf.Timestamp keep_alive_expires_at = 6;
+  // Lowercase hex SHA-256 of the accepted JSON source bytes for a ready execution.
+  // Independent runtime mutations do not change this value.
+  optional string applied_config_sha256 = 7;
 }
 
 enum XrayStartAction {

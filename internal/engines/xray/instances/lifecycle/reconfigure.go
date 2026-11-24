@@ -92,7 +92,7 @@ func (service *Service) tryLiveUpdate(ctx context.Context, run *execution, desir
 	}
 	attempted, err := change.Apply(context.WithValue(changeCtx, configurationWriteKey{}, run), run.conn)
 	if err == nil {
-		if service.refreshRunning(run, desired.owned(), keepAlive) {
+		if service.refreshRunning(run, desired.owned().confirmed(), keepAlive) {
 			return LiveUpdated, nil
 		}
 		return Recovered, nil

@@ -3,6 +3,8 @@ package lifecycle
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"slices"
 	"time"
@@ -32,8 +34,9 @@ type InboundUsers = membership.InboundSnapshot
 type AccountInitializer = func(context.Context, string, *grpc.ClientConn, []InboundUsers, []string) (commit func(), err error)
 
 type desiredConfig struct {
-	source   []byte
-	excluded []string
+	source       []byte
+	excluded     []string
+	sourceSHA256 string
 }
 
 func (d desiredConfig) equal(other desiredConfig) bool {
@@ -166,5 +169,13 @@ func (service *Service) start(ctx context.Context, req StartRequest) (StartActio
 }
 
 func (d desiredConfig) owned() desiredConfig {
-	return desiredConfig{source: bytes.Clone(d.source), excluded: slices.Clone(d.excluded)}
+	d.source = bytes.Clone(d.source)
+	d.excluded = slices.Clone(d.excluded)
+	return d
+}
+
+func (d desiredConfig) confirmed() desiredConfig {
+	sum := sha256.Sum256(d.source)
+	d.sourceSHA256 = hex.EncodeToString(sum[:])
+	return d
 }
