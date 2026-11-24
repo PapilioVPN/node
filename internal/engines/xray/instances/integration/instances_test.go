@@ -154,16 +154,16 @@ type fixture struct {
 	client instancesv1.XrayInstancesServiceClient
 }
 
-func newFixture(t *testing.T, engineConfig string) fixture {
+func newFixture(t *testing.T, engineConfig string, options ...fx.Option) fixture {
 	t.Helper()
 	executable := os.Getenv("NODE_TEST_XRAY")
 	if executable == "" {
 		t.Skip("set NODE_TEST_XRAY to the absolute path of Xray v26.11.9")
 	}
-	return newFixtureWithExecutable(t, engineConfig, executable)
+	return newFixtureWithExecutable(t, engineConfig, executable, options...)
 }
 
-func newFixtureWithExecutable(t *testing.T, engineConfig, executable string) fixture {
+func newFixtureWithExecutable(t *testing.T, engineConfig, executable string, options ...fx.Option) fixture {
 	t.Helper()
 	dir, err := os.MkdirTemp("", "node-native-")
 	if err != nil {
@@ -186,7 +186,7 @@ func newFixtureWithExecutable(t *testing.T, engineConfig, executable string) fix
 	app := fx.New(fx.NopLogger, instances.Module, logs.Module, accounts.Module, routing.Module,
 		fx.Supply(router, rpcServer, settings.Xray{
 			ID: "primary", Executable: executable, ConfigFile: config, RuntimeDirectory: runtimeDir,
-		}))
+		}), fx.Options(options...))
 	ctx, cancel := context.WithTimeout(t.Context(), 12*time.Second)
 	t.Cleanup(cancel)
 	if err := app.Start(ctx); err != nil {

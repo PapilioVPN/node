@@ -7,6 +7,7 @@
 package instancesv1
 
 import (
+	v1 "github.com/PapilioVPN/node/internal/engines/xray/accounts/bridge/grpc/proto/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
@@ -215,7 +216,8 @@ type XrayInstanceRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	Id    string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	// Start-only fields. GetStatus and Stop require only id.
-	ConfigJson      []byte                     `protobuf:"bytes,2,opt,name=config_json,json=configJson,proto3,oneof" json:"config_json,omitempty"`
+	ConfigJson []byte `protobuf:"bytes,2,opt,name=config_json,json=configJson,proto3,oneof" json:"config_json,omitempty"`
+	// Snapshots apply when launching an execution. Empty accounts clear named membership.
 	InitialUsers    []*XrayInitialInboundUsers `protobuf:"bytes,3,rep,name=initial_users,json=initialUsers,proto3" json:"initial_users,omitempty"`
 	ExcludeInbounds []string                   `protobuf:"bytes,4,rep,name=exclude_inbounds,json=excludeInbounds,proto3" json:"exclude_inbounds,omitempty"`
 	// Omission keeps the current interval. Zero disables expiry.
@@ -342,9 +344,11 @@ func (x *XrayInitialInboundUsers) GetAccounts() []*XrayInitialAccount {
 }
 
 type XrayInitialAccount struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Email         string                 `protobuf:"bytes,1,opt,name=email,proto3" json:"email,omitempty"`
-	Uuid          string                 `protobuf:"bytes,2,opt,name=uuid,proto3" json:"uuid,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Email string                 `protobuf:"bytes,1,opt,name=email,proto3" json:"email,omitempty"`
+	// Legacy VLESS credential. Leave empty when supplying credential.
+	Uuid          string         `protobuf:"bytes,2,opt,name=uuid,proto3" json:"uuid,omitempty"`
+	Credential    *v1.Credential `protobuf:"bytes,3,opt,name=credential,proto3" json:"credential,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -391,6 +395,13 @@ func (x *XrayInitialAccount) GetUuid() string {
 		return x.Uuid
 	}
 	return ""
+}
+
+func (x *XrayInitialAccount) GetCredential() *v1.Credential {
+	if x != nil {
+		return x.Credential
+	}
+	return nil
 }
 
 type XrayInstanceStatus struct {
@@ -544,7 +555,7 @@ var File_proto_v1_instances_proto protoreflect.FileDescriptor
 
 const file_proto_v1_instances_proto_rawDesc = "" +
 	"\n" +
-	"\x18proto/v1/instances.proto\x12\x12papiliovpn.node.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xa2\x02\n" +
+	"\x18proto/v1/instances.proto\x12\x12papiliovpn.node.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1aBinternal/engines/xray/accounts/bridge/grpc/proto/v1/accounts.proto\"\xa2\x02\n" +
 	"\x13XrayInstanceRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12$\n" +
 	"\vconfig_json\x18\x02 \x01(\fH\x00R\n" +
@@ -557,10 +568,13 @@ const file_proto_v1_instances_proto_rawDesc = "" +
 	"\x17XrayInitialInboundUsers\x12\x1f\n" +
 	"\vinbound_tag\x18\x01 \x01(\tR\n" +
 	"inboundTag\x12B\n" +
-	"\baccounts\x18\x02 \x03(\v2&.papiliovpn.node.v1.XrayInitialAccountR\baccounts\">\n" +
+	"\baccounts\x18\x02 \x03(\v2&.papiliovpn.node.v1.XrayInitialAccountR\baccounts\"\x8c\x01\n" +
 	"\x12XrayInitialAccount\x12\x14\n" +
 	"\x05email\x18\x01 \x01(\tR\x05email\x12\x12\n" +
-	"\x04uuid\x18\x02 \x01(\tR\x04uuid\"\xbe\x02\n" +
+	"\x04uuid\x18\x02 \x01(\tR\x04uuid\x12L\n" +
+	"\n" +
+	"credential\x18\x03 \x01(\v2,.papiliovpn.node.xray.accounts.v1.CredentialR\n" +
+	"credential\"\xbe\x02\n" +
 	"\x12XrayInstanceStatus\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12;\n" +
 	"\x05state\x18\x02 \x01(\x0e2%.papiliovpn.node.v1.XrayInstanceStateR\x05state\x12!\n" +
@@ -628,27 +642,29 @@ var file_proto_v1_instances_proto_goTypes = []any{
 	(*XrayInitialAccount)(nil),      // 5: papiliovpn.node.v1.XrayInitialAccount
 	(*XrayInstanceStatus)(nil),      // 6: papiliovpn.node.v1.XrayInstanceStatus
 	(*XrayStartFailure)(nil),        // 7: papiliovpn.node.v1.XrayStartFailure
-	(*timestamppb.Timestamp)(nil),   // 8: google.protobuf.Timestamp
+	(*v1.Credential)(nil),           // 8: papiliovpn.node.xray.accounts.v1.Credential
+	(*timestamppb.Timestamp)(nil),   // 9: google.protobuf.Timestamp
 }
 var file_proto_v1_instances_proto_depIdxs = []int32{
 	4,  // 0: papiliovpn.node.v1.XrayInstanceRequest.initial_users:type_name -> papiliovpn.node.v1.XrayInitialInboundUsers
 	5,  // 1: papiliovpn.node.v1.XrayInitialInboundUsers.accounts:type_name -> papiliovpn.node.v1.XrayInitialAccount
-	0,  // 2: papiliovpn.node.v1.XrayInstanceStatus.state:type_name -> papiliovpn.node.v1.XrayInstanceState
-	1,  // 3: papiliovpn.node.v1.XrayInstanceStatus.start_action:type_name -> papiliovpn.node.v1.XrayStartAction
-	8,  // 4: papiliovpn.node.v1.XrayInstanceStatus.keep_alive_expires_at:type_name -> google.protobuf.Timestamp
-	2,  // 5: papiliovpn.node.v1.XrayStartFailure.reason:type_name -> papiliovpn.node.v1.XrayStartFailureReason
-	6,  // 6: papiliovpn.node.v1.XrayStartFailure.status:type_name -> papiliovpn.node.v1.XrayInstanceStatus
-	3,  // 7: papiliovpn.node.v1.XrayInstancesService.Start:input_type -> papiliovpn.node.v1.XrayInstanceRequest
-	3,  // 8: papiliovpn.node.v1.XrayInstancesService.GetStatus:input_type -> papiliovpn.node.v1.XrayInstanceRequest
-	3,  // 9: papiliovpn.node.v1.XrayInstancesService.Stop:input_type -> papiliovpn.node.v1.XrayInstanceRequest
-	6,  // 10: papiliovpn.node.v1.XrayInstancesService.Start:output_type -> papiliovpn.node.v1.XrayInstanceStatus
-	6,  // 11: papiliovpn.node.v1.XrayInstancesService.GetStatus:output_type -> papiliovpn.node.v1.XrayInstanceStatus
-	6,  // 12: papiliovpn.node.v1.XrayInstancesService.Stop:output_type -> papiliovpn.node.v1.XrayInstanceStatus
-	10, // [10:13] is the sub-list for method output_type
-	7,  // [7:10] is the sub-list for method input_type
-	7,  // [7:7] is the sub-list for extension type_name
-	7,  // [7:7] is the sub-list for extension extendee
-	0,  // [0:7] is the sub-list for field type_name
+	8,  // 2: papiliovpn.node.v1.XrayInitialAccount.credential:type_name -> papiliovpn.node.xray.accounts.v1.Credential
+	0,  // 3: papiliovpn.node.v1.XrayInstanceStatus.state:type_name -> papiliovpn.node.v1.XrayInstanceState
+	1,  // 4: papiliovpn.node.v1.XrayInstanceStatus.start_action:type_name -> papiliovpn.node.v1.XrayStartAction
+	9,  // 5: papiliovpn.node.v1.XrayInstanceStatus.keep_alive_expires_at:type_name -> google.protobuf.Timestamp
+	2,  // 6: papiliovpn.node.v1.XrayStartFailure.reason:type_name -> papiliovpn.node.v1.XrayStartFailureReason
+	6,  // 7: papiliovpn.node.v1.XrayStartFailure.status:type_name -> papiliovpn.node.v1.XrayInstanceStatus
+	3,  // 8: papiliovpn.node.v1.XrayInstancesService.Start:input_type -> papiliovpn.node.v1.XrayInstanceRequest
+	3,  // 9: papiliovpn.node.v1.XrayInstancesService.GetStatus:input_type -> papiliovpn.node.v1.XrayInstanceRequest
+	3,  // 10: papiliovpn.node.v1.XrayInstancesService.Stop:input_type -> papiliovpn.node.v1.XrayInstanceRequest
+	6,  // 11: papiliovpn.node.v1.XrayInstancesService.Start:output_type -> papiliovpn.node.v1.XrayInstanceStatus
+	6,  // 12: papiliovpn.node.v1.XrayInstancesService.GetStatus:output_type -> papiliovpn.node.v1.XrayInstanceStatus
+	6,  // 13: papiliovpn.node.v1.XrayInstancesService.Stop:output_type -> papiliovpn.node.v1.XrayInstanceStatus
+	11, // [11:14] is the sub-list for method output_type
+	8,  // [8:11] is the sub-list for method input_type
+	8,  // [8:8] is the sub-list for extension type_name
+	8,  // [8:8] is the sub-list for extension extendee
+	0,  // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_proto_v1_instances_proto_init() }

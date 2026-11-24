@@ -147,7 +147,8 @@ func sendStreamResult(send func(*accountsv1.SyncResult) error, result membership
 	return send(response)
 }
 
-func credentialInput(input *accountsv1.Credential) (*membership.Credential, error) {
+// DecodeCredential adapts the versioned credential for account membership operations.
+func DecodeCredential(input *accountsv1.Credential) (*membership.Credential, error) {
 	if input == nil {
 		return nil, nil
 	}
@@ -170,12 +171,12 @@ func credentialInput(input *accountsv1.Credential) (*membership.Credential, erro
 func decodeAccount(email string, uuid, flow *string, credential *accountsv1.Credential, assignments []*accountsv1.Assignment) (membership.AccountInput, error) {
 	input := membership.AccountInput{Email: email, UUID: uuid, Flow: flow}
 	var err error
-	input.Credential, err = credentialInput(credential)
+	input.Credential, err = DecodeCredential(credential)
 	if err != nil || len(assignments) > membership.MaxSyncInbounds {
 		return input, membership.ErrInvalid
 	}
 	for _, assignment := range assignments {
-		value, err := credentialInput(assignment.GetCredential())
+		value, err := DecodeCredential(assignment.GetCredential())
 		if err != nil || value == nil {
 			return input, membership.ErrInvalid
 		}

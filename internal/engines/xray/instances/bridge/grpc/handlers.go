@@ -3,6 +3,7 @@ package grpc
 import (
 	"context"
 
+	accountsgrpc "github.com/PapilioVPN/node/internal/engines/xray/accounts/bridge/grpc"
 	"github.com/PapilioVPN/node/internal/engines/xray/accounts/membership"
 	instancesv1 "github.com/PapilioVPN/node/internal/engines/xray/instances/bridge/grpc/proto/v1"
 	"github.com/PapilioVPN/node/internal/engines/xray/instances/lifecycle"
@@ -29,10 +30,22 @@ func (h *handlers) Start(ctx context.Context, req *instancesv1.XrayInstanceReque
 		if total > membership.MaxSyncAccounts {
 			return h.invalidStart(req.GetId())
 		}
-		accounts := make([]membership.AccountInput, 0, len(group.GetAccounts()))
-		for _, account := range group.GetAccounts() {
-			id := account.GetUuid()
-			accounts = append(accounts, membership.AccountInput{Email: account.GetEmail(), UUID: &id})
+		accounts := make([]membership.AccountInput, len(group.GetAccounts()))
+		for i, account := range group.GetAccounts() {
+			input := membership.AccountInput{Email: account.GetEmail()}
+			if credential := account.GetCredential(); credential != nil {
+				if account.GetUuid() != "" {
+					return h.invalidStart(req.GetId())
+				}
+				var err error
+				input.Credential, err = accountsgrpc.DecodeCredential(credential)
+				if err != nil {
+					return h.invalidStart(req.GetId())
+				}
+			} else {
+				input.UUID = new(account.GetUuid())
+			}
+			accounts[i] = input
 		}
 		users = append(users, lifecycle.InboundUsers{InboundTag: group.GetInboundTag(), Accounts: accounts})
 	}
