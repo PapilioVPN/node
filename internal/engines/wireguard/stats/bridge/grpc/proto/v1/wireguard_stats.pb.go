@@ -118,6 +118,112 @@ func (x *WireGuardInterfaceTraffic) GetTxBytes() uint64 {
 	return 0
 }
 
+type WireGuardPeerTrafficRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	PublicKey     []byte                 `protobuf:"bytes,2,opt,name=public_key,json=publicKey,proto3" json:"public_key,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *WireGuardPeerTrafficRequest) Reset() {
+	*x = WireGuardPeerTrafficRequest{}
+	mi := &file_proto_v1_wireguard_stats_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WireGuardPeerTrafficRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WireGuardPeerTrafficRequest) ProtoMessage() {}
+
+func (x *WireGuardPeerTrafficRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_v1_wireguard_stats_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WireGuardPeerTrafficRequest.ProtoReflect.Descriptor instead.
+func (*WireGuardPeerTrafficRequest) Descriptor() ([]byte, []int) {
+	return file_proto_v1_wireguard_stats_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *WireGuardPeerTrafficRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *WireGuardPeerTrafficRequest) GetPublicKey() []byte {
+	if x != nil {
+		return x.PublicKey
+	}
+	return nil
+}
+
+type WireGuardPeerTraffic struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Bytes since the latest logical reset in this Node process, or since the
+	// current peer was created. ResetPeerTraffic returns the preceding period.
+	RxBytes       uint64 `protobuf:"varint,1,opt,name=rx_bytes,json=rxBytes,proto3" json:"rx_bytes,omitempty"`
+	TxBytes       uint64 `protobuf:"varint,2,opt,name=tx_bytes,json=txBytes,proto3" json:"tx_bytes,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *WireGuardPeerTraffic) Reset() {
+	*x = WireGuardPeerTraffic{}
+	mi := &file_proto_v1_wireguard_stats_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WireGuardPeerTraffic) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WireGuardPeerTraffic) ProtoMessage() {}
+
+func (x *WireGuardPeerTraffic) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_v1_wireguard_stats_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WireGuardPeerTraffic.ProtoReflect.Descriptor instead.
+func (*WireGuardPeerTraffic) Descriptor() ([]byte, []int) {
+	return file_proto_v1_wireguard_stats_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *WireGuardPeerTraffic) GetRxBytes() uint64 {
+	if x != nil {
+		return x.RxBytes
+	}
+	return 0
+}
+
+func (x *WireGuardPeerTraffic) GetTxBytes() uint64 {
+	if x != nil {
+		return x.TxBytes
+	}
+	return 0
+}
+
 var File_proto_v1_wireguard_stats_proto protoreflect.FileDescriptor
 
 const file_proto_v1_wireguard_stats_proto_rawDesc = "" +
@@ -127,9 +233,18 @@ const file_proto_v1_wireguard_stats_proto_rawDesc = "" +
 	"\x04name\x18\x01 \x01(\tR\x04name\"Q\n" +
 	"\x19WireGuardInterfaceTraffic\x12\x19\n" +
 	"\brx_bytes\x18\x01 \x01(\x04R\arxBytes\x12\x19\n" +
-	"\btx_bytes\x18\x02 \x01(\x04R\atxBytes2\x93\x01\n" +
+	"\btx_bytes\x18\x02 \x01(\x04R\atxBytes\"P\n" +
+	"\x1bWireGuardPeerTrafficRequest\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1d\n" +
+	"\n" +
+	"public_key\x18\x02 \x01(\fR\tpublicKey\"L\n" +
+	"\x14WireGuardPeerTraffic\x12\x19\n" +
+	"\brx_bytes\x18\x01 \x01(\x04R\arxBytes\x12\x19\n" +
+	"\btx_bytes\x18\x02 \x01(\x04R\atxBytes2\xef\x02\n" +
 	"\x15WireGuardStatsService\x12z\n" +
-	"\x13GetInterfaceTraffic\x124.papiliovpn.node.v1.WireGuardInterfaceTrafficRequest\x1a-.papiliovpn.node.v1.WireGuardInterfaceTrafficBZZXgithub.com/PapilioVPN/node/internal/engines/wireguard/stats/bridge/grpc/proto/v1;statsv1b\x06proto3"
+	"\x13GetInterfaceTraffic\x124.papiliovpn.node.v1.WireGuardInterfaceTrafficRequest\x1a-.papiliovpn.node.v1.WireGuardInterfaceTraffic\x12k\n" +
+	"\x0eGetPeerTraffic\x12/.papiliovpn.node.v1.WireGuardPeerTrafficRequest\x1a(.papiliovpn.node.v1.WireGuardPeerTraffic\x12m\n" +
+	"\x10ResetPeerTraffic\x12/.papiliovpn.node.v1.WireGuardPeerTrafficRequest\x1a(.papiliovpn.node.v1.WireGuardPeerTrafficBZZXgithub.com/PapilioVPN/node/internal/engines/wireguard/stats/bridge/grpc/proto/v1;statsv1b\x06proto3"
 
 var (
 	file_proto_v1_wireguard_stats_proto_rawDescOnce sync.Once
@@ -143,16 +258,22 @@ func file_proto_v1_wireguard_stats_proto_rawDescGZIP() []byte {
 	return file_proto_v1_wireguard_stats_proto_rawDescData
 }
 
-var file_proto_v1_wireguard_stats_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_proto_v1_wireguard_stats_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_proto_v1_wireguard_stats_proto_goTypes = []any{
 	(*WireGuardInterfaceTrafficRequest)(nil), // 0: papiliovpn.node.v1.WireGuardInterfaceTrafficRequest
 	(*WireGuardInterfaceTraffic)(nil),        // 1: papiliovpn.node.v1.WireGuardInterfaceTraffic
+	(*WireGuardPeerTrafficRequest)(nil),      // 2: papiliovpn.node.v1.WireGuardPeerTrafficRequest
+	(*WireGuardPeerTraffic)(nil),             // 3: papiliovpn.node.v1.WireGuardPeerTraffic
 }
 var file_proto_v1_wireguard_stats_proto_depIdxs = []int32{
 	0, // 0: papiliovpn.node.v1.WireGuardStatsService.GetInterfaceTraffic:input_type -> papiliovpn.node.v1.WireGuardInterfaceTrafficRequest
-	1, // 1: papiliovpn.node.v1.WireGuardStatsService.GetInterfaceTraffic:output_type -> papiliovpn.node.v1.WireGuardInterfaceTraffic
-	1, // [1:2] is the sub-list for method output_type
-	0, // [0:1] is the sub-list for method input_type
+	2, // 1: papiliovpn.node.v1.WireGuardStatsService.GetPeerTraffic:input_type -> papiliovpn.node.v1.WireGuardPeerTrafficRequest
+	2, // 2: papiliovpn.node.v1.WireGuardStatsService.ResetPeerTraffic:input_type -> papiliovpn.node.v1.WireGuardPeerTrafficRequest
+	1, // 3: papiliovpn.node.v1.WireGuardStatsService.GetInterfaceTraffic:output_type -> papiliovpn.node.v1.WireGuardInterfaceTraffic
+	3, // 4: papiliovpn.node.v1.WireGuardStatsService.GetPeerTraffic:output_type -> papiliovpn.node.v1.WireGuardPeerTraffic
+	3, // 5: papiliovpn.node.v1.WireGuardStatsService.ResetPeerTraffic:output_type -> papiliovpn.node.v1.WireGuardPeerTraffic
+	3, // [3:6] is the sub-list for method output_type
+	0, // [0:3] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
@@ -169,7 +290,7 @@ func file_proto_v1_wireguard_stats_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_v1_wireguard_stats_proto_rawDesc), len(file_proto_v1_wireguard_stats_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   2,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

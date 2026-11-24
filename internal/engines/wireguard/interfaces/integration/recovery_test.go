@@ -66,7 +66,7 @@ func TestRestartRecovery(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	exchangePacket(t, base64.StdEncoding.EncodeToString(privateKey.PublicKey().Bytes()), strings.TrimSpace(string(port)), func(peer string) {
+	exchangePacket(t, base64.StdEncoding.EncodeToString(privateKey.PublicKey().Bytes()), strings.TrimSpace(string(port)), func(peer string, _ func()) {
 		publicKey, err := base64.StdEncoding.DecodeString(peer)
 		if err != nil {
 			t.Fatal(err)

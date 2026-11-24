@@ -3,6 +3,7 @@ package http
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -14,31 +15,64 @@ import (
 )
 
 func Register(router chi.Router, service *traffic.Service) {
-	router.Get("/v1/wireguard/interfaces/{name}/traffic", func(w http.ResponseWriter, r *http.Request) {
+	const path = "/v1/wireguard/interfaces/{name}"
+	router.Get(path+"/traffic", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
-		name := chi.URLParam(r, "name")
-		if r.URL.RawPath != "" {
-			name, _ = url.PathUnescape(name)
-		}
-		counters, err := service.GetInterfaceTraffic(r.Context(), name)
-		if err != nil {
-			writeError(w, err)
+		counters, err := service.GetInterfaceTraffic(r.Context(), interfaceName(r))
+		writeCounters(w, counters, err)
+	})
+	router.Get(path+"/peers/{key}/traffic", peerTraffic(service.GetPeerTraffic))
+	router.Post(path+"/peers/{key}/traffic/resets", peerTraffic(service.ResetPeerTraffic))
+}
+
+func interfaceName(r *http.Request) string {
+	name := chi.URLParam(r, "name")
+	if r.URL.RawPath != "" {
+		name, _ = url.PathUnescape(name)
+	}
+	return name
+}
+
+func peerTraffic(read func(context.Context, string, []byte) (traffic.Counters, error)) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-store")
+		encoded := chi.URLParam(r, "key")
+		if len(encoded) != base64.RawURLEncoding.EncodedLen(32) {
+			writeError(w, traffic.ErrInvalidPeerKey)
 			return
 		}
-		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(struct {
-			RXBytes uint64 `json:"rx_bytes,string"`
-			TXBytes uint64 `json:"tx_bytes,string"`
-		}{RXBytes: counters.RXBytes, TXBytes: counters.TXBytes})
-	})
+		key, err := base64.RawURLEncoding.Strict().DecodeString(encoded)
+		if err != nil {
+			writeError(w, traffic.ErrInvalidPeerKey)
+			return
+		}
+		counters, err := read(r.Context(), interfaceName(r), key)
+		writeCounters(w, counters, err)
+	}
+}
+
+func writeCounters(w http.ResponseWriter, counters traffic.Counters, err error) {
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(struct {
+		RXBytes uint64 `json:"rx_bytes,string"`
+		TXBytes uint64 `json:"tx_bytes,string"`
+	}{RXBytes: counters.RXBytes, TXBytes: counters.TXBytes})
 }
 
 func writeError(w http.ResponseWriter, err error) {
 	switch {
-	case errors.Is(err, status.ErrNotFound):
-		http.Error(w, status.ErrNotFound.Error(), http.StatusNotFound)
-	case errors.Is(err, status.ErrBusy):
-		http.Error(w, status.ErrBusy.Error(), http.StatusTooManyRequests)
+	case errors.Is(err, traffic.ErrInvalidPeerKey):
+		http.Error(w, traffic.ErrInvalidPeerKey.Error(), http.StatusBadRequest)
+	case errors.Is(err, traffic.ErrPeerNotFound), errors.Is(err, status.ErrNotFound):
+		http.Error(w, err.Error(), http.StatusNotFound)
+	case errors.Is(err, traffic.ErrResetCapacity), errors.Is(err, status.ErrBusy):
+		http.Error(w, err.Error(), http.StatusTooManyRequests)
+	case errors.Is(err, traffic.ErrResetDisabled):
+		http.Error(w, traffic.ErrResetDisabled.Error(), http.StatusConflict)
 	case errors.Is(err, context.DeadlineExceeded):
 		http.Error(w, "wireguard traffic deadline exceeded", http.StatusGatewayTimeout)
 	case errors.Is(err, context.Canceled):

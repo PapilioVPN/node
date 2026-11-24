@@ -37,7 +37,7 @@ func register(lifecycle fx.Lifecycle, config settings.WireGuard, router *chi.Mux
 				return checkpoints.Close()
 			}})
 		}
-		managed = wglifecycle.New(config.Interface, control, control, store)
+		managed = wglifecycle.New(config.Interface, control, control, store).WithPeerTraffic(peerStats)
 		appliedHash = managed.AppliedHash
 		lifecycle.Append(fx.Hook{
 			OnStart: func(ctx context.Context) error {

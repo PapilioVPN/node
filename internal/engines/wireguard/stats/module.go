@@ -21,7 +21,7 @@ func newTraffic(lifecycle fx.Lifecycle, config settings.WireGuard) *traffic.Serv
 		lifecycle.Append(fx.Hook{OnStart: links.Open, OnStop: links.Close})
 		lifecycle.Append(fx.Hook{OnStop: peers.Close})
 	}
-	return traffic.New(config.Interface, links, peers)
+	return traffic.New(config.Interface, links, peers, config.Managed)
 }
 
 func register(config settings.WireGuard, router *chi.Mux, server *grpc.Server, service *traffic.Service) {

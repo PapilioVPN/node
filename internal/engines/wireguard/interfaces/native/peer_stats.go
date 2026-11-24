@@ -40,15 +40,37 @@ func (reader *PeerStatsReader) closeDump() error {
 }
 
 func (reader *PeerStatsReader) ReadPeerStats(ctx context.Context, name string) (_ []traffic.PeerStats, err error) {
-	if err := ctx.Err(); err != nil {
+	snapshot := peerStatsSnapshot{name: name}
+	if err := reader.readSnapshot(ctx, &snapshot); err != nil {
 		return nil, err
 	}
+	return snapshot.peers, nil
+}
+
+func (reader *PeerStatsReader) ReadPeerTraffic(ctx context.Context, name string, key [32]byte) (traffic.PeerTrafficSample, error) {
+	snapshot := peerStatsSnapshot{name: name, target: key}
+	if err := reader.readSnapshot(ctx, &snapshot); err != nil {
+		return traffic.PeerTrafficSample{}, err
+	}
+	if !snapshot.found {
+		return traffic.PeerTrafficSample{}, traffic.ErrPeerNotFound
+	}
+	if snapshot.sample.LinkIndex == 0 {
+		return traffic.PeerTrafficSample{}, errPeerSnapshot
+	}
+	return snapshot.sample, nil
+}
+
+func (reader *PeerStatsReader) readSnapshot(ctx context.Context, snapshot *peerStatsSnapshot) (err error) {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	if !reader.mu.TryLock() {
-		return nil, status.ErrBusy
+		return status.ErrBusy
 	}
 	defer reader.mu.Unlock()
 	if reader.closed {
-		return nil, status.ErrUnavailable
+		return status.ErrUnavailable
 	}
 	defer func() {
 		if err != nil {
@@ -58,31 +80,35 @@ func (reader *PeerStatsReader) ReadPeerStats(ctx context.Context, name string) (
 	if reader.dump == nil {
 		reader.dump, err = openPeerDump()
 		if err != nil {
-			return nil, err
+			return err
 		}
 		if err := reader.dump.SetDeadline(peerDeadline(ctx)); err != nil {
-			return nil, err
+			return err
 		}
 		reader.family, err = reader.dump.GetFamily("wireguard")
 		if err != nil {
-			return nil, peerStatsError(err)
+			return peerStatsError(err)
 		}
 	}
 	encoder := gennetlink.NewAttributeEncoder()
-	encoder.String(unix.WGDEVICE_A_IFNAME, name)
+	encoder.String(unix.WGDEVICE_A_IFNAME, snapshot.name)
 	data, err := encoder.Encode()
 	if err != nil {
-		return nil, err
+		return err
 	}
-	snapshot := peerStatsSnapshot{name: name, peers: make([]traffic.PeerStats, 0, reader.dump.peerCount)}
+	if snapshot.target == [32]byte{} {
+		snapshot.peers = make([]traffic.PeerStats, 0, reader.dump.peerCount)
+	}
 	if err := reader.dump.query(ctx, reader.family, data, snapshot.decode); err != nil {
-		return nil, peerStatsError(err)
+		return peerStatsError(err)
 	}
 	if !snapshot.seenName {
-		return nil, errPeerSnapshot
+		return errPeerSnapshot
 	}
-	reader.dump.peerCount = len(snapshot.peers)
-	return snapshot.peers, nil
+	if snapshot.target == [32]byte{} {
+		reader.dump.peerCount = len(snapshot.peers)
+	}
+	return nil
 }
 
 func peerStatsError(err error) error {
@@ -100,12 +126,20 @@ type peerStatsSnapshot struct {
 	name     string
 	seenName bool
 	peers    []traffic.PeerStats
+	target   [32]byte
+	sample   traffic.PeerTrafficSample
+	found    bool
 }
 
 func (snapshot *peerStatsSnapshot) decode(data []byte) error {
 	attributes := snapshotAttributes{remaining: data}
 	for attributes.next() {
 		switch attributes.kind {
+		case unix.WGDEVICE_A_IFINDEX:
+			if len(attributes.value) != 4 {
+				return errPeerSnapshot
+			}
+			snapshot.sample.LinkIndex = binary.NativeEndian.Uint32(attributes.value)
 		case unix.WGDEVICE_A_IFNAME:
 			value := attributes.value
 			if len(value) != len(snapshot.name)+1 || value[len(value)-1] != 0 || string(value[:len(value)-1]) != snapshot.name {
@@ -113,6 +147,14 @@ func (snapshot *peerStatsSnapshot) decode(data []byte) error {
 			}
 			snapshot.seenName = true
 		case unix.WGDEVICE_A_PEERS:
+			if snapshot.target != [32]byte{} {
+				if !snapshot.found {
+					if err := snapshot.selectTraffic(attributes.value); err != nil {
+						return err
+					}
+				}
+				continue
+			}
 			list := snapshotAttributes{remaining: attributes.value}
 			for list.next() {
 				if err := snapshot.appendPeer(list.value); err != nil {

@@ -37,15 +37,27 @@ type Control interface {
 	Remove(context.Context, Link) error
 }
 
+type PeerTrafficObserver interface {
+	ForgetPeerTraffic([32]byte)
+	ForgetLinkTraffic()
+}
+
 type Service struct {
 	name      string
 	control   Control
 	peers     PeerControl
 	store     CheckpointStore
+	traffic   PeerTrafficObserver
 	mu        sync.Mutex
 	owned     Link
 	peerState *peers.State // Protected by mu and bound to the owned execution.
 	applied   atomic.Pointer[Checkpoint]
+}
+
+// WithPeerTraffic binds observation invalidation during module composition.
+func (service *Service) WithPeerTraffic(observer PeerTrafficObserver) *Service {
+	service.traffic = observer
+	return service
 }
 
 func New(name string, control Control, peerControl PeerControl, store CheckpointStore) *Service {
@@ -187,6 +199,9 @@ func (service *Service) Close(ctx context.Context) error {
 func (service *Service) remove(ctx context.Context) error {
 	service.peerState = nil
 	err := service.control.Remove(ctx, service.owned)
+	if service.traffic != nil {
+		service.traffic.ForgetLinkTraffic()
+	}
 	if err == nil || errors.Is(err, ErrConflict) {
 		service.applied.Store(nil)
 		if clearErr := service.clear(); clearErr != nil {

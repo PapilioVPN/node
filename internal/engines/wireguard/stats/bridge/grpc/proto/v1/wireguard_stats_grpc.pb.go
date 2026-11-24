@@ -20,6 +20,8 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	WireGuardStatsService_GetInterfaceTraffic_FullMethodName = "/papiliovpn.node.v1.WireGuardStatsService/GetInterfaceTraffic"
+	WireGuardStatsService_GetPeerTraffic_FullMethodName      = "/papiliovpn.node.v1.WireGuardStatsService/GetPeerTraffic"
+	WireGuardStatsService_ResetPeerTraffic_FullMethodName    = "/papiliovpn.node.v1.WireGuardStatsService/ResetPeerTraffic"
 )
 
 // WireGuardStatsServiceClient is the client API for WireGuardStatsService service.
@@ -27,6 +29,8 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type WireGuardStatsServiceClient interface {
 	GetInterfaceTraffic(ctx context.Context, in *WireGuardInterfaceTrafficRequest, opts ...grpc.CallOption) (*WireGuardInterfaceTraffic, error)
+	GetPeerTraffic(ctx context.Context, in *WireGuardPeerTrafficRequest, opts ...grpc.CallOption) (*WireGuardPeerTraffic, error)
+	ResetPeerTraffic(ctx context.Context, in *WireGuardPeerTrafficRequest, opts ...grpc.CallOption) (*WireGuardPeerTraffic, error)
 }
 
 type wireGuardStatsServiceClient struct {
@@ -47,11 +51,33 @@ func (c *wireGuardStatsServiceClient) GetInterfaceTraffic(ctx context.Context, i
 	return out, nil
 }
 
+func (c *wireGuardStatsServiceClient) GetPeerTraffic(ctx context.Context, in *WireGuardPeerTrafficRequest, opts ...grpc.CallOption) (*WireGuardPeerTraffic, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(WireGuardPeerTraffic)
+	err := c.cc.Invoke(ctx, WireGuardStatsService_GetPeerTraffic_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *wireGuardStatsServiceClient) ResetPeerTraffic(ctx context.Context, in *WireGuardPeerTrafficRequest, opts ...grpc.CallOption) (*WireGuardPeerTraffic, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(WireGuardPeerTraffic)
+	err := c.cc.Invoke(ctx, WireGuardStatsService_ResetPeerTraffic_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // WireGuardStatsServiceServer is the server API for WireGuardStatsService service.
 // All implementations must embed UnimplementedWireGuardStatsServiceServer
 // for forward compatibility.
 type WireGuardStatsServiceServer interface {
 	GetInterfaceTraffic(context.Context, *WireGuardInterfaceTrafficRequest) (*WireGuardInterfaceTraffic, error)
+	GetPeerTraffic(context.Context, *WireGuardPeerTrafficRequest) (*WireGuardPeerTraffic, error)
+	ResetPeerTraffic(context.Context, *WireGuardPeerTrafficRequest) (*WireGuardPeerTraffic, error)
 	mustEmbedUnimplementedWireGuardStatsServiceServer()
 }
 
@@ -64,6 +90,12 @@ type UnimplementedWireGuardStatsServiceServer struct{}
 
 func (UnimplementedWireGuardStatsServiceServer) GetInterfaceTraffic(context.Context, *WireGuardInterfaceTrafficRequest) (*WireGuardInterfaceTraffic, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetInterfaceTraffic not implemented")
+}
+func (UnimplementedWireGuardStatsServiceServer) GetPeerTraffic(context.Context, *WireGuardPeerTrafficRequest) (*WireGuardPeerTraffic, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetPeerTraffic not implemented")
+}
+func (UnimplementedWireGuardStatsServiceServer) ResetPeerTraffic(context.Context, *WireGuardPeerTrafficRequest) (*WireGuardPeerTraffic, error) {
+	return nil, status.Error(codes.Unimplemented, "method ResetPeerTraffic not implemented")
 }
 func (UnimplementedWireGuardStatsServiceServer) mustEmbedUnimplementedWireGuardStatsServiceServer() {}
 func (UnimplementedWireGuardStatsServiceServer) testEmbeddedByValue()                               {}
@@ -104,6 +136,42 @@ func _WireGuardStatsService_GetInterfaceTraffic_Handler(srv interface{}, ctx con
 	return interceptor(ctx, in, info, handler)
 }
 
+func _WireGuardStatsService_GetPeerTraffic_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(WireGuardPeerTrafficRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WireGuardStatsServiceServer).GetPeerTraffic(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WireGuardStatsService_GetPeerTraffic_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WireGuardStatsServiceServer).GetPeerTraffic(ctx, req.(*WireGuardPeerTrafficRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _WireGuardStatsService_ResetPeerTraffic_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(WireGuardPeerTrafficRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WireGuardStatsServiceServer).ResetPeerTraffic(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WireGuardStatsService_ResetPeerTraffic_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WireGuardStatsServiceServer).ResetPeerTraffic(ctx, req.(*WireGuardPeerTrafficRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // WireGuardStatsService_ServiceDesc is the grpc.ServiceDesc for WireGuardStatsService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -114,6 +182,14 @@ var WireGuardStatsService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetInterfaceTraffic",
 			Handler:    _WireGuardStatsService_GetInterfaceTraffic_Handler,
+		},
+		{
+			MethodName: "GetPeerTraffic",
+			Handler:    _WireGuardStatsService_GetPeerTraffic_Handler,
+		},
+		{
+			MethodName: "ResetPeerTraffic",
+			Handler:    _WireGuardStatsService_ResetPeerTraffic_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

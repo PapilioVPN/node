@@ -95,8 +95,9 @@ func TestManagedExecution(t *testing.T) {
 	if err != nil || strings.TrimSpace(string(configured)) == "0" {
 		t.Fatalf("expected a bound WireGuard port, got %q (%v)", configured, err)
 	}
-	exchangePacket(t, base64.StdEncoding.EncodeToString(privateKey.PublicKey().Bytes()), strings.TrimSpace(string(configured)), func(peer string) {
+	exchangePacket(t, base64.StdEncoding.EncodeToString(privateKey.PublicKey().Bytes()), strings.TrimSpace(string(configured)), func(peer string, ping func()) {
 		assertActivePeerStats(t, f, client, peer)
+		assertPeerTraffic(t, f, stats, peer, ping)
 		assertInterfaceTraffic(t, f, stats, true)
 		assertPeerSync(t, f, client, peer)
 		assertPeerDelta(t, f, client, privateKey.PublicKey().Bytes())
@@ -172,7 +173,7 @@ func TestManagedExecution(t *testing.T) {
 	executionRequest(t, f, http.MethodDelete, nil, http.StatusNoContent)
 }
 
-func exchangePacket(t *testing.T, serverKey, serverPort string, whileConnected func(string)) {
+func exchangePacket(t *testing.T, serverKey, serverPort string, whileConnected func(string, func())) {
 	t.Helper()
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	defer cancel()
@@ -227,12 +228,13 @@ func exchangePacket(t *testing.T, serverKey, serverPort string, whileConnected f
 		base64.StdEncoding.EncodeToString(clientKey.Bytes()), serverKey, serverPort)
 	inClient(config, "wg", "setconf", "wg-client", "/dev/stdin")
 	inClient("", "ip", "link", "set", "dev", "wg-client", "up")
-	inClient("", "ping", "-n", "-c", "1", "-W", "2", "192.0.2.1")
-	whileConnected(clientPub)
-	inClient("", "ping", "-n", "-c", "1", "-W", "2", "192.0.2.1")
+	ping := func() { inClient("", "ping", "-n", "-c", "1", "-W", "2", "192.0.2.1") }
+	ping()
+	whileConnected(clientPub, ping)
+	ping()
 }
 
-func executionRequest(t *testing.T, f fixture, method string, body []byte, want int) observation {
+func executionRequest(t testing.TB, f fixture, method string, body []byte, want int) observation {
 	t.Helper()
 	req, err := http.NewRequestWithContext(t.Context(), method, f.address+interfaceURL+"/execution", bytes.NewReader(body))
 	if err != nil {

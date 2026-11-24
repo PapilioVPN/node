@@ -155,7 +155,11 @@ func (service *Service) checkPeerLink(ctx context.Context, link Link) error {
 }
 
 func (service *Service) writePeer(ctx context.Context, link Link, change peers.Change) error {
-	if err := service.peers.WritePeer(ctx, link, change); err != nil {
+	err := service.peers.WritePeer(ctx, link, change)
+	if change.Remove && service.traffic != nil {
+		service.traffic.ForgetPeerTraffic(change.Peer.PublicKey)
+	}
+	if err != nil {
 		service.peerState = nil
 		return errors.Join(peers.ErrUnconfirmed, err)
 	}
@@ -169,7 +173,13 @@ func (service *Service) writePeerChanges(ctx context.Context, link Link, updates
 	if len(updates)+len(removals) == 0 {
 		return nil
 	}
-	if err := service.peers.WritePeerChanges(ctx, link, updates, removals); err != nil {
+	err := service.peers.WritePeerChanges(ctx, link, updates, removals)
+	if service.traffic != nil {
+		for _, removal := range removals {
+			service.traffic.ForgetPeerTraffic(removal.Peer.PublicKey)
+		}
+	}
+	if err != nil {
 		service.peerState = nil
 		return errors.Join(peers.ErrUnconfirmed, err)
 	}

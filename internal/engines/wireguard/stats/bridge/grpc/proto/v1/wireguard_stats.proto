@@ -6,6 +6,8 @@ option go_package = "github.com/PapilioVPN/node/internal/engines/wireguard/stats
 
 service WireGuardStatsService {
   rpc GetInterfaceTraffic(WireGuardInterfaceTrafficRequest) returns (WireGuardInterfaceTraffic);
+  rpc GetPeerTraffic(WireGuardPeerTrafficRequest) returns (WireGuardPeerTraffic);
+  rpc ResetPeerTraffic(WireGuardPeerTrafficRequest) returns (WireGuardPeerTraffic);
 }
 
 message WireGuardInterfaceTrafficRequest {
@@ -14,6 +16,18 @@ message WireGuardInterfaceTrafficRequest {
 
 message WireGuardInterfaceTraffic {
   // Live kernel link counters in bytes, scoped to the current link lifetime.
+  uint64 rx_bytes = 1;
+  uint64 tx_bytes = 2;
+}
+
+message WireGuardPeerTrafficRequest {
+  string name = 1;
+  bytes public_key = 2;
+}
+
+message WireGuardPeerTraffic {
+  // Bytes since the latest logical reset in this Node process, or since the
+  // current peer was created. ResetPeerTraffic returns the preceding period.
   uint64 rx_bytes = 1;
   uint64 tx_bytes = 2;
 }

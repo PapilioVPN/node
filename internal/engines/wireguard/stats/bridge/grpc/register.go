@@ -26,18 +26,42 @@ func Register(server grpc.ServiceRegistrar, service *traffic.Service) {
 
 func (h *handlers) GetInterfaceTraffic(ctx context.Context, req *statsv1.WireGuardInterfaceTrafficRequest) (*statsv1.WireGuardInterfaceTraffic, error) {
 	counters, err := h.service.GetInterfaceTraffic(ctx, req.GetName())
+	if err != nil {
+		return nil, trafficError(err)
+	}
+	return &statsv1.WireGuardInterfaceTraffic{RxBytes: counters.RXBytes, TxBytes: counters.TXBytes}, nil
+}
+
+func (h *handlers) GetPeerTraffic(ctx context.Context, req *statsv1.WireGuardPeerTrafficRequest) (*statsv1.WireGuardPeerTraffic, error) {
+	return peerResponse(h.service.GetPeerTraffic(ctx, req.GetName(), req.GetPublicKey()))
+}
+
+func (h *handlers) ResetPeerTraffic(ctx context.Context, req *statsv1.WireGuardPeerTrafficRequest) (*statsv1.WireGuardPeerTraffic, error) {
+	return peerResponse(h.service.ResetPeerTraffic(ctx, req.GetName(), req.GetPublicKey()))
+}
+
+func peerResponse(counters traffic.Counters, err error) (*statsv1.WireGuardPeerTraffic, error) {
+	if err != nil {
+		return nil, trafficError(err)
+	}
+	return &statsv1.WireGuardPeerTraffic{RxBytes: counters.RXBytes, TxBytes: counters.TXBytes}, nil
+}
+
+func trafficError(err error) error {
 	switch {
-	case err == nil:
-		return &statsv1.WireGuardInterfaceTraffic{RxBytes: counters.RXBytes, TxBytes: counters.TXBytes}, nil
-	case errors.Is(err, interfacestatus.ErrNotFound):
-		return nil, status.Error(codes.NotFound, interfacestatus.ErrNotFound.Error())
-	case errors.Is(err, interfacestatus.ErrBusy):
-		return nil, status.Error(codes.ResourceExhausted, interfacestatus.ErrBusy.Error())
+	case errors.Is(err, traffic.ErrInvalidPeerKey):
+		return status.Error(codes.InvalidArgument, traffic.ErrInvalidPeerKey.Error())
+	case errors.Is(err, traffic.ErrPeerNotFound), errors.Is(err, interfacestatus.ErrNotFound):
+		return status.Error(codes.NotFound, err.Error())
+	case errors.Is(err, interfacestatus.ErrBusy), errors.Is(err, traffic.ErrResetCapacity):
+		return status.Error(codes.ResourceExhausted, err.Error())
+	case errors.Is(err, traffic.ErrResetDisabled):
+		return status.Error(codes.FailedPrecondition, traffic.ErrResetDisabled.Error())
 	case errors.Is(err, context.Canceled):
-		return nil, status.Error(codes.Canceled, "wireguard request canceled")
+		return status.Error(codes.Canceled, "wireguard request canceled")
 	case errors.Is(err, context.DeadlineExceeded):
-		return nil, status.Error(codes.DeadlineExceeded, "wireguard traffic deadline exceeded")
+		return status.Error(codes.DeadlineExceeded, "wireguard traffic deadline exceeded")
 	default:
-		return nil, status.Error(codes.Unavailable, "wireguard traffic is unavailable")
+		return status.Error(codes.Unavailable, "wireguard traffic is unavailable")
 	}
 }
