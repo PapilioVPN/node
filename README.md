@@ -151,3 +151,7 @@ go generate ./internal/host/bridge/grpc
 ```
 
 To regenerate the Xray schemas, also install `protoc-gen-go-grpc` v1.6.0 and run `go generate ./internal/engines/xray/...`. Set `NODE_TEST_XRAY` to the absolute path of Xray v26.11.9 to run the native integration tests locally.
+
+## License
+
+PapilioVPN Node is licensed under the [GNU General Public License version 3](LICENSE).

@@ -29,6 +29,7 @@ version=$("$work/node/node" -version)
 name="node-$version-linux-amd64-$revision"
 image="papiliovpn/node:$version-${work##*.}"
 cp deploy/config.example.yml "$work/node/config.example.yml"
+cp LICENSE "$work/node/LICENSE"
 docker build -q -f deploy/Dockerfile -t "$image" "$work/node"
 docker run --rm --read-only --cap-drop ALL --entrypoint /node-xray "$image" version
 

@@ -156,3 +156,7 @@ bash scripts/ci/package.sh
 ```bash
 go generate ./internal/host/bridge/grpc
 ```
+
+## 许可证
+
+PapilioVPN Node 采用 [GNU 通用公共许可证第 3 版](LICENSE)。
