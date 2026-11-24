@@ -233,7 +233,7 @@ func TestSyncNativeAccountProtocols(t *testing.T) {
 	}
 }
 
-func (f fixture) nativeUsers(t *testing.T, tag string) []*native.User {
+func (f fixture) nativeUsers(t testing.TB, tag string) []*native.User {
 	t.Helper()
 	conn, err := f.instance.NativeConnection(instanceID)
 	require(t, err)
@@ -244,7 +244,7 @@ func (f fixture) nativeUsers(t *testing.T, tag string) []*native.User {
 	return reply.Users
 }
 
-func expectSync(t *testing.T, result *accountsv1.SyncResult, added, removed uint32) {
+func expectSync(t testing.TB, result *accountsv1.SyncResult, added, removed uint32) {
 	t.Helper()
 	if result.GetOutcome() != string(membership.Confirmed) || result.GetAdded() != added || result.GetRemoved() != removed {
 		t.Fatalf("Sync result = %v, want %d additions and %d removals", result, added, removed)

@@ -101,14 +101,14 @@ func (c *Client) editInbounds(ctx context.Context, instanceID string, tags []str
 				return err
 			}
 			if !vlessOnly {
-				session.staged = c.accepted.Load().clone()
+				session.accepted = c.accepted.Load()
 			}
 		}
 		e, err := c.openEditor(ctx, state, membership.Scope{InstanceID: instanceID, InboundTag: tag}, vlessOnly)
 		if err != nil {
 			return err
 		}
-		e.staged = session.staged
+		e.session = session
 		session.editors[i] = e
 	}
 	if err := ctx.Err(); err != nil {
@@ -120,10 +120,7 @@ func (c *Client) editInbounds(ctx context.Context, instanceID string, tags []str
 	if err := apply(session); err != nil {
 		return err
 	}
-	if session.staged != nil {
-		return c.accept(session.staged)
-	}
-	return nil
+	return session.publish(c)
 }
 
 func (c *Client) openEditor(ctx context.Context, state *inventory, scope membership.Scope, vlessOnly bool) (*editor, error) {
@@ -141,12 +138,12 @@ func (c *Client) openEditor(ctx context.Context, state *inventory, scope members
 }
 
 type editor struct {
-	client *Client
-	ctx    context.Context
-	scope  membership.Scope
-	state  *inventory
-	entry  *inboundAccounts
-	staged *acceptedMembership
+	client  *Client
+	ctx     context.Context
+	scope   membership.Scope
+	state   *inventory
+	entry   *inboundAccounts
+	session *editSession
 }
 
 func (e *editor) Name(email string) (string, error) { return e.entry.name(email) }

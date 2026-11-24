@@ -22,7 +22,6 @@ import (
 	"go.uber.org/fx"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/grpc/test/bufconn"
 )
 
 const instanceID = "primary"
@@ -40,7 +39,7 @@ type configuredAccount struct {
 	ID    string `json:"id"`
 }
 
-func startFixture(t *testing.T, accounts ...configuredAccount) fixture {
+func startFixture(t testing.TB, accounts ...configuredAccount) fixture {
 	t.Helper()
 	executable := os.Getenv("NODE_TEST_XRAY")
 	if executable == "" {
@@ -66,7 +65,7 @@ func startFixture(t *testing.T, accounts ...configuredAccount) fixture {
 	return f
 }
 
-func startSourceFixture(t *testing.T, executable, source string) fixture {
+func startSourceFixture(t testing.TB, executable, source string) fixture {
 	t.Helper()
 	dir, err := os.MkdirTemp("", "node-accounts-")
 	require(t, err)
@@ -90,7 +89,8 @@ func startSourceFixture(t *testing.T, executable, source string) fixture {
 	require(t, err)
 	httpServer := httptest.NewServer(router)
 	t.Cleanup(httpServer.Close)
-	listener := bufconn.Listen(64 << 10)
+	listener, err := net.Listen("tcp4", "127.0.0.1:0")
+	require(t, err)
 	done := make(chan error, 1)
 	go func() { done <- server.Serve(listener) }()
 	t.Cleanup(func() {
@@ -99,16 +99,13 @@ func startSourceFixture(t *testing.T, executable, source string) fixture {
 			t.Error(err)
 		}
 	})
-	conn, err := grpc.NewClient("passthrough:///xray-accounts", grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithContextDialer(func(ctx context.Context, _ string) (net.Conn, error) {
-			return listener.DialContext(ctx)
-		}))
+	conn, err := grpc.NewClient(listener.Addr().String(), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	require(t, err)
 	t.Cleanup(func() { require(t, conn.Close()) })
 	return fixture{http: httpServer, grpc: accountsv1.NewXrayAccountsServiceClient(conn), instance: instance}
 }
 
-func freePorts(t *testing.T) (int, int) {
+func freePorts(t testing.TB) (int, int) {
 	t.Helper()
 	socket, err := net.Listen("tcp4", "127.0.0.1:0")
 	require(t, err)
@@ -130,8 +127,13 @@ type testExecution struct{ conn *grpc.ClientConn }
 
 func (e testExecution) NativeConnection(string) (*grpc.ClientConn, error) { return e.conn, nil }
 
-// Intercept acknowledgements after the real Xray has performed the edit.
 func (f fixture) interceptEdits(t *testing.T, after func(int32) error) *membership.Service {
+	t.Helper()
+	return membership.New(f.interceptClient(t, after))
+}
+
+// Intercept acknowledgements after the real Xray has performed the edit.
+func (f fixture) interceptClient(t *testing.T, after func(int32) error) *native.Client {
 	t.Helper()
 	direct, err := f.instance.NativeConnection(instanceID)
 	require(t, err)
@@ -146,5 +148,5 @@ func (f fixture) interceptEdits(t *testing.T, after func(int32) error) *membersh
 		}))
 	require(t, err)
 	t.Cleanup(func() { require(t, conn.Close()) })
-	return membership.New(native.New(testExecution{conn}))
+	return native.New(testExecution{conn})
 }

@@ -30,6 +30,11 @@ func (c *Client) Initialize(ctx context.Context, id string, conn *grpc.ClientCon
 	}
 	previous := c.accepted.Load()
 	if len(initial) == 0 && (previous == nil || len(previous.inbounds) == 0) {
+		if c.recovery != nil && c.recovery.unsynced {
+			if err := c.accept(previous); err != nil {
+				return nil, err
+			}
+		}
 		return func() { c.excluded.Store(policy) }, nil
 	}
 	if len(initial) > membership.MaxSyncAccounts {
@@ -54,6 +59,8 @@ func (c *Client) Initialize(ctx context.Context, id string, conn *grpc.ClientCon
 		seeds[snapshot.InboundTag] = true
 	}
 
+	// Seeded inbounds are replaced, so untouched maps can be shared until
+	// the candidate is accepted.
 	retained := previous.clone()
 	var restores []restorePlan
 	for tag, saved := range retained.inbounds {

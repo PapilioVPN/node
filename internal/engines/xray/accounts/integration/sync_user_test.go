@@ -108,7 +108,7 @@ func TestSyncUserInterruptedRotation(t *testing.T) {
 			targetPort := trafficTarget(t)
 			ctx, cancel := context.WithCancel(t.Context())
 			defer cancel()
-			service := f.interceptEdits(t, func(count int32) error {
+			client := f.interceptClient(t, func(count int32) error {
 				if count == 2 && tc.outcome == membership.Partial {
 					cancel()
 				}
@@ -117,6 +117,7 @@ func TestSyncUserInterruptedRotation(t *testing.T) {
 				}
 				return nil
 			})
+			service := membership.New(client)
 			request := membership.SyncUserRequest{Scope: membership.Scope{InstanceID: instanceID, InboundTag: "vless"}, Email: email, UUID: ptr(credential)}
 			first, err := service.SyncUser(t.Context(), request)
 			require(t, err)
@@ -141,6 +142,15 @@ func TestSyncUserInterruptedRotation(t *testing.T) {
 			} else {
 				f.checkCount(t, 0)
 			}
+
+			f.instance.SetAccountInitializer(client.Initialize)
+			_, err = f.instance.Stop(t.Context(), instanceID)
+			require(t, err)
+			_, err = f.instance.Start(t.Context(), instanceID)
+			require(t, err)
+			f.checkCount(t, 1)
+			checkTraffic(t, f.inboundPort, targetPort, true)
+			checkTrafficCredential(t, f.inboundPort, targetPort, rotatedCredential, false)
 		})
 	}
 }
