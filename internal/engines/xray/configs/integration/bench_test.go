@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"os/exec"
+	"strings"
 	"testing"
 
 	configsv1 "github.com/PapilioVPN/node/internal/engines/xray/configs/bridge/grpc/proto/v1"
@@ -53,6 +54,33 @@ func BenchmarkValidateConfig(b *testing.B) {
 					result, err := f.configs.ValidateConfig(b.Context(), request)
 					if err != nil || result.GetValid() != config.valid {
 						b.Fatalf("gRPC validation = (%v, %v)", result, err)
+					}
+				}
+				check()
+				b.ReportAllocs()
+				for b.Loop() {
+					check()
+				}
+			})
+			b.Run("http-proposed", func(b *testing.B) {
+				check := func() {
+					got := postValidationBody(b, f, b.Context(), strings.NewReader(config.json))
+					if got.Valid != config.valid {
+						b.Fatalf("HTTP candidate validation = %+v", got)
+					}
+				}
+				check()
+				b.ReportAllocs()
+				for b.Loop() {
+					check()
+				}
+			})
+			b.Run("grpc-proposed", func(b *testing.B) {
+				request := proposedConfig(config.json)
+				check := func() {
+					got, err := f.configs.ValidateConfig(b.Context(), request)
+					if err != nil || got.GetValid() != config.valid {
+						b.Fatalf("gRPC candidate validation = (%v, %v)", got, err)
 					}
 				}
 				check()

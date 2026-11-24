@@ -126,6 +126,61 @@ NODE_TEST_XRAY=/absolute/path/to/xray GOMAXPROCS=1 taskset -c 2 \
   -bench '^BenchmarkValidateConfig$' -benchmem -benchtime=300ms -count=5
 ```
 
+### Proposed JSON and configured-file rerun
+
+On 2026-11-24, the same small valid JSON and unknown-protocol fixture ran
+against Node `9980659` and `b815ff4`. Both revisions used standalone Xray
+26.11.9 (`676eaf6`, SHA-256
+`e87bce586acdb9136aa5b1d9c8db9f1ea1d145b6d86368c7f6f662f9f6a66d`),
+Go 1.27.4, Linux amd64, an AMD Ryzen 7 3750H, and CPU 2 with
+`GOMAXPROCS=1`. HTTP and gRPC used persistent local connections without
+TLS. Five rounds alternated the revision order with 18 checks per case.
+The table shows medians of per-round mean latency in milliseconds.
+
+| Configuration | Path | File before | File after | Proposed JSON |
+| --- | --- | ---: | ---: | ---: |
+| Valid | HTTP | 15.89 | 19.09 | 16.88 |
+| Valid | gRPC | 16.46 | 16.43 | 16.99 |
+| Rejected protocol | HTTP | 17.21 | 17.22 | 16.54 |
+| Rejected protocol | gRPC | 17.54 | 18.62 | 17.02 |
+
+The direct Xray control ranged from 14.89 to 29.31 ms across these rounds.
+A focused rerun used seven alternating rounds of 20 checks per revision
+for the two file paths with the largest observed differences.
+
+| Configured-file path | Before, median (range) | After, median (range) |
+| --- | ---: | ---: |
+| Valid HTTP | 20.83 (18.65–21.99) | 18.50 (17.83–19.82) |
+| Rejected gRPC | 18.36 (16.21–23.87) | 19.71 (18.66–24.66) |
+
+The valid HTTP result changed direction on repetition. The rejected gRPC
+median was higher in both sets, with overlapping ranges.
+
+For a transport and process-orchestration control, a local executable that
+only returned exit status 23 replaced Xray. Seven alternating rounds of
+100 configured-file gRPC checks measured 1.52 ms before and 1.58 ms after
+with 247 allocations/op on both revisions. This control skips Xray
+startup and parsing.
+
+[Five-round results](results/2026-11-24-config-validation-proposed.csv) ·
+[Focused rerun results](results/2026-11-24-config-validation-repeat.csv)
+
+Build the integration test binary at each revision with
+`go test -c ./internal/engines/xray/configs/integration` and set
+`NODE_TEST_XRAY` to the pinned binary. For the full comparison run:
+
+```bash
+GOMAXPROCS=1 taskset -c 2 ./integration.test \
+  -test.run '^$' -test.bench '^BenchmarkValidateConfig$' \
+  -test.benchmem -test.benchtime=18x -test.count=1
+```
+
+Repeat in alternating order. For a focused pass use the filter
+`^BenchmarkValidateConfig$/^valid$/^http$` or
+`^BenchmarkValidateConfig$/^rejected$/^grpc$` and `-test.benchtime=20x`.
+The `http-proposed` and `grpc-proposed` sub-benchmarks are available
+with the updated benchmark fixture.
+
 ## Xray lifecycle after startup error reporting
 
 The rerun uses the Xray lifecycle fixture above with five rounds, six cold starts and joined stops per round, and 12 status reads per start. The table shows the median of the per-round p50s in milliseconds for successful calls. The occupied-port and readiness-timeout cases were verified separately in integration tests.
