@@ -17,9 +17,10 @@ import (
 )
 
 type observation struct {
-	Name string `json:"name"`
-	MTU  uint32 `json:"mtu"`
-	Up   bool   `json:"up"`
+	Name          string `json:"name"`
+	MTU           uint32 `json:"mtu"`
+	Up            bool   `json:"up"`
+	AppliedSHA256 string `json:"applied_config_sha256"`
 }
 
 func TestInterfaceStatus(t *testing.T) {
@@ -100,7 +101,10 @@ func readGRPC(t testing.TB, client interfacesv1.WireGuardInterfacesServiceClient
 	if err != nil {
 		t.Fatal(err)
 	}
-	return observation{Name: reply.GetName(), MTU: reply.GetMtu(), Up: reply.GetUp()}
+	return observation{
+		Name: reply.GetName(), MTU: reply.GetMtu(), Up: reply.GetUp(),
+		AppliedSHA256: reply.GetAppliedConfigSha256(),
+	}
 }
 
 func (f fixture) readHTTP(t testing.TB) observation {

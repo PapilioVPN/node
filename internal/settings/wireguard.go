@@ -10,12 +10,16 @@ import (
 
 type WireGuard struct {
 	Interface string `yaml:"interface"`
+	Managed   bool   `yaml:"managed"`
 }
 
 func (config WireGuard) Enabled() bool { return config.Interface != "" }
 
 func (config WireGuard) validate(management Management) error {
 	if !config.Enabled() {
+		if config.Managed {
+			return errors.New("wireguard.interface is required when managed")
+		}
 		return nil
 	}
 	name := config.Interface

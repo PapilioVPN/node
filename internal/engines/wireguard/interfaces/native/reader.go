@@ -82,5 +82,13 @@ func (reader *Reader) Read(ctx context.Context, name string) (status.Interface, 
 	if link.Type() != "wireguard" || attrs.Name != name {
 		return status.Interface{}, status.ErrNotFound
 	}
-	return status.Interface{Name: attrs.Name, MTU: uint32(attrs.MTU), Up: attrs.Flags&net.FlagUp != 0}, nil
+	return interfaceStatus(link), nil
+}
+
+func interfaceStatus(link netlink.Link) status.Interface {
+	attrs := link.Attrs()
+	return status.Interface{
+		Name: attrs.Name, MTU: uint32(attrs.MTU), Up: attrs.Flags&net.FlagUp != 0,
+		Index: attrs.Index, Alias: attrs.Alias,
+	}
 }

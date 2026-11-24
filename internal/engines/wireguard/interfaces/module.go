@@ -2,8 +2,12 @@
 package interfaces
 
 import (
+	"context"
+	"errors"
+
 	bridgegrpc "github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/bridge/grpc"
 	bridgehttp "github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/bridge/http"
+	wglifecycle "github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/lifecycle"
 	"github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/native"
 	"github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/status"
 	"github.com/PapilioVPN/node/internal/settings"
@@ -20,7 +24,17 @@ func register(lifecycle fx.Lifecycle, config settings.WireGuard, router *chi.Mux
 	}
 	reader := new(native.Reader)
 	lifecycle.Append(fx.Hook{OnStart: reader.Open, OnStop: reader.Close})
-	service := status.New(config.Interface, reader)
-	bridgehttp.Register(router, service)
-	bridgegrpc.Register(server, service)
+	var managed *wglifecycle.Service
+	var appliedHash func(status.Interface) string
+	if config.Managed {
+		control := new(native.Control)
+		managed = wglifecycle.New(config.Interface, control)
+		appliedHash = managed.AppliedHash
+		lifecycle.Append(fx.Hook{OnStart: control.Open, OnStop: func(ctx context.Context) error {
+			return errors.Join(managed.Close(ctx), control.Close())
+		}})
+	}
+	service := status.New(config.Interface, reader, appliedHash)
+	bridgehttp.Register(router, service, managed)
+	bridgegrpc.Register(server, service, managed)
 }

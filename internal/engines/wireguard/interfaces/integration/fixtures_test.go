@@ -50,12 +50,18 @@ type fixture struct {
 }
 
 func newFixture(t testing.TB) fixture {
+	return startFixture(t, false)
+}
+
+func startFixture(t testing.TB, managed bool) fixture {
 	t.Helper()
 	requireIsolatedNetwork(t)
 	runIP(t, "link", "set", "dev", "lo", "up")
-	runIP(t, "link", "add", "dev", interfaceName, "type", "wireguard")
-	t.Cleanup(func() { runIP(t, "link", "del", "dev", interfaceName) })
-	runIP(t, "link", "set", "dev", interfaceName, "mtu", "1420")
+	if !managed {
+		runIP(t, "link", "add", "dev", interfaceName, "type", "wireguard")
+		t.Cleanup(func() { runIP(t, "link", "del", "dev", interfaceName) })
+		runIP(t, "link", "set", "dev", interfaceName, "mtu", "1420")
+	}
 
 	httpListener, err := net.Listen("tcp4", "127.0.0.1:0")
 	if err != nil {
@@ -73,6 +79,9 @@ func newFixture(t testing.TB) fixture {
 	path := filepath.Join(t.TempDir(), "config.yml")
 	configText := fmt.Sprintf("management:\n  http_address: %q\n  grpc_address: %q\nwireguard:\n  interface: %q\n",
 		httpAddress, grpcAddress, interfaceName)
+	if managed {
+		configText += "  managed: true\n"
+	}
 	if err := os.WriteFile(path, []byte(configText), 0600); err != nil {
 		t.Fatal(err)
 	}

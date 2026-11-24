@@ -6,6 +6,8 @@ require (
 	github.com/PapilioVPN/go-bridge v0.0.0-20261122084329-c33340406215
 	github.com/go-chi/chi/v5 v5.5.0
 	github.com/google/uuid v1.6.0
+	github.com/mdlayher/genetlink v1.4.0
+	github.com/mdlayher/netlink v1.11.2
 	github.com/vishvananda/netlink v1.3.1
 	github.com/xtls/xray-core v1.260327.1-0.20261109052709-676eaf66f8f0
 	go.uber.org/fx v1.24.0
@@ -19,6 +21,7 @@ require (
 require (
 	github.com/apernet/quic-go v0.61.1-0.20260806010916-184d081eef3e // indirect
 	github.com/ghodss/yaml v1.0.1-0.20220118164431-d8423dcdf344 // indirect
+	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/gopacket v1.1.19 // indirect
 	github.com/gorilla/websocket v1.5.4-0.20240701034025-d67f41855da4 // indirect
 	github.com/huin/goupnp v1.2.0 // indirect
@@ -29,6 +32,7 @@ require (
 	github.com/koron/go-ssdp v0.0.4 // indirect
 	github.com/libp2p/go-nat v1.0.1-0.20250821073202-01afc089f138 // indirect
 	github.com/libp2p/go-netroute v0.2.1 // indirect
+	github.com/mdlayher/socket v0.6.0 // indirect
 	github.com/miekg/dns v1.1.73 // indirect
 	github.com/molecule-man/go-brrr v1.2.0 // indirect
 	github.com/pelletier/go-toml v1.9.5 // indirect

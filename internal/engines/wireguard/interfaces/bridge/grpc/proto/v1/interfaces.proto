@@ -6,6 +6,8 @@ option go_package = "github.com/PapilioVPN/node/internal/engines/wireguard/inter
 
 service WireGuardInterfacesService {
   rpc GetStatus(WireGuardInterfaceRequest) returns (WireGuardInterfaceStatus);
+  rpc Start(WireGuardStartRequest) returns (WireGuardInterfaceStatus);
+  rpc Stop(WireGuardInterfaceRequest) returns (WireGuardStopResponse);
 }
 
 message WireGuardInterfaceRequest {
@@ -17,4 +19,12 @@ message WireGuardInterfaceStatus {
   uint32 mtu = 2;
   // Linux IFF_UP. It describes administrative state.
   bool up = 3;
+  optional string applied_config_sha256 = 4;
 }
+
+message WireGuardStartRequest {
+  string name = 1;
+  bytes config_json = 2;
+}
+
+message WireGuardStopResponse {}
