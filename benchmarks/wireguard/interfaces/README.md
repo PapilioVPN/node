@@ -1,6 +1,6 @@
 # WireGuard interface status
 
-[Start and Stop benchmark](lifecycle.md) · [Configuration validation benchmark](validation.md) · [Node restart recovery benchmark](recovery.md) · [Full peer synchronization benchmark](peers.md)
+[Start and Stop benchmark](lifecycle.md) · [Configuration validation benchmark](validation.md) · [Node restart recovery benchmark](recovery.md) · [Full peer synchronization benchmark](peers.md) · [Targeted peer changes benchmark](peer-delta.md)
 
 Each operation reads the same Linux WireGuard interface and verifies its name,
 MTU, and administrative `IFF_UP` flag. Node makes a fresh, targeted

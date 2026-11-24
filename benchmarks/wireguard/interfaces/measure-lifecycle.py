@@ -114,23 +114,24 @@ def proto_bytes(field, content):
     return varint((field << 3) | 2) + varint(len(content)) + content
 
 
-def peer_payloads(count, changed):
+def peer_records(count, changed):
     addresses = [f"198.18.{(i + 2) // 256}.{(i + 2) % 256}/32" for i in range(count)]
     if changed:
         addresses[0] = "198.18.255.254/32"
-    node = []
-    ref = bytearray()
-    expected = {}
     for i, address in enumerate(addresses):
         key = base64.b64encode(hashlib.sha256(f"isolated peer {i}".encode()).digest())
-        expected[key.decode()] = address
-        node.append({"public_key": key.decode(), "allowed_ips": [address]})
         wireguard = proto_bytes(1, key) + proto_bytes(2, address.encode())
         user = (proto_bytes(1, f"bench-{i}@example.invalid".encode())
                 + proto_bytes(2, proto_bytes(5, wireguard))
                 + proto_bytes(3, peer_interface.encode()))
-        ref.extend(proto_bytes(1, user))
-    return {"node": json.dumps({"peers": node}).encode(), "pasarguard": bytes(ref)}, expected
+        yield {"public_key": key.decode(), "allowed_ips": [address]}, user
+
+
+def peer_payloads(count, changed):
+    peers, users = zip(*peer_records(count, changed))
+    expected = {peer["public_key"]: peer["allowed_ips"][0] for peer in peers}
+    return {"node": json.dumps({"peers": peers}).encode(),
+            "pasarguard": b"".join(proto_bytes(1, user) for user in users)}, expected
 
 
 def check_peers(expected):
@@ -163,12 +164,63 @@ def measure_peers(cases, phases=("noop", "changed")):
             request(conn, stop_method, stop_path)
 
 
+def measure_peer_delta(cases):
+    path = f"/v1/wireguard/interfaces/{peer_interface}/peers"
+    population = 1000
+    payload, baseline = peer_payloads(population, False)
+    _, altered = peer_payloads(population, True)
+    first_key = next(iter(baseline))
+    url_key = base64.urlsafe_b64encode(base64.b64decode(first_key)).decode().rstrip("=")
+    single_path = f"{path}/{url_key}"
+    operations = {}
+    for size in (1, 100, 1000):
+        variants = []
+        for changed in (False, True):
+            peers, users = zip(*peer_records(size, changed))
+            if size == 1:
+                source = json.dumps({"allowed_ips": peers[0]["allowed_ips"]}).encode()
+                variants.append({"node": ("PUT", single_path, source),
+                                 "pasarguard": ("PUT", "/user/sync", users[0])})
+            else:
+                chunk = b"".join(proto_bytes(1, user) for user in users) + b"\x18\x01"
+                variants.append({"node": ("PATCH", path, json.dumps({"upsert": peers}).encode()),
+                                 "pasarguard": ("PUT", "/users/sync/chunked", varint(len(chunk)) + chunk)})
+        operations[size] = variants
+    remove = {"node": ("DELETE", single_path, None),
+              "pasarguard": ("PUT", "/user/sync", proto_bytes(1, b"bench-0@example.invalid"))}
+    without_first = {key: address for key, address in baseline.items() if key != first_key}
+    for block in range(4):
+        for label, args in cases if block % 2 == 0 else reversed(cases):
+            conn, start_method, start_path, source, stop_method, stop_path, valid = args
+            _, reply = request(conn, start_method, start_path, source)
+            assert valid(reply)
+            request(conn, "PUT", path if label == "node" else "/users/sync", payload[label])
+            check_peers(baseline)
+            for size, variants in operations.items():
+                for phase in ("change", "replay"):
+                    for index in range(10):
+                        changed = phase == "change" and index % 2 == 0
+                        elapsed, reply = request(conn, *variants[changed][label])
+                        if label == "node":
+                            assert json.loads(reply) == {"added": 0, "updated": int(phase == "change"), "removed": 0}
+                        print(f"{block + 1},{label},delta_{size}_{phase},{index + 1},{elapsed}")
+                        if index in (0, 9):
+                            check_peers(altered if changed else baseline)
+            for index in range(10):
+                elapsed, _ = request(conn, *remove[label])
+                print(f"{block + 1},{label},delta_1_remove,{index + 1},{elapsed}")
+                check_peers(without_first)
+                request(conn, *operations[1][0][label])
+            check_peers(baseline)
+            request(conn, stop_method, stop_path)
+
+
 def main():
     mode = sys.argv[3] if len(sys.argv) >= 4 else ""
-    valid_args = (len(sys.argv) == 3 or len(sys.argv) == 4 and mode in ("--live-mtu", "--peer-sync")
+    valid_args = (len(sys.argv) == 3 or len(sys.argv) == 4 and mode in ("--live-mtu", "--peer-sync", "--peer-delta")
                   or len(sys.argv) == 5 and mode == "--peer-replay")
     if not valid_args:
-        raise SystemExit("usage: measure-lifecycle.py NODE PASARGUARD [--live-mtu|--peer-sync|--peer-replay PREVIOUS_NODE]")
+        raise SystemExit("usage: measure-lifecycle.py NODE PASARGUARD [--live-mtu|--peer-sync|--peer-replay PREVIOUS_NODE|--peer-delta]")
     parent = os.environ.get("NODE_TEST_WIREGUARD_PARENT_NETNS")
     if not parent or parent == os.readlink("/proc/self/ns/net"):
         raise RuntimeError("run in a separate network namespace")
@@ -183,7 +235,7 @@ def main():
                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         context = ssl.create_default_context(cafile=str(cert))
         context.minimum_version = ssl.TLSVersion.TLSv1_3
-        peer_test = mode in ("--peer-sync", "--peer-replay")
+        peer_test = mode in ("--peer-sync", "--peer-replay", "--peer-delta")
         env = {**os.environ, "GOMAXPROCS": "2" if peer_test else "1"}
         timeout = 15 if peer_test else 3
 
@@ -240,6 +292,9 @@ wireguard:
             return
         if mode == "--peer-sync":
             measure_peers(cases)
+            return
+        if mode == "--peer-delta":
+            measure_peer_delta(cases)
             return
         if mode == "--peer-replay":
             previous = launch_node(sys.argv[4], "node-before")
