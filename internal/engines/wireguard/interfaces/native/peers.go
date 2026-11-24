@@ -96,7 +96,7 @@ func (control *Control) readPeers(ctx context.Context, index, expectedPeers, exp
 		}
 	}
 	if control.peerDump == nil {
-		control.peerDump, err = gennetlink.Dial(genetlink.Protocol, nil)
+		control.peerDump, err = openPeerDump()
 		if err != nil {
 			return peerSnapshot{}, err
 		}
@@ -117,34 +117,25 @@ func (control *Control) readPeers(ctx context.Context, index, expectedPeers, exp
 	if err != nil {
 		return peerSnapshot{}, err
 	}
-	req, err := genetlink.NewConn(control.peerDump).Send(genetlink.Message{
+	dump := control.peerDump
+	req, err := dump.Send(genetlink.Message{
 		Header: genetlink.Header{Command: unix.WG_CMD_GET_DEVICE, Version: control.family.Version},
 		Data:   data,
 	}, control.family.ID, gennetlink.Request|gennetlink.Dump)
 	if err != nil {
 		return peerSnapshot{}, err
 	}
-	snapshot.peers = make([]peers.Peer, 0, expectedPeers)
-	snapshot.allowedIPs = make([]netip.Prefix, 0, expectedIPs)
-	seen := false
-	for message, err := range control.peerDump.ReceiveIter() {
-		if err != nil {
-			return peerSnapshot{}, err
-		}
-		if message.Header.Type != req.Header.Type || message.Header.Flags&gennetlink.DumpInterrupted != 0 || len(message.Data) < 4 ||
-			gennetlink.Validate(req, []gennetlink.Message{message}) != nil {
-			return peerSnapshot{}, errPeerSnapshot
-		}
-		decodeErr := snapshot.decode(message.Data[4:])
-		clear(message.Data)
-		if decodeErr != nil {
-			return peerSnapshot{}, decodeErr
-		}
-		seen = true
+	// Previous counts are allocation hints. Every operation reads a fresh dump.
+	snapshot.peers = make([]peers.Peer, 0, max(expectedPeers, dump.peerCount))
+	snapshot.allowedIPs = make([]netip.Prefix, 0, max(expectedIPs, dump.prefixCount))
+	if err := dump.read(ctx, req.Header, &snapshot); err != nil {
+		return peerSnapshot{}, err
 	}
-	if !seen || snapshot.self == [32]byte{} {
+	if snapshot.self == [32]byte{} {
 		return peerSnapshot{}, errPeerSnapshot
 	}
+	dump.peerCount = len(snapshot.peers)
+	dump.prefixCount = len(snapshot.allowedIPs)
 	return snapshot, ctx.Err()
 }
 

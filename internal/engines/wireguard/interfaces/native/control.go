@@ -18,7 +18,7 @@ import (
 type Control struct {
 	route    *netlink.Handle
 	generic  *genetlink.Conn
-	peerDump *gennetlink.Conn
+	peerDump *peerDumpSocket
 	family   genetlink.Family
 }
 
