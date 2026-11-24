@@ -90,24 +90,24 @@ type Config struct {
 	MTU        uint32
 }
 
-type fixedConfig struct {
-	privateKeySHA256 [32]byte
-	addresses        []netip.Prefix
-	listenPort       uint16
+type FixedConfig struct {
+	PrivateKeySHA256 [32]byte       `json:"private_key_sha256"`
+	Addresses        []netip.Prefix `json:"addresses"`
+	ListenPort       uint16         `json:"listen_port"`
 }
 
-func (config Config) fixed() fixedConfig {
-	return fixedConfig{
-		privateKeySHA256: sha256.Sum256(config.PrivateKey[:]),
-		addresses:        config.Addresses,
-		listenPort:       config.ListenPort,
+func (config Config) fixed() FixedConfig {
+	return FixedConfig{
+		PrivateKeySHA256: sha256.Sum256(config.PrivateKey[:]),
+		Addresses:        config.Addresses,
+		ListenPort:       config.ListenPort,
 	}
 }
 
-func (fixed fixedConfig) matches(config Config) bool {
-	return fixed.listenPort == config.ListenPort &&
-		slices.Equal(fixed.addresses, config.Addresses) &&
-		fixed.privateKeySHA256 == sha256.Sum256(config.PrivateKey[:])
+func (fixed FixedConfig) matches(config Config) bool {
+	return fixed.ListenPort == config.ListenPort &&
+		slices.Equal(fixed.Addresses, config.Addresses) &&
+		fixed.PrivateKeySHA256 == sha256.Sum256(config.PrivateKey[:])
 }
 
 func parseConfig(source []byte) (Config, error) {

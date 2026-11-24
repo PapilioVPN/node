@@ -22,7 +22,7 @@
 | Xray 账户 | 通过 HTTP 和 gRPC 在选定入站上按账户、完整列表或分块增量同步，并在受管重启时恢复已确认的账户。启用持久化后，重启 Node 也可以恢复账户。同步会跳过启动时在 `exclude_inbounds` 中列出的入站。支持 VLESS、VMess、Trojan、Shadowsocks、兼容的 Shadowsocks 2022 服务器、Hysteria、MASQUE 和 Xray 内的 WireGuard。VLESS 还支持直接添加、删除和计数。 |
 | Xray 日志流 | 通过 HTTP 和 gRPC 持续接收运行实例的 stdout 和 stderr。 |
 | Xray 出站健康状态 | 通过 HTTP 和 gRPC 读取全部 Observatory 观测结果，或按出站标签查询。 |
-| WireGuard 接口 | 通过 HTTP 和 gRPC 查询状态、验证配置、启动或停止 Linux 接口，并在线更新 MTU。 |
+| WireGuard 接口 | 通过 HTTP 和 gRPC 查询状态、验证配置、启动和停止接口、在线更新 MTU，并可选在 Node 重启后恢复。 |
 
 <a name="management"></a>
 
@@ -80,6 +80,8 @@ HTTP `GET /v1/host/stats` 和 gRPC `HostService.GetSystemStats` 返回 `uptime_s
 
 参照[配置示例](../deploy/config.example.yml)，在 `wireguard` 下的 `interface` 字段中填写接口名称。使用 `GET /v1/wireguard/interfaces/{name}` 或 `WireGuardInterfacesService.GetStatus` 读取 Node 所在 Linux 网络命名空间中的已配置接口。响应包含 `name`、以字节计的 `mtu`，以及来自内核管理标志 `IFF_UP` 的 `up`。接口不存在、未配置或类型不是 WireGuard 时，HTTP 返回 `404`，gRPC 返回 `NOT_FOUND`。套接字忙时，并发请求可能收到 HTTP `429` 或 gRPC `RESOURCE_EXHAUSTED`。远程访问需要 TLS 与 API 密钥或客户端 CA。 [gRPC](../internal/engines/wireguard/interfaces/bridge/grpc/proto/v1/interfaces.proto)
 
-在 `wireguard` 下设置 `managed: true` 可管理内核接口的生命周期。Node 需要在接口的网络命名空间拥有 Linux `CAP_NET_ADMIN`。通过 `PUT /v1/wireguard/interfaces/{name}/execution` 发送原始 JSON，或将字节传给 `WireGuardInterfacesService.Start`。输入包括 base64 编码的 32 字节 `private_key`、`addresses` 中的一到十六个单播 CIDR，以及可选的 `mtu`（默认 1420）和 `listen_port`（0 表示由内核分配）。输入上限为 1 MiB。确认后，`Start` 和 `GetStatus` 返回 `applied_config_sha256`。重复提交完全相同的字节会检查接口并返回相同的哈希。在线修改 MTU 时，使用同一 Start 请求，提交新的 MTU，并保持私钥、监听端口以及地址顺序一致。接口和对等端保持运行。内核确认 MTU 后，Start 返回新哈希。提交不支持的在线变更或使用其他所有者的接口时，HTTP 返回 `409`，gRPC 返回 `FAILED_PRECONDITION`。更新失败后如果确认旧 MTU，仍返回旧哈希。如果结果无法确认，GetStatus 省略哈希，Stop 仍可使用。通过对运行资源发出 `DELETE` 或调用 `Stop` RPC 停止。Node 在停止或正常退出时删除自己创建的接口。
+在 `wireguard` 下设置 `managed: true` 可管理内核接口的生命周期。Node 需要在接口的网络命名空间拥有 Linux `CAP_NET_ADMIN`。通过 `PUT /v1/wireguard/interfaces/{name}/execution` 发送原始 JSON，或将字节传给 `WireGuardInterfacesService.Start`。输入包括 base64 编码的 32 字节 `private_key`、`addresses` 中的一到十六个单播 CIDR，以及可选的 `mtu`（默认 1420）和 `listen_port`（0 表示由内核分配）。输入上限为 1 MiB。确认后，`Start` 和 `GetStatus` 返回 `applied_config_sha256`。重复提交完全相同的字节会检查接口并返回相同的哈希。在线修改 MTU 时，使用同一 Start 请求，提交新的 MTU，并保持私钥、监听端口以及地址顺序一致。接口和对等端保持运行。内核确认 MTU 后，Start 返回新哈希。提交不支持的在线变更或使用其他所有者的接口时，HTTP 返回 `409`，gRPC 返回 `FAILED_PRECONDITION`。更新失败后如果确认旧 MTU，仍返回旧哈希。如果结果无法确认，GetStatus 省略哈希，Stop 仍可使用。通过对运行资源发出 `DELETE` 或调用 `Stop` RPC 停止。显式 Stop 会删除 Node 创建的接口。默认情况下，进程正常退出也会删除该接口。
 
 将拟提交的 JSON 发送到 `POST /v1/wireguard/interfaces/{name}/config-validations`，或将其字节传给 `WireGuardInterfacesService.ValidateConfig`。验证采用与 Start 相同的输入检查，上限为 1 MiB，每个已配置接口同时处理一次检查。只读配置也可使用。验证拒绝时返回 `valid: false`，以及 JSON、私钥、地址、重复地址、MTU 或监听端口的类型化问题代码。响应仅包含问题代码。空运行在内存中检查配置。端口可用性和内核就绪状态在 Start 时检查。
+
+将 `wireguard.state_directory` 指向 Node 拥有的现有专用目录，权限为 `0700`，即可启用恢复。进程重启期间接口保持运行，所有权和已确认配置的元数据保存在权限为 `0600` 的文件中。私钥原文和 JSON 保留在文件之外。Node 发布已记录哈希前会核对内核启动标识、网络命名空间、接口标识、管理状态和 MTU。配置无法确认时，仍可用 Stop 停止自有接口。显式 Stop 也会删除检查点。恢复原接口适用于同一次内核启动和同一网络命名空间。

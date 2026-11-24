@@ -55,7 +55,7 @@ func Load(path string) (Config, error) {
 	if err := config.Xray.validate(dir, config.Management); err != nil {
 		return Config{}, err
 	}
-	if err := config.WireGuard.validate(config.Management); err != nil {
+	if err := config.WireGuard.validate(dir, config.Management); err != nil {
 		return Config{}, err
 	}
 	return config, nil

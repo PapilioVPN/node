@@ -24,9 +24,9 @@ var (
 const OperationTimeout = 2 * time.Second
 
 type Link struct {
-	Name  string
-	Alias string
-	Index int
+	Name  string `json:"name"`
+	Alias string `json:"alias"`
+	Index int    `json:"index"`
 }
 
 type Control interface {
@@ -36,23 +36,17 @@ type Control interface {
 	Remove(context.Context, Link) error
 }
 
-type execution struct {
-	link   Link
-	digest string
-	mtu    uint32
-	fixed  fixedConfig
-}
-
 type Service struct {
 	name    string
 	control Control
+	store   CheckpointStore
 	mu      sync.Mutex
 	owned   Link
-	applied atomic.Pointer[execution]
+	applied atomic.Pointer[Checkpoint]
 }
 
-func New(name string, control Control) *Service {
-	return &Service{name: name, control: control}
+func New(name string, control Control, store CheckpointStore) *Service {
+	return &Service{name: name, control: control, store: store}
 }
 
 func (service *Service) Start(ctx context.Context, name string, source []byte) (status.Interface, error) {
@@ -74,10 +68,10 @@ func (service *Service) Start(ctx context.Context, name string, source []byte) (
 	sum := sha256.Sum256(source)
 	digest := hex.EncodeToString(sum[:])
 	if current := service.applied.Load(); current != nil {
-		if current.digest != digest {
+		if current.SHA256 != digest {
 			return service.applyLive(ctx, current, source, digest)
 		}
-		result, err := service.control.Inspect(ctx, current.link)
+		result, err := service.control.Inspect(ctx, current.Link)
 		if err != nil {
 			return status.Interface{}, err
 		}
@@ -99,48 +93,59 @@ func (service *Service) Start(ctx context.Context, name string, source []byte) (
 		return status.Interface{}, err
 	}
 	link := Link{Name: name, Alias: "papiliovpn-node:" + id.String()}
+	if err := service.save(Checkpoint{Link: link}); err != nil {
+		return status.Interface{}, err
+	}
 	result, err := service.control.Create(ctx, link, config)
 	if errors.Is(err, ErrConflict) {
-		return status.Interface{}, err
+		return status.Interface{}, errors.Join(err, service.clear())
 	}
 	link.Index = result.Index
 	service.owned = link
+	accepted := Checkpoint{Link: link, SHA256: digest, MTU: config.MTU, Fixed: config.fixed()}
+	if err == nil {
+		err = service.save(accepted)
+	}
 	if err != nil {
 		cleanupCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), time.Second)
 		defer cancel()
 		cleanupErr := service.remove(cleanupCtx)
 		return status.Interface{}, errors.Join(err, cleanupErr)
 	}
-	service.applied.Store(&execution{link: link, digest: digest, mtu: config.MTU, fixed: config.fixed()})
+	service.applied.Store(&accepted)
 	result.AppliedSHA256 = digest
 	return result, nil
 }
 
-func (service *Service) applyLive(ctx context.Context, current *execution, source []byte, digest string) (status.Interface, error) {
+func (service *Service) applyLive(ctx context.Context, current *Checkpoint, source []byte, digest string) (status.Interface, error) {
 	config, err := parseConfig(source)
 	if err != nil {
 		return status.Interface{}, err
 	}
-	if config.MTU == current.mtu || !current.fixed.matches(config) {
+	if config.MTU == current.MTU || !current.Fixed.matches(config) {
 		return status.Interface{}, ErrConflict
 	}
-	result, err := service.control.UpdateMTU(ctx, current.link, current.mtu, config.MTU)
+	result, err := service.control.UpdateMTU(ctx, current.Link, current.MTU, config.MTU)
 	if errors.Is(err, ErrUnconfirmed) {
 		service.applied.Store(nil)
 	}
 	if err != nil {
 		return status.Interface{}, err
 	}
-	service.applied.Store(&execution{link: current.link, digest: digest, mtu: config.MTU, fixed: current.fixed})
+	accepted := Checkpoint{Link: current.Link, SHA256: digest, MTU: config.MTU, Fixed: current.Fixed}
+	if err := service.save(accepted); err != nil {
+		service.applied.Store(nil)
+		return status.Interface{}, errors.Join(ErrUnconfirmed, err)
+	}
+	service.applied.Store(&accepted)
 	result.AppliedSHA256 = digest
 	return result, nil
 }
 
 func (service *Service) AppliedHash(link status.Interface) string {
 	current := service.applied.Load()
-	if current != nil && link.Up && current.mtu == link.MTU &&
-		link.Name == current.link.Name && link.Index == current.link.Index && link.Alias == current.link.Alias {
-		return current.digest
+	if current != nil && current.matches(link) {
+		return current.SHA256
 	}
 	return ""
 }
@@ -169,7 +174,7 @@ func (service *Service) Stop(ctx context.Context, name string) error {
 func (service *Service) Close(ctx context.Context) error {
 	service.mu.Lock()
 	defer service.mu.Unlock()
-	if service.owned.Alias == "" {
+	if service.store != nil || service.owned.Alias == "" {
 		return nil
 	}
 	return service.remove(ctx)
@@ -178,8 +183,11 @@ func (service *Service) Close(ctx context.Context) error {
 func (service *Service) remove(ctx context.Context) error {
 	err := service.control.Remove(ctx, service.owned)
 	if err == nil || errors.Is(err, ErrConflict) {
-		service.owned = Link{}
 		service.applied.Store(nil)
+		if clearErr := service.clear(); clearErr != nil {
+			return errors.Join(err, clearErr)
+		}
+		service.owned = Link{}
 	}
 	return err
 }

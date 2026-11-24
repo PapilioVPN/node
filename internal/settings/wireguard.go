@@ -2,6 +2,8 @@ package settings
 
 import (
 	"errors"
+	"fmt"
+	"path/filepath"
 	"strings"
 	"unicode/utf8"
 
@@ -9,13 +11,27 @@ import (
 )
 
 type WireGuard struct {
-	Interface string `yaml:"interface"`
-	Managed   bool   `yaml:"managed"`
+	Interface      string `yaml:"interface"`
+	Managed        bool   `yaml:"managed"`
+	StateDirectory string `yaml:"state_directory"`
 }
 
 func (config WireGuard) Enabled() bool { return config.Interface != "" }
 
-func (config WireGuard) validate(management Management) error {
+func (config *WireGuard) validate(dir string, management Management) error {
+	if config.StateDirectory != "" {
+		if !config.Managed {
+			return errors.New("wireguard.state_directory requires managed mode")
+		}
+		if strings.ContainsRune(config.StateDirectory, 0) {
+			return errors.New("wireguard.state_directory must not contain NUL")
+		}
+		path, err := filepath.Abs(resolve(dir, config.StateDirectory))
+		if err != nil {
+			return fmt.Errorf("resolve wireguard state directory: %w", err)
+		}
+		config.StateDirectory = path
+	}
 	if !config.Enabled() {
 		if config.Managed {
 			return errors.New("wireguard.interface is required when managed")

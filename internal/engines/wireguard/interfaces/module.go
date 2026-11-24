@@ -28,11 +28,30 @@ func register(lifecycle fx.Lifecycle, config settings.WireGuard, router *chi.Mux
 	var appliedHash func(status.Interface) string
 	if config.Managed {
 		control := new(native.Control)
-		managed = wglifecycle.New(config.Interface, control)
+		var store wglifecycle.CheckpointStore
+		if config.StateDirectory != "" {
+			checkpoints := &native.CheckpointStore{Path: config.StateDirectory}
+			store = checkpoints
+			lifecycle.Append(fx.Hook{OnStart: checkpoints.Open, OnStop: func(context.Context) error {
+				return checkpoints.Close()
+			}})
+		}
+		managed = wglifecycle.New(config.Interface, control, store)
 		appliedHash = managed.AppliedHash
-		lifecycle.Append(fx.Hook{OnStart: control.Open, OnStop: func(ctx context.Context) error {
-			return errors.Join(managed.Close(ctx), control.Close())
-		}})
+		lifecycle.Append(fx.Hook{
+			OnStart: func(ctx context.Context) error {
+				if err := control.Open(ctx); err != nil {
+					return err
+				}
+				if err := managed.Recover(ctx); err != nil {
+					return errors.Join(err, control.Close())
+				}
+				return nil
+			},
+			OnStop: func(ctx context.Context) error {
+				return errors.Join(managed.Close(ctx), control.Close())
+			},
+		})
 	}
 	service := status.New(config.Interface, reader, appliedHash)
 	validator := wglifecycle.NewValidator(config.Interface)
