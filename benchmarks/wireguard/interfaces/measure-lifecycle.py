@@ -158,9 +158,13 @@ def check_peers(expected, name=peer_interface):
     assert dict(line.split() for line in lines) == expected
 
 
-def measure_interface_traffic(cases, reference_name):
-    traffic_path = f"/v1/wireguard/interfaces/{peer_interface}/traffic"
+def measure_interface_traffic(cases, reference_name, usage=False):
+    link_path = f"/v1/wireguard/interfaces/{peer_interface}"
     outbound_request = proto_bytes(1, reference_name.encode()) + b"\x18\x01"
+    operations = (
+        ("usage_read", "GET", link_path + "/usage", outbound_request),
+        ("usage_reset", "POST", link_path + "/usage/resets", outbound_request + b"\x10\x01"),
+    ) if usage else (("traffic", "GET", link_path + "/traffic", outbound_request),)
     names = {"node": peer_interface, "pasarguard": reference_name}
     for _, (conn, method, path, source, _, _, valid) in cases:
         _, payload = request(conn, method, path, source)
@@ -177,16 +181,17 @@ def measure_interface_traffic(cases, reference_name):
                                input=peer_config, text=True, check=True)
             check_peers(peers, name)
         for block in range(1, 5):
-            for label, (conn, *_) in cases if block % 2 else reversed(cases):
-                path, body = (traffic_path, None) if label == "node" else ("/stats/", outbound_request)
-                for iteration in range(-5, 40):
-                    elapsed, payload = request(conn, "GET", path, body)
-                    if label == "node":
-                        assert json.loads(payload) == {"rx_bytes": "0", "tx_bytes": "0"}
-                    else:
-                        assert payload == b"", "expected an empty zero-delta StatResponse"
-                    if iteration >= 0:
-                        print(f"{block},{label},traffic_{count}_peers,{iteration + 1},{elapsed}")
+            for operation, node_method, node_path, ref_body in operations:
+                for label, (conn, *_) in cases if block % 2 else reversed(cases):
+                    method, path, body = (node_method, node_path, None) if label == "node" else ("GET", "/stats/", ref_body)
+                    for iteration in range(-5, 40):
+                        elapsed, payload = request(conn, method, path, body)
+                        if label == "node":
+                            assert json.loads(payload) == {"rx_bytes": "0", "tx_bytes": "0"}
+                        else:
+                            assert payload == b"", "expected an empty zero-delta StatResponse"
+                        if iteration >= 0:
+                            print(f"{block},{label},{operation}_{count}_peers,{iteration + 1},{elapsed}")
     for label, (conn, _, _, _, method, path, _) in cases:
         request(conn, method, path)
         check_link_removed(names[label])
@@ -276,10 +281,11 @@ def measure_peer_delta(cases):
 
 def main():
     mode = sys.argv[3] if len(sys.argv) >= 4 else ""
-    valid_args = (len(sys.argv) == 3 or len(sys.argv) == 4 and mode in ("--lifecycle-check", "--live-mtu", "--peer-sync", "--peer-delta", "--interface-traffic")
+    link_test = mode in ("--interface-traffic", "--interface-usage")
+    valid_args = (len(sys.argv) == 3 or len(sys.argv) == 4 and (link_test or mode in ("--lifecycle-check", "--live-mtu", "--peer-sync", "--peer-delta"))
                   or len(sys.argv) == 5 and mode in ("--peer-sync", "--peer-replay", "--peer-delta"))
     if not valid_args:
-        raise SystemExit("usage: measure-lifecycle.py NODE PASARGUARD [--lifecycle-check|--live-mtu|--interface-traffic|--peer-sync [PREVIOUS_NODE]|--peer-replay PREVIOUS_NODE|--peer-delta [PREVIOUS_NODE]]")
+        raise SystemExit("usage: measure-lifecycle.py NODE PASARGUARD [--lifecycle-check|--live-mtu|--interface-traffic|--interface-usage|--peer-sync [PREVIOUS_NODE]|--peer-replay PREVIOUS_NODE|--peer-delta [PREVIOUS_NODE]]")
     parent = os.environ.get("NODE_TEST_WIREGUARD_PARENT_NETNS")
     if not parent or parent == os.readlink("/proc/self/ns/net"):
         raise RuntimeError("run in a separate network namespace")
@@ -296,7 +302,7 @@ def main():
         context.minimum_version = ssl.TLSVersion.TLSv1_3
         peer_test = mode in ("--peer-sync", "--peer-replay", "--peer-delta")
         env = {**os.environ, "GOMAXPROCS": "2" if peer_test else "1"}
-        timeout = 15 if peer_test or mode == "--interface-traffic" else 3
+        timeout = 15 if peer_test or link_test else 3
 
         def launch_node(binary, label):
             node_port, grpc_port = port(), port()
@@ -324,14 +330,14 @@ wireguard:
                      "reference", directory, context, ref_port, "/info", timeout)
         local = {"listen_port": 51820, "private_key": private_key}
         address = "198.18.0.1/16" if peer_test else "192.0.2.1/24"
-        reference_name = "wg-bench1" if mode == "--interface-traffic" else peer_interface
+        reference_name = "wg-bench1" if link_test else peer_interface
 
         def node_config(mtu):
             return json.dumps({**local, "mtu": mtu, "addresses": [address]}).encode()
 
         def ref_config(mtu):
             reference = {**local, "mtu": mtu, "interface_name": reference_name, "address": [address]}
-            if mode == "--interface-traffic":
+            if link_test:
                 reference.update(listen_port=51821, address=["192.0.2.2/24"])
             config = json.dumps(reference).encode()
             return b"\x08\x01\x12" + varint(len(config)) + config
@@ -350,8 +356,8 @@ wireguard:
             ("pasarguard", (ref, "POST", "/start", pg_source, "PUT", "/stop", ref_valid)),
         ]
         print("run,implementation,operation,iteration,nanoseconds")
-        if mode == "--interface-traffic":
-            measure_interface_traffic(cases, reference_name)
+        if link_test:
+            measure_interface_traffic(cases, reference_name, usage=mode == "--interface-usage")
             return
         if mode == "--live-mtu":
             measure_mtu(cases, {"node": node_config, "pasarguard": ref_config})
