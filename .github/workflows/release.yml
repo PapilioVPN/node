@@ -1,0 +1,70 @@
+name: Publish release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Stable tag (for example, v1.0.0)
+        required: true
+        type: string
+      check_run_id:
+        description: Successful Checks workflow run ID for the current main commit
+        required: true
+        type: string
+      notes:
+        description: Release notes in Markdown
+        required: true
+        type: string
+
+permissions: {}
+
+concurrency:
+  group: node-release-${{ inputs.tag }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      contents: write
+    steps:
+      - name: Verify and publish the checked Linux package
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ inputs.tag }}
+          CHECK_RUN_ID: ${{ inputs.check_run_id }}
+          RELEASE_NOTES: ${{ inputs.notes }}
+        run: |
+          set -u
+          [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          [[ "$CHECK_RUN_ID" =~ ^[0-9]+$ ]]
+          test -n "$RELEASE_NOTES"
+
+          run="repos/$GH_REPO/actions/runs/$CHECK_RUN_ID"
+          evidence=$(gh api "$run" --jq '[.path, .head_branch, .head_sha, .head_repository.full_name, .event, .status, .conclusion] | join(" ")')
+          test "$evidence" = ".github/workflows/check.yml main $GITHUB_SHA $GH_REPO push completed success"
+
+          package="node-${TAG#v}-linux-amd64-$GITHUB_SHA"
+          archive="$package.tar.gz"
+          metadata=$(gh api "$run/artifacts")
+          artifact=$(jq -er --arg name "$package" '.artifacts[] | select(.name == $name and .expired == false) | .id' <<< "$metadata")
+          digest=$(jq -er --arg name "$package" '.artifacts[] | select(.name == $name and .expired == false) | .digest' <<< "$metadata")
+          [[ "$artifact" =~ ^[0-9]+$ && "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]
+
+          cd "$(mktemp -d)"
+          gh api "repos/$GH_REPO/actions/artifacts/$artifact/zip" > artifact.zip
+          printf '%s  artifact.zip\n' "${digest#sha256:}" | sha256sum -c
+          unzip -q artifact.zip "$archive" "$archive.sha256"
+          sha256sum -c "$archive.sha256"
+          tar -xzf "$archive" node/node
+          test "$(./node/node -version)" = "${TAG#v}"
+
+          test "$(gh api "repos/$GH_REPO/git/ref/heads/main" --jq .object.sha)" = "$GITHUB_SHA"
+          printf '%s\n' "$RELEASE_NOTES" > notes.md
+          gh release create "$TAG" --target "$GITHUB_SHA" --title "PapilioVPN Node $TAG" \
+            --notes-file notes.md --latest "$archive" "$archive.sha256"
