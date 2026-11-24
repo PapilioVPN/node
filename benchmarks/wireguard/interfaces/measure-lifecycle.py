@@ -138,7 +138,7 @@ def check_peers(expected):
     assert dict(line.split() for line in lines) == expected
 
 
-def measure_peers(cases):
+def measure_peers(cases, phases=("noop", "changed")):
     payloads = {size: (peer_payloads(size, False), peer_payloads(size, True)) for size in (1, 100, 1000)}
     for repeat in range(5):
         for label, args in cases if repeat % 2 == 0 else reversed(cases):
@@ -146,16 +146,17 @@ def measure_peers(cases):
             _, reply = request(conn, start_method, start_path, source)
             assert valid(reply)
             path = "/users/sync" if label == "pasarguard" else f"/v1/wireguard/interfaces/{peer_interface}/peers"
+            encoding = "pasarguard" if label == "pasarguard" else "node"
             for size, variants in payloads.items():
                 initial, expected = variants[0]
-                request(conn, "PUT", path, initial[label])
+                request(conn, "PUT", path, initial[encoding])
                 check_peers(expected)
-                for phase in ("noop", "changed"):
+                for phase in phases:
                     for index in range(10):
                         variant = 1 - index % 2 if phase == "changed" else 0
                         bodies, expected = variants[variant]
-                        elapsed, reply = request(conn, "PUT", path, bodies[label])
-                        if label == "node":
+                        elapsed, reply = request(conn, "PUT", path, bodies[encoding])
+                        if encoding == "node":
                             assert json.loads(reply) == {"added": 0, "updated": int(phase == "changed"), "removed": 0}
                         print(f"{repeat + 1},{label},peers_{size}_{phase},{index + 1},{elapsed}")
                     check_peers(expected)
@@ -163,9 +164,11 @@ def measure_peers(cases):
 
 
 def main():
-    if len(sys.argv) not in (3, 4) or len(sys.argv) == 4 and sys.argv[3] not in ("--live-mtu", "--peer-sync"):
-        raise SystemExit("usage: measure-lifecycle.py NODE PASARGUARD [--live-mtu|--peer-sync]")
-    mode = sys.argv[3] if len(sys.argv) == 4 else ""
+    mode = sys.argv[3] if len(sys.argv) >= 4 else ""
+    valid_args = (len(sys.argv) == 3 or len(sys.argv) == 4 and mode in ("--live-mtu", "--peer-sync")
+                  or len(sys.argv) == 5 and mode == "--peer-replay")
+    if not valid_args:
+        raise SystemExit("usage: measure-lifecycle.py NODE PASARGUARD [--live-mtu|--peer-sync|--peer-replay PREVIOUS_NODE]")
     parent = os.environ.get("NODE_TEST_WIREGUARD_PARENT_NETNS")
     if not parent or parent == os.readlink("/proc/self/ns/net"):
         raise RuntimeError("run in a separate network namespace")
@@ -180,9 +183,14 @@ def main():
                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         context = ssl.create_default_context(cafile=str(cert))
         context.minimum_version = ssl.TLSVersion.TLSv1_3
-        node_port, ref_port, grpc_port = port(), port(), port()
-        cfg = directory / "config.yml"
-        cfg.write_text(f"""management:
+        peer_test = mode in ("--peer-sync", "--peer-replay")
+        env = {**os.environ, "GOMAXPROCS": "2" if peer_test else "1"}
+        timeout = 15 if peer_test else 3
+
+        def launch_node(binary, label):
+            node_port, grpc_port = port(), port()
+            cfg = directory / f"{label}.yml"
+            cfg.write_text(f"""management:
   http_address: "127.0.0.1:{node_port}"
   grpc_address: "127.0.0.1:{grpc_port}"
   api_key: "{api_key}"
@@ -193,17 +201,18 @@ wireguard:
   interface: "{peer_interface}"
   managed: true
 """)
-        env = {**os.environ, "GOMAXPROCS": "2" if mode == "--peer-sync" else "1"}
-        timeout = 15 if mode == "--peer-sync" else 3
-        node = launch(stack, [sys.argv[1], "-config", str(cfg)], env, "node",
-                      directory, context, node_port, "/healthz", timeout)
+            return launch(stack, [binary, "-config", str(cfg)], env, label,
+                          directory, context, node_port, "/healthz", timeout)
+
+        node = launch_node(sys.argv[1], "node")
+        ref_port = port()
         ref = launch(stack, [sys.argv[2]], {**env, "NODE_HOST": "127.0.0.1",
                      "SERVICE_PORT": str(ref_port), "SERVICE_PROTOCOL": "rest",
                      "API_KEY": api_key, "SSL_CERT_FILE": str(cert), "SSL_KEY_FILE": str(key),
                      "PG_NODE_WG_HOST_ROUTING": "false", "PG_NODE_WG_NAT_DISABLE": "true"},
                      "reference", directory, context, ref_port, "/info", timeout)
         local = {"listen_port": 51820, "private_key": private_key}
-        address = "198.18.0.1/16" if mode == "--peer-sync" else "192.0.2.1/24"
+        address = "198.18.0.1/16" if peer_test else "192.0.2.1/24"
 
         def node_config(mtu):
             return json.dumps({**local, "mtu": mtu, "addresses": [address]}).encode()
@@ -231,6 +240,11 @@ wireguard:
             return
         if mode == "--peer-sync":
             measure_peers(cases)
+            return
+        if mode == "--peer-replay":
+            previous = launch_node(sys.argv[4], "node-before")
+            cases.insert(0, ("node-before", (previous, "PUT", execution, source, "DELETE", execution, node_valid)))
+            measure_peers(cases, phases=("noop",))
             return
         for repeat in range(5):
             for label, args in cases if repeat % 2 == 0 else reversed(cases):

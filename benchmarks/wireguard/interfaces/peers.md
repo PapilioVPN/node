@@ -29,6 +29,29 @@ with warm loopback connections. Linux `6.17.0-41-generic`, two logical
 CPUs on an AMD Ryzen 7 3750H. Host routing and NAT for the reference are
 disabled. [Raw request durations](results/peer-sync-https.csv)
 
+## Replay decoder optimization
+
+The optimized decoder reads attributes inside the live netlink datagram.
+It copies the keys and prefixes used by reconciliation into typed values.
+Profiling the 1,000-peer kernel read found about 17,462 allocations per
+operation with the previous decoder and 1,317 with the new decoder.
+Integration coverage checks that replay also corrects an out-of-band kernel
+change and preserves the unchanged peer's handshake.
+
+The replay fixture alternates the previous Node build at `5178517`, the
+optimized build and the pinned PasarGuard build on the same two CPUs.
+Each cell is the median of 50 authenticated HTTPS requests.
+
+| Peers | Previous Node, ms | Optimized Node, ms | PasarGuard, ms |
+| ---: | ---: | ---: | ---: |
+| 1 | 0.725 | 0.499 | 0.460 |
+| 100 | 1.482 | 1.169 | 1.029 |
+| 1,000 | 7.498 | 6.114 | 6.132 |
+
+[Raw replay request durations](results/peer-replay-https.csv)
+
 Use the setup in [the lifecycle benchmark](lifecycle.md#reproduce) with
 two allowed logical CPUs in `taskset` and add `--peer-sync` after the
-PasarGuard binary path. The peer fixture also uses `wg`.
+PasarGuard binary path. For the three-build replay fixture, use
+`--peer-replay /path/to/previous-node` in place of `--peer-sync`.
+The peer fixture also uses `wg`.

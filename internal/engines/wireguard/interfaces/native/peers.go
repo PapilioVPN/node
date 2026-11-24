@@ -2,6 +2,7 @@ package native
 
 import (
 	"context"
+	"encoding/binary"
 	"errors"
 	"net/netip"
 	"os"
@@ -126,54 +127,60 @@ func (control *Control) readPeers(ctx context.Context, index, expected int) (sna
 	return snapshot, ctx.Err()
 }
 
-func (snapshot *peerSnapshot) decode(data []byte) error {
-	decoder, err := gennetlink.NewAttributeDecoder(data)
-	if err != nil {
-		return err
-	}
-	for decoder.Next() {
-		switch decoder.Type() {
-		case unix.WGDEVICE_A_PUBLIC_KEY:
-			decoder.Do(func(data []byte) error { return readKey(data, &snapshot.self) })
-		case unix.WGDEVICE_A_PEERS:
-			decoder.Nested(snapshot.decodePeers)
-		}
-	}
-	return decoder.Err()
+// snapshotAttributes borrows one kernel message. Keep its values within the
+// decode call so the raw datagram, including keys, can be cleared afterwards.
+type snapshotAttributes struct {
+	remaining []byte
+	kind      uint16
+	value     []byte
+	err       error
 }
 
-func (snapshot *peerSnapshot) decodePeers(decoder *gennetlink.AttributeDecoder) error {
-	for decoder.Next() {
-		var peer peers.Peer
-		start := len(snapshot.allowedIPs)
-		decoder.Nested(func(fields *gennetlink.AttributeDecoder) error {
-			for fields.Next() {
-				switch fields.Type() {
-				case unix.WGPEER_A_PUBLIC_KEY:
-					fields.Do(func(data []byte) error { return readKey(data, &peer.PublicKey) })
-				case unix.WGPEER_A_PRESHARED_KEY:
-					fields.Do(func(data []byte) error { return readKey(data, &peer.PresharedKey) })
-				case unix.WGPEER_A_ALLOWEDIPS:
-					fields.Nested(func(prefixes *gennetlink.AttributeDecoder) error {
-						for prefixes.Next() {
-							if len(snapshot.allowedIPs) == maxSnapshotIPs {
-								return errPeerSnapshot
-							}
-							prefixes.Nested(func(fields *gennetlink.AttributeDecoder) error {
-								prefix, err := decodeAllowedIP(fields)
-								if err == nil {
-									snapshot.allowedIPs = append(snapshot.allowedIPs, prefix)
-								}
-								return err
-							})
-						}
-						return prefixes.Err()
-					})
-				}
+func (attributes *snapshotAttributes) next() bool {
+	const header = 4
+	b := attributes.remaining
+	if len(b) == 0 || attributes.err != nil {
+		return false
+	}
+	if len(b) < header {
+		attributes.err = errPeerSnapshot
+		return false
+	}
+	size := int(binary.NativeEndian.Uint16(b))
+	aligned := (size + 3) &^ 3
+	if size < header || aligned > len(b) {
+		attributes.err = errPeerSnapshot
+		return false
+	}
+	attributes.kind = binary.NativeEndian.Uint16(b[2:]) &^ (gennetlink.Nested | gennetlink.NetByteOrder)
+	attributes.value = b[header:size:size]
+	attributes.remaining = b[aligned:]
+	return true
+}
+
+func (snapshot *peerSnapshot) decode(data []byte) error {
+	attributes := snapshotAttributes{remaining: data}
+	for attributes.next() {
+		switch attributes.kind {
+		case unix.WGDEVICE_A_PUBLIC_KEY:
+			if err := readKey(attributes.value, &snapshot.self); err != nil {
+				return err
 			}
-			return fields.Err()
-		})
-		if err := decoder.Err(); err != nil {
+		case unix.WGDEVICE_A_PEERS:
+			if err := snapshot.decodePeers(attributes.value); err != nil {
+				return err
+			}
+		}
+	}
+	return attributes.err
+}
+
+func (snapshot *peerSnapshot) decodePeers(data []byte) error {
+	list := snapshotAttributes{remaining: data}
+	for list.next() {
+		start := len(snapshot.allowedIPs)
+		peer, err := snapshot.decodePeer(list.value)
+		if err != nil {
 			return err
 		}
 		if peer.PublicKey == [32]byte{} {
@@ -192,7 +199,40 @@ func (snapshot *peerSnapshot) decodePeers(decoder *gennetlink.AttributeDecoder) 
 		peer.AllowedIPs = snapshot.allowedIPs[start:end:end]
 		snapshot.peers = append(snapshot.peers, peer)
 	}
-	return decoder.Err()
+	return list.err
+}
+
+func (snapshot *peerSnapshot) decodePeer(data []byte) (peers.Peer, error) {
+	var peer peers.Peer
+	fields := snapshotAttributes{remaining: data}
+	for fields.next() {
+		switch fields.kind {
+		case unix.WGPEER_A_PUBLIC_KEY:
+			if err := readKey(fields.value, &peer.PublicKey); err != nil {
+				return peers.Peer{}, err
+			}
+		case unix.WGPEER_A_PRESHARED_KEY:
+			if err := readKey(fields.value, &peer.PresharedKey); err != nil {
+				return peers.Peer{}, err
+			}
+		case unix.WGPEER_A_ALLOWEDIPS:
+			prefixes := snapshotAttributes{remaining: fields.value}
+			for prefixes.next() {
+				if len(snapshot.allowedIPs) == maxSnapshotIPs {
+					return peers.Peer{}, errPeerSnapshot
+				}
+				prefix, err := decodeAllowedIP(prefixes.value)
+				if err != nil {
+					return peers.Peer{}, err
+				}
+				snapshot.allowedIPs = append(snapshot.allowedIPs, prefix)
+			}
+			if prefixes.err != nil {
+				return peers.Peer{}, prefixes.err
+			}
+		}
+	}
+	return peer, fields.err
 }
 
 func readKey(data []byte, key *[32]byte) error {
@@ -203,22 +243,23 @@ func readKey(data []byte, key *[32]byte) error {
 	return nil
 }
 
-func decodeAllowedIP(fields *gennetlink.AttributeDecoder) (netip.Prefix, error) {
+func decodeAllowedIP(data []byte) (netip.Prefix, error) {
+	fields := snapshotAttributes{remaining: data}
 	var address netip.Addr
 	bits := -1
-	for fields.Next() {
-		switch fields.Type() {
+	for fields.next() {
+		switch fields.kind {
 		case unix.WGALLOWEDIP_A_IPADDR:
-			fields.Do(func(data []byte) error {
-				address, _ = netip.AddrFromSlice(data)
-				return nil
-			})
+			address, _ = netip.AddrFromSlice(fields.value)
 		case unix.WGALLOWEDIP_A_CIDR_MASK:
-			bits = int(fields.Uint8())
+			if len(fields.value) != 1 {
+				return netip.Prefix{}, errPeerSnapshot
+			}
+			bits = int(fields.value[0])
 		}
 	}
-	if err := fields.Err(); err != nil {
-		return netip.Prefix{}, err
+	if fields.err != nil {
+		return netip.Prefix{}, fields.err
 	}
 	prefix := netip.PrefixFrom(address, bits)
 	if !prefix.IsValid() {

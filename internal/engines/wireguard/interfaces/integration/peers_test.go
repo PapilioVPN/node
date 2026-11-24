@@ -40,6 +40,12 @@ func assertPeerSync(t *testing.T, f fixture, client interfacesv1.WireGuardInterf
 	if got := syncPeersHTTP(t, f, input, http.StatusOK); got != (peerSyncReply{}) {
 		t.Fatalf("idempotent sync returned %+v", got)
 	}
+	if err := exec.CommandContext(t.Context(), "wg", "set", interfaceName, "peer", added, "allowed-ips", "192.0.2.9/32").Run(); err != nil {
+		t.Fatal(err)
+	}
+	if got := syncPeersHTTP(t, f, input, http.StatusOK); got != (peerSyncReply{Updated: 1}) {
+		t.Fatalf("replay with kernel drift returned %+v", got)
+	}
 	changed := bytes.Replace(input, []byte("192.0.2.3/32"), []byte("192.0.2.4/32"), 1)
 	if got := syncPeersHTTP(t, f, changed, http.StatusOK); got != (peerSyncReply{Updated: 1}) {
 		t.Fatalf("update returned %+v", got)
