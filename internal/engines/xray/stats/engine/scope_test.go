@@ -2,6 +2,7 @@ package engine
 
 import (
 	"context"
+	"strconv"
 	"testing"
 
 	"github.com/PapilioVPN/node/internal/engines/xray/stats/native/scopeapi"
@@ -60,5 +61,34 @@ func TestRealCounterRegistryScopeAndLimit(t *testing.T) {
 	}
 	if got := manager.GetCounter(names[2]).Value(); got != 12 {
 		t.Fatalf("out-of-scope counter changed to %d", got)
+	}
+}
+
+func TestLargeScopeUsesRequestedCompactResponse(t *testing.T) {
+	manager, err := native.NewManager(t.Context(), &native.Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i := range 256 {
+		counter, err := manager.RegisterCounter("user>>>account-" + strconv.Itoa(i) + ">>>traffic>>>downlink")
+		if err != nil {
+			t.Fatal(err)
+		}
+		counter.Set(-int64(i))
+	}
+	server := &exactTraffic{manager: manager}
+	result, err := server.ResetScope(t.Context(), &scopeapi.ScopeResetRequest{Scope: "user", MaxCounters: 256, CompactReply: true})
+	batch := result.GetCompactCounters()
+	if err != nil || len(result.GetCounters()) != 0 || len(batch.GetNames()) != 256 || len(batch.GetDownlink()) != 256 || len(batch.GetPreviousBytes()) != 256 {
+		t.Fatalf("unexpected compact scope response: %v", err)
+	}
+	for i, name := range batch.GetNames() {
+		index, err := strconv.Atoi(name[len("account-"):])
+		if err != nil || !batch.Downlink[i] || batch.PreviousBytes[i] != -int64(index) {
+			t.Fatalf("incorrect acknowledgement for %q: %v", name, err)
+		}
+		if value := manager.GetCounter("user>>>" + name + ">>>traffic>>>downlink").Value(); value != 0 {
+			t.Fatalf("%q after reset = %d", name, value)
+		}
 	}
 }

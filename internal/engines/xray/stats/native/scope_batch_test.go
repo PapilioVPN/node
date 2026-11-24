@@ -20,6 +20,16 @@ func TestScopeBatchEffects(t *testing.T) {
 	}{
 		{name: "confirmed", reply: &scopeapi.ScopeResetResult{
 			Counters: []*scopeapi.Counter{{Name: "team>>>alice", Downlink: true, PreviousBytes: -1}, {Name: "team>>>alice"}}}},
+		{name: "compact signed acknowledgements", reply: &scopeapi.ScopeResetResult{
+			CompactCounters: &scopeapi.ScopeCounters{
+				Names: []string{"team>>>alice", "team>>>alice"}, Downlink: []bool{true, false}, PreviousBytes: []int64{-1, 0},
+			}}},
+		{name: "compact mismatch", reply: &scopeapi.ScopeResetResult{
+			CompactCounters: &scopeapi.ScopeCounters{Names: []string{"alice"}},
+		}, want: traffic.ErrResetUnknown},
+		{name: "ambiguous representation", reply: &scopeapi.ScopeResetResult{
+			Counters: []*scopeapi.Counter{{Name: "alice"}}, CompactCounters: &scopeapi.ScopeCounters{},
+		}, want: traffic.ErrResetUnknown},
 		{name: "limit", reply: &scopeapi.ScopeResetResult{LimitExceeded: true}, want: traffic.ErrTooLarge},
 		{name: "unimplemented", code: codes.Unimplemented, want: traffic.ErrUnavailable},
 		{name: "lost reply", code: codes.Unavailable, want: traffic.ErrResetUnknown},
@@ -38,7 +48,7 @@ func TestScopeBatchEffects(t *testing.T) {
 				if err := stream.RecvMsg(&request); err != nil {
 					return err
 				}
-				if request.GetScope() != "user" || request.GetMaxCounters() != 2 {
+				if request.GetScope() != "user" || request.GetMaxCounters() != 2 || !request.GetCompactReply() {
 					return status.Error(codes.Internal, "wrong scope or limit")
 				}
 				calls <- method

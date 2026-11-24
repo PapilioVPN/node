@@ -61,6 +61,7 @@ type ScopeResetRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Scope         string                 `protobuf:"bytes,1,opt,name=scope,proto3" json:"scope,omitempty"`
 	MaxCounters   uint32                 `protobuf:"varint,2,opt,name=max_counters,json=maxCounters,proto3" json:"max_counters,omitempty"`
+	CompactReply  bool                   `protobuf:"varint,3,opt,name=compact_reply,json=compactReply,proto3" json:"compact_reply,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -109,13 +110,22 @@ func (x *ScopeResetRequest) GetMaxCounters() uint32 {
 	return 0
 }
 
+func (x *ScopeResetRequest) GetCompactReply() bool {
+	if x != nil {
+		return x.CompactReply
+	}
+	return false
+}
+
 type ScopeResetResult struct {
 	state    protoimpl.MessageState `protogen:"open.v1"`
 	Counters []*Counter             `protobuf:"bytes,1,rep,name=counters,proto3" json:"counters,omitempty"`
 	// The bound was exceeded before any write. Counters is then empty.
 	LimitExceeded bool `protobuf:"varint,2,opt,name=limit_exceeded,json=limitExceeded,proto3" json:"limit_exceeded,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	// Only sent to a client that requests compact_reply, instead of counters.
+	CompactCounters *ScopeCounters `protobuf:"bytes,3,opt,name=compact_counters,json=compactCounters,proto3" json:"compact_counters,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *ScopeResetResult) Reset() {
@@ -162,6 +172,74 @@ func (x *ScopeResetResult) GetLimitExceeded() bool {
 	return false
 }
 
+func (x *ScopeResetResult) GetCompactCounters() *ScopeCounters {
+	if x != nil {
+		return x.CompactCounters
+	}
+	return nil
+}
+
+type ScopeCounters struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Each index identifies one counter across all three fields.
+	Names         []string `protobuf:"bytes,1,rep,name=names,proto3" json:"names,omitempty"`
+	Downlink      []bool   `protobuf:"varint,2,rep,packed,name=downlink,proto3" json:"downlink,omitempty"`
+	PreviousBytes []int64  `protobuf:"zigzag64,3,rep,packed,name=previous_bytes,json=previousBytes,proto3" json:"previous_bytes,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ScopeCounters) Reset() {
+	*x = ScopeCounters{}
+	mi := &file_scope_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ScopeCounters) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ScopeCounters) ProtoMessage() {}
+
+func (x *ScopeCounters) ProtoReflect() protoreflect.Message {
+	mi := &file_scope_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ScopeCounters.ProtoReflect.Descriptor instead.
+func (*ScopeCounters) Descriptor() ([]byte, []int) {
+	return file_scope_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *ScopeCounters) GetNames() []string {
+	if x != nil {
+		return x.Names
+	}
+	return nil
+}
+
+func (x *ScopeCounters) GetDownlink() []bool {
+	if x != nil {
+		return x.Downlink
+	}
+	return nil
+}
+
+func (x *ScopeCounters) GetPreviousBytes() []int64 {
+	if x != nil {
+		return x.PreviousBytes
+	}
+	return nil
+}
+
 type Counter struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
@@ -173,7 +251,7 @@ type Counter struct {
 
 func (x *Counter) Reset() {
 	*x = Counter{}
-	mi := &file_scope_proto_msgTypes[3]
+	mi := &file_scope_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -185,7 +263,7 @@ func (x *Counter) String() string {
 func (*Counter) ProtoMessage() {}
 
 func (x *Counter) ProtoReflect() protoreflect.Message {
-	mi := &file_scope_proto_msgTypes[3]
+	mi := &file_scope_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -198,7 +276,7 @@ func (x *Counter) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Counter.ProtoReflect.Descriptor instead.
 func (*Counter) Descriptor() ([]byte, []int) {
-	return file_scope_proto_rawDescGZIP(), []int{3}
+	return file_scope_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *Counter) GetName() string {
@@ -232,7 +310,7 @@ type PairResetRequest struct {
 
 func (x *PairResetRequest) Reset() {
 	*x = PairResetRequest{}
-	mi := &file_scope_proto_msgTypes[4]
+	mi := &file_scope_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -244,7 +322,7 @@ func (x *PairResetRequest) String() string {
 func (*PairResetRequest) ProtoMessage() {}
 
 func (x *PairResetRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_scope_proto_msgTypes[4]
+	mi := &file_scope_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -257,7 +335,7 @@ func (x *PairResetRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PairResetRequest.ProtoReflect.Descriptor instead.
 func (*PairResetRequest) Descriptor() ([]byte, []int) {
-	return file_scope_proto_rawDescGZIP(), []int{4}
+	return file_scope_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *PairResetRequest) GetScope() string {
@@ -285,7 +363,7 @@ type PairResetResult struct {
 
 func (x *PairResetResult) Reset() {
 	*x = PairResetResult{}
-	mi := &file_scope_proto_msgTypes[5]
+	mi := &file_scope_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -297,7 +375,7 @@ func (x *PairResetResult) String() string {
 func (*PairResetResult) ProtoMessage() {}
 
 func (x *PairResetResult) ProtoReflect() protoreflect.Message {
-	mi := &file_scope_proto_msgTypes[5]
+	mi := &file_scope_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -310,7 +388,7 @@ func (x *PairResetResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PairResetResult.ProtoReflect.Descriptor instead.
 func (*PairResetResult) Descriptor() ([]byte, []int) {
-	return file_scope_proto_rawDescGZIP(), []int{5}
+	return file_scope_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *PairResetResult) GetPreviousUplink() int64 {
@@ -332,13 +410,19 @@ var File_scope_proto protoreflect.FileDescriptor
 const file_scope_proto_rawDesc = "" +
 	"\n" +
 	"\vscope.proto\x12\x18papiliovpn.xray.scope.v1\"\b\n" +
-	"\x06Config\"L\n" +
+	"\x06Config\"q\n" +
 	"\x11ScopeResetRequest\x12\x14\n" +
 	"\x05scope\x18\x01 \x01(\tR\x05scope\x12!\n" +
-	"\fmax_counters\x18\x02 \x01(\rR\vmaxCounters\"x\n" +
+	"\fmax_counters\x18\x02 \x01(\rR\vmaxCounters\x12#\n" +
+	"\rcompact_reply\x18\x03 \x01(\bR\fcompactReply\"\xcc\x01\n" +
 	"\x10ScopeResetResult\x12=\n" +
 	"\bcounters\x18\x01 \x03(\v2!.papiliovpn.xray.scope.v1.CounterR\bcounters\x12%\n" +
-	"\x0elimit_exceeded\x18\x02 \x01(\bR\rlimitExceeded\"`\n" +
+	"\x0elimit_exceeded\x18\x02 \x01(\bR\rlimitExceeded\x12R\n" +
+	"\x10compact_counters\x18\x03 \x01(\v2'.papiliovpn.xray.scope.v1.ScopeCountersR\x0fcompactCounters\"h\n" +
+	"\rScopeCounters\x12\x14\n" +
+	"\x05names\x18\x01 \x03(\tR\x05names\x12\x1a\n" +
+	"\bdownlink\x18\x02 \x03(\bR\bdownlink\x12%\n" +
+	"\x0eprevious_bytes\x18\x03 \x03(\x12R\rpreviousBytes\"`\n" +
 	"\aCounter\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1a\n" +
 	"\bdownlink\x18\x02 \x01(\bR\bdownlink\x12%\n" +
@@ -368,26 +452,28 @@ func file_scope_proto_rawDescGZIP() []byte {
 	return file_scope_proto_rawDescData
 }
 
-var file_scope_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_scope_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_scope_proto_goTypes = []any{
 	(*Config)(nil),            // 0: papiliovpn.xray.scope.v1.Config
 	(*ScopeResetRequest)(nil), // 1: papiliovpn.xray.scope.v1.ScopeResetRequest
 	(*ScopeResetResult)(nil),  // 2: papiliovpn.xray.scope.v1.ScopeResetResult
-	(*Counter)(nil),           // 3: papiliovpn.xray.scope.v1.Counter
-	(*PairResetRequest)(nil),  // 4: papiliovpn.xray.scope.v1.PairResetRequest
-	(*PairResetResult)(nil),   // 5: papiliovpn.xray.scope.v1.PairResetResult
+	(*ScopeCounters)(nil),     // 3: papiliovpn.xray.scope.v1.ScopeCounters
+	(*Counter)(nil),           // 4: papiliovpn.xray.scope.v1.Counter
+	(*PairResetRequest)(nil),  // 5: papiliovpn.xray.scope.v1.PairResetRequest
+	(*PairResetResult)(nil),   // 6: papiliovpn.xray.scope.v1.PairResetResult
 }
 var file_scope_proto_depIdxs = []int32{
-	3, // 0: papiliovpn.xray.scope.v1.ScopeResetResult.counters:type_name -> papiliovpn.xray.scope.v1.Counter
-	1, // 1: papiliovpn.xray.scope.v1.ExactTraffic.ResetScope:input_type -> papiliovpn.xray.scope.v1.ScopeResetRequest
-	4, // 2: papiliovpn.xray.scope.v1.ExactTraffic.ResetPair:input_type -> papiliovpn.xray.scope.v1.PairResetRequest
-	2, // 3: papiliovpn.xray.scope.v1.ExactTraffic.ResetScope:output_type -> papiliovpn.xray.scope.v1.ScopeResetResult
-	5, // 4: papiliovpn.xray.scope.v1.ExactTraffic.ResetPair:output_type -> papiliovpn.xray.scope.v1.PairResetResult
-	3, // [3:5] is the sub-list for method output_type
-	1, // [1:3] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	4, // 0: papiliovpn.xray.scope.v1.ScopeResetResult.counters:type_name -> papiliovpn.xray.scope.v1.Counter
+	3, // 1: papiliovpn.xray.scope.v1.ScopeResetResult.compact_counters:type_name -> papiliovpn.xray.scope.v1.ScopeCounters
+	1, // 2: papiliovpn.xray.scope.v1.ExactTraffic.ResetScope:input_type -> papiliovpn.xray.scope.v1.ScopeResetRequest
+	5, // 3: papiliovpn.xray.scope.v1.ExactTraffic.ResetPair:input_type -> papiliovpn.xray.scope.v1.PairResetRequest
+	2, // 4: papiliovpn.xray.scope.v1.ExactTraffic.ResetScope:output_type -> papiliovpn.xray.scope.v1.ScopeResetResult
+	6, // 5: papiliovpn.xray.scope.v1.ExactTraffic.ResetPair:output_type -> papiliovpn.xray.scope.v1.PairResetResult
+	4, // [4:6] is the sub-list for method output_type
+	2, // [2:4] is the sub-list for method input_type
+	2, // [2:2] is the sub-list for extension type_name
+	2, // [2:2] is the sub-list for extension extendee
+	0, // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_scope_proto_init() }
@@ -395,14 +481,14 @@ func file_scope_proto_init() {
 	if File_scope_proto != nil {
 		return
 	}
-	file_scope_proto_msgTypes[5].OneofWrappers = []any{}
+	file_scope_proto_msgTypes[6].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_scope_proto_rawDesc), len(file_scope_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   6,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

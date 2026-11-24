@@ -123,6 +123,21 @@ func (service *exactTraffic) ResetScope(ctx context.Context, request *scopeapi.S
 		return nil, status.FromContextError(err).Err()
 	}
 
+	// The flat response avoids one protobuf object per counter on large scans.
+	if request.GetCompactReply() && len(selected) >= 256 {
+		batch := &scopeapi.ScopeCounters{
+			Names:         make([]string, len(selected)),
+			Downlink:      make([]bool, len(selected)),
+			PreviousBytes: make([]int64, len(selected)),
+		}
+		for i, item := range selected {
+			batch.Names[i] = item.name
+			batch.Downlink[i] = item.downlink
+			batch.PreviousBytes[i] = item.counter.Set(0)
+		}
+		return &scopeapi.ScopeResetResult{CompactCounters: batch}, nil
+	}
+
 	result := &scopeapi.ScopeResetResult{Counters: make([]*scopeapi.Counter, len(selected))}
 	rows := make([]scopeapi.Counter, len(selected))
 	for i, item := range selected {

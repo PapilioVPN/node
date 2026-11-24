@@ -13,12 +13,22 @@ message Config {}
 message ScopeResetRequest {
   string scope = 1;
   uint32 max_counters = 2;
+  bool compact_reply = 3;
 }
 
 message ScopeResetResult {
   repeated Counter counters = 1;
   // The bound was exceeded before any write. Counters is then empty.
   bool limit_exceeded = 2;
+  // Only sent to a client that requests compact_reply, instead of counters.
+  ScopeCounters compact_counters = 3;
+}
+
+message ScopeCounters {
+  // Each index identifies one counter across all three fields.
+  repeated string names = 1;
+  repeated bool downlink = 2;
+  repeated sint64 previous_bytes = 3;
 }
 
 message Counter {
