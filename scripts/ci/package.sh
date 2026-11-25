@@ -84,6 +84,7 @@ curl -fsS --max-time 6 -X DELETE "$execution" | jq -e '.state == "stopped"'
 docker stop --time 8 "$container" >/dev/null
 test "$(docker inspect --format '{{.State.ExitCode}}' "$container")" = 0
 
+bash scripts/ci/wireguard-smoke.sh "$image"
 docker save -o "$work/node/image.tar" "$image"
 printf '%s\n' "$image" > "$work/node/image-name"
 archive="$name.tar.gz"

@@ -143,13 +143,13 @@ Node had a lower median in 37 of 41 rows and a lower p95 in 27 of the 37 rows wi
 
 | Reference behavior | Node behavior |
 | --- | --- |
-| Start, same-source attach, stop, and runtime readiness | Covers lifecycle and exposes the confirmed source hash. A link lost out of band surfaces an error on Start. The reference attempts to recreate an unhealthy backend. |
-| Request-based `keep_alive` watchdog | Standalone WireGuard has no management-inactivity lease. |
-| `GetBaseInfo` returns running state and Node and WireGuard-tools versions | WireGuard status reports the live interface and optional configuration. The Node version is available through the CLI. |
-| Per-email full sync, streamed single sync, and chunk aggregation before applying | Node exposes peer-key full sync, individual mutations, and independently applied bounded batches. There is no server-side aggregation of a client stream. |
-| One interface-level default preshared key | Node accepts explicit per-peer keys. The caller supplies the key for each applicable peer. |
+| Start, same-source attach, stop, and runtime readiness | Covers lifecycle and exposes the confirmed source hash. Same-source Start repairs an unhealthy owned link or recreates a missing link from the submitted source, which restores its initial peers. Controllers resync peers added later when the reply reports recreation. |
+| Request-based `keep_alive` watchdog | A successful Start renews the configured management lease. Status reads have no renewal effect. |
+| `GetBaseInfo` returns running state and Node and WireGuard-tools versions | WireGuard status includes the Node version, kernel release, and optional WireGuard-tools version. |
+| Per-email full sync, streamed single sync, and chunk aggregation before applying | Node exposes full and individual operations by peer key. It also collects contiguous gRPC delta chunks and applies the validated set after a clean half-close. |
+| One interface-level default preshared key | Node accepts a file-backed default PSK and explicit per-peer overrides. |
 | Runtime, link and peer usage, logs, online state, observed IPs, and outbound probe | Node exposes counterparts with its own contracts. WireGuard reports its current endpoint, and the outbound probe is opt-in. |
-| IPv4 forwarding setup, egress discovery, NAT, and policy routing | Node supports scoped rules with explicit egress and IPv4 forwarding already enabled. Routing requires `nft` in the runtime environment. Existing firewall policy remains authoritative. |
+| IPv4 forwarding setup, egress discovery, NAT, and policy routing | Node supports scoped rules, optional default-route egress discovery and explicit opt-in sysctl changes. The image includes `nft`. Existing firewall policy remains authoritative. |
 | System statistics | Node exposes host statistics through its host capability. WireGuard runtime counters have their own operation. |
 | Shared Xray routing RPCs | PasarGuard returns Unimplemented for its standalone WireGuard backend. |
 

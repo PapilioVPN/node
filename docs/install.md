@@ -62,6 +62,18 @@ To enable `xray.state_directory` in Docker, mount a writable persistent
 directory there owned by UID 65532 with mode `0700`. See the
 [management reference](management.md#management) for the API contracts.
 
+## Enable managed WireGuard routing
+
+The Node image includes `nft` and `wg`. A native installation needs these
+tools available when using routing or inspecting the interface with `wg`.
+Managed WireGuard requires `CAP_NET_ADMIN` in the network namespace that
+owns the link. Use an explicitly configured namespace and a runtime
+identity with that capability. Configure forwarding in that namespace
+through the container's `net.ipv4.ip_forward=1` sysctl or through the
+explicit managed routing option where the sysctl is writable. The quick
+start Compose profile keeps all capabilities dropped. See the
+[management reference](management.md) for the routing settings.
+
 ## Upgrade
 
 Extract the new bundle and keep the existing `config/` directory. Check
