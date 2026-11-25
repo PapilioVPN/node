@@ -193,3 +193,33 @@ discarded.
 
 [Controlled decode benchmark](interfaces/results/peer-delta-decoding-linux-amd64.txt)
 · [HTTPS experiment](interfaces/results/peer-delta-stream-experiment-https.csv)
+
+## Recheck after the WireGuard feature work
+
+The isolated HTTPS fixtures used the same Go runtime, CPUs, peer populations
+and reference pin as the previous samples. Activity reads use publication
+separate from the usage ledger. A race-enabled test proves that activity can
+be read while the ledger is locked. The HTTPS p95 gap remains at 1,000 peers.
+
+| Workload | Node p50 / p95, ms | PasarGuard p50 / p95, ms |
+| --- | ---: | ---: |
+| Activity, 1 peer | 0.240 / 0.711 | 0.230 / 0.726 |
+| Activity, 1,000 peers | 0.209 / 0.684 | 0.208 / 0.348 |
+| Endpoint IPs, 1 peer | 0.186 / 0.328 | 0.227 / 0.398 |
+| Endpoint IPs, 1,000 peers | 0.182 / 0.311 | 0.218 / 0.462 |
+| Sampled removal, 1 peer | 0.549 / 1.021 | 0.475 / 0.983 |
+| Sampled removal, 100 peers | 0.621 / 1.348 | 0.488 / 1.126 |
+| Sampled removal, 1,000 peers | 0.690 / 1.117 | 0.780 / 1.906 |
+| Cold Start | 3.016 / 4.717 | 5.417 / 8.563 |
+| Same-source Start | 0.893 / 1.631 | 1.047 / 2.146 |
+| Stop | 74.368 / 84.501 | 73.471 / 84.933 |
+
+The restored routing fixture measured median Start and Stop of 15.662 and
+86.997 ms for Node against 37.750 and 101.611 ms for PasarGuard. Each
+routing operation has four observations per build. The separate native
+deletion control had a 75.525 ms median across 20 observations.
+
+[Activity](stats/results/peer-activity-completion-https.csv)
+· [Removal](interfaces/results/peer-removal-completion-https.csv)
+· [Lifecycle](interfaces/results/wg-lifecycle-completion-https.csv)
+· [Routing](routing/results/wg-routing-completion-https.csv)

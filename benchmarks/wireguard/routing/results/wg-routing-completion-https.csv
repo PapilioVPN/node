@@ -1,0 +1,17 @@
+run,implementation,operation,iteration,nanoseconds
+1,node,routing_start,1,21467464
+1,node,routing_stop,1,90450232
+1,pasarguard,routing_start,1,34023912
+1,pasarguard,routing_stop,1,101119006
+2,pasarguard,routing_start,1,45569681
+2,pasarguard,routing_stop,1,107168523
+2,node,routing_start,1,19347924
+2,node,routing_stop,1,83544449
+3,node,routing_start,1,11976283
+3,node,routing_stop,1,83484616
+3,pasarguard,routing_start,1,32076095
+3,pasarguard,routing_stop,1,102103825
+4,pasarguard,routing_start,1,41476987
+4,pasarguard,routing_stop,1,95102551
+4,node,routing_start,1,10988548
+4,node,routing_stop,1,93440485
