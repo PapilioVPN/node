@@ -590,16 +590,67 @@ def measure_paired_peer_removal(cases, reference_name):
             check_link_removed(operations[label][1])
 
 
+def chunked_delta_payload(label, peers, users):
+    objects = peers if label == "node" else users
+    parts = [objects[start:start + 100] for start in range(0, len(objects), 100)]
+    frames = []
+    for index, part in enumerate(parts):
+        last = index == len(parts) - 1
+        if label == "node":
+            frames.append(json.dumps({"index": index, "last": last, "upsert": part}, separators=(",", ":")).encode() + b"\n")
+        else:
+            payload = (b"\x10" + varint(index) if index else b"") + (b"\x18\x01" if last else b"")
+            payload += b"".join(proto_bytes(1, user) for user in part)
+            frames.append(varint(len(payload)) + payload)
+    return b"".join(frames)
+
+
+def measure_chunked_peer_delta(cases):
+    path = f"/v1/wireguard/interfaces/{peer_interface}/peers"
+    for count in (1, 100, 1000):
+        initial, before = peer_payloads(count, False)
+        changed_peers, changed_users = zip(*peer_records(count, False, first_host=count + 2))
+        after = {peer["public_key"]: peer["allowed_ips"][0] for peer in changed_peers}
+        peers, users = zip(*peer_records(count, False))
+        for block, order in enumerate((cases, reversed(cases)), 1):
+            for label, (conn, start, start_path, source, stop, stop_path, valid) in order:
+                node = label == "node"
+                _, response = request(conn, start, start_path, source)
+                assert valid(response)
+                request(conn, "PUT", path if node else "/users/sync", initial[label])
+                check_peers(before)
+                method, endpoint = ("PATCH", path + "/chunks") if node else ("PUT", "/users/sync/chunked")
+                update = chunked_delta_payload(label, changed_peers, changed_users)
+                restore = chunked_delta_payload(label, peers, users)
+                if node:
+                    headers["Content-Type"] = "application/x-ndjson"
+                try:
+                    for index in range(-2, 10):
+                        elapsed, reply = request(conn, method, endpoint, update)
+                        if node:
+                            assert json.loads(reply)["updated"] == count
+                        check_peers(after)
+                        request(conn, method, endpoint, restore)
+                        check_peers(before)
+                        if index >= 0:
+                            print(f"{block},{label},chunks_{count},{index + 1},{elapsed}")
+                finally:
+                    if node:
+                        del headers["Content-Type"]
+                request(conn, stop, stop_path)
+                check_link_removed()
+
+
 def main():
     mode = sys.argv[3] if len(sys.argv) >= 4 else ""
     routing_test = mode == "--routing"
     paired_removal = mode == "--peer-removal-paired"
     sampled_test = mode in ("--sampled-peer-usage", "--peer-activity")
     link_test = sampled_test or mode in ("--interface-traffic", "--interface-usage")
-    valid_args = (len(sys.argv) == 3 or len(sys.argv) == 4 and (link_test or routing_test or paired_removal or mode in ("--lifecycle-check", "--live-mtu", "--peer-sync", "--peer-delta", "--peer-removal", "--diagnostics", "--probe", "--initial-peers"))
+    valid_args = (len(sys.argv) == 3 or len(sys.argv) == 4 and (link_test or routing_test or paired_removal or mode in ("--lifecycle-check", "--live-mtu", "--peer-sync", "--peer-delta", "--peer-delta-chunks", "--peer-removal", "--diagnostics", "--probe", "--initial-peers"))
                   or len(sys.argv) == 5 and mode in ("--lifecycle-check", "--peer-sync", "--peer-replay", "--peer-delta", "--peer-removal", "--probe"))
     if not valid_args:
-        raise SystemExit("usage: measure-lifecycle.py NODE PASARGUARD [--lifecycle-check [PREVIOUS_NODE]|--live-mtu|--interface-traffic|--interface-usage|--sampled-peer-usage|--peer-activity|--peer-sync [PREVIOUS_NODE]|--peer-replay PREVIOUS_NODE|--peer-delta [PREVIOUS_NODE]|--peer-removal [PREVIOUS_NODE]|--peer-removal-paired|--probe [PREVIOUS_NODE]]")
+        raise SystemExit("usage: measure-lifecycle.py NODE PASARGUARD [--lifecycle-check [PREVIOUS_NODE]|--live-mtu|--interface-traffic|--interface-usage|--sampled-peer-usage|--peer-activity|--peer-sync [PREVIOUS_NODE]|--peer-replay PREVIOUS_NODE|--peer-delta [PREVIOUS_NODE]|--peer-delta-chunks|--peer-removal [PREVIOUS_NODE]|--peer-removal-paired|--probe [PREVIOUS_NODE]]")
     parent = os.environ.get("NODE_TEST_WIREGUARD_PARENT_NETNS")
     if not parent or parent == os.readlink("/proc/self/ns/net"):
         raise RuntimeError("run in a separate network namespace")
@@ -614,7 +665,7 @@ def main():
                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         context = ssl.create_default_context(cafile=str(cert))
         context.minimum_version = ssl.TLSVersion.TLSv1_3
-        peer_test = paired_removal or mode in ("--peer-sync", "--peer-replay", "--peer-delta", "--peer-removal", "--initial-peers")
+        peer_test = paired_removal or mode in ("--peer-sync", "--peer-replay", "--peer-delta", "--peer-delta-chunks", "--peer-removal", "--initial-peers")
         env = {**os.environ, "GOMAXPROCS": "2" if peer_test else "1"}
         timeout = 15 if peer_test or link_test else 3
         target = probe_target(stack) if mode == "--probe" else ""
@@ -726,6 +777,9 @@ wireguard:
             return
         if mode == "--peer-delta":
             measure_peer_delta(cases)
+            return
+        if mode == "--peer-delta-chunks":
+            measure_chunked_peer_delta(cases)
             return
         if mode in ("--peer-sync", "--peer-replay"):
             measure_peers(cases, phases=("noop",) if mode == "--peer-replay" else ("noop", "changed"))

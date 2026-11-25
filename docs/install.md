@@ -18,10 +18,10 @@ stop Node.
 ## Offline Docker installation
 
 Use the full archive when you cannot pull from GHCR. This example uses
-version 1.2.0.
+version 1.3.0.
 
 ```bash
-bundle=node-1.2.0-linux-amd64.tar.gz
+bundle=node-1.3.0-linux-amd64.tar.gz
 sha256sum -c "$bundle.sha256" && tar -xzf "$bundle"
 cd node
 mkdir -p config

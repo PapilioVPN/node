@@ -37,7 +37,7 @@
 ```bash
 (
   set -eu
-  version=1.2.0
+  version=1.3.0
   bundle="node-$version-linux-amd64-compose.tar.gz"
   release="https://github.com/PapilioVPN/node/releases/download/v$version"
   curl -fLO "$release/$bundle" -fLO "$release/$bundle.sha256"
@@ -59,7 +59,7 @@
 
 - **主机** — 运行时间、CPU、内存和存储。
 - **Xray** — 生命周期管理、配置验证、账户同步和恢复、流量和在线统计、路由、日志和出站健康状态。
-- **WireGuard** — Linux 接口生命周期、管理租约与修复、配置验证和在线更新、对等端管理与活动监测、运行统计与日志、出站探测，以及可选的 IPv4 转发、NAT 和策略路由。
+- **WireGuard** — Linux 接口生命周期、管理租约与修复、配置验证和在线更新、对等端管理及通过 HTTP 和 gRPC 分块提交变更、活动监测、运行统计与日志、出站探测，以及可选的 IPv4 转发、NAT 和策略路由。
 
 <a name="management"></a>
 

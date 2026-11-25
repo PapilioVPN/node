@@ -146,7 +146,7 @@ Node had a lower median in 37 of 41 rows and a lower p95 in 27 of the 37 rows wi
 | Start, same-source attach, stop, and runtime readiness | Covers lifecycle and exposes the confirmed source hash. Same-source Start repairs an unhealthy owned link or recreates a missing link from the submitted source, which restores its initial peers. Controllers resync peers added later when the reply reports recreation. |
 | Request-based `keep_alive` watchdog | A successful Start renews the configured management lease. Status reads have no renewal effect. |
 | `GetBaseInfo` returns running state and Node and WireGuard-tools versions | WireGuard status includes the Node version, kernel release, and optional WireGuard-tools version. |
-| Per-email full sync, streamed single sync, and chunk aggregation before applying | Node exposes full and individual operations by peer key. It also collects contiguous gRPC delta chunks and applies the validated set after a clean half-close. |
+| Per-email full sync, streamed single sync, and chunk aggregation before applying | Node exposes full and individual operations by peer key. HTTP and gRPC share bounded chunk collection. Node applies the validated delta after a clean HTTP body EOF or gRPC half-close. |
 | One interface-level default preshared key | Node accepts a file-backed default PSK and explicit per-peer overrides. |
 | Runtime, link and peer usage, logs, online state, observed IPs, and outbound probe | Node exposes counterparts with its own contracts. WireGuard reports its current endpoint, and the outbound probe is opt-in. |
 | IPv4 forwarding setup, egress discovery, NAT, and policy routing | Node supports scoped rules, optional default-route egress discovery and explicit opt-in sysctl changes. The image includes `nft`. Existing firewall policy remains authoritative. |
@@ -287,3 +287,6 @@ comparison. In this form removal uses the sampled policy on both Node builds.
 The [focused small-removal recheck](interfaces/peer-removal.md#focused-recheck-at-1-and-100-peers)
 adds interleaved HTTPS samples and separates the live ownership guard, kernel
 write with acknowledgment, and request encoding. No runtime rewrite was kept.
+
+The [chunked HTTP comparison](interfaces/peer-delta.md#chunked-http-changes)
+measures successful changes at 1, 100 and 1,000 peers in two HTTPS runs.

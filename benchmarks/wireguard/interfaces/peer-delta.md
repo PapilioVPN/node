@@ -126,3 +126,35 @@ The removal is 8% lower at p50 and 14% lower at p95 against prior Node.
 PasarGuard remains faster for removal and led at p95 in the 100-peer change.
 The remaining delta rows are unchanged workload checks.
 [Raw timings](results/peer-delta-removal-https.csv)
+
+## Chunked HTTP changes
+
+Use `--peer-delta-chunks` with the [HTTPS fixture](lifecycle.md#reproduce).
+It sends active changes in frames of up to 100 peers and verifies exact
+kernel membership after each update and restore. Node uses NDJSON. The
+pinned PasarGuard Node uses length-prefixed protobuf. Both apply the same
+allowed-IP changes on clean uploads. The failure contracts differ: Node
+requires a clean body EOF after the final frame, while the reference can
+apply at the final marker. Each cell contains 20 observations.
+
+| Changed peers | Run | Node p50 / p95, ms | PasarGuard p50 / p95, ms |
+| ---: | --- | ---: | ---: |
+| 1 | A | 0.751 / 1.270 | 0.654 / 0.836 |
+| 1 | B | 0.817 / 0.949 | 0.634 / 0.972 |
+| 100 | A | 1.287 / 2.045 | 4.465 / 5.386 |
+| 100 | B | 1.315 / 2.007 | 3.104 / 4.877 |
+| 1,000 | A | 7.506 / 11.346 | 26.212 / 42.119 |
+| 1,000 | B | 6.748 / 10.434 | 28.060 / 35.510 |
+
+Node led at both percentiles for 100 and 1,000 changes in both runs. The
+single-change median remained higher. Regular `PATCH /peers` remains available
+for an independent delta that does not need chunk collection.
+
+A separate control alternated one-peer updates through Node's regular and
+chunked HTTP routes with 80 observations each. It measured 0.650 / 0.913 ms
+for the regular route and 0.649 / 0.911 ms for the chunked route. The extra
+framing did not produce a measurable penalty in that control.
+
+[First run](results/peer-delta-chunks-https.csv)
+· [Repeat](results/peer-delta-chunks-repeat-https.csv)
+· [Node-only control](results/peer-delta-chunks-single-control.csv)
