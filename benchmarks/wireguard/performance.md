@@ -283,3 +283,7 @@ comparison. In this form removal uses the sampled policy on both Node builds.
 · [Experimental Stop](interfaces/results/wg-lifecycle-owned-link-experiment.csv)
 · [Experimental removal](interfaces/results/peer-removal-owned-link-experiment.csv)
 · [Guard experiment](interfaces/results/owned-link-experiment.txt)
+
+The [focused small-removal recheck](interfaces/peer-removal.md#focused-recheck-at-1-and-100-peers)
+adds interleaved HTTPS samples and separates the live ownership guard, kernel
+write with acknowledgment, and request encoding. No runtime rewrite was kept.

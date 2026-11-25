@@ -546,15 +546,60 @@ def measure_peer_removal(cases):
                 request(conn, stop_method, stop_path)
 
 
+def measure_paired_peer_removal(cases, reference_name):
+    for population in (1, 100):
+        operations = {}
+        for label, (conn, start_method, start_path, source, _, _, valid) in cases:
+            _, state = request(conn, start_method, start_path, source)
+            assert valid(state)
+            reference = label == "pasarguard"
+            name = reference_name if reference else peer_interface
+            pool = "198.19" if reference else "198.18"
+            peers, users = zip(*peer_records(population, False, name, pool=pool))
+            if reference:
+                request(conn, "PUT", "/users/sync", b"".join(proto_bytes(1, user) for user in users))
+                remove = ("PUT", "/user/sync", proto_bytes(1, b"bench-0@example.invalid"))
+                restore = ("PUT", "/user/sync", users[0])
+            else:
+                path = f"/v1/wireguard/interfaces/{name}/peers"
+                request(conn, "PUT", path, json.dumps({"peers": peers}).encode())
+                key = base64.urlsafe_b64encode(base64.b64decode(peers[0]["public_key"])).decode().rstrip("=")
+                remove = ("DELETE", f"{path}/{key}")
+                restore = ("PUT", f"{path}/{key}", json.dumps({"allowed_ips": peers[0]["allowed_ips"]}).encode())
+            expected = {peer["public_key"]: peer["allowed_ips"][0] for peer in peers}
+            remaining = {peer["public_key"]: peer["allowed_ips"][0] for peer in peers[1:]}
+            check_peers(expected, name)
+            operations[label] = (conn, name, remove, restore, expected, remaining)
+
+        for block in range(1, 5):
+            for index in range(-4, 30):
+                order = operations if (block + index) % 2 else reversed(operations)
+                # Time both acknowledged removals back to back. Verify and
+                # restore the actual kernel membership outside the timed pair.
+                elapsed = {label: request(operations[label][0], *operations[label][2])[0]
+                           for label in order}
+                for label in elapsed:
+                    conn, name, _, restore, expected, remaining = operations[label]
+                    check_peers(remaining, name)
+                    request(conn, *restore)
+                    check_peers(expected, name)
+                    if index >= 0:
+                        print(f"{block},{label},remove_{population}_peers,{index + 1},{elapsed[label]}")
+        for label, (conn, _, _, _, stop_method, stop_path, _) in cases:
+            request(conn, stop_method, stop_path)
+            check_link_removed(operations[label][1])
+
+
 def main():
     mode = sys.argv[3] if len(sys.argv) >= 4 else ""
     routing_test = mode == "--routing"
+    paired_removal = mode == "--peer-removal-paired"
     sampled_test = mode in ("--sampled-peer-usage", "--peer-activity")
     link_test = sampled_test or mode in ("--interface-traffic", "--interface-usage")
-    valid_args = (len(sys.argv) == 3 or len(sys.argv) == 4 and (link_test or routing_test or mode in ("--lifecycle-check", "--live-mtu", "--peer-sync", "--peer-delta", "--peer-removal", "--diagnostics", "--probe", "--initial-peers"))
+    valid_args = (len(sys.argv) == 3 or len(sys.argv) == 4 and (link_test or routing_test or paired_removal or mode in ("--lifecycle-check", "--live-mtu", "--peer-sync", "--peer-delta", "--peer-removal", "--diagnostics", "--probe", "--initial-peers"))
                   or len(sys.argv) == 5 and mode in ("--lifecycle-check", "--peer-sync", "--peer-replay", "--peer-delta", "--peer-removal", "--probe"))
     if not valid_args:
-        raise SystemExit("usage: measure-lifecycle.py NODE PASARGUARD [--lifecycle-check [PREVIOUS_NODE]|--live-mtu|--interface-traffic|--interface-usage|--sampled-peer-usage|--peer-activity|--peer-sync [PREVIOUS_NODE]|--peer-replay PREVIOUS_NODE|--peer-delta [PREVIOUS_NODE]|--peer-removal [PREVIOUS_NODE]|--probe [PREVIOUS_NODE]]")
+        raise SystemExit("usage: measure-lifecycle.py NODE PASARGUARD [--lifecycle-check [PREVIOUS_NODE]|--live-mtu|--interface-traffic|--interface-usage|--sampled-peer-usage|--peer-activity|--peer-sync [PREVIOUS_NODE]|--peer-replay PREVIOUS_NODE|--peer-delta [PREVIOUS_NODE]|--peer-removal [PREVIOUS_NODE]|--peer-removal-paired|--probe [PREVIOUS_NODE]]")
     parent = os.environ.get("NODE_TEST_WIREGUARD_PARENT_NETNS")
     if not parent or parent == os.readlink("/proc/self/ns/net"):
         raise RuntimeError("run in a separate network namespace")
@@ -569,7 +614,7 @@ def main():
                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         context = ssl.create_default_context(cafile=str(cert))
         context.minimum_version = ssl.TLSVersion.TLSv1_3
-        peer_test = mode in ("--peer-sync", "--peer-replay", "--peer-delta", "--peer-removal", "--initial-peers")
+        peer_test = paired_removal or mode in ("--peer-sync", "--peer-replay", "--peer-delta", "--peer-removal", "--initial-peers")
         env = {**os.environ, "GOMAXPROCS": "2" if peer_test else "1"}
         timeout = 15 if peer_test or link_test else 3
         target = probe_target(stack) if mode == "--probe" else ""
@@ -601,7 +646,8 @@ wireguard:
             return launch(stack, [binary, "-config", str(cfg)], env, label,
                           directory, context, node_port, "/healthz", timeout)
 
-        node = launch_node(sys.argv[1], "node")
+        node_label = "node-sampled" if paired_removal else "node"
+        node = launch_node(sys.argv[1], node_label, sampled_removal=paired_removal)
         ref_port = port()
         ref = launch(stack, [sys.argv[2]], {**env, "NODE_HOST": "127.0.0.1",
                      "SERVICE_PORT": str(ref_port), "SERVICE_PROTOCOL": "rest",
@@ -614,15 +660,15 @@ wireguard:
                      "reference", directory, context, ref_port, "/info", timeout)
         local = {"listen_port": 51820, "private_key": private_key}
         address = "198.18.0.1/16" if peer_test or sampled_test else "192.0.2.1/24"
-        reference_name = "wg-bench1" if link_test else peer_interface
+        reference_name = "wg-bench1" if link_test or paired_removal else peer_interface
 
         def node_config(mtu):
             return json.dumps({**local, "mtu": mtu, "addresses": [address]}).encode()
 
         def ref_config(mtu):
             reference = {**local, "mtu": mtu, "interface_name": reference_name, "address": [address]}
-            if link_test:
-                ref_address = "198.19.0.1/16" if sampled_test else "192.0.2.2/24"
+            if link_test or paired_removal:
+                ref_address = "198.19.0.1/16" if sampled_test or paired_removal else "192.0.2.2/24"
                 reference.update(listen_port=51821, address=[ref_address])
             if target:
                 reference["latency"] = {"test_url": target, "timeout_seconds": 2}
@@ -640,13 +686,16 @@ wireguard:
         def ref_valid(payload):
             return payload.startswith(b"\x08\x01")
         cases = [
-            ("node", (node, "PUT", execution, source, "DELETE", execution, node_valid)),
+            (node_label, (node, "PUT", execution, source, "DELETE", execution, node_valid)),
             ("pasarguard", (ref, "POST", "/start", pg_source, "PUT", "/stop", ref_valid)),
         ]
         if len(sys.argv) == 5:
             previous = launch_node(sys.argv[4], "node-before", sampled_removal=mode == "--peer-removal")
             cases.insert(0, ("node-before", (previous, "PUT", execution, source, "DELETE", execution, node_valid)))
         print("run,implementation,operation,iteration,nanoseconds")
+        if paired_removal:
+            measure_paired_peer_removal(cases, reference_name)
+            return
         if mode == "--peer-removal":
             if len(sys.argv) == 5:
                 cases = [(label, args) for label, args in cases if label != "node"]

@@ -60,3 +60,43 @@ The sampled mode reduced the 1,000-peer median by more than 70% in both
 runs. It had a lower p50 than PasarGuard at 1,000 peers in both runs. The
 p95 comparison changed between runs. Smaller interfaces gain less from
 avoiding the dump. [Raw repeat timings](results/peer-removal-repeat-https.csv)
+
+## Focused recheck at 1 and 100 peers
+
+Use `--peer-removal-paired` with the [HTTPS fixture](lifecycle.md#reproduce).
+Both servers run real WireGuard interfaces in the same isolated Linux network
+namespace. The fixture alternates which removal goes first in each pair and
+checks the exact kernel membership after every removal and restore. Node
+uses sampled accounting in both runs. Each cell contains 120 observations.
+
+| Configured peers | Run | Node p50 / p95, ms | PasarGuard p50 / p95, ms |
+| ---: | --- | ---: | ---: |
+| 1 | A | 0.887 / 1.761 | 0.834 / 1.502 |
+| 1 | B | 0.766 / 1.244 | 0.747 / 1.252 |
+| 100 | A | 0.896 / 2.254 | 0.870 / 1.717 |
+| 100 | B | 0.789 / 1.516 | 0.783 / 1.734 |
+
+Node's pooled p50 was higher by 20–53 µs at one peer and 6–26 µs at
+100 peers. The p95 ordering changed across runs. The median of individual
+paired differences also switched sign at both counts.
+
+A syscall trace of separate HTTPS requests shows Node's live route Netlink
+ownership check before the WireGuard write. The pinned reference performs
+the WireGuard write without that separate route lookup. Both wait for a
+kernel acknowledgment. The trace perturbs latency and is used only to
+identify the stages. A separate Go probe calls the same native guard and
+write on real isolated links. The median of three run p50s was 55.72 and
+59.15 µs for the guard, and 100.5 and 104.8 µs for the write including its
+acknowledgment, at 1 and 100 peers respectively.
+
+A byte-identical fixed-layout removal payload was also measured in isolation.
+The median of three Go benchmark run means was 850.1 ns per generic encode
+and 23.8 ns per fixed-layout encode. Even this ideal gain of 0.826 µs is below
+the observed HTTPS differences. The fixed encoder was not integrated or
+claimed as an end-to-end win. The runtime, live ownership check, accounting
+policy and acknowledgment semantics remain unchanged.
+
+[HTTPS A](results/peer-removal-paired-https-a.csv)
+· [HTTPS B](results/peer-removal-paired-https-b.csv)
+· [Traced stages](results/peer-removal-traced-stages.csv)
+· [Native probe and encoder timings](results/peer-removal-focused-linux-amd64.txt)

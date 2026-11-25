@@ -1,0 +1,24 @@
+goos: linux
+goarch: amd64
+pkg: github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/native
+cpu: AMD Ryzen 7 3750H with Radeon Vega Mobile Gfx
+BenchmarkRemovalNativeProbe/1-2 	      96	    544364 ns/op	        87.61 guard-p50-us	       172.2 guard-p95-us	       137.9 write-with-ack-p50-us	       509.1 write-with-ack-p95-us
+BenchmarkRemovalNativeProbe/1-2 	      96	    374623 ns/op	        55.72 guard-p50-us	       141.6 guard-p95-us	       100.5 write-with-ack-p50-us	       227.0 write-with-ack-p95-us
+BenchmarkRemovalNativeProbe/1-2 	      96	    355003 ns/op	        45.95 guard-p50-us	       107.4 guard-p95-us	       100.3 write-with-ack-p50-us	       200.4 write-with-ack-p95-us
+BenchmarkRemovalNativeProbe/100-2         	      96	    365924 ns/op	        51.37 guard-p50-us	       117.7 guard-p95-us	        98.67 write-with-ack-p50-us	       226.5 write-with-ack-p95-us
+BenchmarkRemovalNativeProbe/100-2         	      96	    412441 ns/op	        59.15 guard-p50-us	       155.3 guard-p95-us	       104.8 write-with-ack-p50-us	       284.0 write-with-ack-p95-us
+BenchmarkRemovalNativeProbe/100-2         	      96	    455294 ns/op	        71.25 guard-p50-us	       151.1 guard-p95-us	       119.0 write-with-ack-p50-us	       305.2 write-with-ack-p95-us
+PASS
+ok  	github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/native	3.385s
+goos: linux
+goarch: amd64
+pkg: github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/native
+cpu: AMD Ryzen 7 3750H with Radeon Vega Mobile Gfx
+BenchmarkRemovalEncodingProbe/generic-2         	  129787	      1815 ns/op	     520 B/op	      12 allocs/op
+BenchmarkRemovalEncodingProbe/generic-2         	  262597	       850.1 ns/op	     520 B/op	      12 allocs/op
+BenchmarkRemovalEncodingProbe/generic-2         	  364459	       756.6 ns/op	     520 B/op	      12 allocs/op
+BenchmarkRemovalEncodingProbe/direct-2          	 9947011	        23.80 ns/op	       0 B/op	       0 allocs/op
+BenchmarkRemovalEncodingProbe/direct-2          	10684928	        22.68 ns/op	       0 B/op	       0 allocs/op
+BenchmarkRemovalEncodingProbe/direct-2          	 9830466	        27.17 ns/op	       0 B/op	       0 allocs/op
+PASS
+ok  	github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/native	1.519s
