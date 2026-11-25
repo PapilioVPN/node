@@ -32,7 +32,7 @@ cp deploy/config.example.yml "$work/node/config.example.yml"
 cp deploy/compose.yml "$work/node/compose.yml"
 printf 'NODE_IMAGE=ghcr.io/papiliovpn/node:%s\n' "$version" > "$work/node/.env"
 cp LICENSE "$work/node/LICENSE"
-docker build -q -f deploy/Dockerfile -t "$image" \
+docker build --progress=plain -f deploy/Dockerfile -t "$image" \
   --label org.opencontainers.image.source=https://github.com/PapilioVPN/node \
   --label org.opencontainers.image.revision="$revision" \
   --label org.opencontainers.image.version="$version" \

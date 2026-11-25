@@ -196,8 +196,8 @@ discarded.
 
 ## Recheck after the WireGuard feature work
 
-The isolated HTTPS fixtures used the same Go runtime, CPUs, peer populations
-and reference pin as the previous samples. Activity reads use publication
+The isolated HTTPS fixtures used the same Go runtime, machine, peer populations
+and reference pin as the previous samples. This recheck pinned CPUs 4 and 5. Activity reads use publication
 separate from the usage ledger. A race-enabled test proves that activity can
 be read while the ledger is locked. The HTTPS p95 gap remains at 1,000 peers.
 
