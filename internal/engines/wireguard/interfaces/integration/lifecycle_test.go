@@ -173,6 +173,7 @@ func TestManagedExecution(t *testing.T) {
 	if got := f.readHTTP(t); got.AppliedSHA256 != want {
 		t.Fatalf("rejected change replaced applied hash: %+v", got)
 	}
+	assertPeerOwnership(t, f, sampledKey)
 	ctx, cancel = context.WithTimeout(t.Context(), time.Second)
 	_, err = client.Stop(ctx, &interfacesv1.WireGuardInterfaceRequest{Name: interfaceName})
 	cancel()
@@ -201,6 +202,25 @@ func TestManagedExecution(t *testing.T) {
 	}
 	executionRequest(t, f, http.MethodPut, source, http.StatusOK)
 	executionRequest(t, f, http.MethodDelete, nil, http.StatusNoContent)
+}
+
+func assertPeerOwnership(t *testing.T, f fixture, key []byte) {
+	t.Helper()
+	link, err := exec.CommandContext(t.Context(), "ip", "-j", "link", "show", "dev", interfaceName).Output()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var links []struct{ IfAlias string }
+	if err := json.Unmarshal(link, &links); err != nil || len(links) != 1 || links[0].IfAlias == "" {
+		t.Fatalf("expected one owned link: %s (%v)", link, err)
+	}
+	path := "/peers/" + base64.RawURLEncoding.EncodeToString(key)
+	runIP(t, "link", "set", "dev", interfaceName, "down")
+	peerDeltaHTTP(t, f, http.MethodDelete, path, nil, http.StatusServiceUnavailable)
+	runIP(t, "link", "set", "dev", interfaceName, "up")
+	runIP(t, "link", "set", "dev", interfaceName, "alias", "unowned")
+	peerDeltaHTTP(t, f, http.MethodDelete, path, nil, http.StatusConflict)
+	runIP(t, "link", "set", "dev", interfaceName, "alias", links[0].IfAlias)
 }
 
 func exchangePacket(t *testing.T, serverKey, serverPort string, whileConnected func(string, func())) {
