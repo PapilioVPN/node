@@ -48,17 +48,23 @@ type PeerUsageCapture interface {
 }
 
 type Service struct {
-	name      string
-	control   Control
-	peers     PeerControl
-	store     CheckpointStore
-	traffic   PeerTrafficObserver
-	usage     PeerUsageCapture
-	publish   func(string)
-	mu        sync.Mutex
-	owned     Link
-	peerState *peers.State // Protected by mu and bound to the owned execution.
-	applied   atomic.Pointer[Checkpoint]
+	name        string
+	control     Control
+	peers       PeerControl
+	store       CheckpointStore
+	traffic     PeerTrafficObserver
+	usage       PeerUsageCapture
+	publish     func(string)
+	reconfigure func(context.Context, Link, FixedConfig, Config, LiveField) (status.Interface, error)
+	mu          sync.Mutex
+	owned       Link
+	peerState   *peers.State // Protected by mu and bound to the owned execution.
+	applied     atomic.Pointer[Checkpoint]
+}
+
+func (service *Service) WithConfiguration(reconfigure func(context.Context, Link, FixedConfig, Config, LiveField) (status.Interface, error)) *Service {
+	service.reconfigure = reconfigure
+	return service
 }
 
 func (service *Service) WithEvents(publish func(string)) *Service {
@@ -185,6 +191,9 @@ func (service *Service) Start(ctx context.Context, name string, source []byte) (
 		return status.Interface{}, errors.Join(err, cleanupErr)
 	}
 	service.applied.Store(&accepted)
+	if len(config.InitialPeers) > 0 {
+		service.peerState = peers.NewState(peers.Snapshot{PublicKey: config.PublicKey(), Peers: config.InitialPeers})
+	}
 	service.emit("started")
 	result.AppliedSHA256 = digest
 	return result, nil
@@ -195,22 +204,33 @@ func (service *Service) applyLive(ctx context.Context, current *Checkpoint, sour
 	if err != nil {
 		return status.Interface{}, err
 	}
-	if config.MTU == current.MTU || !current.Fixed.matches(config) {
+	field := current.liveField(config)
+	if field == LiveConflict {
 		return status.Interface{}, ErrConflict
 	}
-	result, err := service.control.UpdateMTU(ctx, current.Link, current.MTU, config.MTU)
+	var result status.Interface
+	if field == LiveMTU {
+		result, err = service.control.UpdateMTU(ctx, current.Link, current.MTU, config.MTU)
+	} else if service.reconfigure != nil {
+		result, err = service.reconfigure(ctx, current.Link, current.Fixed, config, field)
+	} else {
+		return status.Interface{}, ErrConflict
+	}
 	if errors.Is(err, ErrUnconfirmed) {
 		service.applied.Store(nil)
 	}
 	if err != nil {
 		return status.Interface{}, err
 	}
-	accepted := Checkpoint{Link: current.Link, SHA256: digest, MTU: config.MTU, Fixed: current.Fixed, StartedAt: current.StartedAt}
+	accepted := Checkpoint{Link: current.Link, SHA256: digest, MTU: config.MTU, Fixed: config.fixed(), StartedAt: current.StartedAt}
 	if err := service.save(accepted); err != nil {
 		service.applied.Store(nil)
 		return status.Interface{}, errors.Join(ErrUnconfirmed, err)
 	}
 	service.applied.Store(&accepted)
+	if field == LivePrivateKey {
+		service.peerState = nil
+	}
 	service.emit("configuration_applied")
 	result.AppliedSHA256 = digest
 	return result, nil

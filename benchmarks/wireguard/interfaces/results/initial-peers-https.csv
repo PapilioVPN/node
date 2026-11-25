@@ -1,0 +1,13 @@
+run,implementation,operation,iteration,nanoseconds
+1,node,initial_1_peers,1,2546433
+1,pasarguard,initial_1_peers,1,6561751
+2,pasarguard,initial_1_peers,1,5395867
+2,node,initial_1_peers,1,4399283
+3,node,initial_1_peers,1,5331546
+3,pasarguard,initial_1_peers,1,5409804
+1,node,initial_100_peers,1,14474343
+1,pasarguard,initial_100_peers,1,274202450
+2,pasarguard,initial_100_peers,1,289407023
+2,node,initial_100_peers,1,19544896
+3,node,initial_100_peers,1,22212576
+3,pasarguard,initial_100_peers,1,273340461

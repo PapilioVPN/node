@@ -267,6 +267,30 @@ def measure_probe(cases):
             check_link_removed()
 
 
+def measure_initial_peers(cases):
+    for count in (1, 100):
+        rows, users = zip(*peer_records(count, False))
+        expected = {peer["public_key"]: peer["allowed_ips"][0] for peer in rows}
+        for block in range(1, 4):
+            for label, args in cases if block % 2 else reversed(cases):
+                conn, method, path, source, stop_method, stop_path, _ = args
+                if label == "node":
+                    config = json.loads(source)
+                    config["initial_peers"] = rows
+                    source = json.dumps(config).encode()
+                else:
+                    source += b"".join(proto_bytes(3, user) for user in users)
+                elapsed, payload = request(conn, method, path, source)
+                if label == "node":
+                    assert json.loads(payload)["applied_config_sha256"] == hashlib.sha256(source).hexdigest()
+                else:
+                    assert payload.startswith(b"\x08\x01")
+                check_peers(expected)
+                print(f"{block},{label},initial_{count}_peers,1,{elapsed}")
+                request(conn, stop_method, stop_path)
+                check_link_removed()
+
+
 def usage_client(stack, index, server_ip, client_ip, server_port, secret):
     child = subprocess.Popen(["unshare", "--net", "sh", "-c", "echo ready; read -r hold"],
                              stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
@@ -466,7 +490,7 @@ def main():
     mode = sys.argv[3] if len(sys.argv) >= 4 else ""
     sampled_test = mode in ("--sampled-peer-usage", "--peer-activity")
     link_test = sampled_test or mode in ("--interface-traffic", "--interface-usage")
-    valid_args = (len(sys.argv) == 3 or len(sys.argv) == 4 and (link_test or mode in ("--lifecycle-check", "--live-mtu", "--peer-sync", "--peer-delta", "--diagnostics", "--probe"))
+    valid_args = (len(sys.argv) == 3 or len(sys.argv) == 4 and (link_test or mode in ("--lifecycle-check", "--live-mtu", "--peer-sync", "--peer-delta", "--diagnostics", "--probe", "--initial-peers"))
                   or len(sys.argv) == 5 and mode in ("--peer-sync", "--peer-replay", "--peer-delta"))
     if not valid_args:
         raise SystemExit("usage: measure-lifecycle.py NODE PASARGUARD [--lifecycle-check|--live-mtu|--interface-traffic|--interface-usage|--sampled-peer-usage|--peer-activity|--peer-sync [PREVIOUS_NODE]|--peer-replay PREVIOUS_NODE|--peer-delta [PREVIOUS_NODE]]")
@@ -484,7 +508,7 @@ def main():
                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         context = ssl.create_default_context(cafile=str(cert))
         context.minimum_version = ssl.TLSVersion.TLSv1_3
-        peer_test = mode in ("--peer-sync", "--peer-replay", "--peer-delta")
+        peer_test = mode in ("--peer-sync", "--peer-replay", "--peer-delta", "--initial-peers")
         env = {**os.environ, "GOMAXPROCS": "2" if peer_test else "1"}
         timeout = 15 if peer_test or link_test else 3
         target = probe_target(stack) if mode == "--probe" else ""
@@ -548,6 +572,9 @@ wireguard:
             ("pasarguard", (ref, "POST", "/start", pg_source, "PUT", "/stop", ref_valid)),
         ]
         print("run,implementation,operation,iteration,nanoseconds")
+        if mode == "--initial-peers":
+            measure_initial_peers(cases)
+            return
         if mode == "--probe":
             measure_probe(cases)
             return

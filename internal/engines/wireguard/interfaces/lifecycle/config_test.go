@@ -2,6 +2,7 @@ package lifecycle
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"strings"
 	"testing"
@@ -9,6 +10,18 @@ import (
 
 	"github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/status"
 )
+
+func TestConfigInitialPeers(t *testing.T) {
+	key := [32]byte{2}
+	source := []byte(`{"private_key":"AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=","addresses":["192.0.2.1/24"],"initial_peers":[{"public_key":"` + base64.StdEncoding.EncodeToString(key[:]) + `","allowed_ips":["192.0.2.2/32"]}]}`)
+	config, err := parseConfig(source)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(config.InitialPeers) != 1 || config.InitialPeers[0].PublicKey != key {
+		t.Fatalf("initial peers = %+v", config.InitialPeers)
+	}
+}
 
 const validSource = `{"private_key":"AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=","addresses":["192.0.2.1/24"]}`
 

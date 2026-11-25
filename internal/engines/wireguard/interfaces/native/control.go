@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/lifecycle"
+	"github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/peers"
 	"github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/status"
 	"github.com/mdlayher/genetlink"
 	gennetlink "github.com/mdlayher/netlink"
@@ -80,6 +81,15 @@ func (control *Control) Create(ctx context.Context, owner lifecycle.Link, config
 	}
 	if err := control.configure(ctx, owner.Index, config); err != nil {
 		return result, err
+	}
+	if len(config.InitialPeers) != 0 {
+		initial := make([]peers.Change, len(config.InitialPeers))
+		for i, peer := range config.InitialPeers {
+			initial[i] = peers.Change{Peer: peer, ReplaceAllowedIPs: true, SetPresharedKey: peer.PresharedKey != [32]byte{}}
+		}
+		if err := control.writePeers(ctx, owner.Index, initial); err != nil {
+			return result, err
+		}
 	}
 	for _, prefix := range config.Addresses {
 		if err := ctx.Err(); err != nil {

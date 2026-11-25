@@ -25,13 +25,14 @@ const (
 type WireGuardConfigIssue int32
 
 const (
-	WireGuardConfigIssue_WIRE_GUARD_CONFIG_ISSUE_UNSPECIFIED         WireGuardConfigIssue = 0
-	WireGuardConfigIssue_WIRE_GUARD_CONFIG_ISSUE_INVALID_JSON        WireGuardConfigIssue = 1
-	WireGuardConfigIssue_WIRE_GUARD_CONFIG_ISSUE_INVALID_PRIVATE_KEY WireGuardConfigIssue = 2
-	WireGuardConfigIssue_WIRE_GUARD_CONFIG_ISSUE_INVALID_ADDRESSES   WireGuardConfigIssue = 3
-	WireGuardConfigIssue_WIRE_GUARD_CONFIG_ISSUE_DUPLICATE_ADDRESS   WireGuardConfigIssue = 4
-	WireGuardConfigIssue_WIRE_GUARD_CONFIG_ISSUE_INVALID_MTU         WireGuardConfigIssue = 5
-	WireGuardConfigIssue_WIRE_GUARD_CONFIG_ISSUE_INVALID_LISTEN_PORT WireGuardConfigIssue = 6
+	WireGuardConfigIssue_WIRE_GUARD_CONFIG_ISSUE_UNSPECIFIED           WireGuardConfigIssue = 0
+	WireGuardConfigIssue_WIRE_GUARD_CONFIG_ISSUE_INVALID_JSON          WireGuardConfigIssue = 1
+	WireGuardConfigIssue_WIRE_GUARD_CONFIG_ISSUE_INVALID_PRIVATE_KEY   WireGuardConfigIssue = 2
+	WireGuardConfigIssue_WIRE_GUARD_CONFIG_ISSUE_INVALID_ADDRESSES     WireGuardConfigIssue = 3
+	WireGuardConfigIssue_WIRE_GUARD_CONFIG_ISSUE_DUPLICATE_ADDRESS     WireGuardConfigIssue = 4
+	WireGuardConfigIssue_WIRE_GUARD_CONFIG_ISSUE_INVALID_MTU           WireGuardConfigIssue = 5
+	WireGuardConfigIssue_WIRE_GUARD_CONFIG_ISSUE_INVALID_LISTEN_PORT   WireGuardConfigIssue = 6
+	WireGuardConfigIssue_WIRE_GUARD_CONFIG_ISSUE_INVALID_INITIAL_PEERS WireGuardConfigIssue = 7
 )
 
 // Enum value maps for WireGuardConfigIssue.
@@ -44,15 +45,17 @@ var (
 		4: "WIRE_GUARD_CONFIG_ISSUE_DUPLICATE_ADDRESS",
 		5: "WIRE_GUARD_CONFIG_ISSUE_INVALID_MTU",
 		6: "WIRE_GUARD_CONFIG_ISSUE_INVALID_LISTEN_PORT",
+		7: "WIRE_GUARD_CONFIG_ISSUE_INVALID_INITIAL_PEERS",
 	}
 	WireGuardConfigIssue_value = map[string]int32{
-		"WIRE_GUARD_CONFIG_ISSUE_UNSPECIFIED":         0,
-		"WIRE_GUARD_CONFIG_ISSUE_INVALID_JSON":        1,
-		"WIRE_GUARD_CONFIG_ISSUE_INVALID_PRIVATE_KEY": 2,
-		"WIRE_GUARD_CONFIG_ISSUE_INVALID_ADDRESSES":   3,
-		"WIRE_GUARD_CONFIG_ISSUE_DUPLICATE_ADDRESS":   4,
-		"WIRE_GUARD_CONFIG_ISSUE_INVALID_MTU":         5,
-		"WIRE_GUARD_CONFIG_ISSUE_INVALID_LISTEN_PORT": 6,
+		"WIRE_GUARD_CONFIG_ISSUE_UNSPECIFIED":           0,
+		"WIRE_GUARD_CONFIG_ISSUE_INVALID_JSON":          1,
+		"WIRE_GUARD_CONFIG_ISSUE_INVALID_PRIVATE_KEY":   2,
+		"WIRE_GUARD_CONFIG_ISSUE_INVALID_ADDRESSES":     3,
+		"WIRE_GUARD_CONFIG_ISSUE_DUPLICATE_ADDRESS":     4,
+		"WIRE_GUARD_CONFIG_ISSUE_INVALID_MTU":           5,
+		"WIRE_GUARD_CONFIG_ISSUE_INVALID_LISTEN_PORT":   6,
+		"WIRE_GUARD_CONFIG_ISSUE_INVALID_INITIAL_PEERS": 7,
 	}
 )
 
@@ -987,7 +990,7 @@ const file_proto_v1_interfaces_proto_rawDesc = "" +
 	"\btx_bytes\x18\x03 \x01(\x04R\atxBytes\x12A\n" +
 	"\x0elast_handshake\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\rlastHandshake\"V\n" +
 	"\x16WireGuardPeerStatsList\x12<\n" +
-	"\x05peers\x18\x01 \x03(\v2&.papiliovpn.node.v1.WireGuardPeerStatsR\x05peers*\xd2\x02\n" +
+	"\x05peers\x18\x01 \x03(\v2&.papiliovpn.node.v1.WireGuardPeerStatsR\x05peers*\x85\x03\n" +
 	"\x14WireGuardConfigIssue\x12'\n" +
 	"#WIRE_GUARD_CONFIG_ISSUE_UNSPECIFIED\x10\x00\x12(\n" +
 	"$WIRE_GUARD_CONFIG_ISSUE_INVALID_JSON\x10\x01\x12/\n" +
@@ -995,7 +998,8 @@ const file_proto_v1_interfaces_proto_rawDesc = "" +
 	")WIRE_GUARD_CONFIG_ISSUE_INVALID_ADDRESSES\x10\x03\x12-\n" +
 	")WIRE_GUARD_CONFIG_ISSUE_DUPLICATE_ADDRESS\x10\x04\x12'\n" +
 	"#WIRE_GUARD_CONFIG_ISSUE_INVALID_MTU\x10\x05\x12/\n" +
-	"+WIRE_GUARD_CONFIG_ISSUE_INVALID_LISTEN_PORT\x10\x062\xe1\a\n" +
+	"+WIRE_GUARD_CONFIG_ISSUE_INVALID_LISTEN_PORT\x10\x06\x121\n" +
+	"-WIRE_GUARD_CONFIG_ISSUE_INVALID_INITIAL_PEERS\x10\a2\xe1\a\n" +
 	"\x1aWireGuardInterfacesService\x12h\n" +
 	"\tGetStatus\x12-.papiliovpn.node.v1.WireGuardInterfaceRequest\x1a,.papiliovpn.node.v1.WireGuardInterfaceStatus\x12`\n" +
 	"\x05Start\x12).papiliovpn.node.v1.WireGuardStartRequest\x1a,.papiliovpn.node.v1.WireGuardInterfaceStatus\x12`\n" +

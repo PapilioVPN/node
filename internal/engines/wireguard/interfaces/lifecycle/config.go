@@ -3,15 +3,16 @@ package lifecycle
 import (
 	"bytes"
 	"context"
+	"crypto/ecdh"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"io"
 	"net/netip"
-	"slices"
 	"sync"
 
+	"github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/peers"
 	"github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/status"
 )
 
@@ -21,23 +22,25 @@ type ConfigIssue uint8
 
 // These codes match WireGuardConfigIssue in the v1 API.
 const (
-	ConfigIssueNone              ConfigIssue = 0
-	ConfigIssueInvalidJSON       ConfigIssue = 1
-	ConfigIssueInvalidPrivateKey ConfigIssue = 2
-	ConfigIssueInvalidAddresses  ConfigIssue = 3
-	ConfigIssueDuplicateAddress  ConfigIssue = 4
-	ConfigIssueInvalidMTU        ConfigIssue = 5
-	ConfigIssueInvalidListenPort ConfigIssue = 6
+	ConfigIssueNone                ConfigIssue = 0
+	ConfigIssueInvalidJSON         ConfigIssue = 1
+	ConfigIssueInvalidPrivateKey   ConfigIssue = 2
+	ConfigIssueInvalidAddresses    ConfigIssue = 3
+	ConfigIssueDuplicateAddress    ConfigIssue = 4
+	ConfigIssueInvalidMTU          ConfigIssue = 5
+	ConfigIssueInvalidListenPort   ConfigIssue = 6
+	ConfigIssueInvalidInitialPeers ConfigIssue = 7
 )
 
 var configIssueCodes = [...]string{
-	ConfigIssueNone:              "",
-	ConfigIssueInvalidJSON:       "invalid_json",
-	ConfigIssueInvalidPrivateKey: "invalid_private_key",
-	ConfigIssueInvalidAddresses:  "invalid_addresses",
-	ConfigIssueDuplicateAddress:  "duplicate_address",
-	ConfigIssueInvalidMTU:        "invalid_mtu",
-	ConfigIssueInvalidListenPort: "invalid_listen_port",
+	ConfigIssueNone:                "",
+	ConfigIssueInvalidJSON:         "invalid_json",
+	ConfigIssueInvalidPrivateKey:   "invalid_private_key",
+	ConfigIssueInvalidAddresses:    "invalid_addresses",
+	ConfigIssueDuplicateAddress:    "duplicate_address",
+	ConfigIssueInvalidMTU:          "invalid_mtu",
+	ConfigIssueInvalidListenPort:   "invalid_listen_port",
+	ConfigIssueInvalidInitialPeers: "invalid_initial_peers",
 }
 
 func (issue ConfigIssue) Error() string {
@@ -84,30 +87,33 @@ func (v *Validator) Check(ctx context.Context, name string, source []byte) (Conf
 }
 
 type Config struct {
-	PrivateKey [32]byte
-	Addresses  []netip.Prefix
-	ListenPort uint16
-	MTU        uint32
+	PrivateKey         [32]byte
+	Addresses          []netip.Prefix
+	ListenPort         uint16
+	MTU                uint32
+	InitialPeers       []peers.Peer
+	InitialPeersSHA256 [32]byte
+}
+
+func (config Config) PublicKey() [32]byte {
+	key, _ := ecdh.X25519().NewPrivateKey(config.PrivateKey[:])
+	return [32]byte(key.PublicKey().Bytes())
 }
 
 type FixedConfig struct {
-	PrivateKeySHA256 [32]byte       `json:"private_key_sha256"`
-	Addresses        []netip.Prefix `json:"addresses"`
-	ListenPort       uint16         `json:"listen_port"`
+	PrivateKeySHA256   [32]byte       `json:"private_key_sha256"`
+	Addresses          []netip.Prefix `json:"addresses"`
+	ListenPort         uint16         `json:"listen_port"`
+	InitialPeersSHA256 [32]byte       `json:"initial_peers_sha256,omitzero"`
 }
 
 func (config Config) fixed() FixedConfig {
 	return FixedConfig{
-		PrivateKeySHA256: sha256.Sum256(config.PrivateKey[:]),
-		Addresses:        config.Addresses,
-		ListenPort:       config.ListenPort,
+		PrivateKeySHA256:   sha256.Sum256(config.PrivateKey[:]),
+		Addresses:          config.Addresses,
+		ListenPort:         config.ListenPort,
+		InitialPeersSHA256: config.InitialPeersSHA256,
 	}
-}
-
-func (fixed FixedConfig) matches(config Config) bool {
-	return fixed.ListenPort == config.ListenPort &&
-		slices.Equal(fixed.Addresses, config.Addresses) &&
-		fixed.PrivateKeySHA256 == sha256.Sum256(config.PrivateKey[:])
 }
 
 func parseConfig(source []byte) (Config, error) {
@@ -119,10 +125,11 @@ func parseConfig(source []byte) (Config, error) {
 		return Config{}, ConfigIssueInvalidJSON
 	}
 	var input struct {
-		PrivateKey []byte   `json:"private_key"`
-		Addresses  []string `json:"addresses"`
-		ListenPort uint16   `json:"listen_port"`
-		MTU        uint32   `json:"mtu"`
+		PrivateKey   []byte          `json:"private_key"`
+		Addresses    []string        `json:"addresses"`
+		ListenPort   uint16          `json:"listen_port"`
+		MTU          uint32          `json:"mtu"`
+		InitialPeers json.RawMessage `json:"initial_peers"`
 	}
 	decoder := json.NewDecoder(bytes.NewReader(source))
 	decoder.DisallowUnknownFields()
@@ -147,6 +154,27 @@ func parseConfig(source []byte) (Config, error) {
 	config := Config{
 		PrivateKey: [32]byte(input.PrivateKey), ListenPort: input.ListenPort, MTU: input.MTU,
 		Addresses: make([]netip.Prefix, 0, len(input.Addresses)),
+	}
+	if len(input.InitialPeers) != 0 {
+		var initial []peers.Input
+		peerDecoder := json.NewDecoder(bytes.NewReader(input.InitialPeers))
+		peerDecoder.DisallowUnknownFields()
+		if err := peerDecoder.Decode(&initial); err != nil || initial == nil {
+			return Config{}, ConfigIssueInvalidInitialPeers
+		}
+		prepared, err := peers.Prepare(initial)
+		if err != nil {
+			return Config{}, ConfigIssueInvalidInitialPeers
+		}
+		if len(prepared) != 0 {
+			public := config.PublicKey()
+			for _, peer := range prepared {
+				if peer.PublicKey == public {
+					return Config{}, ConfigIssueInvalidInitialPeers
+				}
+			}
+			config.InitialPeers, config.InitialPeersSHA256 = prepared, sha256.Sum256(input.InitialPeers)
+		}
 	}
 	for _, text := range input.Addresses {
 		address, err := netip.ParsePrefix(text)
