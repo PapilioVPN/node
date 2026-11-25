@@ -27,6 +27,7 @@ type peerSnapshot struct {
 	self       [32]byte
 	peers      []peers.Peer
 	allowedIPs []netip.Prefix
+	publicOnly bool
 }
 
 func (control *Control) WritePeer(ctx context.Context, link lifecycle.Link, change peers.Change) error {
@@ -190,6 +191,9 @@ func (snapshot *peerSnapshot) decodePeer(data []byte) (peers.Peer, error) {
 				return peers.Peer{}, err
 			}
 		case unix.WGPEER_A_PRESHARED_KEY:
+			if snapshot.publicOnly {
+				continue
+			}
 			if err := readKey(fields.value, &peer.PresharedKey); err != nil {
 				return peers.Peer{}, err
 			}

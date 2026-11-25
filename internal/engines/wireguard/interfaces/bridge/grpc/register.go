@@ -20,16 +20,34 @@ import (
 
 type handlers struct {
 	interfacesv1.UnimplementedWireGuardInterfacesServiceServer
-	service   *interfacestatus.Service
-	peerStats *traffic.Service
-	managed   *lifecycle.Service
-	validator *lifecycle.Validator
+	service    *interfacestatus.Service
+	peerStats  *traffic.Service
+	managed    *lifecycle.Service
+	validator  *lifecycle.Validator
+	membership *peers.Membership
 }
 
-func Register(server grpc.ServiceRegistrar, service *interfacestatus.Service, peerStats *traffic.Service, managed *lifecycle.Service, validator *lifecycle.Validator) {
+func Register(server grpc.ServiceRegistrar, service *interfacestatus.Service, peerStats *traffic.Service, managed *lifecycle.Service, validator *lifecycle.Validator, membership *peers.Membership) {
 	interfacesv1.RegisterWireGuardInterfacesServiceServer(server, &handlers{
-		service: service, peerStats: peerStats, managed: managed, validator: validator,
+		service: service, peerStats: peerStats, managed: managed, validator: validator, membership: membership,
 	})
+}
+
+func (h *handlers) ListPeers(ctx context.Context, req *interfacesv1.WireGuardInterfaceRequest) (*interfacesv1.WireGuardPeerMembership, error) {
+	observed, err := h.membership.List(ctx, req.GetName())
+	if err != nil {
+		return nil, readError(err)
+	}
+	result := &interfacesv1.WireGuardPeerMembership{Peers: make([]*interfacesv1.WireGuardPeerMember, len(observed))}
+	for i := range observed {
+		peer := &observed[i]
+		ips := make([]string, len(peer.AllowedIPs))
+		for j, prefix := range peer.AllowedIPs {
+			ips[j] = prefix.String()
+		}
+		result.Peers[i] = &interfacesv1.WireGuardPeerMember{PublicKey: peer.PublicKey[:], AllowedIps: ips}
+	}
+	return result, nil
 }
 
 func (h *handlers) GetStatus(ctx context.Context, req *interfacesv1.WireGuardInterfaceRequest) (*interfacesv1.WireGuardInterfaceStatus, error) {

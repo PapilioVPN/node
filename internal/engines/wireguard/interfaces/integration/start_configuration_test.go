@@ -32,14 +32,17 @@ func TestInitialPeersAndLiveConfiguration(t *testing.T) {
 		Addresses    []string `json:"addresses"`
 		ListenPort   int      `json:"listen_port"`
 		InitialPeers []struct {
-			PublicKey  []byte   `json:"public_key"`
-			AllowedIPs []string `json:"allowed_ips"`
+			PublicKey    []byte   `json:"public_key"`
+			PresharedKey []byte   `json:"preshared_key"`
+			AllowedIPs   []string `json:"allowed_ips"`
 		} `json:"initial_peers"`
 	}{PrivateKey: first[:], Addresses: []string{"192.0.2.1/24"}}
+	psk := [32]byte{4, 4}
 	cfg.InitialPeers = append(cfg.InitialPeers, struct {
-		PublicKey  []byte   `json:"public_key"`
-		AllowedIPs []string `json:"allowed_ips"`
-	}{peer[:], []string{"192.0.2.2/32"}})
+		PublicKey    []byte   `json:"public_key"`
+		PresharedKey []byte   `json:"preshared_key"`
+		AllowedIPs   []string `json:"allowed_ips"`
+	}{peer[:], psk[:], []string{"192.0.2.2/32"}})
 	apply := func() {
 		body, err := json.Marshal(cfg)
 		if err != nil {
@@ -50,6 +53,7 @@ func TestInitialPeersAndLiveConfiguration(t *testing.T) {
 		}
 	}
 	apply()
+	assertPeerMembership(t, f, peer)
 	if !strings.Contains(wgOutput(t, "allowed-ips"), base64.StdEncoding.EncodeToString(peer[:])+"\t192.0.2.2/32") {
 		t.Fatal("Start returned before initial peers were applied")
 	}

@@ -28,6 +28,7 @@ const (
 	WireGuardInterfacesService_RemovePeer_FullMethodName     = "/papiliovpn.node.v1.WireGuardInterfacesService/RemovePeer"
 	WireGuardInterfacesService_ApplyPeerDelta_FullMethodName = "/papiliovpn.node.v1.WireGuardInterfacesService/ApplyPeerDelta"
 	WireGuardInterfacesService_ListPeerStats_FullMethodName  = "/papiliovpn.node.v1.WireGuardInterfacesService/ListPeerStats"
+	WireGuardInterfacesService_ListPeers_FullMethodName      = "/papiliovpn.node.v1.WireGuardInterfacesService/ListPeers"
 )
 
 // WireGuardInterfacesServiceClient is the client API for WireGuardInterfacesService service.
@@ -43,6 +44,7 @@ type WireGuardInterfacesServiceClient interface {
 	RemovePeer(ctx context.Context, in *WireGuardRemovePeerRequest, opts ...grpc.CallOption) (*WireGuardRemovePeerResponse, error)
 	ApplyPeerDelta(ctx context.Context, in *WireGuardApplyPeerDeltaRequest, opts ...grpc.CallOption) (*WireGuardPeerSyncResult, error)
 	ListPeerStats(ctx context.Context, in *WireGuardInterfaceRequest, opts ...grpc.CallOption) (*WireGuardPeerStatsList, error)
+	ListPeers(ctx context.Context, in *WireGuardInterfaceRequest, opts ...grpc.CallOption) (*WireGuardPeerMembership, error)
 }
 
 type wireGuardInterfacesServiceClient struct {
@@ -143,6 +145,16 @@ func (c *wireGuardInterfacesServiceClient) ListPeerStats(ctx context.Context, in
 	return out, nil
 }
 
+func (c *wireGuardInterfacesServiceClient) ListPeers(ctx context.Context, in *WireGuardInterfaceRequest, opts ...grpc.CallOption) (*WireGuardPeerMembership, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(WireGuardPeerMembership)
+	err := c.cc.Invoke(ctx, WireGuardInterfacesService_ListPeers_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // WireGuardInterfacesServiceServer is the server API for WireGuardInterfacesService service.
 // All implementations must embed UnimplementedWireGuardInterfacesServiceServer
 // for forward compatibility.
@@ -156,6 +168,7 @@ type WireGuardInterfacesServiceServer interface {
 	RemovePeer(context.Context, *WireGuardRemovePeerRequest) (*WireGuardRemovePeerResponse, error)
 	ApplyPeerDelta(context.Context, *WireGuardApplyPeerDeltaRequest) (*WireGuardPeerSyncResult, error)
 	ListPeerStats(context.Context, *WireGuardInterfaceRequest) (*WireGuardPeerStatsList, error)
+	ListPeers(context.Context, *WireGuardInterfaceRequest) (*WireGuardPeerMembership, error)
 	mustEmbedUnimplementedWireGuardInterfacesServiceServer()
 }
 
@@ -192,6 +205,9 @@ func (UnimplementedWireGuardInterfacesServiceServer) ApplyPeerDelta(context.Cont
 }
 func (UnimplementedWireGuardInterfacesServiceServer) ListPeerStats(context.Context, *WireGuardInterfaceRequest) (*WireGuardPeerStatsList, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListPeerStats not implemented")
+}
+func (UnimplementedWireGuardInterfacesServiceServer) ListPeers(context.Context, *WireGuardInterfaceRequest) (*WireGuardPeerMembership, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListPeers not implemented")
 }
 func (UnimplementedWireGuardInterfacesServiceServer) mustEmbedUnimplementedWireGuardInterfacesServiceServer() {
 }
@@ -377,6 +393,24 @@ func _WireGuardInterfacesService_ListPeerStats_Handler(srv interface{}, ctx cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _WireGuardInterfacesService_ListPeers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(WireGuardInterfaceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WireGuardInterfacesServiceServer).ListPeers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WireGuardInterfacesService_ListPeers_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WireGuardInterfacesServiceServer).ListPeers(ctx, req.(*WireGuardInterfaceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // WireGuardInterfacesService_ServiceDesc is the grpc.ServiceDesc for WireGuardInterfacesService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -419,6 +453,10 @@ var WireGuardInterfacesService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListPeerStats",
 			Handler:    _WireGuardInterfacesService_ListPeerStats_Handler,
+		},
+		{
+			MethodName: "ListPeers",
+			Handler:    _WireGuardInterfacesService_ListPeers_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

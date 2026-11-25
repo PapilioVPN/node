@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/peers"
 	"github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/status"
 	"github.com/PapilioVPN/node/internal/engines/wireguard/stats/traffic"
 	"github.com/mdlayher/genetlink"
@@ -46,6 +47,18 @@ func (reader *PeerStatsReader) ReadPeerStats(ctx context.Context, name string) (
 		return nil, err
 	}
 	return snapshot.peers, nil
+}
+
+func (reader *PeerStatsReader) ReadMembership(ctx context.Context, name string) ([]peers.Member, error) {
+	snapshot := peerStatsSnapshot{name: name, membership: &peerSnapshot{publicOnly: true}}
+	if err := reader.readSnapshot(ctx, &snapshot); err != nil {
+		return nil, err
+	}
+	result := make([]peers.Member, len(snapshot.membership.peers))
+	for i, peer := range snapshot.membership.peers {
+		result[i] = peers.Member{PublicKey: peer.PublicKey, AllowedIPs: peer.AllowedIPs}
+	}
+	return result, nil
 }
 
 func (reader *PeerStatsReader) ReadPeerTraffic(ctx context.Context, name string, key [32]byte) (traffic.PeerTrafficSample, error) {
@@ -97,7 +110,10 @@ func (reader *PeerStatsReader) readSnapshot(ctx context.Context, snapshot *peerS
 	if err != nil {
 		return err
 	}
-	if snapshot.target == [32]byte{} {
+	if snapshot.membership != nil {
+		snapshot.membership.peers = make([]peers.Peer, 0, reader.dump.peerCount)
+		snapshot.membership.allowedIPs = make([]netip.Prefix, 0, reader.dump.prefixCount)
+	} else if snapshot.target == [32]byte{} {
 		snapshot.peers = make([]traffic.PeerStats, 0, reader.dump.peerCount)
 	}
 	if err := reader.dump.query(ctx, reader.family, data, snapshot.decode); err != nil {
@@ -106,7 +122,10 @@ func (reader *PeerStatsReader) readSnapshot(ctx context.Context, snapshot *peerS
 	if !snapshot.seenName {
 		return errPeerSnapshot
 	}
-	if snapshot.target == [32]byte{} {
+	if snapshot.membership != nil {
+		reader.dump.peerCount = len(snapshot.membership.peers)
+		reader.dump.prefixCount = len(snapshot.membership.allowedIPs)
+	} else if snapshot.target == [32]byte{} {
 		reader.dump.peerCount = len(snapshot.peers)
 	}
 	return nil
@@ -124,12 +143,13 @@ func peerStatsError(err error) error {
 }
 
 type peerStatsSnapshot struct {
-	name     string
-	seenName bool
-	peers    []traffic.PeerStats
-	target   [32]byte
-	sample   traffic.PeerTrafficSample
-	found    bool
+	name       string
+	seenName   bool
+	peers      []traffic.PeerStats
+	target     [32]byte
+	sample     traffic.PeerTrafficSample
+	found      bool
+	membership *peerSnapshot
 }
 
 func (snapshot *peerStatsSnapshot) decode(data []byte) error {
@@ -148,6 +168,12 @@ func (snapshot *peerStatsSnapshot) decode(data []byte) error {
 			}
 			snapshot.seenName = true
 		case unix.WGDEVICE_A_PEERS:
+			if snapshot.membership != nil {
+				if err := snapshot.membership.decodePeers(attributes.value); err != nil {
+					return err
+				}
+				continue
+			}
 			if snapshot.target != [32]byte{} {
 				if !snapshot.found {
 					if err := snapshot.selectTraffic(attributes.value); err != nil {

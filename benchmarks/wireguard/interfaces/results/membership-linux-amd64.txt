@@ -1,0 +1,35 @@
+goos: linux
+goarch: amd64
+pkg: github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/integration
+cpu: AMD Ryzen 7 3750H with Radeon Vega Mobile Gfx
+BenchmarkPeerMembership/1/HTTP    	    1513	    126647 ns/op	   10487 B/op	     128 allocs/op
+BenchmarkPeerMembership/1/HTTP    	    1461	    142586 ns/op	   10453 B/op	     128 allocs/op
+BenchmarkPeerMembership/1/HTTP    	    1438	    131540 ns/op	   10453 B/op	     128 allocs/op
+BenchmarkPeerMembership/1/HTTP    	    1448	    132111 ns/op	   10453 B/op	     128 allocs/op
+BenchmarkPeerMembership/1/HTTP    	    1485	    116918 ns/op	   10453 B/op	     128 allocs/op
+BenchmarkPeerMembership/1/gRPC    	    1540	    133077 ns/op	   10891 B/op	     188 allocs/op
+BenchmarkPeerMembership/1/gRPC    	    1628	    114235 ns/op	   10867 B/op	     188 allocs/op
+BenchmarkPeerMembership/1/gRPC    	    1620	    117064 ns/op	   10867 B/op	     188 allocs/op
+BenchmarkPeerMembership/1/gRPC    	    1642	    116601 ns/op	   10867 B/op	     188 allocs/op
+BenchmarkPeerMembership/1/gRPC    	    1666	    112688 ns/op	   10866 B/op	     188 allocs/op
+BenchmarkPeerMembership/1/wg      	     156	   1159058 ns/op	   52775 B/op	     102 allocs/op
+BenchmarkPeerMembership/1/wg      	     154	   1148554 ns/op	   52768 B/op	     102 allocs/op
+BenchmarkPeerMembership/1/wg      	     154	   1152743 ns/op	   52768 B/op	     102 allocs/op
+BenchmarkPeerMembership/1/wg      	     153	   1168229 ns/op	   52768 B/op	     102 allocs/op
+BenchmarkPeerMembership/1/wg      	     156	   1143087 ns/op	   52769 B/op	     102 allocs/op
+BenchmarkPeerMembership/1000/HTTP 	      78	   2954615 ns/op	  565623 B/op	    1188 allocs/op
+BenchmarkPeerMembership/1000/HTTP 	      82	   2691467 ns/op	  562038 B/op	    1187 allocs/op
+BenchmarkPeerMembership/1000/HTTP 	      78	   2746698 ns/op	  557311 B/op	    1186 allocs/op
+BenchmarkPeerMembership/1000/HTTP 	      74	   2762031 ns/op	  562561 B/op	    1187 allocs/op
+BenchmarkPeerMembership/1000/HTTP 	      76	   2758441 ns/op	  557341 B/op	    1186 allocs/op
+BenchmarkPeerMembership/1000/gRPC 	      90	   1985948 ns/op	  421859 B/op	    3237 allocs/op
+BenchmarkPeerMembership/1000/gRPC 	      94	   1876615 ns/op	  409403 B/op	    3236 allocs/op
+BenchmarkPeerMembership/1000/gRPC 	      91	   1800109 ns/op	  409404 B/op	    3236 allocs/op
+BenchmarkPeerMembership/1000/gRPC 	      91	   1801710 ns/op	  409420 B/op	    3236 allocs/op
+BenchmarkPeerMembership/1000/gRPC 	      97	   1821017 ns/op	  409397 B/op	    3236 allocs/op
+BenchmarkPeerMembership/1000/wg   	      66	   3062407 ns/op	  181794 B/op	     108 allocs/op
+BenchmarkPeerMembership/1000/wg   	      54	   2879737 ns/op	  181794 B/op	     108 allocs/op
+BenchmarkPeerMembership/1000/wg   	      61	   2882094 ns/op	  181795 B/op	     108 allocs/op
+BenchmarkPeerMembership/1000/wg   	      60	   2854087 ns/op	  181794 B/op	     108 allocs/op
+BenchmarkPeerMembership/1000/wg   	      62	   2745476 ns/op	  181794 B/op	     108 allocs/op
+PASS

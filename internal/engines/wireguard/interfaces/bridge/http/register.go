@@ -26,9 +26,10 @@ type response struct {
 	AppliedSHA256 string `json:"applied_config_sha256,omitempty"`
 }
 
-func Register(router chi.Router, service *status.Service, peerStats *traffic.Service, managed *lifecycle.Service, validator *lifecycle.Validator) {
+func Register(router chi.Router, service *status.Service, peerStats *traffic.Service, managed *lifecycle.Service, validator *lifecycle.Validator, membership *peers.Membership) {
 	const path = "/v1/wireguard/interfaces/{name}"
 	router.Get(path+"/peers/stats", listPeerStats(peerStats))
+	router.Get(path+"/peers", listPeers(membership))
 	router.Get(path, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
 		result, err := service.GetStatus(r.Context(), interfaceName(r))

@@ -16,6 +16,16 @@ service WireGuardInterfacesService {
   rpc RemovePeer(WireGuardRemovePeerRequest) returns (WireGuardRemovePeerResponse);
   rpc ApplyPeerDelta(WireGuardApplyPeerDeltaRequest) returns (WireGuardPeerSyncResult);
   rpc ListPeerStats(WireGuardInterfaceRequest) returns (WireGuardPeerStatsList);
+  rpc ListPeers(WireGuardInterfaceRequest) returns (WireGuardPeerMembership);
+}
+
+message WireGuardPeerMember {
+  bytes public_key = 1;
+  repeated string allowed_ips = 2;
+}
+
+message WireGuardPeerMembership {
+  repeated WireGuardPeerMember peers = 1;
 }
 
 message WireGuardInterfaceRequest {
