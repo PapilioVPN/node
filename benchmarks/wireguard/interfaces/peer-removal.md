@@ -100,3 +100,36 @@ policy and acknowledgment semantics remain unchanged.
 · [HTTPS B](results/peer-removal-paired-https-b.csv)
 · [Traced stages](results/peer-removal-traced-stages.csv)
 · [Native probe and encoder timings](results/peer-removal-focused-linux-amd64.txt)
+
+## Single-reply ownership check
+
+Peer writes now read the current link with one targeted route Netlink reply.
+The check still matches the current index, name, type, alias and `IFF_UP`.
+It requests no link statistics and reads the reply into a bounded reusable
+buffer. WireGuard mutation and acknowledgment, accounting policy, and Stop
+are unchanged. In the isolated HTTPS fixture, a down link and a changed alias
+both rejected removal and left the exact peer membership intact.
+
+The three-build comparison paired removals on distinct interfaces in one
+isolated namespace. Each cell contains 120 observations. Both Node builds
+use sampled accounting. Times are p50 / p95 in milliseconds.
+
+| Configured peers | Run | Previous Node | New Node | PasarGuard |
+| ---: | --- | ---: | ---: | ---: |
+| 1 | A | 0.766 / 1.220 | 0.667 / 1.282 | 0.699 / 1.291 |
+| 1 | B | 0.721 / 1.257 | 0.689 / 1.047 | 0.661 / 1.263 |
+| 100 | A | 0.722 / 1.275 | 0.689 / 1.314 | 0.698 / 1.127 |
+| 100 | B | 0.723 / 1.203 | 0.721 / 1.251 | 0.712 / 1.228 |
+
+The median of paired differences favored the new build over previous Node
+by 46–50 µs at one peer and 22–41 µs at 100 peers. The 100-peer p95 was
+slightly higher than previous Node in both runs. PasarGuard led some rows.
+
+```bash
+export NODE_TEST_WIREGUARD_PARENT_NETNS=$(readlink /proc/self/ns/net)
+unshare -Urn python3 -B benchmarks/wireguard/interfaces/compare-removal-guard.py \
+  "$PWD/node" "$PWD/pasarguard" --peer-removal "$PWD/node-before"
+```
+
+[HTTPS A](results/peer-removal-single-reply-a.csv)
+· [HTTPS B](results/peer-removal-single-reply-b.csv)
