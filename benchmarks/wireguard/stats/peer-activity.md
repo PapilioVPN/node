@@ -19,3 +19,18 @@ Both engines sampled real tunnel traffic from one active peer. Each row uses
 
 Use `--peer-activity` with the [matched HTTPS fixture](../interfaces/lifecycle.md#reproduce).
 [Raw timings](results/peer-activity-https.csv)
+
+## Repeat on the integrated build
+
+The same fixture used Node commit `29dfaa1` and `GOMAXPROCS=1` for this run.
+Activity p95 remained higher at both peer counts. The comparison measures
+end-to-end HTTPS latency.
+
+| Operation | Configured peers | Node p50 / p95 | PasarGuard p50 / p95 |
+| --- | ---: | ---: | ---: |
+| Activity | 1 | 0.195 / 0.603 | 0.241 / 0.327 |
+| Activity | 1,000 | 0.263 / 0.518 | 0.316 / 0.414 |
+| Endpoint IPs | 1 | 0.198 / 0.261 | 0.249 / 0.331 |
+| Endpoint IPs | 1,000 | 0.245 / 0.304 | 0.311 / 0.429 |
+
+[Raw repeat timings](results/peer-activity-repeat-https.csv)
