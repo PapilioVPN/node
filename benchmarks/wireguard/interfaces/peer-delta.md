@@ -100,3 +100,29 @@ The previous Node build is `cb19e3e` and the reference pin is unchanged.
 Single updates and removals switched order against PasarGuard across the two
 runs. The median removal time increased relative to the previous Node build.
 [First run](results/peer-delta-managed-https.csv) · [Second run](results/peer-delta-managed-repeat-https.csv)
+
+## Targeted accounting before one peer is removed
+
+Node decodes the retiring peer from one fresh kernel dump before the write
+and preserves its pending bytes. This path avoids decoding unrelated peer
+statistics and leaves the full accounting sample timestamp in place. Linux
+WireGuard still sends the complete device dump. The reference mutation does
+not take an equivalent final native counter sample.
+
+Three-build HTTPS repeat, with a 1,000-peer interface and 40 observations per
+build and operation. Times are milliseconds.
+
+| Operation | Prior Node p50 / p95 | Node p50 / p95 | PasarGuard p50 / p95 |
+| --- | ---: | ---: | ---: |
+| Change one peer | 0.656 / 1.120 | 0.569 / 1.018 | 0.778 / 1.471 |
+| Replay one peer | 0.609 / 1.235 | 0.418 / 0.646 | 0.750 / 1.152 |
+| Change a 100-peer chunk | 0.878 / 3.701 | 0.849 / 3.541 | 1.291 / 2.449 |
+| Replay a 100-peer chunk | 0.790 / 2.828 | 0.713 / 1.677 | 1.269 / 2.220 |
+| Change a 1,000-peer chunk | 3.131 / 7.266 | 2.590 / 3.854 | 6.868 / 8.319 |
+| Replay a 1,000-peer chunk | 2.976 / 5.821 | 2.377 / 3.435 | 6.129 / 7.053 |
+| Remove one peer | 2.178 / 3.939 | 2.003 / 3.403 | 0.728 / 1.330 |
+
+The removal is 8% lower at p50 and 14% lower at p95 against prior Node.
+PasarGuard remains faster for removal and led at p95 in the 100-peer change.
+The remaining delta rows are unchanged workload checks.
+[Raw timings](results/peer-delta-removal-https.csv)

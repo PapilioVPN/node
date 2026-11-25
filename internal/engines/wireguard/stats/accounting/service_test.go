@@ -14,6 +14,19 @@ func (read readerFunc) ReadPeerStats(ctx context.Context, name string) ([]traffi
 	return read(ctx, name)
 }
 
+func (read readerFunc) ReadPeerStatsForKey(ctx context.Context, name string, key [32]byte) (traffic.PeerStats, error) {
+	rows, err := read(ctx, name)
+	if err != nil {
+		return traffic.PeerStats{}, err
+	}
+	for _, row := range rows {
+		if row.PublicKey == key {
+			return row, nil
+		}
+	}
+	return traffic.PeerStats{}, traffic.ErrPeerNotFound
+}
+
 func TestSampledPeriodsAcrossRemovalAndReplacement(t *testing.T) {
 	now := time.Now()
 	first, second := [32]byte{1}, [32]byte{2}
@@ -29,8 +42,13 @@ func TestSampledPeriodsAcrossRemovalAndReplacement(t *testing.T) {
 	}
 	rows[0].RXBytes += 30
 	rows[0].TXBytes += 20
+	rows[1].RXBytes += 15
 	if err := service.WithPeerRemoval(t.Context(), [][32]byte{first}, func() error { return nil }); err != nil {
 		t.Fatal(err)
+	}
+	after, err := service.ReadPeer(t.Context(), "wg-test", second[:], false)
+	if err != nil || after.Peer.RXBytes != 19 || !after.SampledAt.Equal(now) {
+		t.Fatalf("single removal changed the full sample: %+v, %v", after, err)
 	}
 	rows[0].Counters = traffic.Counters{RXBytes: 300, TXBytes: 400}
 	service.applySample(rows, now, false)

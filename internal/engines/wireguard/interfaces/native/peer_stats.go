@@ -49,6 +49,17 @@ func (reader *PeerStatsReader) ReadPeerStats(ctx context.Context, name string) (
 	return snapshot.peers, nil
 }
 
+func (reader *PeerStatsReader) ReadPeerStatsForKey(ctx context.Context, name string, key [32]byte) (traffic.PeerStats, error) {
+	snapshot := peerStatsSnapshot{name: name, target: key, targetStats: true}
+	if err := reader.readSnapshot(ctx, &snapshot); err != nil {
+		return traffic.PeerStats{}, err
+	}
+	if !snapshot.found {
+		return traffic.PeerStats{}, traffic.ErrPeerNotFound
+	}
+	return snapshot.peers[0], nil
+}
+
 func (reader *PeerStatsReader) ReadMembership(ctx context.Context, name string) ([]peers.Member, error) {
 	snapshot := peerStatsSnapshot{name: name, membership: &peerSnapshot{publicOnly: true}}
 	if err := reader.readSnapshot(ctx, &snapshot); err != nil {
@@ -146,14 +157,15 @@ func peerStatsError(err error) error {
 }
 
 type peerStatsSnapshot struct {
-	name       string
-	seenName   bool
-	peers      []traffic.PeerStats
-	target     [32]byte
-	sample     traffic.PeerTrafficSample
-	found      bool
-	membership *peerSnapshot
-	identity   *deviceIdentity
+	name        string
+	seenName    bool
+	peers       []traffic.PeerStats
+	target      [32]byte
+	sample      traffic.PeerTrafficSample
+	found       bool
+	membership  *peerSnapshot
+	identity    *deviceIdentity
+	targetStats bool
 }
 
 func (snapshot *peerStatsSnapshot) decode(data []byte) error {

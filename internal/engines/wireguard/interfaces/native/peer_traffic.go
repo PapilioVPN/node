@@ -22,6 +22,13 @@ func (snapshot *peerStatsSnapshot) selectTraffic(data []byte) error {
 			if key != snapshot.target {
 				break
 			}
+			if snapshot.targetStats {
+				if err := snapshot.appendPeer(list.value); err != nil {
+					return err
+				}
+				snapshot.found = true
+				return nil
+			}
 			counters, err := decodePeerTraffic(list.value)
 			if err != nil {
 				return err

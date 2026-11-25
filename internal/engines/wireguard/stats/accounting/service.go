@@ -22,6 +22,7 @@ const (
 
 type Reader interface {
 	ReadPeerStats(context.Context, string) ([]traffic.PeerStats, error)
+	ReadPeerStatsForKey(context.Context, string, [32]byte) (traffic.PeerStats, error)
 }
 
 type Usage struct {
@@ -118,7 +119,11 @@ func (service *Service) withRemoval(ctx context.Context, keys [][32]byte, all bo
 		return err
 	}
 	defer service.gate.Release(1)
-	service.capture(ctx, true)
+	if !all && len(keys) == 1 {
+		service.capturePeer(ctx, keys[0])
+	} else {
+		service.capture(ctx, true)
+	}
 	if err := remove(); err != nil {
 		return err
 	}
@@ -134,6 +139,24 @@ func (service *Service) withRemoval(ctx context.Context, keys [][32]byte, all bo
 		}
 	}
 	return nil
+}
+
+func (service *Service) capturePeer(ctx context.Context, key [32]byte) {
+	ctx, cancel := context.WithTimeout(ctx, 250*time.Millisecond)
+	defer cancel()
+	row, err := service.reader.ReadPeerStatsForKey(ctx, service.name, key)
+	if err != nil || row.LastHandshake.IsZero() {
+		return
+	}
+	at := time.Now().UTC()
+	service.mu.Lock()
+	defer service.mu.Unlock()
+	previous, exists := service.entries[key]
+	if !exists && len(service.entries) >= maxEntries {
+		service.sample.Incomplete = true
+		return
+	}
+	service.entries[key] = accumulate(previous, row, at, at.Add(-activeWindow))
 }
 
 func (service *Service) capture(ctx context.Context, includeInactive bool) {
@@ -167,16 +190,7 @@ func (service *Service) applySample(rows []traffic.PeerStats, at time.Time, incl
 		}
 		previous.seen, previous.retired = true, false
 		if active {
-			if row.RXBytes < previous.last.RXBytes || row.TXBytes < previous.last.TXBytes {
-				previous.last = traffic.Counters{}
-			}
-			if row.Counters != previous.last && !row.LastHandshake.Before(cutoff) {
-				previous.lastActive = at
-			}
-			previous.endpoint = row.EndpointIP
-			previous.pending.RXBytes = addBytes(previous.pending.RXBytes, row.RXBytes-previous.last.RXBytes)
-			previous.pending.TXBytes = addBytes(previous.pending.TXBytes, row.TXBytes-previous.last.TXBytes)
-			previous.last = row.Counters
+			previous = accumulate(previous, row, at, cutoff)
 		}
 		service.entries[row.PublicKey] = previous
 	}
@@ -185,6 +199,21 @@ func (service *Service) applySample(rows []traffic.PeerStats, at time.Time, incl
 			service.retire(key, previous)
 		}
 	}
+}
+
+func accumulate(previous entry, row traffic.PeerStats, at, cutoff time.Time) entry {
+	if row.RXBytes < previous.last.RXBytes || row.TXBytes < previous.last.TXBytes {
+		previous.last = traffic.Counters{}
+	}
+	if row.Counters != previous.last && !row.LastHandshake.Before(cutoff) {
+		previous.lastActive = at
+	}
+	previous.retired = false
+	previous.endpoint = row.EndpointIP
+	previous.pending.RXBytes = addBytes(previous.pending.RXBytes, row.RXBytes-previous.last.RXBytes)
+	previous.pending.TXBytes = addBytes(previous.pending.TXBytes, row.TXBytes-previous.last.TXBytes)
+	previous.last = row.Counters
+	return previous
 }
 
 func addBytes(total, delta uint64) uint64 {
