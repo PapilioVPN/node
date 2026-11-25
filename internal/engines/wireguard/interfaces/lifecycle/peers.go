@@ -2,6 +2,7 @@ package lifecycle
 
 import (
 	"context"
+	"crypto/sha256"
 	"errors"
 
 	"github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/peers"
@@ -18,6 +19,41 @@ type PeerControl interface {
 }
 
 func (service *Service) SyncPeers(ctx context.Context, name string, input []peers.Input, reconcile bool) (peers.Result, error) {
+	return service.syncPeers(ctx, name, input, reconcile, [32]byte{})
+}
+
+// SyncPeerSource can reuse an identical, previously accepted full sync on the
+// same confirmed peer state. Reconciliation requests always decode and read the kernel.
+func (service *Service) SyncPeerSource(ctx context.Context, name string, source []byte, decode func([]byte) ([]peers.Input, bool, error)) (peers.Result, error) {
+	fingerprint := sha256.Sum256(source)
+	if matched, err := service.replayPeerSync(ctx, name, fingerprint); matched {
+		return peers.Result{}, err
+	}
+	input, reconcile, err := decode(source)
+	if err != nil {
+		return peers.Result{}, err
+	}
+	return service.syncPeers(ctx, name, input, reconcile, fingerprint)
+}
+
+func (service *Service) replayPeerSync(ctx context.Context, name string, fingerprint [32]byte) (bool, error) {
+	if name != service.name || !service.mu.TryLock() {
+		return false, nil
+	}
+	defer service.mu.Unlock()
+	current := service.applied.Load()
+	if current == nil || service.peerState == nil || !service.peerState.MatchesSync(fingerprint) {
+		return false, nil
+	}
+	ctx, cancel := context.WithTimeout(ctx, OperationTimeout)
+	defer cancel()
+	if err := ctx.Err(); err != nil {
+		return true, err
+	}
+	return true, service.checkPeerLink(ctx, current.Link)
+}
+
+func (service *Service) syncPeers(ctx context.Context, name string, input []peers.Input, reconcile bool, fingerprint [32]byte) (peers.Result, error) {
 	return service.withPeerLink(ctx, name, func(ctx context.Context, link Link) (peers.Result, error) {
 		desired, err := peers.Prepare(input)
 		if err != nil {
@@ -28,7 +64,11 @@ func (service *Service) SyncPeers(ctx context.Context, name string, input []peer
 		}
 		state := service.peerState
 		if reconcile || state == nil {
-			return service.syncLivePeerSet(ctx, link, desired)
+			result, err := service.syncLivePeerSet(ctx, link, desired)
+			if err == nil && !reconcile {
+				service.peerState.MarkSync(fingerprint)
+			}
+			return result, err
 		}
 		updates, removals, result, err := state.PlanSync(desired)
 		if err != nil {
@@ -38,6 +78,7 @@ func (service *Service) SyncPeers(ctx context.Context, name string, input []peer
 			return peers.Result{}, err
 		}
 		state.CommitDelta(updates, removals)
+		state.MarkSync(fingerprint)
 		return result, nil
 	})
 }

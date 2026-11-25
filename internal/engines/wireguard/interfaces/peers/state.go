@@ -20,9 +20,10 @@ type confirmedPeer struct {
 // State indexes one managed execution's observed peers and acknowledged writes.
 // Its lifecycle owner serializes access and discards it after an unknown write.
 type State struct {
-	self   [32]byte
-	byKey  map[[32]byte]confirmedPeer
-	owners map[netip.Prefix][32]byte
+	self     [32]byte
+	byKey    map[[32]byte]confirmedPeer
+	owners   map[netip.Prefix][32]byte
+	lastSync [32]byte
 }
 
 func NewState(snapshot Snapshot) *State {
@@ -38,6 +39,14 @@ func NewState(snapshot Snapshot) *State {
 		state.put(peer)
 	}
 	return state
+}
+
+func (state *State) MatchesSync(fingerprint [32]byte) bool {
+	return fingerprint != [32]byte{} && state.lastSync == fingerprint
+}
+
+func (state *State) MarkSync(fingerprint [32]byte) {
+	state.lastSync = fingerprint
 }
 
 func (state *State) PlanSync(desired []Peer) (updates, removals []Change, result Result, err error) {
@@ -160,6 +169,7 @@ func (state *State) CommitDelta(updates, removals []Change) {
 }
 
 func (state *State) Delete(key [32]byte) {
+	state.lastSync = [32]byte{}
 	for _, prefix := range state.byKey[key].prefixes {
 		delete(state.owners, prefix)
 	}

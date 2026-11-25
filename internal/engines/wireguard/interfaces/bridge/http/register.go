@@ -77,21 +77,8 @@ func Register(router chi.Router, service *status.Service, peerStats *traffic.Ser
 			writeError(w, err)
 			return
 		}
-		var body struct {
-			Peers     []peers.Input `json:"peers"`
-			Reconcile bool          `json:"reconcile"`
-		}
-		if err := jsonv2.Unmarshal(source, &body, json.DefaultOptionsV1(), jsonv2.RejectUnknownMembers(true)); err != nil || body.Peers == nil {
-			writeError(w, peers.ErrInvalid)
-			return
-		}
-		result, err := managed.SyncPeers(r.Context(), interfaceName(r), body.Peers, body.Reconcile)
-		if err != nil {
-			writeError(w, err)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(result)
+		result, err := managed.SyncPeerSource(r.Context(), interfaceName(r), source, decodePeerSync)
+		writePeerDelta(w, result, err)
 	})
 	router.Put(path+"/execution", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
@@ -115,6 +102,17 @@ func Register(router chi.Router, service *status.Service, peerStats *traffic.Ser
 		}
 		w.WriteHeader(http.StatusNoContent)
 	})
+}
+
+func decodePeerSync(source []byte) ([]peers.Input, bool, error) {
+	var body struct {
+		Peers     []peers.Input `json:"peers"`
+		Reconcile bool          `json:"reconcile"`
+	}
+	if err := jsonv2.Unmarshal(source, &body, json.DefaultOptionsV1(), jsonv2.RejectUnknownMembers(true)); err != nil || body.Peers == nil {
+		return nil, false, peers.ErrInvalid
+	}
+	return body.Peers, body.Reconcile, nil
 }
 
 func readConfig(w http.ResponseWriter, r *http.Request) ([]byte, error) {

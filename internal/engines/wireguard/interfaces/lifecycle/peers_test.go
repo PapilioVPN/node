@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/peers"
+	"github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/status"
 )
 
 func TestManagedPeerStateReadsAfterAnUnconfirmedWrite(t *testing.T) {
@@ -90,9 +91,58 @@ type peerControlFixture struct {
 	snapshot      peers.Snapshot
 	reads, writes int
 	loseAck       bool
+	linkError     error
 }
 
-func (*peerControlFixture) CheckPeerLink(context.Context, Link) error { return nil }
+func (control *peerControlFixture) CheckPeerLink(context.Context, Link) error {
+	return control.linkError
+}
+
+func TestPeerSourceReplayChecksOwnershipAndInvalidates(t *testing.T) {
+	key := [32]byte{1}
+	control := &peerControlFixture{snapshot: peers.Snapshot{PublicKey: [32]byte{9}}}
+	service := New("wg0", nil, control, nil)
+	service.applied.Store(&Checkpoint{Link: Link{Name: "wg0", Index: 3, Alias: "fixture"}})
+	input := []peers.Input{{PublicKey: key[:], AllowedIPs: []string{"192.0.2.1/32"}}}
+	decodes := 0
+	sync := func(source string) (peers.Result, error) {
+		return service.SyncPeerSource(t.Context(), "wg0", []byte(source), func(body []byte) ([]peers.Input, bool, error) {
+			decodes++
+			return input, string(body) == "reconcile", nil
+		})
+	}
+	if got, err := sync("managed"); err != nil || got.Added != 1 {
+		t.Fatalf("initial sync = %+v, %v", got, err)
+	}
+	if got, err := sync("managed"); err != nil || got != (peers.Result{}) || decodes != 1 {
+		t.Fatalf("replay = %+v, %v, decodes %d", got, err, decodes)
+	}
+	if err := service.RemovePeer(t.Context(), "wg0", key[:]); err != nil {
+		t.Fatal(err)
+	}
+	if got, err := sync("managed"); err != nil || got.Added != 1 || decodes != 2 {
+		t.Fatalf("sync after remove = %+v, %v, decodes %d", got, err, decodes)
+	}
+	for range 2 {
+		if _, err := sync("reconcile"); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if control.reads != 3 || decodes != 4 {
+		t.Fatalf("reconciliation took %d reads and %d decodes", control.reads, decodes)
+	}
+	if _, err := sync("managed"); err != nil {
+		t.Fatal(err)
+	}
+	control.linkError = status.ErrNotFound
+	if _, err := sync("managed"); !errors.Is(err, status.ErrNotFound) || decodes != 5 {
+		t.Fatalf("replay after ownership loss = %v, decodes %d", err, decodes)
+	}
+	control.linkError = nil
+	if _, err := sync("managed"); err != nil || control.reads != 4 || decodes != 6 {
+		t.Fatalf("recovery = %v, reads %d, decodes %d", err, control.reads, decodes)
+	}
+}
 
 func (control *peerControlFixture) ReadPeerSet(context.Context, Link) (peers.Snapshot, error) {
 	control.reads++

@@ -139,3 +139,24 @@ The repeat used all six server orders to balance run position. Each cell uses
 
 Pass the previous Node binary after `--peer-sync` for the three-build fixture
 with both workloads, or after `--peer-replay` for replays. [Raw replay timings](results/peer-replay-confirmed-https.csv)
+
+## Byte-identical HTTP replay
+
+The lifecycle owner records one SHA-256 fingerprint for the last accepted
+HTTP sync on its confirmed peer state. An exact replay checks ownership and
+readiness in the kernel and returns zero changes without decoding and planning
+the desired set again. A peer change or an unknown write clears recognition.
+Explicit reconcile always decodes the request and reads live membership.
+
+The three-build HTTPS fixture used all six server orders, with 60 warm replays
+per build and peer count. Times are milliseconds.
+
+| Peers | Prior Node p50 / p95 | Node p50 / p95 | PasarGuard p50 / p95 |
+| ---: | ---: | ---: | ---: |
+| 1 | 0.549 / 2.084 | 0.445 / 0.878 | 0.521 / 1.100 |
+| 100 | 0.740 / 18.255 | 0.501 / 1.648 | 1.225 / 3.826 |
+| 1,000 | 2.898 / 4.251 | 0.891 / 2.101 | 6.467 / 13.820 |
+
+Both Node builds use the same API and live link ownership check. PasarGuard
+uses its own protobuf wire format and email-based peer identity.
+[Raw timings](results/peer-replay-identical-https.csv)
