@@ -32,6 +32,8 @@ message MemorySnapshot {
   optional uint64 available_bytes = 2;
   uint64 swap_total_bytes = 3;
   uint64 swap_free_bytes = 4;
+  // Total minus estimated available RAM, when available is reported.
+  optional uint64 used_bytes = 5;
 }
 
 message CPUSnapshot {
@@ -57,4 +59,13 @@ message SystemSnapshot {
   CPUSnapshot cpu = 2;
   MemorySnapshot memory = 3;
   StorageSnapshot storage = 4;
+  uint32 logical_cpu_count = 5;
+  NetworkSnapshot network = 6;
+}
+
+message NetworkSnapshot {
+  uint64 rx_bytes_per_second = 1;
+  uint64 tx_bytes_per_second = 2;
+  uint64 window_milliseconds = 3;
+  google.protobuf.Timestamp observed_at = 4;
 }

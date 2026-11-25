@@ -6,6 +6,7 @@ import (
 
 	"github.com/PapilioVPN/node/internal/host/cpu"
 	"github.com/PapilioVPN/node/internal/host/memory"
+	"github.com/PapilioVPN/node/internal/host/network"
 	"github.com/PapilioVPN/node/internal/host/storage"
 	"github.com/PapilioVPN/node/internal/host/system"
 )
@@ -58,10 +59,10 @@ func handleStorage(path string) http.HandlerFunc {
 	}
 }
 
-func handleSystemStats(sampler *cpu.Sampler, storagePath string) http.HandlerFunc {
+func handleSystemStats(sampler *cpu.Sampler, netSampler *network.Sampler, storagePath string) http.HandlerFunc {
 	return func(w http.ResponseWriter, request *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
-		snapshot, err := system.Stats(request.Context(), sampler, storagePath)
+		snapshot, err := system.Stats(request.Context(), sampler, netSampler, storagePath)
 		if err != nil {
 			http.Error(w, "host system stats are unavailable", http.StatusServiceUnavailable)
 			return

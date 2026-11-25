@@ -3,13 +3,14 @@ package http
 
 import (
 	"github.com/PapilioVPN/node/internal/host/cpu"
+	"github.com/PapilioVPN/node/internal/host/network"
 	"github.com/go-chi/chi/v5"
 )
 
-func Register(router *chi.Mux, sampler *cpu.Sampler, storagePath string) {
+func Register(router *chi.Mux, sampler *cpu.Sampler, netSampler *network.Sampler, storagePath string) {
 	router.Get("/v1/host/uptime", handleUptime)
 	router.Get("/v1/host/memory", handleMemory)
 	router.Get("/v1/host/cpu", handleCPU(sampler))
 	router.Get("/v1/host/storage", handleStorage(storagePath))
-	router.Get("/v1/host/stats", handleSystemStats(sampler, storagePath))
+	router.Get("/v1/host/stats", handleSystemStats(sampler, netSampler, storagePath))
 }

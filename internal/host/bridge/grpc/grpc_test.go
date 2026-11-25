@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/PapilioVPN/node/internal/host/cpu"
+	"github.com/PapilioVPN/node/internal/host/network"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -27,11 +28,12 @@ func TestStorageUnavailableForMissingConfiguredPath(t *testing.T) {
 func TestSystemStatsReturnsAvailableSections(t *testing.T) {
 	sampler := cpu.NewSampler()
 	path := filepath.Join(t.TempDir(), "missing-volume")
-	snapshot, err := getSystemStats(sampler, path)(t.Context(), &emptypb.Empty{})
+	snapshot, err := getSystemStats(sampler, network.NewSampler(), path)(t.Context(), &emptypb.Empty{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if snapshot.UptimeSeconds == nil || snapshot.GetMemory().GetTotalBytes() == 0 || snapshot.Cpu != nil || snapshot.Storage != nil {
+	if snapshot.UptimeSeconds == nil || snapshot.GetMemory().GetTotalBytes() == 0 || snapshot.GetMemory().UsedBytes == nil ||
+		snapshot.LogicalCpuCount == 0 || snapshot.Cpu != nil || snapshot.Storage != nil || snapshot.Network != nil {
 		t.Fatalf("gRPC system stats = %v, want uptime and memory while CPU and storage are unavailable", snapshot)
 	}
 }

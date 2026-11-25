@@ -5,6 +5,7 @@ import (
 
 	"github.com/PapilioVPN/node/internal/host/cpu"
 	"github.com/PapilioVPN/node/internal/host/memory"
+	"github.com/PapilioVPN/node/internal/host/network"
 	"github.com/PapilioVPN/node/internal/host/system"
 )
 
@@ -22,9 +23,10 @@ func BenchmarkSystemStatsOSReads(b *testing.B) {
 	ctx := b.Context()
 	// Measure the live OS reads before a CPU sample is available.
 	sampler := cpu.NewSampler()
+	netSampler := network.NewSampler()
 	b.ReportAllocs()
 	for b.Loop() {
-		snapshot, err := system.Stats(ctx, sampler, "/")
+		snapshot, err := system.Stats(ctx, sampler, netSampler, "/")
 		if err != nil {
 			b.Fatal(err)
 		}

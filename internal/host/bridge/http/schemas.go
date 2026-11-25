@@ -21,6 +21,7 @@ type cpuResponse struct {
 type memoryResponse struct {
 	TotalBytes     uint64  `json:"total_bytes"`
 	AvailableBytes *uint64 `json:"available_bytes,omitempty"`
+	UsedBytes      *uint64 `json:"used_bytes,omitempty"`
 	SwapTotalBytes uint64  `json:"swap_total_bytes"`
 	SwapFreeBytes  uint64  `json:"swap_free_bytes"`
 }
@@ -33,9 +34,18 @@ type storageResponse struct {
 	ReadOnly       bool   `json:"read_only"`
 }
 
+type networkResponse struct {
+	RXBytesPerSecond uint64    `json:"rx_bytes_per_second"`
+	TXBytesPerSecond uint64    `json:"tx_bytes_per_second"`
+	WindowMillis     uint64    `json:"window_milliseconds"`
+	ObservedAt       time.Time `json:"observed_at"`
+}
+
 type systemResponse struct {
 	UptimeSeconds *uint64          `json:"uptime_seconds,omitempty"`
 	CPU           *cpuResponse     `json:"cpu,omitempty"`
+	LogicalCPUs   uint32           `json:"logical_cpu_count,omitempty"`
+	Network       *networkResponse `json:"network,omitempty"`
 	Memory        *memoryResponse  `json:"memory,omitempty"`
 	Storage       *storageResponse `json:"storage,omitempty"`
 }
@@ -55,6 +65,8 @@ func cpuHTTPResponse(sample cpu.Sample) cpuResponse {
 func systemHTTPResponse(snapshot system.Snapshot) systemResponse {
 	response := systemResponse{
 		UptimeSeconds: snapshot.UptimeSeconds,
+		LogicalCPUs:   snapshot.LogicalCPUs,
+		Network:       (*networkResponse)(snapshot.Network),
 		Memory:        (*memoryResponse)(snapshot.Memory),
 		Storage:       (*storageResponse)(snapshot.Storage),
 	}

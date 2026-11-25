@@ -6,6 +6,7 @@ import (
 	hostv1 "github.com/PapilioVPN/node/internal/host/bridge/grpc/proto/v1"
 	"github.com/PapilioVPN/node/internal/host/cpu"
 	"github.com/PapilioVPN/node/internal/host/memory"
+	"github.com/PapilioVPN/node/internal/host/network"
 	"github.com/PapilioVPN/node/internal/host/storage"
 	"github.com/PapilioVPN/node/internal/host/system"
 	"google.golang.org/grpc/codes"
@@ -59,9 +60,9 @@ func getMemory(ctx context.Context, _ *emptypb.Empty) (*hostv1.MemorySnapshot, e
 	return memoryMessage(snapshot), nil
 }
 
-func getSystemStats(sampler *cpu.Sampler, storagePath string) func(context.Context, *emptypb.Empty) (*hostv1.SystemSnapshot, error) {
+func getSystemStats(sampler *cpu.Sampler, netSampler *network.Sampler, storagePath string) func(context.Context, *emptypb.Empty) (*hostv1.SystemSnapshot, error) {
 	return func(ctx context.Context, _ *emptypb.Empty) (*hostv1.SystemSnapshot, error) {
-		snapshot, err := system.Stats(ctx, sampler, storagePath)
+		snapshot, err := system.Stats(ctx, sampler, netSampler, storagePath)
 		if err != nil {
 			if cause := ctx.Err(); cause != nil {
 				return nil, status.FromContextError(cause).Err()

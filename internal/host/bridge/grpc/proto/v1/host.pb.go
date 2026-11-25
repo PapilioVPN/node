@@ -31,8 +31,10 @@ type MemorySnapshot struct {
 	AvailableBytes *uint64 `protobuf:"varint,2,opt,name=available_bytes,json=availableBytes,proto3,oneof" json:"available_bytes,omitempty"`
 	SwapTotalBytes uint64  `protobuf:"varint,3,opt,name=swap_total_bytes,json=swapTotalBytes,proto3" json:"swap_total_bytes,omitempty"`
 	SwapFreeBytes  uint64  `protobuf:"varint,4,opt,name=swap_free_bytes,json=swapFreeBytes,proto3" json:"swap_free_bytes,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// Total minus estimated available RAM, when available is reported.
+	UsedBytes     *uint64 `protobuf:"varint,5,opt,name=used_bytes,json=usedBytes,proto3,oneof" json:"used_bytes,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *MemorySnapshot) Reset() {
@@ -89,6 +91,13 @@ func (x *MemorySnapshot) GetSwapTotalBytes() uint64 {
 func (x *MemorySnapshot) GetSwapFreeBytes() uint64 {
 	if x != nil {
 		return x.SwapFreeBytes
+	}
+	return 0
+}
+
+func (x *MemorySnapshot) GetUsedBytes() uint64 {
+	if x != nil && x.UsedBytes != nil {
+		return *x.UsedBytes
 	}
 	return 0
 }
@@ -241,13 +250,15 @@ func (x *StorageSnapshot) GetReadOnly() bool {
 }
 
 type SystemSnapshot struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	UptimeSeconds *uint64                `protobuf:"varint,1,opt,name=uptime_seconds,json=uptimeSeconds,proto3,oneof" json:"uptime_seconds,omitempty"`
-	Cpu           *CPUSnapshot           `protobuf:"bytes,2,opt,name=cpu,proto3" json:"cpu,omitempty"`
-	Memory        *MemorySnapshot        `protobuf:"bytes,3,opt,name=memory,proto3" json:"memory,omitempty"`
-	Storage       *StorageSnapshot       `protobuf:"bytes,4,opt,name=storage,proto3" json:"storage,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	UptimeSeconds   *uint64                `protobuf:"varint,1,opt,name=uptime_seconds,json=uptimeSeconds,proto3,oneof" json:"uptime_seconds,omitempty"`
+	Cpu             *CPUSnapshot           `protobuf:"bytes,2,opt,name=cpu,proto3" json:"cpu,omitempty"`
+	Memory          *MemorySnapshot        `protobuf:"bytes,3,opt,name=memory,proto3" json:"memory,omitempty"`
+	Storage         *StorageSnapshot       `protobuf:"bytes,4,opt,name=storage,proto3" json:"storage,omitempty"`
+	LogicalCpuCount uint32                 `protobuf:"varint,5,opt,name=logical_cpu_count,json=logicalCpuCount,proto3" json:"logical_cpu_count,omitempty"`
+	Network         *NetworkSnapshot       `protobuf:"bytes,6,opt,name=network,proto3" json:"network,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *SystemSnapshot) Reset() {
@@ -308,18 +319,103 @@ func (x *SystemSnapshot) GetStorage() *StorageSnapshot {
 	return nil
 }
 
+func (x *SystemSnapshot) GetLogicalCpuCount() uint32 {
+	if x != nil {
+		return x.LogicalCpuCount
+	}
+	return 0
+}
+
+func (x *SystemSnapshot) GetNetwork() *NetworkSnapshot {
+	if x != nil {
+		return x.Network
+	}
+	return nil
+}
+
+type NetworkSnapshot struct {
+	state              protoimpl.MessageState `protogen:"open.v1"`
+	RxBytesPerSecond   uint64                 `protobuf:"varint,1,opt,name=rx_bytes_per_second,json=rxBytesPerSecond,proto3" json:"rx_bytes_per_second,omitempty"`
+	TxBytesPerSecond   uint64                 `protobuf:"varint,2,opt,name=tx_bytes_per_second,json=txBytesPerSecond,proto3" json:"tx_bytes_per_second,omitempty"`
+	WindowMilliseconds uint64                 `protobuf:"varint,3,opt,name=window_milliseconds,json=windowMilliseconds,proto3" json:"window_milliseconds,omitempty"`
+	ObservedAt         *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=observed_at,json=observedAt,proto3" json:"observed_at,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *NetworkSnapshot) Reset() {
+	*x = NetworkSnapshot{}
+	mi := &file_api_v1_host_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *NetworkSnapshot) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*NetworkSnapshot) ProtoMessage() {}
+
+func (x *NetworkSnapshot) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_host_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use NetworkSnapshot.ProtoReflect.Descriptor instead.
+func (*NetworkSnapshot) Descriptor() ([]byte, []int) {
+	return file_api_v1_host_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *NetworkSnapshot) GetRxBytesPerSecond() uint64 {
+	if x != nil {
+		return x.RxBytesPerSecond
+	}
+	return 0
+}
+
+func (x *NetworkSnapshot) GetTxBytesPerSecond() uint64 {
+	if x != nil {
+		return x.TxBytesPerSecond
+	}
+	return 0
+}
+
+func (x *NetworkSnapshot) GetWindowMilliseconds() uint64 {
+	if x != nil {
+		return x.WindowMilliseconds
+	}
+	return 0
+}
+
+func (x *NetworkSnapshot) GetObservedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ObservedAt
+	}
+	return nil
+}
+
 var File_api_v1_host_proto protoreflect.FileDescriptor
 
 const file_api_v1_host_proto_rawDesc = "" +
 	"\n" +
-	"\x11api/v1/host.proto\x12\x12papiliovpn.node.v1\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1egoogle/protobuf/wrappers.proto\"\xc5\x01\n" +
+	"\x11api/v1/host.proto\x12\x12papiliovpn.node.v1\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1egoogle/protobuf/wrappers.proto\"\xf8\x01\n" +
 	"\x0eMemorySnapshot\x12\x1f\n" +
 	"\vtotal_bytes\x18\x01 \x01(\x04R\n" +
 	"totalBytes\x12,\n" +
 	"\x0favailable_bytes\x18\x02 \x01(\x04H\x00R\x0eavailableBytes\x88\x01\x01\x12(\n" +
 	"\x10swap_total_bytes\x18\x03 \x01(\x04R\x0eswapTotalBytes\x12&\n" +
-	"\x0fswap_free_bytes\x18\x04 \x01(\x04R\rswapFreeBytesB\x12\n" +
-	"\x10_available_bytes\"\xda\x01\n" +
+	"\x0fswap_free_bytes\x18\x04 \x01(\x04R\rswapFreeBytes\x12\"\n" +
+	"\n" +
+	"used_bytes\x18\x05 \x01(\x04H\x01R\tusedBytes\x88\x01\x01B\x12\n" +
+	"\x10_available_bytesB\r\n" +
+	"\v_used_bytes\"\xda\x01\n" +
 	"\vCPUSnapshot\x12!\n" +
 	"\fbusy_percent\x18\x01 \x01(\x01R\vbusyPercent\x12(\n" +
 	"\rsteal_percent\x18\x02 \x01(\x01H\x00R\fstealPercent\x88\x01\x01\x12/\n" +
@@ -334,13 +430,21 @@ const file_api_v1_host_proto_rawDesc = "" +
 	"\n" +
 	"used_bytes\x18\x03 \x01(\x04R\tusedBytes\x12'\n" +
 	"\x0favailable_bytes\x18\x04 \x01(\x04R\x0eavailableBytes\x12\x1b\n" +
-	"\tread_only\x18\x05 \x01(\bR\breadOnly\"\xfd\x01\n" +
+	"\tread_only\x18\x05 \x01(\bR\breadOnly\"\xe8\x02\n" +
 	"\x0eSystemSnapshot\x12*\n" +
 	"\x0euptime_seconds\x18\x01 \x01(\x04H\x00R\ruptimeSeconds\x88\x01\x01\x121\n" +
 	"\x03cpu\x18\x02 \x01(\v2\x1f.papiliovpn.node.v1.CPUSnapshotR\x03cpu\x12:\n" +
 	"\x06memory\x18\x03 \x01(\v2\".papiliovpn.node.v1.MemorySnapshotR\x06memory\x12=\n" +
-	"\astorage\x18\x04 \x01(\v2#.papiliovpn.node.v1.StorageSnapshotR\astorageB\x11\n" +
-	"\x0f_uptime_seconds2\xf5\x02\n" +
+	"\astorage\x18\x04 \x01(\v2#.papiliovpn.node.v1.StorageSnapshotR\astorage\x12*\n" +
+	"\x11logical_cpu_count\x18\x05 \x01(\rR\x0flogicalCpuCount\x12=\n" +
+	"\anetwork\x18\x06 \x01(\v2#.papiliovpn.node.v1.NetworkSnapshotR\anetworkB\x11\n" +
+	"\x0f_uptime_seconds\"\xdd\x01\n" +
+	"\x0fNetworkSnapshot\x12-\n" +
+	"\x13rx_bytes_per_second\x18\x01 \x01(\x04R\x10rxBytesPerSecond\x12-\n" +
+	"\x13tx_bytes_per_second\x18\x02 \x01(\x04R\x10txBytesPerSecond\x12/\n" +
+	"\x13window_milliseconds\x18\x03 \x01(\x04R\x12windowMilliseconds\x12;\n" +
+	"\vobserved_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
+	"observedAt2\xf5\x02\n" +
 	"\vHostService\x12A\n" +
 	"\tGetUptime\x12\x16.google.protobuf.Empty\x1a\x1c.google.protobuf.UInt64Value\x12G\n" +
 	"\tGetMemory\x12\x16.google.protobuf.Empty\x1a\".papiliovpn.node.v1.MemorySnapshot\x12A\n" +
@@ -361,36 +465,39 @@ func file_api_v1_host_proto_rawDescGZIP() []byte {
 	return file_api_v1_host_proto_rawDescData
 }
 
-var file_api_v1_host_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_api_v1_host_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_api_v1_host_proto_goTypes = []any{
 	(*MemorySnapshot)(nil),         // 0: papiliovpn.node.v1.MemorySnapshot
 	(*CPUSnapshot)(nil),            // 1: papiliovpn.node.v1.CPUSnapshot
 	(*StorageSnapshot)(nil),        // 2: papiliovpn.node.v1.StorageSnapshot
 	(*SystemSnapshot)(nil),         // 3: papiliovpn.node.v1.SystemSnapshot
-	(*timestamppb.Timestamp)(nil),  // 4: google.protobuf.Timestamp
-	(*emptypb.Empty)(nil),          // 5: google.protobuf.Empty
-	(*wrapperspb.UInt64Value)(nil), // 6: google.protobuf.UInt64Value
+	(*NetworkSnapshot)(nil),        // 4: papiliovpn.node.v1.NetworkSnapshot
+	(*timestamppb.Timestamp)(nil),  // 5: google.protobuf.Timestamp
+	(*emptypb.Empty)(nil),          // 6: google.protobuf.Empty
+	(*wrapperspb.UInt64Value)(nil), // 7: google.protobuf.UInt64Value
 }
 var file_api_v1_host_proto_depIdxs = []int32{
-	4, // 0: papiliovpn.node.v1.CPUSnapshot.observed_at:type_name -> google.protobuf.Timestamp
-	1, // 1: papiliovpn.node.v1.SystemSnapshot.cpu:type_name -> papiliovpn.node.v1.CPUSnapshot
-	0, // 2: papiliovpn.node.v1.SystemSnapshot.memory:type_name -> papiliovpn.node.v1.MemorySnapshot
-	2, // 3: papiliovpn.node.v1.SystemSnapshot.storage:type_name -> papiliovpn.node.v1.StorageSnapshot
-	5, // 4: papiliovpn.node.v1.HostService.GetUptime:input_type -> google.protobuf.Empty
-	5, // 5: papiliovpn.node.v1.HostService.GetMemory:input_type -> google.protobuf.Empty
-	5, // 6: papiliovpn.node.v1.HostService.GetCPU:input_type -> google.protobuf.Empty
-	5, // 7: papiliovpn.node.v1.HostService.GetStorage:input_type -> google.protobuf.Empty
-	5, // 8: papiliovpn.node.v1.HostService.GetSystemStats:input_type -> google.protobuf.Empty
-	6, // 9: papiliovpn.node.v1.HostService.GetUptime:output_type -> google.protobuf.UInt64Value
-	0, // 10: papiliovpn.node.v1.HostService.GetMemory:output_type -> papiliovpn.node.v1.MemorySnapshot
-	1, // 11: papiliovpn.node.v1.HostService.GetCPU:output_type -> papiliovpn.node.v1.CPUSnapshot
-	2, // 12: papiliovpn.node.v1.HostService.GetStorage:output_type -> papiliovpn.node.v1.StorageSnapshot
-	3, // 13: papiliovpn.node.v1.HostService.GetSystemStats:output_type -> papiliovpn.node.v1.SystemSnapshot
-	9, // [9:14] is the sub-list for method output_type
-	4, // [4:9] is the sub-list for method input_type
-	4, // [4:4] is the sub-list for extension type_name
-	4, // [4:4] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	5,  // 0: papiliovpn.node.v1.CPUSnapshot.observed_at:type_name -> google.protobuf.Timestamp
+	1,  // 1: papiliovpn.node.v1.SystemSnapshot.cpu:type_name -> papiliovpn.node.v1.CPUSnapshot
+	0,  // 2: papiliovpn.node.v1.SystemSnapshot.memory:type_name -> papiliovpn.node.v1.MemorySnapshot
+	2,  // 3: papiliovpn.node.v1.SystemSnapshot.storage:type_name -> papiliovpn.node.v1.StorageSnapshot
+	4,  // 4: papiliovpn.node.v1.SystemSnapshot.network:type_name -> papiliovpn.node.v1.NetworkSnapshot
+	5,  // 5: papiliovpn.node.v1.NetworkSnapshot.observed_at:type_name -> google.protobuf.Timestamp
+	6,  // 6: papiliovpn.node.v1.HostService.GetUptime:input_type -> google.protobuf.Empty
+	6,  // 7: papiliovpn.node.v1.HostService.GetMemory:input_type -> google.protobuf.Empty
+	6,  // 8: papiliovpn.node.v1.HostService.GetCPU:input_type -> google.protobuf.Empty
+	6,  // 9: papiliovpn.node.v1.HostService.GetStorage:input_type -> google.protobuf.Empty
+	6,  // 10: papiliovpn.node.v1.HostService.GetSystemStats:input_type -> google.protobuf.Empty
+	7,  // 11: papiliovpn.node.v1.HostService.GetUptime:output_type -> google.protobuf.UInt64Value
+	0,  // 12: papiliovpn.node.v1.HostService.GetMemory:output_type -> papiliovpn.node.v1.MemorySnapshot
+	1,  // 13: papiliovpn.node.v1.HostService.GetCPU:output_type -> papiliovpn.node.v1.CPUSnapshot
+	2,  // 14: papiliovpn.node.v1.HostService.GetStorage:output_type -> papiliovpn.node.v1.StorageSnapshot
+	3,  // 15: papiliovpn.node.v1.HostService.GetSystemStats:output_type -> papiliovpn.node.v1.SystemSnapshot
+	11, // [11:16] is the sub-list for method output_type
+	6,  // [6:11] is the sub-list for method input_type
+	6,  // [6:6] is the sub-list for extension type_name
+	6,  // [6:6] is the sub-list for extension extendee
+	0,  // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_api_v1_host_proto_init() }
@@ -407,7 +514,7 @@ func file_api_v1_host_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_api_v1_host_proto_rawDesc), len(file_api_v1_host_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   4,
+			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

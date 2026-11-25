@@ -16,6 +16,7 @@ import (
 type Snapshot struct {
 	TotalBytes     uint64
 	AvailableBytes *uint64
+	UsedBytes      *uint64
 	SwapTotalBytes uint64
 	SwapFreeBytes  uint64
 }
@@ -123,6 +124,9 @@ func parseMemory(data []byte) (Snapshot, error) {
 	}
 	if available.present {
 		snapshot.AvailableBytes = &available.bytes
+		if available.bytes <= total.bytes {
+			snapshot.UsedBytes = new(total.bytes - available.bytes)
+		}
 	}
 	return snapshot, nil
 }

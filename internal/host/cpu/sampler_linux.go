@@ -2,6 +2,7 @@ package cpu
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"os"
 	"sync/atomic"
@@ -13,13 +14,40 @@ const cpuSampleInterval = time.Second
 // Sampler publishes one immutable sample shared by all Host transports.
 // Start and Stop are called once in order by the Host lifecycle.
 type Sampler struct {
-	latest atomic.Pointer[Sample]
-	cancel context.CancelFunc
-	done   chan struct{}
+	latest      atomic.Pointer[Sample]
+	cancel      context.CancelFunc
+	done        chan struct{}
+	logicalCPUs uint32
 }
 
 func NewSampler() *Sampler {
-	return &Sampler{}
+	return &Sampler{logicalCPUs: readLogicalCPUs()}
+}
+
+func (sampler *Sampler) LogicalCPUs() uint32 { return sampler.logicalCPUs }
+
+func readLogicalCPUs() uint32 {
+	file, err := os.Open("/proc/stat")
+	if err != nil {
+		return 0
+	}
+	defer file.Close()
+	scan := bufio.NewScanner(file)
+	if !scan.Scan() {
+		return 0
+	}
+	var count uint32
+	for scan.Scan() {
+		line := scan.Bytes()
+		if len(line) < 4 || !bytes.HasPrefix(line, []byte("cpu")) || line[3] < '0' || line[3] > '9' {
+			return count
+		}
+		count++
+	}
+	if scan.Err() != nil {
+		return 0
+	}
+	return count
 }
 
 func (sampler *Sampler) Start(ctx context.Context) error {

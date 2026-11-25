@@ -28,6 +28,7 @@ func memoryMessage(snapshot memory.Snapshot) *hostv1.MemorySnapshot {
 	return &hostv1.MemorySnapshot{
 		TotalBytes:     snapshot.TotalBytes,
 		AvailableBytes: snapshot.AvailableBytes,
+		UsedBytes:      snapshot.UsedBytes,
 		SwapTotalBytes: snapshot.SwapTotalBytes,
 		SwapFreeBytes:  snapshot.SwapFreeBytes,
 	}
@@ -44,7 +45,13 @@ func storageMessage(snapshot storage.Snapshot) *hostv1.StorageSnapshot {
 }
 
 func systemMessage(snapshot system.Snapshot) *hostv1.SystemSnapshot {
-	response := &hostv1.SystemSnapshot{UptimeSeconds: snapshot.UptimeSeconds}
+	response := &hostv1.SystemSnapshot{UptimeSeconds: snapshot.UptimeSeconds, LogicalCpuCount: snapshot.LogicalCPUs}
+	if net := snapshot.Network; net != nil {
+		response.Network = &hostv1.NetworkSnapshot{
+			RxBytesPerSecond: net.RXBytesPerSecond, TxBytesPerSecond: net.TXBytesPerSecond,
+			WindowMilliseconds: net.WindowMillis, ObservedAt: timestamppb.New(net.ObservedAt),
+		}
+	}
 	if snapshot.CPU != nil {
 		response.Cpu = cpuMessage(*snapshot.CPU)
 	}
