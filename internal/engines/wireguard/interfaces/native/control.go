@@ -206,6 +206,31 @@ func (control *Control) Inspect(ctx context.Context, owner lifecycle.Link) (stat
 	return interfaceStatus(link), ctx.Err()
 }
 
+func (control *Control) Repair(ctx context.Context, owner lifecycle.Link, mtu uint32) (status.Interface, error) {
+	link, err := control.lookup(ctx, owner)
+	if err != nil {
+		return status.Interface{}, err
+	}
+	before := interfaceStatus(link)
+	if before.Name != owner.Name {
+		return status.Interface{}, lifecycle.ErrConflict
+	}
+	if before.MTU != mtu {
+		if err := control.route.LinkSetMTU(link, int(mtu)); err != nil {
+			return status.Interface{}, err
+		}
+	}
+	if err := ctx.Err(); err != nil {
+		return status.Interface{}, err
+	}
+	if !before.Up {
+		if err := control.route.LinkSetUp(link); err != nil {
+			return status.Interface{}, err
+		}
+	}
+	return control.Inspect(ctx, owner)
+}
+
 func (control *Control) UpdateMTU(ctx context.Context, owner lifecycle.Link, previous, desired uint32) (status.Interface, error) {
 	link, err := control.lookup(ctx, owner)
 	if err != nil {

@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"net/netip"
+	"time"
 )
 
 var (
@@ -14,13 +15,22 @@ var (
 )
 
 type Interface struct {
-	Name          string
-	MTU           uint32
-	Up            bool
-	Index         int
-	Alias         string
-	AppliedSHA256 string
-	Configuration *Configuration
+	Name               string
+	MTU                uint32
+	Up                 bool
+	Index              int
+	Alias              string
+	AppliedSHA256      string
+	Configuration      *Configuration
+	KeepAliveExpiresAt time.Time
+	Recreated          bool
+	Versions           Versions
+}
+
+type Versions struct {
+	Node   string
+	Kernel string
+	Tools  string
 }
 
 type Configuration struct {
@@ -38,11 +48,21 @@ type Service struct {
 	reader            Reader
 	appliedHash       func(Interface) string
 	readConfiguration func(context.Context, Interface) (Configuration, error)
+	readLease         func(Interface) time.Time
+	versions          Versions
 }
 
 func New(name string, reader Reader, appliedHash func(Interface) string, readConfiguration func(context.Context, Interface) (Configuration, error)) *Service {
 	return &Service{name: name, reader: reader, appliedHash: appliedHash, readConfiguration: readConfiguration}
 }
+
+func (service *Service) WithObservation(versions Versions, readLease func(Interface) time.Time) *Service {
+	service.versions = versions
+	service.readLease = readLease
+	return service
+}
+
+func (service *Service) Versions() Versions { return service.versions }
 
 func (service *Service) GetStatus(ctx context.Context, name string, includeConfiguration bool) (Interface, error) {
 	if name == "" || name != service.name {
@@ -62,5 +82,9 @@ func (service *Service) GetStatus(ctx context.Context, name string, includeConfi
 	if service.appliedHash != nil {
 		result.AppliedSHA256 = service.appliedHash(result)
 	}
+	if service.readLease != nil {
+		result.KeepAliveExpiresAt = service.readLease(result)
+	}
+	result.Versions = service.versions
 	return result, nil
 }

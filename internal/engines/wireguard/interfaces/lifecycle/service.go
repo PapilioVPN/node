@@ -53,19 +53,23 @@ type LinkRouting interface {
 }
 
 type Service struct {
-	name        string
-	control     Control
-	peers       PeerControl
-	store       CheckpointStore
-	traffic     PeerTrafficObserver
-	usage       PeerUsageCapture
-	publish     func(string)
-	reconfigure func(context.Context, Link, FixedConfig, Config, LiveField) (status.Interface, error)
-	routing     LinkRouting
-	mu          sync.Mutex
-	owned       Link
-	peerState   *peers.State // Protected by mu and bound to the owned execution.
-	applied     atomic.Pointer[Checkpoint]
+	name          string
+	control       Control
+	peers         PeerControl
+	store         CheckpointStore
+	traffic       PeerTrafficObserver
+	usage         PeerUsageCapture
+	publish       func(string)
+	reconfigure   func(context.Context, Link, FixedConfig, Config, LiveField) (status.Interface, error)
+	repair        func(context.Context, Link, uint32) (status.Interface, error)
+	routing       LinkRouting
+	mu            sync.Mutex
+	owned         Link
+	peerState     *peers.State // Protected by mu and bound to the owned execution.
+	applied       atomic.Pointer[Checkpoint]
+	lease         *managementLease
+	leaseInterval time.Duration
+	closing       bool
 }
 
 func (service *Service) WithRouting(routing LinkRouting) *Service {
@@ -75,6 +79,11 @@ func (service *Service) WithRouting(routing LinkRouting) *Service {
 
 func (service *Service) WithConfiguration(reconfigure func(context.Context, Link, FixedConfig, Config, LiveField) (status.Interface, error)) *Service {
 	service.reconfigure = reconfigure
+	return service
+}
+
+func (service *Service) WithRepair(repair func(context.Context, Link, uint32) (status.Interface, error)) *Service {
+	service.repair = repair
 	return service
 }
 
@@ -138,6 +147,10 @@ func New(name string, control Control, peerControl PeerControl, store Checkpoint
 }
 
 func (service *Service) Start(ctx context.Context, name string, source []byte) (status.Interface, error) {
+	return service.StartWithLease(ctx, name, source, nil)
+}
+
+func (service *Service) StartWithLease(ctx context.Context, name string, source []byte, seconds *uint32) (result status.Interface, err error) {
 	if name != service.name {
 		return status.Interface{}, status.ErrNotFound
 	}
@@ -148,26 +161,61 @@ func (service *Service) Start(ctx context.Context, name string, source []byte) (
 		return status.Interface{}, status.ErrBusy
 	}
 	defer service.mu.Unlock()
+	if service.closing {
+		return status.Interface{}, status.ErrUnavailable
+	}
 	ctx, cancel := context.WithTimeout(ctx, OperationTimeout)
 	defer cancel()
 	if err := ctx.Err(); err != nil {
 		return status.Interface{}, err
 	}
+	interval := service.leaseInterval
+	if seconds != nil {
+		interval = time.Duration(*seconds) * time.Second
+	}
+	defer func() {
+		if err == nil {
+			result.KeepAliveExpiresAt = service.refreshLease(interval)
+		}
+	}()
 	sum := sha256.Sum256(source)
 	digest := hex.EncodeToString(sum[:])
 	if current := service.applied.Load(); current != nil {
 		if current.SHA256 != digest {
 			return service.applyLive(ctx, current, source, digest)
 		}
-		result, err := service.control.Inspect(ctx, current.Link)
-		if err != nil {
-			return status.Interface{}, err
+		observed, inspectErr := service.control.Inspect(ctx, current.Link)
+		if errors.Is(inspectErr, status.ErrNotFound) {
+			config, err := parseConfig(source)
+			if err != nil {
+				return status.Interface{}, err
+			}
+			service.applied.Store(nil)
+			if err := service.remove(ctx); err != nil {
+				return status.Interface{}, err
+			}
+			result, err := service.create(ctx, name, digest, config)
+			result.Recreated = err == nil
+			return result, err
 		}
-		if service.AppliedHash(result) == "" {
-			return status.Interface{}, status.ErrUnavailable
+		if inspectErr != nil {
+			return status.Interface{}, inspectErr
 		}
-		result.AppliedSHA256 = digest
-		return result, nil
+		if !current.matches(observed) {
+			if service.repair == nil || !current.owns(observed) {
+				return status.Interface{}, status.ErrUnavailable
+			}
+			observed, err = service.repair(ctx, current.Link, current.MTU)
+			if err != nil {
+				return status.Interface{}, err
+			}
+			if !current.matches(observed) {
+				return status.Interface{}, status.ErrUnavailable
+			}
+			service.emit("interface_repaired")
+		}
+		observed.AppliedSHA256 = digest
+		return observed, nil
 	}
 	if service.owned.Alias != "" {
 		return status.Interface{}, ErrConflict
@@ -176,6 +224,10 @@ func (service *Service) Start(ctx context.Context, name string, source []byte) (
 	if err != nil {
 		return status.Interface{}, err
 	}
+	return service.create(ctx, name, digest, config)
+}
+
+func (service *Service) create(ctx context.Context, name, digest string, config Config) (status.Interface, error) {
 	id, err := uuid.NewRandom()
 	if err != nil {
 		return status.Interface{}, err
@@ -281,12 +333,21 @@ func (service *Service) Stop(ctx context.Context, name string) error {
 
 func (service *Service) Close(ctx context.Context) error {
 	service.mu.Lock()
-	defer service.mu.Unlock()
-	service.peerState = nil
-	if service.store != nil || service.owned.Alias == "" {
-		return nil
+	service.closing = true
+	watch := service.lease
+	if watch != nil {
+		watch.cancel()
 	}
-	return service.remove(ctx)
+	service.peerState = nil
+	var err error
+	if service.store == nil && service.owned.Alias != "" {
+		err = service.remove(ctx)
+	}
+	service.mu.Unlock()
+	if watch != nil {
+		<-watch.done
+	}
+	return err
 }
 
 func (service *Service) remove(ctx context.Context) error {
@@ -303,6 +364,7 @@ func (service *Service) remove(ctx context.Context) error {
 	}
 	if err == nil || errors.Is(err, ErrConflict) {
 		service.applied.Store(nil)
+		service.refreshLease(0)
 		if service.routing != nil {
 			if routeErr := service.routing.Remove(ctx, service.owned.Name, service.owned.Alias); routeErr != nil {
 				service.emit("stop_failed")

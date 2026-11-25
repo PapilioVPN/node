@@ -628,7 +628,8 @@ wireguard:
         expected_hash = hashlib.sha256(source).hexdigest()
         def node_valid(payload):
             link = json.loads(payload)
-            return link == {"name": peer_interface, "up": True, "mtu": 1380, "applied_config_sha256": expected_hash}
+            projection = {key: link.get(key) for key in ("name", "up", "mtu", "applied_config_sha256")}
+            return projection == {"name": peer_interface, "up": True, "mtu": 1380, "applied_config_sha256": expected_hash}
         def ref_valid(payload):
             return payload.startswith(b"\x08\x01")
         cases = [

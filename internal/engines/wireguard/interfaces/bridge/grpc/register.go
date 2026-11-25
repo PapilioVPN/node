@@ -16,6 +16,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type handlers struct {
@@ -62,10 +63,15 @@ func (h *handlers) Start(ctx context.Context, req *interfacesv1.WireGuardStartRe
 	if h.managed == nil {
 		return nil, status.Error(codes.Unimplemented, "wireguard management is disabled")
 	}
-	result, err := h.managed.Start(ctx, req.GetName(), req.GetConfigJson())
+	var seconds *uint32
+	if req != nil {
+		seconds = req.KeepAliveSeconds
+	}
+	result, err := h.managed.StartWithLease(ctx, req.GetName(), req.GetConfigJson(), seconds)
 	if err != nil {
 		return nil, readError(err)
 	}
+	result.Versions = h.service.Versions()
 	return response(result), nil
 }
 
@@ -110,6 +116,11 @@ func (h *handlers) SyncPeers(ctx context.Context, req *interfacesv1.WireGuardSyn
 
 func response(result interfacestatus.Interface) *interfacesv1.WireGuardInterfaceStatus {
 	reply := &interfacesv1.WireGuardInterfaceStatus{Name: result.Name, Mtu: result.MTU, Up: result.Up}
+	reply.NodeVersion, reply.KernelRelease, reply.WireguardToolsVersion = result.Versions.Node, result.Versions.Kernel, result.Versions.Tools
+	reply.Recreated = result.Recreated
+	if !result.KeepAliveExpiresAt.IsZero() {
+		reply.KeepAliveExpiresAt = timestamppb.New(result.KeepAliveExpiresAt)
+	}
 	if result.AppliedSHA256 != "" {
 		reply.AppliedConfigSha256 = proto.String(result.AppliedSHA256)
 	}

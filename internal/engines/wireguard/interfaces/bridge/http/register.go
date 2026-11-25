@@ -11,6 +11,7 @@ import (
 	"net/netip"
 	"net/url"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/lifecycle"
@@ -21,11 +22,16 @@ import (
 )
 
 type response struct {
-	Name          string                 `json:"name"`
-	MTU           uint32                 `json:"mtu"`
-	Up            bool                   `json:"up"`
-	AppliedSHA256 string                 `json:"applied_config_sha256,omitempty"`
-	Configuration *configurationResponse `json:"configuration,omitempty"`
+	Name               string                 `json:"name"`
+	MTU                uint32                 `json:"mtu"`
+	Up                 bool                   `json:"up"`
+	AppliedSHA256      string                 `json:"applied_config_sha256,omitempty"`
+	Configuration      *configurationResponse `json:"configuration,omitempty"`
+	KeepAliveExpiresAt time.Time              `json:"keep_alive_expires_at,omitzero"`
+	Recreated          bool                   `json:"recreated,omitempty"`
+	NodeVersion        string                 `json:"node_version,omitempty"`
+	KernelRelease      string                 `json:"kernel_release,omitempty"`
+	ToolsVersion       string                 `json:"wireguard_tools_version,omitempty"`
 }
 
 type configurationResponse struct {
@@ -82,16 +88,33 @@ func Register(router chi.Router, service *status.Service, peerStats *traffic.Ser
 	})
 	router.Put(path+"/execution", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
+		var seconds *uint32
+		if r.URL.RawQuery != "" {
+			query, err := url.ParseQuery(r.URL.RawQuery)
+			if err != nil {
+				writeError(w, lifecycle.ErrInvalid)
+				return
+			}
+			if values, ok := query["keep_alive_seconds"]; ok {
+				value, err := strconv.ParseUint(values[0], 10, 32)
+				if err != nil || len(values) != 1 {
+					writeError(w, lifecycle.ErrInvalid)
+					return
+				}
+				seconds = new(uint32(value))
+			}
+		}
 		source, err := readConfig(w, r)
 		if err != nil {
 			writeError(w, err)
 			return
 		}
-		result, err := managed.Start(r.Context(), interfaceName(r), source)
+		result, err := managed.StartWithLease(r.Context(), interfaceName(r), source, seconds)
 		if err != nil {
 			writeError(w, err)
 			return
 		}
+		result.Versions = service.Versions()
 		writeStatus(w, result)
 	})
 	router.Delete(path+"/execution", func(w http.ResponseWriter, r *http.Request) {
@@ -159,6 +182,8 @@ func writeStatus(w http.ResponseWriter, link status.Interface) {
 	w.Header().Set("Content-Type", "application/json")
 	result := response{
 		Name: link.Name, MTU: link.MTU, Up: link.Up, AppliedSHA256: link.AppliedSHA256,
+		KeepAliveExpiresAt: link.KeepAliveExpiresAt, Recreated: link.Recreated,
+		NodeVersion: link.Versions.Node, KernelRelease: link.Versions.Kernel, ToolsVersion: link.Versions.Tools,
 	}
 	if current := link.Configuration; current != nil {
 		result.Configuration = &configurationResponse{ListenPort: current.ListenPort, Addresses: current.Addresses}

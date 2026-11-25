@@ -4,6 +4,7 @@ package interfaces
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/PapilioVPN/node/internal/engines/wireguard/diagnostics/events"
 	"github.com/PapilioVPN/node/internal/engines/wireguard/diagnostics/probe"
@@ -34,6 +35,7 @@ func register(lifecycle fx.Lifecycle, config settings.WireGuard, router *chi.Mux
 	lifecycle.Append(fx.Hook{OnStart: reader.Open, OnStop: reader.Close})
 	var managed *wglifecycle.Service
 	var appliedHash func(status.Interface) string
+	var readLease func(status.Interface) time.Time
 	if config.Managed {
 		control := new(native.Control)
 		var store wglifecycle.CheckpointStore
@@ -44,13 +46,14 @@ func register(lifecycle fx.Lifecycle, config settings.WireGuard, router *chi.Mux
 				return checkpoints.Close()
 			}})
 		}
-		managed = wglifecycle.New(config.Interface, control, control, store).WithPeerTraffic(peerStats).WithPeerUsage(usage).WithEvents(logs.Publish).WithConfiguration(control.UpdateConfiguration)
+		managed = wglifecycle.New(config.Interface, control, control, store).WithPeerTraffic(peerStats).WithPeerUsage(usage).WithEvents(logs.Publish).WithConfiguration(control.UpdateConfiguration).WithRepair(control.Repair)
 		if routing.Enabled() {
 			managed.WithRouting(routing)
 		}
 		runtime.Bind(managed.RuntimeSince)
 		egress.Bind(managed.CheckApplied)
 		appliedHash = managed.AppliedHash
+		readLease = managed.LeaseExpiresAt
 		lifecycle.Append(fx.Hook{
 			OnStart: func(ctx context.Context) error {
 				if err := control.Open(ctx); err != nil {
@@ -70,7 +73,7 @@ func register(lifecycle fx.Lifecycle, config settings.WireGuard, router *chi.Mux
 	lifecycle.Append(fx.Hook{OnStop: deviceReader.Close})
 	service := status.New(config.Interface, reader, appliedHash, func(ctx context.Context, link status.Interface) (status.Configuration, error) {
 		return reader.ReadConfiguration(ctx, link, deviceReader)
-	})
+	}).WithObservation(native.Versions(), readLease)
 	membership := peers.NewMembership(config.Interface, deviceReader)
 	validator := wglifecycle.NewValidator(config.Interface)
 	bridgehttp.Register(router, service, peerStats, managed, validator, membership)

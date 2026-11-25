@@ -9,15 +9,20 @@ import (
 )
 
 type Checkpoint struct {
-	Link      Link        `json:"link"`
-	SHA256    string      `json:"applied_config_sha256,omitempty"`
-	MTU       uint32      `json:"mtu,omitempty"`
-	Fixed     FixedConfig `json:"fixed"`
-	StartedAt time.Time   `json:"started_at,omitzero"`
+	Link           Link        `json:"link"`
+	SHA256         string      `json:"applied_config_sha256,omitempty"`
+	MTU            uint32      `json:"mtu,omitempty"`
+	Fixed          FixedConfig `json:"fixed"`
+	StartedAt      time.Time   `json:"started_at,omitzero"`
+	LeaseExpiresAt time.Time   `json:"-"`
 }
 
 func (checkpoint Checkpoint) matches(link status.Interface) bool {
-	return link.Up && checkpoint.MTU == link.MTU && checkpoint.Link.Name == link.Name &&
+	return link.Up && checkpoint.MTU == link.MTU && checkpoint.owns(link)
+}
+
+func (checkpoint Checkpoint) owns(link status.Interface) bool {
+	return checkpoint.Link.Name == link.Name &&
 		checkpoint.Link.Index == link.Index && checkpoint.Link.Alias == link.Alias
 }
 
