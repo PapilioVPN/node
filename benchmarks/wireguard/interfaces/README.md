@@ -1,8 +1,10 @@
 # WireGuard interface status
 
-[Start and Stop benchmark](lifecycle.md) · [Configuration validation benchmark](validation.md) · [Node restart recovery benchmark](recovery.md) · [Full peer synchronization benchmark](peers.md) · [Targeted peer changes benchmark](peer-delta.md) · [Peer statistics benchmark](peer-stats.md)
-
-[Interface traffic benchmark](../stats/interface-traffic.md) · [Interface usage and reset benchmark](../stats/interface-usage.md) · [Single-peer traffic benchmark](../stats/peer-traffic.md) · [Sampled peer usage benchmark](../stats/sampled-peer-usage.md)
+- Interfaces — [Lifecycle](lifecycle.md), [validation](validation.md), [recovery](recovery.md), [initial peers](initial-peers.md), and [detailed status](status-configuration.md).
+- Peers — [Full sync](peers.md), [targeted changes](peer-delta.md), [membership](membership.md), and [live statistics](peer-stats.md).
+- Statistics — [Interface traffic](../stats/interface-traffic.md), [interface usage](../stats/interface-usage.md), [peer traffic](../stats/peer-traffic.md), [sampled usage](../stats/sampled-peer-usage.md), and [activity and endpoint IPs](../stats/peer-activity.md).
+- Diagnostics — [Logs and runtime](../diagnostics/logs-runtime.md) and [egress probe](../diagnostics/egress-probe.md).
+- Host networking — [IPv4 forwarding, NAT and policy routing](../networking/routing.md).
 
 Each operation reads the same Linux WireGuard interface and verifies its name,
 MTU, and administrative `IFF_UP` flag. Node makes a fresh, targeted
