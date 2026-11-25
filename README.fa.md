@@ -39,7 +39,7 @@
 ```bash
 (
   set -eu
-  version=1.3.0
+  version=1.4.0
   bundle="node-$version-linux-amd64-compose.tar.gz"
   release="https://github.com/PapilioVPN/node/releases/download/v$version"
   curl -fLO "$release/$bundle" -fLO "$release/$bundle.sha256"
@@ -59,9 +59,9 @@
 
 ## قابلیت‌ها
 
-- **میزبان** — زمان کارکرد، CPU، حافظه و فضای ذخیره‌سازی.
+- **میزبان** — زمان کارکرد، CPU، حافظه، فضای ذخیره‌سازی و نرخ دریافت و ارسال شبکه.
 - **Xray** — چرخهٔ عمر، بررسی کانفیگ، همگام‌سازی و بازیابی حساب‌ها، آمار ترافیک و آنلاین، مسیریابی، لاگ و سلامت خروجی.
-- **WireGuard** — چرخهٔ عمر رابط لینوکس با lease مدیریتی و بازیابی، اعتبارسنجی و تغییر زندهٔ کانفیگ، مدیریت peerها و تغییرات تکه‌ای با HTTP و gRPC، پایش فعالیت، آمار اجرا و لاگ، بررسی دسترسی خروجی و تنظیم اختیاری forwarding، NAT و policy routing برای IPv4.
+- **WireGuard** — چرخهٔ عمر رابط لینوکس با lease مدیریتی و بازیابی، اعتبارسنجی و تغییر زندهٔ چند تنظیم با یک درخواست، مدیریت peerها و تغییرات تکه‌ای با HTTP و gRPC، پایش فعالیت، آمار اجرا و لاگ، بررسی دسترسی خروجی و تنظیم اختیاری forwarding، NAT و policy routing برای IPv4.
 
 <a name="management"></a>
 

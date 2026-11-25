@@ -38,7 +38,7 @@ HTTP `GET /v1/host/cpu` 和 gRPC `HostService.GetCPU` 返回同一份 Linux CPU 
 
 HTTP `GET /v1/host/storage` 和 gRPC `HostService.GetStorage` 返回 `path`、`total_bytes`、`used_bytes`、`available_bytes` 和 `read_only`。`available_bytes` 不包含为特权用户保留的空间。通过 `host.storage_path` 指定要监控的存储卷上的绝对路径，默认使用 Node 挂载命名空间中的 `/`。在 Docker 中，请填写容器内可见的路径。无法读取该路径时，HTTP 返回 `503`，gRPC 返回 `UNAVAILABLE`。
 
-HTTP `GET /v1/host/stats` 和 gRPC `HostService.GetSystemStats` 返回 `uptime_seconds`、`cpu`、`memory` 和 `storage`，数据和单位与各独立操作一致。不可用的字段会省略，`cpu` 会在首次有效采样后返回。
+HTTP `GET /v1/host/stats` 和 gRPC `HostService.GetSystemStats` 返回 `uptime_seconds`、`cpu`、`memory` 和 `storage`，数据和单位与各独立操作一致。不可用的字段会省略，`cpu` 会在首次有效采样后返回。 响应还包括 `logical_cpu_count` 和 `network` 采样。网络采样包含 `rx_bytes_per_second`、`tx_bytes_per_second`、采样窗口和观测时间。Node 在后台采样，不计入回环接口。`memory.used_bytes` 为总内存减去可用内存。
 
 参照[配置示例](../deploy/config.example.yml)设置 `xray.id`、`xray.executable` 和 `xray.config_file`，即可启用一个实例。请使用 Xray v26.11.9 和由运维人员控制的 JSON 文件。启动时，Node 将其中的 `api` 配置替换为用于就绪检查的私有 Unix 套接字。在 Docker 中使用归档内的 Xray 可执行文件，配置目录见[安装指南](install.md#enable-xray)。远程管理 Xray 需要 TLS 与 API 密钥或客户端 CA。
 
@@ -82,7 +82,9 @@ HTTP `GET /v1/host/stats` 和 gRPC `HostService.GetSystemStats` 返回 `uptime_s
 
 参照[配置示例](../deploy/config.example.yml)，在 `wireguard` 下的 `interface` 字段中填写接口名称。使用 `GET /v1/wireguard/interfaces/{name}` 或 `WireGuardInterfacesService.GetStatus` 读取 Node 所在 Linux 网络命名空间中的已配置接口。响应包含 `name`、以字节计的 `mtu`，以及来自内核管理标志 `IFF_UP` 的 `up`。接口不存在、未配置或类型不是 WireGuard 时，HTTP 返回 `404`，gRPC 返回 `NOT_FOUND`。套接字忙时，并发请求可能收到 HTTP `429` 或 gRPC `RESOURCE_EXHAUSTED`。远程访问需要 TLS 与 API 密钥或客户端 CA。 [gRPC](../internal/engines/wireguard/interfaces/bridge/grpc/proto/v1/interfaces.proto)
 
-在 `wireguard` 下设置 `managed: true` 可管理内核接口的生命周期。Node 需要在接口的网络命名空间拥有 Linux `CAP_NET_ADMIN`。通过 `PUT /v1/wireguard/interfaces/{name}/execution` 发送原始 JSON，或将字节传给 `WireGuardInterfacesService.Start`。输入包括 base64 编码的 32 字节 `private_key`、`addresses` 中的一到十六个单播 CIDR，以及可选的 `mtu`（默认 1420）和 `listen_port`（0 表示由内核分配）。输入上限为 1 MiB。确认后，`Start` 和 `GetStatus` 返回 `applied_config_sha256`。重复提交完全相同的字节会检查接口并返回相同的哈希。在线修改 MTU 时，使用同一 Start 请求，提交新的 MTU，并保持私钥、监听端口以及地址顺序一致。接口和对等端保持运行。内核确认 MTU 后，Start 返回新哈希。提交不支持的在线变更或使用其他所有者的接口时，HTTP 返回 `409`，gRPC 返回 `FAILED_PRECONDITION`。更新失败后如果确认旧 MTU，仍返回旧哈希。如果结果无法确认，GetStatus 省略哈希，Stop 仍可使用。通过对运行资源发出 `DELETE` 或调用 `Stop` RPC 停止。显式 Stop 会删除 Node 创建的接口。默认情况下，进程正常退出也会删除该接口。
+在 `wireguard` 下设置 `managed: true` 可管理内核接口的生命周期。Node 需要在接口的网络命名空间拥有 Linux `CAP_NET_ADMIN`。通过 `PUT /v1/wireguard/interfaces/{name}/execution` 发送原始 JSON，或将字节传给 `WireGuardInterfacesService.Start`。输入包括 base64 编码的 32 字节 `private_key`、`addresses` 中的一到十六个单播 CIDR，以及可选的 `mtu`（默认 1420）和 `listen_port`（0 表示由内核分配）。输入上限为 1 MiB。确认后，`Start` 和 `GetStatus` 返回 `applied_config_sha256`。重复提交完全相同的字节会检查接口并返回相同的哈希。在线更新时，用同一 Start 请求修改 MTU、私钥、地址和监听端口中的一项或多项。运行中的接口请通过对等端 API 修改对等端。接口和对等端保持运行。内核确认配置后，Start 返回新哈希。提交不支持的在线变更或使用其他所有者的接口时，HTTP 返回 `409`，gRPC 返回 `FAILED_PRECONDITION`。更新失败后如果确认旧配置，仍返回旧哈希。如果结果无法确认，GetStatus 省略哈希，Stop 仍可使用。通过对运行资源发出 `DELETE` 或调用 `Stop` RPC 停止。显式 Stop 会删除 Node 创建的接口。默认情况下，进程正常退出也会删除该接口。
+
+默认只有成功的 Start 才会续租。设置 `management.renew_lease_on_auth_request: true` 后，通过身份验证的 HTTP 或 gRPC 请求将延长所有已启用的 Xray 和受管 WireGuard 租约。请求不会创建新租约或启动已停止的引擎。
 
 将拟提交的 JSON 发送到 `POST /v1/wireguard/interfaces/{name}/config-validations`，或将其字节传给 `WireGuardInterfacesService.ValidateConfig`。验证采用与 Start 相同的输入检查，上限为 1 MiB，每个已配置接口同时处理一次检查。只读配置也可使用。验证拒绝时返回 `valid: false`，以及 JSON、私钥、地址、重复地址、MTU 或监听端口的类型化问题代码。响应仅包含问题代码。空运行在内存中检查配置。端口可用性和内核就绪状态在 Start 时检查。
 

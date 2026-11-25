@@ -131,6 +131,38 @@ def measure_mtu(cases, config_sources):
             request(conn, stop_method, stop_path)
 
 
+
+def measure_combined_start(cases):
+    def source(label, mtu, addr, port, key):
+        if label == "node":
+            return json.dumps(dict(mtu=mtu, addresses=[addr], listen_port=port, private_key=key)).encode()
+        raw = json.dumps(dict(mtu=mtu, address=[addr], listen_port=port, private_key=key, interface_name=peer_interface)).encode()
+        return b"\x08\x01\x12" + varint(len(raw)) + raw
+
+    for trial in range(5):
+        for label, (conn, method, path, initial, end_method, end_path, valid) in cases if trial % 2 == 0 else reversed(cases):
+            _, data = request(conn, method, path, initial)
+            assert valid(data)
+            initial_index = socket.if_nametoindex(peer_interface)
+            for i in range(12):
+                block = i % 2
+                mtu, addr, port = 1390 + block, f"192.0.2.{10 + block}/24", 51823 + block
+                key = base64.b64encode(hashlib.sha256(f"coverage fixture wg {block}".encode()).digest()).decode()
+                proposed = source(label, mtu, addr, port, key)
+                ns, data = request(conn, method, path, proposed)
+                observed = json.loads(subprocess.check_output(["ip", "-j", "address", "show", "dev", peer_interface]))[0]
+                assert observed["mtu"] == mtu and any(f"{a['local']}/{a['prefixlen']}" == addr for a in observed["addr_info"])
+                listen_port = subprocess.check_output(["wg", "show", peer_interface, "listen-port"], text=True).strip()
+                assert int(listen_port) == port
+                if label == "node":
+                    assert observed["ifindex"] == initial_index and json.loads(data)["applied_config_sha256"] == hashlib.sha256(proposed).hexdigest()
+                else:
+                    assert valid(data)
+                print(f"{trial+1},{label},combined_start,{i+1},{ns}")
+            request(conn, end_method, end_path)
+            check_link_removed()
+
+
 def proto_bytes(field, content):
     return varint((field << 3) | 2) + varint(len(content)) + content
 
@@ -641,16 +673,16 @@ def measure_chunked_peer_delta(cases):
                 check_link_removed()
 
 
-def main():
+def main(workload=None):
     mode = sys.argv[3] if len(sys.argv) >= 4 else ""
     routing_test = mode == "--routing"
     paired_removal = mode == "--peer-removal-paired"
     sampled_test = mode in ("--sampled-peer-usage", "--peer-activity")
     link_test = sampled_test or mode in ("--interface-traffic", "--interface-usage")
-    valid_args = (len(sys.argv) == 3 or len(sys.argv) == 4 and (link_test or routing_test or paired_removal or mode in ("--lifecycle-check", "--live-mtu", "--peer-sync", "--peer-delta", "--peer-delta-chunks", "--peer-removal", "--diagnostics", "--probe", "--initial-peers"))
+    valid_args = (len(sys.argv) == 3 or len(sys.argv) == 4 and (link_test or routing_test or paired_removal or mode in ("--lifecycle-check", "--live-mtu", "--combined-start", "--peer-sync", "--peer-delta", "--peer-delta-chunks", "--peer-removal", "--diagnostics", "--probe", "--initial-peers"))
                   or len(sys.argv) == 5 and mode in ("--lifecycle-check", "--peer-sync", "--peer-replay", "--peer-delta", "--peer-removal", "--probe"))
     if not valid_args:
-        raise SystemExit("usage: measure-lifecycle.py NODE PASARGUARD [--lifecycle-check [PREVIOUS_NODE]|--live-mtu|--interface-traffic|--interface-usage|--sampled-peer-usage|--peer-activity|--peer-sync [PREVIOUS_NODE]|--peer-replay PREVIOUS_NODE|--peer-delta [PREVIOUS_NODE]|--peer-delta-chunks|--peer-removal [PREVIOUS_NODE]|--peer-removal-paired|--probe [PREVIOUS_NODE]]")
+        raise SystemExit("usage: measure-lifecycle.py NODE PASARGUARD [--lifecycle-check [PREVIOUS_NODE]|--live-mtu|--combined-start|--interface-traffic|--interface-usage|--sampled-peer-usage|--peer-activity|--peer-sync [PREVIOUS_NODE]|--peer-replay PREVIOUS_NODE|--peer-delta [PREVIOUS_NODE]|--peer-delta-chunks|--peer-removal [PREVIOUS_NODE]|--peer-removal-paired|--probe [PREVIOUS_NODE]]")
     parent = os.environ.get("NODE_TEST_WIREGUARD_PARENT_NETNS")
     if not parent or parent == os.readlink("/proc/self/ns/net"):
         raise RuntimeError("run in a separate network namespace")
@@ -744,6 +776,12 @@ wireguard:
             previous = launch_node(sys.argv[4], "node-before", sampled_removal=mode == "--peer-removal")
             cases.insert(0, ("node-before", (previous, "PUT", execution, source, "DELETE", execution, node_valid)))
         print("run,implementation,operation,iteration,nanoseconds")
+        if workload is not None:
+            workload(cases)
+            return
+        if mode == "--combined-start":
+            measure_combined_start(cases)
+            return
         if paired_removal:
             measure_paired_peer_removal(cases, reference_name)
             return

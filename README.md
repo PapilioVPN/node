@@ -35,7 +35,7 @@ On Linux amd64 with Docker Compose, download the versioned setup bundle and star
 ```bash
 (
   set -eu
-  version=1.3.0
+  version=1.4.0
   bundle="node-$version-linux-amd64-compose.tar.gz"
   release="https://github.com/PapilioVPN/node/releases/download/v$version"
   curl -fLO "$release/$bundle" -fLO "$release/$bundle.sha256"
@@ -55,9 +55,9 @@ The management API binds to loopback by default. Check it with `curl -fsS http:/
 
 ## Capabilities
 
-- **Host** — uptime, CPU, memory, and storage.
+- **Host** — uptime, CPU, memory, storage, and network throughput.
 - **Xray** — lifecycle, config validation, live account sync and recovery, traffic and online stats, routing, logs, and outbound health.
-- **WireGuard** — Linux interface lifecycle with management leases and repair, config validation and live updates, peer management and chunked changes over HTTP and gRPC, activity, runtime stats and logs, egress checks, and optional IPv4 forwarding, NAT and policy routing.
+- **WireGuard** — Linux interface lifecycle with management leases and repair, config validation and multi-setting live updates, peer management and chunked changes over HTTP and gRPC, activity, runtime stats and logs, egress checks, and optional IPv4 forwarding, NAT and policy routing.
 
 <a name="management"></a>
 

@@ -38,3 +38,22 @@ Run the native benchmarks from the repository root on Linux.
 ```sh
 GOMAXPROCS=1 go test ./benchmarks/host -run '^$' -bench . -benchmem -benchtime=250ms -count=5
 ```
+
+## System statistics after adding network and CPU fields
+
+Two HTTPS repeats compared the updated Node, the previous Node without network and logical CPU fields, and PasarGuard 0.5.7 at `739eab9`. Each cell is pooled p50 / p95 in milliseconds from eight alternating blocks of 200 requests per implementation.
+
+| Run | Updated Node | Previous Node | PasarGuard |
+| --- | ---: | ---: | ---: |
+| 1 | 0.224 / 0.317 | 0.218 / 0.332 | 0.278 / 0.435 |
+| 2 | 0.216 / 0.303 | 0.214 / 0.400 | 0.269 / 0.429 |
+
+Updated Node was 2–6 µs slower at the median than previous Node and lower at p95 in both runs. Updated Node was faster at both percentiles than PasarGuard in this fixture. Payloads, metric freshness and uptime semantics differ, so this is not counted as an equivalent-operation win. The fixture verified nonzero native rates after sending frames through an isolated veth pair. The benchmark used authenticated warm TLS 1.3, a single sequential client, Go 1.27.4 for updated Node, and Linux 6.17.0-41 on an AMD Ryzen 7 3750H. The reference ran with idle WireGuard.
+
+[Run 1](results/2026-11-25-system-coverage-1.csv.gz) · [Run 2](results/2026-11-25-system-coverage-2.csv.gz)
+
+```sh
+export NODE_TEST_WIREGUARD_PARENT_NETNS="$(readlink /proc/self/ns/net)"
+PYTHONDONTWRITEBYTECODE=1 taskset -c 2,3 unshare -Urn python3 benchmarks/host/measure-system-stats.py \
+  /absolute/path/to/node /absolute/path/to/pasarguard /absolute/path/to/previous-node
+```
