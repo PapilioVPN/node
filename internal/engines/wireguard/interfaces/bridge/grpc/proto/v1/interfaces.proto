@@ -30,6 +30,8 @@ message WireGuardPeerMembership {
 
 message WireGuardInterfaceRequest {
   string name = 1;
+  // GetStatus only. Read the effective device configuration from the kernel.
+  bool include_configuration = 2;
 }
 
 message WireGuardInterfaceStatus {
@@ -38,6 +40,13 @@ message WireGuardInterfaceStatus {
   // Linux IFF_UP. It describes administrative state.
   bool up = 3;
   optional string applied_config_sha256 = 4;
+  WireGuardInterfaceConfiguration configuration = 5;
+}
+
+message WireGuardInterfaceConfiguration {
+  bytes public_key = 1;
+  uint32 listen_port = 2;
+  repeated string addresses = 3;
 }
 
 message WireGuardStartRequest {

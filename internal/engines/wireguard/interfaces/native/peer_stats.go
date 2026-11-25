@@ -110,6 +110,9 @@ func (reader *PeerStatsReader) readSnapshot(ctx context.Context, snapshot *peerS
 	if err != nil {
 		return err
 	}
+	if snapshot.identity != nil {
+		return peerStatsError(reader.dump.query(ctx, reader.family, data, snapshot.identity.decode))
+	}
 	if snapshot.membership != nil {
 		snapshot.membership.peers = make([]peers.Peer, 0, reader.dump.peerCount)
 		snapshot.membership.allowedIPs = make([]netip.Prefix, 0, reader.dump.prefixCount)
@@ -150,6 +153,7 @@ type peerStatsSnapshot struct {
 	sample     traffic.PeerTrafficSample
 	found      bool
 	membership *peerSnapshot
+	identity   *deviceIdentity
 }
 
 func (snapshot *peerStatsSnapshot) decode(data []byte) error {

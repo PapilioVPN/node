@@ -1,0 +1,45 @@
+goos: linux
+goarch: amd64
+pkg: github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/integration
+cpu: AMD Ryzen 7 3750H with Radeon Vega Mobile Gfx
+BenchmarkStatusConfiguration/0/basic/HTTP         	    1365	    141520 ns/op	   14232 B/op	     129 allocs/op
+BenchmarkStatusConfiguration/0/basic/HTTP         	    1281	    150290 ns/op	   14231 B/op	     129 allocs/op
+BenchmarkStatusConfiguration/0/basic/HTTP         	    1330	    151170 ns/op	   14231 B/op	     129 allocs/op
+BenchmarkStatusConfiguration/0/basic/HTTP         	    1318	    151823 ns/op	   14231 B/op	     129 allocs/op
+BenchmarkStatusConfiguration/0/basic/HTTP         	    1207	    133143 ns/op	   14230 B/op	     129 allocs/op
+BenchmarkStatusConfiguration/0/basic/gRPC         	    1395	    141754 ns/op	   14776 B/op	     190 allocs/op
+BenchmarkStatusConfiguration/0/basic/gRPC         	    1376	    136972 ns/op	   14751 B/op	     190 allocs/op
+BenchmarkStatusConfiguration/0/basic/gRPC         	    1342	    145534 ns/op	   14752 B/op	     190 allocs/op
+BenchmarkStatusConfiguration/0/basic/gRPC         	    1330	    152347 ns/op	   14751 B/op	     190 allocs/op
+BenchmarkStatusConfiguration/0/basic/gRPC         	    1122	    151338 ns/op	   14756 B/op	     190 allocs/op
+BenchmarkStatusConfiguration/0/detailed/HTTP      	     891	    181864 ns/op	   19284 B/op	     205 allocs/op
+BenchmarkStatusConfiguration/0/detailed/HTTP      	     982	    180779 ns/op	   19217 B/op	     205 allocs/op
+BenchmarkStatusConfiguration/0/detailed/HTTP      	     938	    182136 ns/op	   19218 B/op	     205 allocs/op
+BenchmarkStatusConfiguration/0/detailed/HTTP      	     998	    290509 ns/op	   19217 B/op	     205 allocs/op
+BenchmarkStatusConfiguration/0/detailed/HTTP      	     790	    219523 ns/op	   19217 B/op	     205 allocs/op
+BenchmarkStatusConfiguration/0/detailed/gRPC      	     913	    186316 ns/op	   19352 B/op	     264 allocs/op
+BenchmarkStatusConfiguration/0/detailed/gRPC      	     964	    183112 ns/op	   19312 B/op	     264 allocs/op
+BenchmarkStatusConfiguration/0/detailed/gRPC      	     896	    186773 ns/op	   19315 B/op	     264 allocs/op
+BenchmarkStatusConfiguration/0/detailed/gRPC      	     932	    191200 ns/op	   19313 B/op	     264 allocs/op
+BenchmarkStatusConfiguration/0/detailed/gRPC      	     926	    198523 ns/op	   19313 B/op	     264 allocs/op
+BenchmarkStatusConfiguration/1000/basic/HTTP      	    1557	    119128 ns/op	   14231 B/op	     129 allocs/op
+BenchmarkStatusConfiguration/1000/basic/HTTP      	    1683	    120645 ns/op	   14230 B/op	     129 allocs/op
+BenchmarkStatusConfiguration/1000/basic/HTTP      	    1683	    118449 ns/op	   14230 B/op	     129 allocs/op
+BenchmarkStatusConfiguration/1000/basic/HTTP      	    1603	    127632 ns/op	   14231 B/op	     129 allocs/op
+BenchmarkStatusConfiguration/1000/basic/HTTP      	    1576	    143180 ns/op	   14231 B/op	     129 allocs/op
+BenchmarkStatusConfiguration/1000/basic/gRPC      	     921	    176786 ns/op	   14798 B/op	     190 allocs/op
+BenchmarkStatusConfiguration/1000/basic/gRPC      	    1278	    142833 ns/op	   14752 B/op	     190 allocs/op
+BenchmarkStatusConfiguration/1000/basic/gRPC      	    1369	    145198 ns/op	   14751 B/op	     190 allocs/op
+BenchmarkStatusConfiguration/1000/basic/gRPC      	    1341	    152892 ns/op	   14751 B/op	     190 allocs/op
+BenchmarkStatusConfiguration/1000/basic/gRPC      	    1366	    152061 ns/op	   14751 B/op	     190 allocs/op
+BenchmarkStatusConfiguration/1000/detailed/HTTP   	     187	   1006254 ns/op	   20628 B/op	     233 allocs/op
+BenchmarkStatusConfiguration/1000/detailed/HTTP   	     163	   1029096 ns/op	   20309 B/op	     233 allocs/op
+BenchmarkStatusConfiguration/1000/detailed/HTTP   	     171	    993675 ns/op	   20309 B/op	     233 allocs/op
+BenchmarkStatusConfiguration/1000/detailed/HTTP   	     190	    949936 ns/op	   20307 B/op	     233 allocs/op
+BenchmarkStatusConfiguration/1000/detailed/HTTP   	     165	   1024477 ns/op	   20309 B/op	     233 allocs/op
+BenchmarkStatusConfiguration/1000/detailed/gRPC   	     186	    950817 ns/op	   20707 B/op	     294 allocs/op
+BenchmarkStatusConfiguration/1000/detailed/gRPC   	     189	    934244 ns/op	   20518 B/op	     294 allocs/op
+BenchmarkStatusConfiguration/1000/detailed/gRPC   	     188	    944675 ns/op	   20519 B/op	     294 allocs/op
+BenchmarkStatusConfiguration/1000/detailed/gRPC   	     190	    946687 ns/op	   20517 B/op	     294 allocs/op
+BenchmarkStatusConfiguration/1000/detailed/gRPC   	     187	    932983 ns/op	   20520 B/op	     294 allocs/op
+PASS

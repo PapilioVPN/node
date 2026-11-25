@@ -8,6 +8,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"net/netip"
 	"net/url"
 	"os"
 	"time"
@@ -20,10 +21,17 @@ import (
 )
 
 type response struct {
-	Name          string `json:"name"`
-	MTU           uint32 `json:"mtu"`
-	Up            bool   `json:"up"`
-	AppliedSHA256 string `json:"applied_config_sha256,omitempty"`
+	Name          string                 `json:"name"`
+	MTU           uint32                 `json:"mtu"`
+	Up            bool                   `json:"up"`
+	AppliedSHA256 string                 `json:"applied_config_sha256,omitempty"`
+	Configuration *configurationResponse `json:"configuration,omitempty"`
+}
+
+type configurationResponse struct {
+	PublicKey  []byte         `json:"public_key,omitempty"`
+	ListenPort uint16         `json:"listen_port"`
+	Addresses  []netip.Prefix `json:"addresses"`
 }
 
 func Register(router chi.Router, service *status.Service, peerStats *traffic.Service, managed *lifecycle.Service, validator *lifecycle.Validator, membership *peers.Membership) {
@@ -32,7 +40,8 @@ func Register(router chi.Router, service *status.Service, peerStats *traffic.Ser
 	router.Get(path+"/peers", listPeers(membership))
 	router.Get(path, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
-		result, err := service.GetStatus(r.Context(), interfaceName(r))
+		includeConfiguration := r.URL.RawQuery != "" && r.URL.Query().Get("include_configuration") == "true"
+		result, err := service.GetStatus(r.Context(), interfaceName(r), includeConfiguration)
 		if err != nil {
 			writeError(w, err)
 			return
@@ -150,9 +159,16 @@ func interfaceName(r *http.Request) string {
 
 func writeStatus(w http.ResponseWriter, link status.Interface) {
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(response{
+	result := response{
 		Name: link.Name, MTU: link.MTU, Up: link.Up, AppliedSHA256: link.AppliedSHA256,
-	})
+	}
+	if current := link.Configuration; current != nil {
+		result.Configuration = &configurationResponse{ListenPort: current.ListenPort, Addresses: current.Addresses}
+		if current.PublicKey != [32]byte{} {
+			result.Configuration.PublicKey = current.PublicKey[:]
+		}
+	}
+	_ = json.NewEncoder(w).Encode(result)
 }
 
 func writeError(w http.ResponseWriter, err error) {

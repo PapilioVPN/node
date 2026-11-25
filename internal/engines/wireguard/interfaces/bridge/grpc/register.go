@@ -51,7 +51,7 @@ func (h *handlers) ListPeers(ctx context.Context, req *interfacesv1.WireGuardInt
 }
 
 func (h *handlers) GetStatus(ctx context.Context, req *interfacesv1.WireGuardInterfaceRequest) (*interfacesv1.WireGuardInterfaceStatus, error) {
-	result, err := h.service.GetStatus(ctx, req.GetName())
+	result, err := h.service.GetStatus(ctx, req.GetName(), req.GetIncludeConfiguration())
 	if err != nil {
 		return nil, readError(err)
 	}
@@ -112,6 +112,19 @@ func response(result interfacestatus.Interface) *interfacesv1.WireGuardInterface
 	reply := &interfacesv1.WireGuardInterfaceStatus{Name: result.Name, Mtu: result.MTU, Up: result.Up}
 	if result.AppliedSHA256 != "" {
 		reply.AppliedConfigSha256 = proto.String(result.AppliedSHA256)
+	}
+	if current := result.Configuration; current != nil {
+		configuration := &interfacesv1.WireGuardInterfaceConfiguration{
+			ListenPort: uint32(current.ListenPort),
+			Addresses:  make([]string, len(current.Addresses)),
+		}
+		if current.PublicKey != [32]byte{} {
+			configuration.PublicKey = current.PublicKey[:]
+		}
+		for i, prefix := range current.Addresses {
+			configuration.Addresses[i] = prefix.String()
+		}
+		reply.Configuration = configuration
 	}
 	return reply
 }

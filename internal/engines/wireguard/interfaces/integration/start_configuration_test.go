@@ -76,6 +76,7 @@ func TestInitialPeersAndLiveConfiguration(t *testing.T) {
 	cfg.PrivateKey = second[:]
 	apply()
 	key, _ := ecdh.X25519().NewPrivateKey(second[:])
+	assertInterfaceConfiguration(t, f, key.PublicKey().Bytes(), cfg.ListenPort)
 	if strings.TrimSpace(wgOutput(t, "public-key")) != base64.StdEncoding.EncodeToString(key.PublicKey().Bytes()) {
 		t.Fatal("public key was not rotated")
 	}

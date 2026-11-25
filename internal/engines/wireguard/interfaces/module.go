@@ -4,6 +4,7 @@ package interfaces
 import (
 	"context"
 	"errors"
+
 	"github.com/PapilioVPN/node/internal/engines/wireguard/diagnostics/events"
 	"github.com/PapilioVPN/node/internal/engines/wireguard/diagnostics/probe"
 	"github.com/PapilioVPN/node/internal/engines/wireguard/diagnostics/process"
@@ -65,9 +66,11 @@ func register(lifecycle fx.Lifecycle, config settings.WireGuard, router *chi.Mux
 			},
 		})
 	}
-	service := status.New(config.Interface, reader, appliedHash)
 	deviceReader := new(native.PeerStatsReader)
 	lifecycle.Append(fx.Hook{OnStop: deviceReader.Close})
+	service := status.New(config.Interface, reader, appliedHash, func(ctx context.Context, link status.Interface) (status.Configuration, error) {
+		return reader.ReadConfiguration(ctx, link, deviceReader)
+	})
 	membership := peers.NewMembership(config.Interface, deviceReader)
 	validator := wglifecycle.NewValidator(config.Interface)
 	bridgehttp.Register(router, service, peerStats, managed, validator, membership)
