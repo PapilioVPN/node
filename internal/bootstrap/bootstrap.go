@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/PapilioVPN/node/internal/engines"
 	"github.com/PapilioVPN/node/internal/engines/wireguard"
 	"github.com/PapilioVPN/node/internal/engines/xray"
 	"github.com/PapilioVPN/node/internal/host"
@@ -21,7 +22,7 @@ const lifecycleTimeout = 5 * time.Second
 func Run(ctx context.Context, config settings.Config, logger *slog.Logger) error {
 	app := fx.New(
 		fx.Supply(config.Management, config.Host, config.Xray, config.WireGuard, logger),
-		fx.Provide(loadTLS, newReadiness, newHTTPRouter, newHTTPServer, newGRPCServer),
+		fx.Provide(loadTLS, newReadiness, newManagementActivity, newHTTPRouter, newHTTPServer, newGRPCServer),
 		host.Module,
 		xray.Module,
 		wireguard.Module,
@@ -47,4 +48,12 @@ func Run(ctx context.Context, config settings.Config, logger *slog.Logger) error
 	stopCtx, cancel := context.WithTimeout(context.Background(), lifecycleTimeout)
 	defer cancel()
 	return errors.Join(runErr, app.Stop(stopCtx))
+}
+
+func newManagementActivity(config settings.Management) *engines.ManagementActivity {
+	if !config.RenewLeaseOnAuthRequest || config.TLS.CertFile == "" ||
+		(config.APIKey == "" && config.TLS.ClientCAFile == "") {
+		return nil
+	}
+	return engines.NewManagementActivity()
 }

@@ -29,14 +29,18 @@ func (service *Service) wakeLease() {
 	}
 }
 
+func (service *Service) leaseExpiryLocked() time.Time {
+	if service.state == Ready {
+		return service.activity.Extend(service.run.expiresAt, service.run.keepAlive+keepAliveGrace)
+	}
+	return time.Time{}
+}
+
 func (service *Service) watchLease(done chan<- struct{}) {
 	defer close(done)
 	for {
 		service.mu.RLock()
-		var expiry time.Time
-		if service.state == Ready {
-			expiry = service.run.expiresAt
-		}
+		expiry := service.leaseExpiryLocked()
 		service.mu.RUnlock()
 
 		var timer *time.Timer
@@ -67,8 +71,8 @@ func (service *Service) expireLease() {
 	}
 	defer service.release()
 	service.mu.RLock()
-	stale := service.state == Ready && !service.run.expiresAt.IsZero() &&
-		!time.Now().Before(service.run.expiresAt)
+	expiry := service.leaseExpiryLocked()
+	stale := !expiry.IsZero() && !time.Now().Before(expiry)
 	service.mu.RUnlock()
 	if stale {
 		ctx, cancel := context.WithTimeout(service.shutdown, time.Second)

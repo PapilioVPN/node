@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	bridgerpc "github.com/PapilioVPN/go-bridge/api/grpc/server"
+	"github.com/PapilioVPN/node/internal/engines"
 	wggrpc "github.com/PapilioVPN/node/internal/engines/wireguard/diagnostics/bridge/grpc"
 	logsgrpc "github.com/PapilioVPN/node/internal/engines/xray/logs/bridge/grpc"
 	"github.com/PapilioVPN/node/internal/settings"
@@ -21,8 +22,24 @@ func newReadiness() *health.Server {
 	return readiness
 }
 
-func newGRPCServer(config settings.Management, tlsConfig *tls.Config, readiness *health.Server) (*grpc.Server, error) {
-	server, err := bridgerpc.NewServer(bridgerpc.Config{APIKey: config.APIKey, TLS: tlsConfig}, grpc.InTapHandle(logTransportContext))
+func newGRPCServer(config settings.Management, tlsConfig *tls.Config, readiness *health.Server, activity *engines.ManagementActivity) (*grpc.Server, error) {
+	options := []grpc.ServerOption{grpc.InTapHandle(logTransportContext)}
+	if activity != nil {
+		// go-bridge registers the authentication interceptors before these.
+		options = append(options,
+			grpc.ChainUnaryInterceptor(func(ctx context.Context, request any, _ *grpc.UnaryServerInfo, next grpc.UnaryHandler) (any, error) {
+				activity.Mark()
+				defer activity.Mark()
+				return next(ctx, request)
+			}),
+			grpc.ChainStreamInterceptor(func(service any, stream grpc.ServerStream, _ *grpc.StreamServerInfo, next grpc.StreamHandler) error {
+				activity.Mark()
+				defer activity.Mark()
+				return next(service, stream)
+			}),
+		)
+	}
+	server, err := bridgerpc.NewServer(bridgerpc.Config{APIKey: config.APIKey, TLS: tlsConfig}, options...)
 	if err != nil {
 		return nil, fmt.Errorf("build gRPC server: %w", err)
 	}

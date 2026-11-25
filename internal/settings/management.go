@@ -8,10 +8,11 @@ import (
 )
 
 type Management struct {
-	HTTPAddress string `yaml:"http_address"`
-	GRPCAddress string `yaml:"grpc_address"`
-	APIKey      string `yaml:"api_key"`
-	TLS         TLS    `yaml:"tls"`
+	HTTPAddress             string `yaml:"http_address"`
+	GRPCAddress             string `yaml:"grpc_address"`
+	APIKey                  string `yaml:"api_key"`
+	TLS                     TLS    `yaml:"tls"`
+	RenewLeaseOnAuthRequest bool   `yaml:"renew_lease_on_auth_request"`
 }
 
 type TLS struct {
@@ -34,6 +35,9 @@ func (management *Management) validate(dir string) error {
 	}
 	if tls.CertFile == "" && (management.APIKey != "" || tls.ClientCAFile != "") {
 		return errors.New("management credentials require TLS")
+	}
+	if management.RenewLeaseOnAuthRequest && management.APIKey == "" && tls.ClientCAFile == "" {
+		return errors.New("management.renew_lease_on_auth_request requires an API key or client certificate authentication")
 	}
 	tls.CertFile = resolve(dir, tls.CertFile)
 	tls.KeyFile = resolve(dir, tls.KeyFile)

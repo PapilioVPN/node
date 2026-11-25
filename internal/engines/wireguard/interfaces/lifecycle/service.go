@@ -10,6 +10,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/PapilioVPN/node/internal/engines"
 	"github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/peers"
 	"github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/status"
 	"github.com/google/uuid"
@@ -70,8 +71,14 @@ type Service struct {
 	applied             atomic.Pointer[Checkpoint]
 	lease               *managementLease
 	leaseInterval       time.Duration
+	activity            *engines.ManagementActivity
 	closing             bool
 	defaultPeerKey      [32]byte
+}
+
+func (service *Service) WithManagementActivity(activity *engines.ManagementActivity) *Service {
+	service.activity = activity
+	return service
 }
 
 func (service *Service) WithRouting(routing LinkRouting) *Service {

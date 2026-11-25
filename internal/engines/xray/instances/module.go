@@ -2,6 +2,7 @@
 package instances
 
 import (
+	"github.com/PapilioVPN/node/internal/engines"
 	"github.com/PapilioVPN/node/internal/engines/xray/instances/bridge/grpc"
 	"github.com/PapilioVPN/node/internal/engines/xray/instances/bridge/http"
 	"github.com/PapilioVPN/node/internal/engines/xray/instances/lifecycle"
@@ -12,13 +13,16 @@ import (
 	grpcserver "google.golang.org/grpc"
 )
 
-var Module = fx.Module("xray-instances", fx.Provide(newService), fx.Invoke(register))
+var Module = fx.Module("xray-instances",
+	fx.Provide(fx.Annotate(newService, fx.ParamTags("", "", `optional:"true"`))),
+	fx.Invoke(register),
+)
 
-func newService(config settings.Xray, logs *live.Service) *lifecycle.Service {
+func newService(config settings.Xray, logs *live.Service, activity *engines.ManagementActivity) *lifecycle.Service {
 	return lifecycle.New(lifecycle.Config{
 		ID: config.ID, Executable: config.Executable,
 		ConfigFile: config.ConfigFile, RuntimeDirectory: config.RuntimeDirectory,
-	}, logs)
+	}, logs).WithManagementActivity(activity)
 }
 
 func register(life fx.Lifecycle, config settings.Xray, service *lifecycle.Service, router *chi.Mux, server *grpcserver.Server) {

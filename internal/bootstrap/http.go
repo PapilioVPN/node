@@ -7,17 +7,27 @@ import (
 	"time"
 
 	bridgehttp "github.com/PapilioVPN/go-bridge/api/http/server"
+	"github.com/PapilioVPN/node/internal/engines"
 	"github.com/PapilioVPN/node/internal/settings"
 	"github.com/go-chi/chi/v5"
 	"google.golang.org/grpc/health"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 )
 
-func newHTTPRouter(config settings.Management, readiness *health.Server) *chi.Mux {
+func newHTTPRouter(config settings.Management, readiness *health.Server, activity *engines.ManagementActivity) *chi.Mux {
 	router := chi.NewRouter()
 	router.Use(func(next http.Handler) http.Handler {
 		return bridgehttp.RequireAPIKey(config.APIKey, next)
 	})
+	if activity != nil {
+		router.Use(func(next http.Handler) http.Handler {
+			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				activity.Mark()
+				defer activity.Mark()
+				next.ServeHTTP(w, r)
+			})
+		})
+	}
 	router.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		response, err := readiness.Check(r.Context(), &healthpb.HealthCheckRequest{})
 		if err != nil || response.GetStatus() != healthpb.HealthCheckResponse_SERVING {

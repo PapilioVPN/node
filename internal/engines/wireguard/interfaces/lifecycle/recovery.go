@@ -15,6 +15,7 @@ type Checkpoint struct {
 	Fixed          FixedConfig `json:"fixed"`
 	StartedAt      time.Time   `json:"started_at,omitzero"`
 	LeaseExpiresAt time.Time   `json:"-"`
+	leaseWindow    time.Duration
 }
 
 func (checkpoint Checkpoint) matches(link status.Interface) bool {

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/PapilioVPN/node/internal/engines"
 	"github.com/PapilioVPN/node/internal/engines/wireguard/diagnostics/events"
 	"github.com/PapilioVPN/node/internal/engines/wireguard/diagnostics/probe"
 	"github.com/PapilioVPN/node/internal/engines/wireguard/diagnostics/process"
@@ -27,7 +28,7 @@ import (
 
 var Module = fx.Module("wireguard-interfaces", fx.Invoke(register))
 
-func register(lifecycle fx.Lifecycle, config settings.WireGuard, router *chi.Mux, server *grpc.Server, peerStats *traffic.Service, usage *accounting.Service, logs *events.Service, runtime *process.Runtime, egress *probe.Service, routeService *routing.Service) error {
+func register(lifecycle fx.Lifecycle, config settings.WireGuard, router *chi.Mux, server *grpc.Server, peerStats *traffic.Service, usage *accounting.Service, logs *events.Service, runtime *process.Runtime, egress *probe.Service, routeService *routing.Service, activity *engines.ManagementActivity) error {
 	if !config.Enabled() {
 		return nil
 	}
@@ -52,6 +53,7 @@ func register(lifecycle fx.Lifecycle, config settings.WireGuard, router *chi.Mux
 		}
 		managed = wglifecycle.New(config.Interface, control, control, store).WithPeerTraffic(peerStats).WithPeerUsage(usage).WithEvents(logs.Publish).WithConfiguration(control.UpdateConfiguration).WithRepair(control.Repair)
 		managed.WithPeerPresharedKey(key)
+		managed.WithManagementActivity(activity)
 		if routeService.Enabled() {
 			managed.WithRouting(routeService)
 		}

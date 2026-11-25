@@ -1,6 +1,8 @@
 management:
   http_address: "127.0.0.1:8080"
   grpc_address: "127.0.0.1:8081"
+  # Optionally renew active engine leases on authenticated requests. Requires TLS and an API key or client CA.
+  # renew_lease_on_auth_request: true
 
 host:
   # Set this to an absolute path on the volume that stores your Node data or logs.

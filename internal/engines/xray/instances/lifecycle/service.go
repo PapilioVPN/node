@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/PapilioVPN/node/internal/buildinfo"
+	"github.com/PapilioVPN/node/internal/engines"
 	"github.com/PapilioVPN/node/internal/engines/xray/logs/live"
 	"golang.org/x/sync/semaphore"
 	"google.golang.org/grpc"
@@ -51,6 +52,7 @@ type Service struct {
 	launch             func(context.Context, Config, []byte, *live.Execution) (child, error)
 	probe              func(context.Context, grpc.ClientConnInterface) error
 	health             func(context.Context, grpc.ClientConnInterface) error
+	activity           *engines.ManagementActivity
 
 	control      *semaphore.Weighted
 	shutdown     context.Context
@@ -61,6 +63,11 @@ type Service struct {
 	mu    sync.RWMutex
 	state State
 	run   *execution
+}
+
+func (service *Service) WithManagementActivity(activity *engines.ManagementActivity) *Service {
+	service.activity = activity
+	return service
 }
 
 func New(config Config, logs *live.Service) *Service {
@@ -91,7 +98,7 @@ func (service *Service) statusLocked() Status {
 	if service.run != nil {
 		status.XrayVersion = service.run.child.version()
 		if service.state == Ready {
-			status.LeaseExpiresAt = service.run.expiresAt
+			status.LeaseExpiresAt = service.leaseExpiryLocked()
 			status.AppliedConfigSHA256 = service.run.desired.sourceSHA256
 		}
 	}

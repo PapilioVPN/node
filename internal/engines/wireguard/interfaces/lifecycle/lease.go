@@ -33,6 +33,7 @@ func (service *Service) refreshLease(interval time.Duration) time.Time {
 	if current != nil && !current.LeaseExpiresAt.Equal(expiry) {
 		next := *current
 		next.LeaseExpiresAt = expiry
+		next.leaseWindow = interval + leaseGrace
 		service.applied.Store(&next)
 	}
 	if service.lease != nil {
@@ -47,9 +48,16 @@ func (service *Service) refreshLease(interval time.Duration) time.Time {
 func (service *Service) LeaseExpiresAt(link status.Interface) time.Time {
 	current := service.applied.Load()
 	if current != nil && current.matches(link) {
-		return current.LeaseExpiresAt
+		return service.leaseExpiry(current)
 	}
 	return time.Time{}
+}
+
+func (service *Service) leaseExpiry(current *Checkpoint) time.Time {
+	if current == nil {
+		return time.Time{}
+	}
+	return service.activity.Extend(current.LeaseExpiresAt, current.leaseWindow)
 }
 
 func (service *Service) watchLease(ctx context.Context, watch *managementLease) {
@@ -57,8 +65,8 @@ func (service *Service) watchLease(ctx context.Context, watch *managementLease) 
 	for {
 		var timer *time.Timer
 		var elapsed <-chan time.Time
-		if current := service.applied.Load(); current != nil && !current.LeaseExpiresAt.IsZero() {
-			timer = time.NewTimer(time.Until(current.LeaseExpiresAt))
+		if expiry := service.leaseExpiry(service.applied.Load()); !expiry.IsZero() {
+			timer = time.NewTimer(time.Until(expiry))
 			elapsed = timer.C
 		}
 		select {
@@ -90,8 +98,8 @@ func (service *Service) watchLease(ctx context.Context, watch *managementLease) 
 func (service *Service) expireLease(ctx context.Context) bool {
 	service.mu.Lock()
 	defer service.mu.Unlock()
-	current := service.applied.Load()
-	if ctx.Err() != nil || current == nil || current.LeaseExpiresAt.IsZero() || time.Now().Before(current.LeaseExpiresAt) {
+	expiry := service.leaseExpiry(service.applied.Load())
+	if ctx.Err() != nil || expiry.IsZero() || time.Now().Before(expiry) {
 		return true
 	}
 	stopCtx, cancel := context.WithTimeout(ctx, OperationTimeout)
