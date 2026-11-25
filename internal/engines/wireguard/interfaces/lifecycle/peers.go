@@ -169,8 +169,10 @@ func (service *Service) writePeer(ctx context.Context, link Link, change peers.C
 	}
 	if err != nil {
 		service.peerState = nil
+		service.emit("peer_write_failed")
 		return errors.Join(peers.ErrUnconfirmed, err)
 	}
+	service.emit("peers_applied")
 	return nil
 }
 
@@ -200,8 +202,10 @@ func (service *Service) writePeerChanges(ctx context.Context, link Link, updates
 	}
 	if err != nil {
 		service.peerState = nil
+		service.emit("peer_write_failed")
 		return errors.Join(peers.ErrUnconfirmed, err)
 	}
+	service.emit("peers_applied")
 	return nil
 }
 

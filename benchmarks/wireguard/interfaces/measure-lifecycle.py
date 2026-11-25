@@ -10,7 +10,7 @@ import subprocess
 import sys
 import tempfile
 import time
-from contextlib import ExitStack
+from contextlib import ExitStack, closing
 from pathlib import Path
 
 peer_interface = "wg-bench0"
@@ -198,6 +198,34 @@ def measure_interface_traffic(cases, reference_name, usage=False):
     for label, (conn, _, _, _, method, path, _) in cases:
         request(conn, method, path)
         check_link_removed(names[label])
+
+
+def measure_diagnostics(cases, context):
+    root = f"/v1/wireguard/interfaces/{peer_interface}"
+    for block in range(1, 5):
+        for label, args in cases if block % 2 else reversed(cases):
+            conn, method, path, source, stop_method, stop_path, valid = args
+            _, payload = request(conn, method, path, source)
+            assert valid(payload)
+            runtime_path = root + "/runtime" if label == "node" else "/stats/backend"
+            logs_path = root + "/logs" if label == "node" else "/logs"
+            for iteration in range(-3, 30):
+                elapsed, payload = request(conn, "GET", runtime_path)
+                assert int(json.loads(payload)["heap_bytes"]) > 0 if label == "node" else bool(payload)
+                if iteration >= 0:
+                    print(f"{block},{label},runtime_stats,{iteration + 1},{elapsed}")
+                with closing(http.client.HTTPSConnection(conn.host, conn.port, timeout=3, context=context)) as stream:
+                    then = time.perf_counter_ns()
+                    stream.request("GET", logs_path, headers=headers)
+                    reply = stream.getresponse()
+                    line = reply.readline(4096)
+                    elapsed = time.perf_counter_ns() - then
+                    assert reply.status == 200 and bool(line)
+                    assert json.loads(line)["kind"] == "started" if label == "node" and block == 1 else True
+                    if iteration >= 0:
+                        print(f"{block},{label},log_first_event,{iteration + 1},{elapsed}")
+            request(conn, stop_method, stop_path)
+            check_link_removed()
 
 
 def usage_client(stack, index, server_ip, client_ip, server_port, secret):
@@ -399,7 +427,7 @@ def main():
     mode = sys.argv[3] if len(sys.argv) >= 4 else ""
     sampled_test = mode in ("--sampled-peer-usage", "--peer-activity")
     link_test = sampled_test or mode in ("--interface-traffic", "--interface-usage")
-    valid_args = (len(sys.argv) == 3 or len(sys.argv) == 4 and (link_test or mode in ("--lifecycle-check", "--live-mtu", "--peer-sync", "--peer-delta"))
+    valid_args = (len(sys.argv) == 3 or len(sys.argv) == 4 and (link_test or mode in ("--lifecycle-check", "--live-mtu", "--peer-sync", "--peer-delta", "--diagnostics"))
                   or len(sys.argv) == 5 and mode in ("--peer-sync", "--peer-replay", "--peer-delta"))
     if not valid_args:
         raise SystemExit("usage: measure-lifecycle.py NODE PASARGUARD [--lifecycle-check|--live-mtu|--interface-traffic|--interface-usage|--sampled-peer-usage|--peer-activity|--peer-sync [PREVIOUS_NODE]|--peer-replay PREVIOUS_NODE|--peer-delta [PREVIOUS_NODE]]")
@@ -474,6 +502,9 @@ wireguard:
             ("pasarguard", (ref, "POST", "/start", pg_source, "PUT", "/stop", ref_valid)),
         ]
         print("run,implementation,operation,iteration,nanoseconds")
+        if mode == "--diagnostics":
+            measure_diagnostics(cases, context)
+            return
         if sampled_test:
             measure_sampled_usage(cases, reference_name, activity=mode == "--peer-activity")
             return

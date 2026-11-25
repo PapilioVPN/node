@@ -4,6 +4,8 @@ package interfaces
 import (
 	"context"
 	"errors"
+	"github.com/PapilioVPN/node/internal/engines/wireguard/diagnostics/events"
+	"github.com/PapilioVPN/node/internal/engines/wireguard/diagnostics/process"
 
 	bridgegrpc "github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/bridge/grpc"
 	bridgehttp "github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/bridge/http"
@@ -20,7 +22,7 @@ import (
 
 var Module = fx.Module("wireguard-interfaces", fx.Invoke(register))
 
-func register(lifecycle fx.Lifecycle, config settings.WireGuard, router *chi.Mux, server *grpc.Server, peerStats *traffic.Service, usage *accounting.Service) {
+func register(lifecycle fx.Lifecycle, config settings.WireGuard, router *chi.Mux, server *grpc.Server, peerStats *traffic.Service, usage *accounting.Service, logs *events.Service, runtime *process.Runtime) {
 	if !config.Enabled() {
 		return
 	}
@@ -38,7 +40,8 @@ func register(lifecycle fx.Lifecycle, config settings.WireGuard, router *chi.Mux
 				return checkpoints.Close()
 			}})
 		}
-		managed = wglifecycle.New(config.Interface, control, control, store).WithPeerTraffic(peerStats).WithPeerUsage(usage)
+		managed = wglifecycle.New(config.Interface, control, control, store).WithPeerTraffic(peerStats).WithPeerUsage(usage).WithEvents(logs.Publish)
+		runtime.Bind(managed.RuntimeSince)
 		appliedHash = managed.AppliedHash
 		lifecycle.Append(fx.Hook{
 			OnStart: func(ctx context.Context) error {

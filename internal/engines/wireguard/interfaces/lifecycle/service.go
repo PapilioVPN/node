@@ -54,10 +54,44 @@ type Service struct {
 	store     CheckpointStore
 	traffic   PeerTrafficObserver
 	usage     PeerUsageCapture
+	publish   func(string)
 	mu        sync.Mutex
 	owned     Link
 	peerState *peers.State // Protected by mu and bound to the owned execution.
 	applied   atomic.Pointer[Checkpoint]
+}
+
+func (service *Service) WithEvents(publish func(string)) *Service {
+	service.publish = publish
+	return service
+}
+
+func (service *Service) emit(kind string) {
+	if service.publish != nil {
+		service.publish(kind)
+	}
+}
+
+func (service *Service) RuntimeSince(ctx context.Context, name string) (time.Time, error) {
+	if name == "" || name != service.name {
+		return time.Time{}, status.ErrNotFound
+	}
+	if !service.mu.TryLock() {
+		return time.Time{}, status.ErrBusy
+	}
+	defer service.mu.Unlock()
+	current := service.applied.Load()
+	if current == nil {
+		return time.Time{}, status.ErrUnavailable
+	}
+	observed, err := service.control.Inspect(ctx, current.Link)
+	if err != nil {
+		return time.Time{}, err
+	}
+	if !current.matches(observed) {
+		return time.Time{}, status.ErrUnavailable
+	}
+	return current.StartedAt, nil
 }
 
 // WithPeerTraffic binds observation invalidation during module composition.
@@ -129,17 +163,19 @@ func (service *Service) Start(ctx context.Context, name string, source []byte) (
 	}
 	link.Index = result.Index
 	service.owned = link
-	accepted := Checkpoint{Link: link, SHA256: digest, MTU: config.MTU, Fixed: config.fixed()}
+	accepted := Checkpoint{Link: link, SHA256: digest, MTU: config.MTU, Fixed: config.fixed(), StartedAt: time.Now().UTC()}
 	if err == nil {
 		err = service.save(accepted)
 	}
 	if err != nil {
+		service.emit("start_failed")
 		cleanupCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), time.Second)
 		defer cancel()
 		cleanupErr := service.remove(cleanupCtx)
 		return status.Interface{}, errors.Join(err, cleanupErr)
 	}
 	service.applied.Store(&accepted)
+	service.emit("started")
 	result.AppliedSHA256 = digest
 	return result, nil
 }
@@ -159,12 +195,13 @@ func (service *Service) applyLive(ctx context.Context, current *Checkpoint, sour
 	if err != nil {
 		return status.Interface{}, err
 	}
-	accepted := Checkpoint{Link: current.Link, SHA256: digest, MTU: config.MTU, Fixed: current.Fixed}
+	accepted := Checkpoint{Link: current.Link, SHA256: digest, MTU: config.MTU, Fixed: current.Fixed, StartedAt: current.StartedAt}
 	if err := service.save(accepted); err != nil {
 		service.applied.Store(nil)
 		return status.Interface{}, errors.Join(ErrUnconfirmed, err)
 	}
 	service.applied.Store(&accepted)
+	service.emit("configuration_applied")
 	result.AppliedSHA256 = digest
 	return result, nil
 }
@@ -226,6 +263,11 @@ func (service *Service) remove(ctx context.Context) error {
 			return errors.Join(err, clearErr)
 		}
 		service.owned = Link{}
+	}
+	if err == nil {
+		service.emit("stopped")
+	} else {
+		service.emit("stop_failed")
 	}
 	return err
 }

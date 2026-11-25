@@ -73,6 +73,20 @@ func TestManagedExecution(t *testing.T) {
 	if reply.Name != interfaceName || reply.MTU != 1380 || !reply.Up || reply.AppliedSHA256 != want {
 		t.Fatalf("unexpected execution status: %+v", reply)
 	}
+	logs, err := f.http.Get(f.address + interfaceURL + "/logs")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer logs.Body.Close()
+	if logs.StatusCode != http.StatusOK {
+		t.Fatalf("WireGuard log stream returned %s", logs.Status)
+	}
+	var event struct{ Kind string }
+	if err := json.NewDecoder(logs.Body).Decode(&event); err != nil || event.Kind != "started" {
+		t.Fatalf("WireGuard start log = %+v, %v", event, err)
+	}
+	logs.Body.Close()
+	assertDiagnostics(t, f)
 	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
 	rpcReply, err := client.Start(ctx, &interfacesv1.WireGuardStartRequest{Name: interfaceName, ConfigJson: source})
 	cancel()

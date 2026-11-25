@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+package papiliovpn.node.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/PapilioVPN/node/internal/engines/wireguard/diagnostics/bridge/grpc/proto/v1;diagnosticsv1";
+
+service WireGuardDiagnosticsService {
+  rpc GetLogs(WireGuardDiagnosticsRequest) returns (stream WireGuardLogEvent);
+  rpc GetRuntimeStats(WireGuardDiagnosticsRequest) returns (WireGuardRuntimeStats);
+}
+
+message WireGuardDiagnosticsRequest {
+  string name = 1;
+}
+
+message WireGuardLogEvent {
+  uint64 sequence = 1;
+  google.protobuf.Timestamp at = 2;
+  string kind = 3;
+}
+
+message WireGuardRuntimeStats {
+  uint64 goroutines = 1;
+  uint32 gc_count = 2;
+  uint64 heap_bytes = 3;
+  uint64 allocated_bytes = 4;
+  uint64 system_bytes = 5;
+  uint64 allocations = 6;
+  uint64 frees = 7;
+  uint64 live_objects = 8;
+  uint64 gc_pause_nanoseconds = 9;
+  optional uint64 uptime_seconds = 10;
+}

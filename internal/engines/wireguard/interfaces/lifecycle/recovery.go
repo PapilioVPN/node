@@ -3,15 +3,17 @@ package lifecycle
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/status"
 )
 
 type Checkpoint struct {
-	Link   Link        `json:"link"`
-	SHA256 string      `json:"applied_config_sha256,omitempty"`
-	MTU    uint32      `json:"mtu,omitempty"`
-	Fixed  FixedConfig `json:"fixed"`
+	Link      Link        `json:"link"`
+	SHA256    string      `json:"applied_config_sha256,omitempty"`
+	MTU       uint32      `json:"mtu,omitempty"`
+	Fixed     FixedConfig `json:"fixed"`
+	StartedAt time.Time   `json:"started_at,omitzero"`
 }
 
 func (checkpoint Checkpoint) matches(link status.Interface) bool {
@@ -49,6 +51,7 @@ func (service *Service) Recover(ctx context.Context) error {
 	service.owned.Index = link.Index
 	if checkpoint.SHA256 != "" && checkpoint.matches(link) {
 		service.applied.Store(&checkpoint)
+		service.emit("recovered")
 	}
 	return nil
 }

@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"sync"
 
+	wgevents "github.com/PapilioVPN/node/internal/engines/wireguard/diagnostics/events"
 	"github.com/PapilioVPN/node/internal/engines/xray/logs/live"
 	"github.com/PapilioVPN/node/internal/settings"
 	"go.uber.org/fx"
@@ -26,6 +27,7 @@ func registerListeners(
 	httpServer *http.Server,
 	grpcServer *grpc.Server,
 	xrayLogs *live.Service,
+	wireguardLogs *wgevents.Service,
 ) {
 	var serving sync.WaitGroup
 	serveFailed := func(protocol string, err error) {
@@ -67,6 +69,7 @@ func registerListeners(
 		OnStop: func(ctx context.Context) error {
 			readiness.Shutdown()
 			xrayLogs.Close()
+			_ = wireguardLogs.Close(ctx)
 			grpcDone := make(chan struct{})
 			go func() {
 				defer close(grpcDone)
