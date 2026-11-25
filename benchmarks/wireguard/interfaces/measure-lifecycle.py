@@ -248,15 +248,17 @@ def probe_target(stack):
 
 
 def measure_probe(cases):
-    for block in range(1, 5):
-        for label, args in cases if block % 2 else reversed(cases):
+    orders = itertools.permutations(cases) if len(cases) == 3 else (
+        cases if block % 2 else reversed(cases) for block in range(1, 5))
+    for block, order in enumerate(orders, 1):
+        for label, args in order:
             conn, method, path, source, stop_method, stop_path, valid = args
             _, reply = request(conn, method, path, source)
             assert valid(reply)
-            path = f"/v1/wireguard/interfaces/{peer_interface}/egress-probe" if label == "node" else "/stats/latency"
+            path = "/stats/latency" if label == "pasarguard" else f"/v1/wireguard/interfaces/{peer_interface}/egress-probe"
             for iteration in range(-3, 30):
                 elapsed, payload = request(conn, "GET", path)
-                if label == "node":
+                if label != "pasarguard":
                     data = json.loads(payload)
                     assert data["reachable"] and data["http_status"] == 204
                 else:
@@ -508,9 +510,9 @@ def main():
     sampled_test = mode in ("--sampled-peer-usage", "--peer-activity")
     link_test = sampled_test or mode in ("--interface-traffic", "--interface-usage")
     valid_args = (len(sys.argv) == 3 or len(sys.argv) == 4 and (link_test or routing_test or mode in ("--lifecycle-check", "--live-mtu", "--peer-sync", "--peer-delta", "--diagnostics", "--probe", "--initial-peers"))
-                  or len(sys.argv) == 5 and mode in ("--peer-sync", "--peer-replay", "--peer-delta"))
+                  or len(sys.argv) == 5 and mode in ("--peer-sync", "--peer-replay", "--peer-delta", "--probe"))
     if not valid_args:
-        raise SystemExit("usage: measure-lifecycle.py NODE PASARGUARD [--lifecycle-check|--live-mtu|--interface-traffic|--interface-usage|--sampled-peer-usage|--peer-activity|--peer-sync [PREVIOUS_NODE]|--peer-replay PREVIOUS_NODE|--peer-delta [PREVIOUS_NODE]]")
+        raise SystemExit("usage: measure-lifecycle.py NODE PASARGUARD [--lifecycle-check|--live-mtu|--interface-traffic|--interface-usage|--sampled-peer-usage|--peer-activity|--peer-sync [PREVIOUS_NODE]|--peer-replay PREVIOUS_NODE|--peer-delta [PREVIOUS_NODE]|--probe [PREVIOUS_NODE]]")
     parent = os.environ.get("NODE_TEST_WIREGUARD_PARENT_NETNS")
     if not parent or parent == os.readlink("/proc/self/ns/net"):
         raise RuntimeError("run in a separate network namespace")
@@ -596,6 +598,9 @@ wireguard:
             ("node", (node, "PUT", execution, source, "DELETE", execution, node_valid)),
             ("pasarguard", (ref, "POST", "/start", pg_source, "PUT", "/stop", ref_valid)),
         ]
+        if len(sys.argv) == 5:
+            previous = launch_node(sys.argv[4], "node-before")
+            cases.insert(0, ("node-before", (previous, "PUT", execution, source, "DELETE", execution, node_valid)))
         print("run,implementation,operation,iteration,nanoseconds")
         if routing_test:
             measure_routing(cases)
@@ -618,9 +623,6 @@ wireguard:
         if mode == "--live-mtu":
             measure_mtu(cases, {"node": node_config, "pasarguard": ref_config})
             return
-        if len(sys.argv) == 5:
-            previous = launch_node(sys.argv[4], "node-before")
-            cases.insert(0, ("node-before", (previous, "PUT", execution, source, "DELETE", execution, node_valid)))
         if mode == "--peer-delta":
             measure_peer_delta(cases)
             return
