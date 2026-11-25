@@ -31,6 +31,7 @@ func TestInitialPeersAndLiveConfiguration(t *testing.T) {
 		PrivateKey   []byte   `json:"private_key"`
 		Addresses    []string `json:"addresses"`
 		ListenPort   int      `json:"listen_port"`
+		MTU          uint32   `json:"mtu,omitempty"`
 		InitialPeers []struct {
 			PublicKey    []byte   `json:"public_key"`
 			PresharedKey []byte   `json:"preshared_key"`
@@ -76,7 +77,7 @@ func TestInitialPeersAndLiveConfiguration(t *testing.T) {
 	cfg.PrivateKey = second[:]
 	apply()
 	key, _ := ecdh.X25519().NewPrivateKey(second[:])
-	assertInterfaceConfiguration(t, f, key.PublicKey().Bytes(), cfg.ListenPort)
+	assertInterfaceConfiguration(t, f, key.PublicKey().Bytes(), cfg.ListenPort, cfg.Addresses[0])
 	if strings.TrimSpace(wgOutput(t, "public-key")) != base64.StdEncoding.EncodeToString(key.PublicKey().Bytes()) {
 		t.Fatal("public key was not rotated")
 	}
@@ -100,4 +101,59 @@ func TestInitialPeersAndLiveConfiguration(t *testing.T) {
 	if !found || !strings.Contains(wgOutput(t, "peers"), base64.StdEncoding.EncodeToString(peer[:])) {
 		t.Fatal("address change or peer preservation failed")
 	}
+
+	reserve, err := net.ListenUDP("udp4", &net.UDPAddr{IP: net.IPv4zero})
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg.ListenPort = reserve.LocalAddr().(*net.UDPAddr).Port
+	reserve.Close()
+	cfg.MTU, cfg.Addresses = 1300, []string{"192.0.2.20/24"}
+	cfg.PrivateKey = first[:]
+	apply()
+	key, _ = ecdh.X25519().NewPrivateKey(first[:])
+	assertInterfaceConfiguration(t, f, key.PublicKey().Bytes(), cfg.ListenPort, cfg.Addresses[0])
+	confirmed := f.readHTTP(t)
+	link, err := net.InterfaceByName(interfaceName)
+	if err != nil || link.Index != before.Index || link.MTU != 1300 {
+		t.Fatalf("compound change did not retain the link and apply MTU: %v, %v", link, err)
+	}
+	assertPeerMembership(t, f, peer)
+
+	blocked, err := net.ListenUDP("udp4", &net.UDPAddr{IP: net.IPv4zero})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer blocked.Close()
+	previousPort := cfg.ListenPort
+	cfg.ListenPort = blocked.LocalAddr().(*net.UDPAddr).Port
+	cfg.MTU, cfg.Addresses = 1350, []string{"192.0.2.30/24"}
+	failed, err := json.Marshal(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	executionRequest(t, f, http.MethodPut, failed, http.StatusServiceUnavailable)
+	afterFailure := f.readHTTP(t)
+	if afterFailure.MTU != 1300 || afterFailure.AppliedSHA256 != confirmed.AppliedSHA256 || afterFailure.AppliedSHA256 == "" {
+		t.Fatalf("rejected compound change altered the confirmed configuration: %+v", afterFailure)
+	}
+	assertInterfaceConfiguration(t, f, key.PublicKey().Bytes(), previousPort, "192.0.2.20/24")
+	if got := strings.Join(ipv4Addresses(t, link), ","); got != "192.0.2.20/24" {
+		t.Fatalf("address rollback left %s", got)
+	}
+}
+
+func ipv4Addresses(t *testing.T, link *net.Interface) []string {
+	t.Helper()
+	addresses, err := link.Addrs()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var result []string
+	for _, address := range addresses {
+		if value, ok := address.(*net.IPNet); ok && value.IP.To4() != nil {
+			result = append(result, value.String())
+		}
+	}
+	return result
 }

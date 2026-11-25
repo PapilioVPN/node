@@ -47,7 +47,7 @@ func readConfiguration(t testing.TB, f fixture, include bool) *interfaceConfigur
 	return observed.Configuration
 }
 
-func assertInterfaceConfiguration(t *testing.T, f fixture, publicKey []byte, listenPort int) {
+func assertInterfaceConfiguration(t *testing.T, f fixture, publicKey []byte, listenPort int, address string) {
 	t.Helper()
 	if configuration := readConfiguration(t, f, false); configuration != nil {
 		t.Fatal("default response included interface configuration")
@@ -55,7 +55,7 @@ func assertInterfaceConfiguration(t *testing.T, f fixture, publicKey []byte, lis
 	configuration := readConfiguration(t, f, true)
 	if configuration == nil || !bytes.Equal(configuration.PublicKey, publicKey) ||
 		configuration.ListenPort != listenPort || len(configuration.Addresses) != 1 ||
-		configuration.Addresses[0] != "192.0.2.10/24" {
+		configuration.Addresses[0] != address {
 		t.Fatalf("GetStatus returned unexpected configuration: %+v", configuration)
 	}
 	client := f.grpcClient(t)
@@ -71,7 +71,7 @@ func assertInterfaceConfiguration(t *testing.T, f fixture, publicKey []byte, lis
 	}
 	got := reply.GetConfiguration()
 	if !bytes.Equal(got.GetPublicKey(), publicKey) || got.GetListenPort() != uint32(listenPort) ||
-		len(got.GetAddresses()) != 1 || got.GetAddresses()[0] != "192.0.2.10/24" {
+		len(got.GetAddresses()) != 1 || got.GetAddresses()[0] != address {
 		t.Fatalf("gRPC GetStatus returned unexpected configuration: %v", got)
 	}
 }

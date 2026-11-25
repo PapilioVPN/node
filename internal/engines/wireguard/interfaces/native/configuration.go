@@ -77,13 +77,20 @@ func (control *Control) readIdentity(ctx context.Context, index int) (identity d
 	return identity, nil
 }
 
-func (control *Control) UpdateConfiguration(ctx context.Context, owner lifecycle.Link, previous lifecycle.FixedConfig, desired lifecycle.Config, field lifecycle.LiveField) (status.Interface, error) {
+func (control *Control) UpdateConfiguration(ctx context.Context, owner lifecycle.Link, previous lifecycle.Checkpoint, desired lifecycle.Config, fields lifecycle.LiveField) (status.Interface, error) {
+	if fields&(lifecycle.LiveMTU|lifecycle.LiveAddresses) != 0 && fields&(fields-1) != 0 {
+		return control.updateCombined(ctx, owner, previous, desired, fields)
+	}
+	return control.updateConfiguration(ctx, owner, previous.Fixed, desired, fields)
+}
+
+func (control *Control) updateConfiguration(ctx context.Context, owner lifecycle.Link, previous lifecycle.FixedConfig, desired lifecycle.Config, field lifecycle.LiveField) (status.Interface, error) {
 	link, err := control.lookup(ctx, owner)
 	if err != nil {
 		return status.Interface{}, err
 	}
 	observed := interfaceStatus(link)
-	if !observed.Up || observed.MTU != desired.MTU {
+	if !observed.Up || observed.Name != owner.Name || observed.MTU != desired.MTU {
 		return status.Interface{}, status.ErrUnavailable
 	}
 	if field == lifecycle.LiveAddresses {
@@ -99,11 +106,11 @@ func (control *Control) UpdateConfiguration(ctx context.Context, owner lifecycle
 	want := before
 	encoder := gennetlink.NewAttributeEncoder()
 	encoder.Uint32(unix.WGDEVICE_A_IFINDEX, uint32(owner.Index))
-	switch field {
-	case lifecycle.LivePort:
+	if field&lifecycle.LivePort != 0 {
 		want.port = desired.ListenPort
 		encoder.Uint16(unix.WGDEVICE_A_LISTEN_PORT, desired.ListenPort)
-	case lifecycle.LivePrivateKey:
+	}
+	if field&lifecycle.LivePrivateKey != 0 {
 		want.publicKey = desired.PublicKey()
 		peers, err := control.ReadPeerSet(ctx, owner)
 		if err != nil {
@@ -115,8 +122,6 @@ func (control *Control) UpdateConfiguration(ctx context.Context, owner lifecycle
 			}
 		}
 		encoder.Bytes(unix.WGDEVICE_A_PRIVATE_KEY, desired.PrivateKey[:])
-	default:
-		return status.Interface{}, lifecycle.ErrConflict
 	}
 	data, err := encoder.Encode()
 	if err != nil {
@@ -134,7 +139,7 @@ func (control *Control) UpdateConfiguration(ctx context.Context, owner lifecycle
 	defer cancel()
 	after, readErr := control.readIdentity(readCtx, owner.Index)
 	if readErr == nil {
-		if field == lifecycle.LivePort && desired.ListenPort == 0 && after.port != 0 && writeErr == nil {
+		if field&lifecycle.LivePort != 0 && desired.ListenPort == 0 && after.port != 0 && writeErr == nil {
 			want.port = after.port
 		}
 		if after == want {
@@ -149,6 +154,66 @@ func (control *Control) UpdateConfiguration(ctx context.Context, owner lifecycle
 		}
 	}
 	return status.Interface{}, errors.Join(lifecycle.ErrUnconfirmed, writeErr, readErr)
+}
+
+// Apply reversible link changes before the WireGuard key/port write. Do not
+// retain a previous private key in memory or publish any intermediate state.
+func (control *Control) updateCombined(ctx context.Context, owner lifecycle.Link, previous lifecycle.Checkpoint, desired lifecycle.Config, fields lifecycle.LiveField) (status.Interface, error) {
+	current, err := control.Inspect(ctx, owner)
+	if err != nil {
+		return status.Interface{}, err
+	}
+	if current.Name != owner.Name || !current.Up || current.MTU != previous.MTU {
+		return status.Interface{}, status.ErrUnavailable
+	}
+	var addressesChanged, mtuChanged bool
+	rollback := func(cause error) (status.Interface, error) {
+		if !addressesChanged && !mtuChanged {
+			return status.Interface{}, cause
+		}
+		ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), lifecycle.OperationTimeout)
+		defer cancel()
+		var err error
+		if mtuChanged {
+			_, err = control.UpdateMTU(ctx, owner, desired.MTU, previous.MTU)
+		}
+		if addressesChanged {
+			link, lookupErr := control.lookup(ctx, owner)
+			if lookupErr != nil {
+				err = errors.Join(err, lookupErr)
+			} else {
+				_, addressErr := control.updateAddresses(ctx, owner, link, desired.Addresses, previous.Fixed.Addresses)
+				err = errors.Join(err, addressErr)
+			}
+		}
+		if err != nil {
+			return status.Interface{}, errors.Join(lifecycle.ErrUnconfirmed, cause, err)
+		}
+		return status.Interface{}, cause
+	}
+	if fields&lifecycle.LiveAddresses != 0 {
+		stage := desired
+		stage.MTU = previous.MTU
+		current, err = control.updateConfiguration(ctx, owner, previous.Fixed, stage, lifecycle.LiveAddresses)
+		if err != nil {
+			return status.Interface{}, err
+		}
+		addressesChanged = true
+	}
+	if fields&lifecycle.LiveMTU != 0 {
+		current, err = control.UpdateMTU(ctx, owner, previous.MTU, desired.MTU)
+		if err != nil {
+			return rollback(err)
+		}
+		mtuChanged = true
+	}
+	if deviceFields := fields & (lifecycle.LivePort | lifecycle.LivePrivateKey); deviceFields != 0 {
+		current, err = control.updateConfiguration(ctx, owner, previous.Fixed, desired, deviceFields)
+		if err != nil {
+			return rollback(err)
+		}
+	}
+	return current, nil
 }
 
 func addressFor(prefix netip.Prefix) *netlink.Addr {

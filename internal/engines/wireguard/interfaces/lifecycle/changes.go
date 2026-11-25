@@ -4,9 +4,10 @@ import "slices"
 
 type LiveField uint8
 
+const LiveConflict LiveField = 0
+
 const (
-	LiveConflict LiveField = iota
-	LiveMTU
+	LiveMTU LiveField = 1 << iota
 	LivePort
 	LiveAddresses
 	LivePrivateKey
@@ -18,7 +19,6 @@ func (checkpoint Checkpoint) liveField(desired Config) LiveField {
 		return LiveConflict
 	}
 	field := LiveConflict
-	count := 0
 	for _, candidate := range [...]struct {
 		field   LiveField
 		changed bool
@@ -29,12 +29,8 @@ func (checkpoint Checkpoint) liveField(desired Config) LiveField {
 		{LivePrivateKey, previous.PrivateKeySHA256 != next.PrivateKeySHA256},
 	} {
 		if candidate.changed {
-			field = candidate.field
-			count++
+			field |= candidate.field
 		}
-	}
-	if count != 1 {
-		return LiveConflict
 	}
 	return field
 }

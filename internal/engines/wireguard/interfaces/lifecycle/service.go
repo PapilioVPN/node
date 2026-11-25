@@ -60,7 +60,7 @@ type Service struct {
 	traffic             PeerTrafficObserver
 	usage               PeerUsageCapture
 	publish             func(string)
-	reconfigure         func(context.Context, Link, FixedConfig, Config, LiveField) (status.Interface, error)
+	reconfigure         func(context.Context, Link, Checkpoint, Config, LiveField) (status.Interface, error)
 	repair              func(context.Context, Link, uint32) (status.Interface, error)
 	routing             LinkRouting
 	mu                  sync.Mutex
@@ -79,7 +79,7 @@ func (service *Service) WithRouting(routing LinkRouting) *Service {
 	return service
 }
 
-func (service *Service) WithConfiguration(reconfigure func(context.Context, Link, FixedConfig, Config, LiveField) (status.Interface, error)) *Service {
+func (service *Service) WithConfiguration(reconfigure func(context.Context, Link, Checkpoint, Config, LiveField) (status.Interface, error)) *Service {
 	service.reconfigure = reconfigure
 	return service
 }
@@ -284,7 +284,7 @@ func (service *Service) applyLive(ctx context.Context, current *Checkpoint, sour
 	if field == LiveMTU {
 		result, err = service.control.UpdateMTU(ctx, current.Link, current.MTU, config.MTU)
 	} else if service.reconfigure != nil {
-		result, err = service.reconfigure(ctx, current.Link, current.Fixed, config, field)
+		result, err = service.reconfigure(ctx, current.Link, *current, config, field)
 	} else {
 		return status.Interface{}, ErrConflict
 	}
@@ -300,7 +300,7 @@ func (service *Service) applyLive(ctx context.Context, current *Checkpoint, sour
 		return status.Interface{}, errors.Join(ErrUnconfirmed, err)
 	}
 	service.applied.Store(&accepted)
-	if field == LivePrivateKey {
+	if field&LivePrivateKey != 0 {
 		service.peerState = nil
 	}
 	service.emit("configuration_applied")

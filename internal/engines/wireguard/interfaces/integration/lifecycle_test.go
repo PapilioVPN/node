@@ -158,7 +158,7 @@ func TestManagedExecution(t *testing.T) {
 		if err != nil || after.Index != before.Index || after.MTU != 1340 {
 			t.Fatalf("live MTU changed the interface identity or missed the update: %v, %v", after, err)
 		}
-		unsupported := bytes.Replace(source, []byte(`"mtu":1340`), []byte(`"mtu":1320,"listen_port":51820`), 1)
+		unsupported := bytes.Replace(source, []byte(`"mtu":1340`), []byte(`"mtu":1320,"initial_peers":[{"public_key":"AgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="}]`), 1)
 		executionRequest(t, f, http.MethodPut, unsupported, http.StatusConflict)
 		if got := readGRPC(t, client); got.MTU != 1340 || got.AppliedSHA256 != want {
 			t.Fatalf("rejected port change changed the active config: %+v", got)
