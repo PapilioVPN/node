@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"slices"
 	"time"
 
 	interfacesv1 "github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/bridge/grpc/proto/v1"
@@ -27,57 +28,44 @@ func (h *handlers) ApplyPeerDeltaStream(stream grpc.ClientStreamingServer[interf
 		return status.Error(codes.Unimplemented, "wireguard management is disabled")
 	}
 	ctx := stream.Context()
-	if deadline, ok := ctx.Deadline(); !ok || time.Until(deadline) > 30*time.Second {
+	if deadline, ok := ctx.Deadline(); !ok || time.Until(deadline) > lifecycle.PeerDeltaStreamTimeout {
 		return status.Error(codes.InvalidArgument, "wireguard delta stream requires a deadline of at most 30 seconds")
 	}
-	if !h.collecting.CompareAndSwap(false, true) {
-		return status.Error(codes.ResourceExhausted, "wireguard delta stream is busy")
-	}
-	defer h.collecting.Store(false)
-	var input peers.DeltaInput
-	var name string
-	var next uint32
-	var size int
-	var last bool
-	for {
+	var decoded []peers.Input
+	result, err := h.managed.ApplyPeerDeltaChunks(ctx, func() (lifecycle.PeerDeltaChunk, error) {
 		chunk, err := stream.Recv()
 		if errors.Is(err, io.EOF) {
-			break
+			return lifecycle.PeerDeltaChunk{}, io.EOF
 		}
 		if err != nil {
-			return err
+			return lifecycle.PeerDeltaChunk{}, status.Convert(err).Err()
 		}
-		count := len(chunk.GetUpsert()) + len(chunk.GetRemove())
-		if last || chunk.GetIndex() != next || chunk.GetName() == "" || count == 0 {
-			return readError(peers.ErrInvalid)
+		if len(chunk.GetUpsert())+len(chunk.GetRemove()) > peers.MaxPeers {
+			return lifecycle.PeerDeltaChunk{}, lifecycle.ErrPeerDeltaStreamSize
 		}
-		if next == 0 {
-			name = chunk.GetName()
-		} else if chunk.GetName() != name {
-			return readError(peers.ErrInvalid)
+		decoded = slices.Grow(decoded[:0], len(chunk.GetUpsert()))[:len(chunk.GetUpsert())]
+		for i, peer := range chunk.GetUpsert() {
+			decoded[i] = peerInput(peer)
 		}
-		size += proto.Size(chunk)
-		if size > lifecycle.MaxConfigBytes || len(input.Upsert)+len(input.Remove)+count > peers.MaxPeers {
-			return status.Error(codes.ResourceExhausted, "wireguard delta stream exceeds its size limit")
-		}
-		for _, peer := range chunk.GetUpsert() {
-			input.Upsert = append(input.Upsert, peerInput(peer))
-		}
-		input.Remove = append(input.Remove, chunk.GetRemove()...)
-		next++
-		last = chunk.GetLast()
-	}
-	if err := ctx.Err(); err != nil {
+		return lifecycle.PeerDeltaChunk{
+			DeltaInput: peers.DeltaInput{Upsert: decoded, Remove: chunk.GetRemove()},
+			Index:      chunk.GetIndex(), Last: chunk.GetLast(), Name: chunk.GetName(), Bytes: proto.Size(chunk),
+		}, nil
+	})
+	switch {
+	case errors.Is(err, lifecycle.ErrPeerDeltaStreamBusy), errors.Is(err, lifecycle.ErrPeerDeltaStreamSize):
+		return status.Error(codes.ResourceExhausted, err.Error())
+	case errors.Is(err, context.Canceled), errors.Is(err, context.DeadlineExceeded):
 		return status.FromContextError(err).Err()
 	}
-	if !last {
-		return readError(peers.ErrInvalid)
+	if _, ok := status.FromError(err); err != nil && ok {
+		return err
 	}
-	result, err := peerResult(h.managed.ApplyPeerDelta(ctx, name, input))
+	reply, err := peerResult(result, err)
 	if err != nil {
 		return err
 	}
-	return stream.SendAndClose(result)
+	return stream.SendAndClose(reply)
 }
 
 func (h *handlers) RemovePeer(ctx context.Context, req *interfacesv1.WireGuardRemovePeerRequest) (*interfacesv1.WireGuardRemovePeerResponse, error) {

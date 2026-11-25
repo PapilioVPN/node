@@ -53,24 +53,25 @@ type LinkRouting interface {
 }
 
 type Service struct {
-	name           string
-	control        Control
-	peers          PeerControl
-	store          CheckpointStore
-	traffic        PeerTrafficObserver
-	usage          PeerUsageCapture
-	publish        func(string)
-	reconfigure    func(context.Context, Link, FixedConfig, Config, LiveField) (status.Interface, error)
-	repair         func(context.Context, Link, uint32) (status.Interface, error)
-	routing        LinkRouting
-	mu             sync.Mutex
-	owned          Link
-	peerState      *peers.State // Protected by mu and bound to the owned execution.
-	applied        atomic.Pointer[Checkpoint]
-	lease          *managementLease
-	leaseInterval  time.Duration
-	closing        bool
-	defaultPeerKey [32]byte
+	name                string
+	control             Control
+	peers               PeerControl
+	store               CheckpointStore
+	traffic             PeerTrafficObserver
+	usage               PeerUsageCapture
+	publish             func(string)
+	reconfigure         func(context.Context, Link, FixedConfig, Config, LiveField) (status.Interface, error)
+	repair              func(context.Context, Link, uint32) (status.Interface, error)
+	routing             LinkRouting
+	mu                  sync.Mutex
+	owned               Link
+	peerState           *peers.State // Protected by mu and bound to the owned execution.
+	collectingPeerDelta atomic.Bool
+	applied             atomic.Pointer[Checkpoint]
+	lease               *managementLease
+	leaseInterval       time.Duration
+	closing             bool
+	defaultPeerKey      [32]byte
 }
 
 func (service *Service) WithRouting(routing LinkRouting) *Service {

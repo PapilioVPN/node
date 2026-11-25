@@ -6,7 +6,6 @@ package grpc
 import (
 	"context"
 	"errors"
-	"sync/atomic"
 
 	interfacesv1 "github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/bridge/grpc/proto/v1"
 	"github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/lifecycle"
@@ -27,7 +26,6 @@ type handlers struct {
 	managed    *lifecycle.Service
 	validator  *lifecycle.Validator
 	membership *peers.Membership
-	collecting atomic.Bool
 }
 
 func Register(server grpc.ServiceRegistrar, service *interfacestatus.Service, peerStats *traffic.Service, managed *lifecycle.Service, validator *lifecycle.Validator, membership *peers.Membership) {

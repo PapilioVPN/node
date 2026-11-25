@@ -12,6 +12,7 @@ import (
 )
 
 func registerPeerDelta(router chi.Router, path string, managed *lifecycle.Service) {
+	router.Patch(path+"/chunks", peerDeltaChunks(managed))
 	router.Put(path+"/{key}", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
 		key, err := peerKey(r)
