@@ -223,3 +223,63 @@ deletion control had a 75.525 ms median across 20 observations.
 · [Removal](interfaces/results/peer-removal-completion-https.csv)
 · [Lifecycle](interfaces/results/wg-lifecycle-completion-https.csv)
 · [Routing](routing/results/wg-routing-completion-https.csv)
+
+## v1.2.0 release candidate recheck
+
+The runtime below retains the same activity, removal, and Stop paths as the
+preceding recheck. All cases ran over HTTPS with the same pinned PasarGuard
+build and real Linux WireGuard links. Two activity runs switch implementation
+after each read and balance which one goes first. This keeps an entire block
+from falling inside different scheduler or sampling windows. There are 160
+reads per implementation, peer count, and run. Activity reads remain unchanged
+in production. In the prior run, the first Node block at 1,000 peers had a
+0.748 ms p95 while the other three ranged from 0.262 to 0.329 ms.
+
+| Workload | Node p50 / p95, ms | PasarGuard p50 / p95, ms |
+| --- | ---: | ---: |
+| Activity, 1 peer, A | 0.274 / 0.715 | 0.328 / 0.788 |
+| Activity, 1 peer, B | 0.451 / 0.980 | 0.458 / 0.871 |
+| Activity, 1,000 peers, A | 0.327 / 0.754 | 0.380 / 0.791 |
+| Activity, 1,000 peers, B | 0.305 / 0.679 | 0.335 / 0.752 |
+| Sampled removal, 1 peer | 0.729 / 1.547 | 0.699 / 1.427 |
+| Sampled removal, 100 peers | 1.028 / 2.086 | 0.951 / 1.930 |
+| Sampled removal, 1,000 peers | 0.831 / 1.629 | 0.863 / 2.128 |
+| Stop | 73.382 / 85.029 | 74.659 / 85.984 |
+
+Removal uses the sampled policy for Node and verifies live kernel peer
+membership before and after each request. It has 72 observations per peer
+count and implementation. Default removal attempts a final counter read and
+is deliberately not counted as a match to sampled removal. Stop has 100
+observations per implementation. The separate `ip link del` control, including
+the `ip` process, had a 79.438 ms median in 20 observations. Together with
+the earlier measurements where Stop switched places at p50, this does not
+show a stable Stop advantage over PasarGuard.
+
+An experimental route Netlink path requested only link identity and flags
+before writes. The guard went from 34.388 to 29.603 µs at the median of five
+Go run means, but allocations rose from 39 to 89 per check. The Stop variant
+measured 75.675 / 97.682 ms against 71.870 / 83.609 ms for unchanged Node in
+the same three-build run. It also returned a 503 while cleaning up a 100-peer
+fixture. The experimental Stop path was discarded. A second build limited the
+new check to peer writes. It improved removal at 100 and 1,000 peers compared
+with unchanged Node in the same run, but made single-peer p50 21% slower and
+still trailed PasarGuard in the 100-peer median. This path was discarded too.
+
+| Sampled removal | Unchanged Node p50 / p95, ms | Experimental guard p50 / p95, ms | PasarGuard p50 / p95, ms |
+| --- | ---: | ---: | ---: |
+| 1 peer | 0.772 / 2.048 | 0.935 / 2.949 | 0.721 / 1.789 |
+| 100 peers | 0.971 / 3.495 | 0.912 / 1.656 | 0.774 / 2.148 |
+| 1,000 peers | 0.918 / 2.464 | 0.771 / 1.157 | 0.841 / 2.381 |
+
+Use the [same isolated fixture](interfaces/lifecycle.md#reproduce) with
+`--peer-activity`, `--peer-removal`, or `--lifecycle-check`. The last two modes
+also accept `PREVIOUS_NODE` as the final positional argument for a three-build
+comparison. In this form removal uses the sampled policy on both Node builds.
+
+[Activity A](stats/results/peer-activity-release-https-a.csv)
+· [Activity B](stats/results/peer-activity-release-https-b.csv)
+· [Removal](interfaces/results/peer-removal-release-https.csv)
+· [Stop](interfaces/results/wg-lifecycle-release-https.csv)
+· [Experimental Stop](interfaces/results/wg-lifecycle-owned-link-experiment.csv)
+· [Experimental removal](interfaces/results/peer-removal-owned-link-experiment.csv)
+· [Guard experiment](interfaces/results/owned-link-experiment.txt)

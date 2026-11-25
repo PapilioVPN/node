@@ -404,17 +404,24 @@ def measure_sampled_usage(cases, reference_name, activity=False):
                     for label, (conn, *_) in cases:
                         read(label, conn, 3, nonzero=True)
                 for block in range(1, 5):
-                    for label, (conn, *_) in cases if block % 2 else reversed(cases):
+                    if activity:
+                        # Pair the two reads in time. Keep a slow scheduler window
+                        # or one sampler tick from affecting an entire build's block.
                         for iteration in range(-5, 40):
-                            if activity:
+                            order = cases if (block + iteration) % 2 else reversed(cases)
+                            for label, (conn, *_) in order:
                                 elapsed, payload = request(conn, *activity_paths[label][operation])
                                 if label == "node":
                                     result = json.loads(payload)
                                     assert result["active"] if operation == 0 else result["endpoints"][0]["ip"] == "198.51.100.2"
                                 else:
                                     assert (b"\x10\x01" if operation == 0 else b"198.51.100.6") in payload
-                            else:
-                                elapsed = read(label, conn, operation, nonzero=operation < 2)
+                                if iteration >= 0:
+                                    print(f"{block},{label},{operation_name}_{count}_peers,{iteration + 1},{elapsed}")
+                        continue
+                    for label, (conn, *_) in cases if block % 2 else reversed(cases):
+                        for iteration in range(-5, 40):
+                            elapsed = read(label, conn, operation, nonzero=operation < 2)
                             if iteration >= 0:
                                 print(f"{block},{label},{operation_name}_{count}_peers,{iteration + 1},{elapsed}")
         for label, (conn, _, _, _, method, path, _) in cases:
@@ -545,9 +552,9 @@ def main():
     sampled_test = mode in ("--sampled-peer-usage", "--peer-activity")
     link_test = sampled_test or mode in ("--interface-traffic", "--interface-usage")
     valid_args = (len(sys.argv) == 3 or len(sys.argv) == 4 and (link_test or routing_test or mode in ("--lifecycle-check", "--live-mtu", "--peer-sync", "--peer-delta", "--peer-removal", "--diagnostics", "--probe", "--initial-peers"))
-                  or len(sys.argv) == 5 and mode in ("--peer-sync", "--peer-replay", "--peer-delta", "--probe"))
+                  or len(sys.argv) == 5 and mode in ("--lifecycle-check", "--peer-sync", "--peer-replay", "--peer-delta", "--peer-removal", "--probe"))
     if not valid_args:
-        raise SystemExit("usage: measure-lifecycle.py NODE PASARGUARD [--lifecycle-check|--live-mtu|--interface-traffic|--interface-usage|--sampled-peer-usage|--peer-activity|--peer-sync [PREVIOUS_NODE]|--peer-replay PREVIOUS_NODE|--peer-delta [PREVIOUS_NODE]|--peer-removal|--probe [PREVIOUS_NODE]]")
+        raise SystemExit("usage: measure-lifecycle.py NODE PASARGUARD [--lifecycle-check [PREVIOUS_NODE]|--live-mtu|--interface-traffic|--interface-usage|--sampled-peer-usage|--peer-activity|--peer-sync [PREVIOUS_NODE]|--peer-replay PREVIOUS_NODE|--peer-delta [PREVIOUS_NODE]|--peer-removal [PREVIOUS_NODE]|--probe [PREVIOUS_NODE]]")
     parent = os.environ.get("NODE_TEST_WIREGUARD_PARENT_NETNS")
     if not parent or parent == os.readlink("/proc/self/ns/net"):
         raise RuntimeError("run in a separate network namespace")
@@ -637,10 +644,12 @@ wireguard:
             ("pasarguard", (ref, "POST", "/start", pg_source, "PUT", "/stop", ref_valid)),
         ]
         if len(sys.argv) == 5:
-            previous = launch_node(sys.argv[4], "node-before")
+            previous = launch_node(sys.argv[4], "node-before", sampled_removal=mode == "--peer-removal")
             cases.insert(0, ("node-before", (previous, "PUT", execution, source, "DELETE", execution, node_valid)))
         print("run,implementation,operation,iteration,nanoseconds")
         if mode == "--peer-removal":
+            if len(sys.argv) == 5:
+                cases = [(label, args) for label, args in cases if label != "node"]
             sampled = launch_node(sys.argv[1], "node-sampled", sampled_removal=True)
             cases.append(("node-sampled", (sampled, "PUT", execution, source, "DELETE", execution, node_valid)))
             measure_peer_removal(cases)
@@ -672,14 +681,16 @@ wireguard:
         if mode in ("--peer-sync", "--peer-replay"):
             measure_peers(cases, phases=("noop",) if mode == "--peer-replay" else ("noop", "changed"))
             return
-        for repeat in range(5):
-            for label, args in cases if repeat % 2 == 0 else reversed(cases):
+        paired = mode == "--lifecycle-check" and len(cases) == 3
+        orders = itertools.permutations(cases) if paired else (cases if i % 2 == 0 else reversed(cases) for i in range(5))
+        for repeat, order in enumerate(orders, 1):
+            for label, args in order:
                 sample(*args)
-                for index in range(20 if mode == "--lifecycle-check" else 100):
+                for index in range(12 if paired else 20 if mode == "--lifecycle-check" else 100):
                     for op, elapsed in zip(("cold_start", "same_start", "stop"), sample(*args)):
-                        print(f"{repeat + 1},{label},{op},{index + 1},{elapsed}")
+                        print(f"{repeat},{label},{op},{index + 1},{elapsed}")
             if mode == "--lifecycle-check":
-                measure_kernel_delete(cases[0][1], repeat + 1)
+                measure_kernel_delete(cases[0][1], repeat)
 
 
 if __name__ == "__main__":
