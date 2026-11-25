@@ -35,8 +35,18 @@ docker exec "$container" ip link set wg-egress up
 
 request() {
   local method=$1 path=$2 body=${3:-}
+  local sender receiver pid
+  # Keep stdin open until the server closes the HTTP connection. In BusyBox
+  # nc, closing stdin early half-closes TCP and can cancel the Go request.
+  coproc node_http { docker exec -i "$container" timeout 5 nc 127.0.0.1 8080; }
+  pid=${node_http_PID:-}
+  [[ -n "$pid" ]] || return 1
+  exec {sender}>&"${node_http[1]}" {receiver}<&"${node_http[0]}"
   printf '%s %s HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\nContent-Length: %s\r\n\r\n%s' \
-    "$method" "$path" "${#body}" "$body" | docker exec -i "$container" timeout 5 nc 127.0.0.1 8080
+    "$method" "$path" "${#body}" "$body" >&"$sender"
+  cat <&"$receiver"
+  exec {sender}>&- {receiver}<&-
+  wait "$pid"
 }
 
 fail() {
