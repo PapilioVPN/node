@@ -45,3 +45,18 @@ block. Other blocks peaked at 1.115 ms or below.
 
 Use `--peer-removal` with the [HTTPS fixture](lifecycle.md#reproduce).
 [Raw request timings](results/peer-removal-https.csv)
+
+## Repeat
+
+The second run used the same fixture and sample count per cell.
+
+| Configured peers | Node final p50 / p95 | Node sampled p50 / p95 | PasarGuard p50 / p95 |
+| ---: | ---: | ---: | ---: |
+| 1 | 0.610 / 1.064 | 0.533 / 1.280 | 0.582 / 1.063 |
+| 100 | 0.874 / 1.419 | 0.656 / 1.265 | 0.643 / 1.056 |
+| 1,000 | 2.051 / 2.748 | 0.580 / 1.259 | 0.723 / 1.930 |
+
+The sampled mode reduced the 1,000-peer median by more than 70% in both
+runs. It had a lower p50 than PasarGuard at 1,000 peers in both runs. The
+p95 comparison changed between runs. Smaller interfaces gain less from
+avoiding the dump. [Raw repeat timings](results/peer-removal-repeat-https.csv)

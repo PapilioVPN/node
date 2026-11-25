@@ -157,3 +157,39 @@ Node had a lower median in 37 of 41 rows and a lower p95 in 27 of the 37 rows wi
 · [Reference lifecycle](https://github.com/PasarGuard/node/blob/739eab94a9343d9f0035baf7162796844109f4c4/controller/controller.go)
 · [Reference WireGuard configuration](https://github.com/PasarGuard/node/blob/739eab94a9343d9f0035baf7162796844109f4c4/backend/wireguard/config.go)
 · [Node management API](../../docs/management.md)
+
+## Direct removal and follow-up checks
+
+The optional sampled removal policy keeps the kernel effect and uses
+previously accounted usage. The 1,000-peer median fell by more than 70%
+against final accounting in two runs. The p95 comparison was mixed.
+[Removal timings and accounting policy](interfaces/peer-removal.md)
+
+The previous implementations of peer activity and 100-peer changes were
+also rechecked over HTTPS. The 100-peer change led at p95 in this recheck.
+Activity p95 at 1,000 peers remained higher.
+
+| Workload | Node p50 / p95, ms | PasarGuard p50 / p95, ms |
+| --- | ---: | ---: |
+| Activity, 1 peer | 0.207 / 0.700 | 0.206 / 0.715 |
+| Activity, 1,000 peers | 0.188 / 0.647 | 0.241 / 0.532 |
+| Change a 100-peer chunk | 0.949 / 1.669 | 1.224 / 2.336 |
+
+[Activity recheck](stats/results/peer-activity-removal-check-https.csv)
+· [Delta recheck](interfaces/results/peer-delta-removal-check-https.csv)
+
+A candidate decoded peer delta JSON directly from the bounded request body
+using the Go standard library. In the controlled 100-peer decode benchmark,
+median allocation fell from 53,709 to 27,210 bytes per operation. In the
+three-build HTTPS run, the 100-peer change became slower than the existing
+Node implementation at both measured percentiles. The candidate was
+discarded.
+
+| 100-peer change | p50, ms | p95, ms |
+| --- | ---: | ---: |
+| Current buffered Node | 0.767 | 1.414 |
+| Streaming candidate | 0.874 | 1.722 |
+| PasarGuard | 1.059 | 2.259 |
+
+[Controlled decode benchmark](interfaces/results/peer-delta-decoding-linux-amd64.txt)
+· [HTTPS experiment](interfaces/results/peer-delta-stream-experiment-https.csv)

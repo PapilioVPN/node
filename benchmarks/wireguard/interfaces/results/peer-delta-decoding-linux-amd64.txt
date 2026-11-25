@@ -1,0 +1,12 @@
+goos: linux
+goarch: amd64
+pkg: github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/bridge/http
+cpu: AMD Ryzen 7 3750H with Radeon Vega Mobile Gfx
+BenchmarkDeltaDecoding/buffered         	    1262	    134671 ns/op	   53714 B/op	     275 allocs/op
+BenchmarkDeltaDecoding/buffered         	    1395	    140464 ns/op	   53708 B/op	     275 allocs/op
+BenchmarkDeltaDecoding/buffered         	    1354	    136148 ns/op	   53709 B/op	     275 allocs/op
+BenchmarkDeltaDecoding/stream           	    1623	    130612 ns/op	   27234 B/op	     264 allocs/op
+BenchmarkDeltaDecoding/stream           	    1465	    135047 ns/op	   27210 B/op	     264 allocs/op
+BenchmarkDeltaDecoding/stream           	    1568	    124399 ns/op	   27210 B/op	     264 allocs/op
+PASS
+ok  	github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/bridge/http	1.170s
