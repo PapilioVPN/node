@@ -47,6 +47,11 @@ type PeerUsageCapture interface {
 	WithLinkRemoval(context.Context, func() error) error
 }
 
+type LinkRouting interface {
+	Apply(context.Context, string, string) error
+	Remove(context.Context, string, string) error
+}
+
 type Service struct {
 	name        string
 	control     Control
@@ -56,10 +61,16 @@ type Service struct {
 	usage       PeerUsageCapture
 	publish     func(string)
 	reconfigure func(context.Context, Link, FixedConfig, Config, LiveField) (status.Interface, error)
+	routing     LinkRouting
 	mu          sync.Mutex
 	owned       Link
 	peerState   *peers.State // Protected by mu and bound to the owned execution.
 	applied     atomic.Pointer[Checkpoint]
+}
+
+func (service *Service) WithRouting(routing LinkRouting) *Service {
+	service.routing = routing
+	return service
 }
 
 func (service *Service) WithConfiguration(reconfigure func(context.Context, Link, FixedConfig, Config, LiveField) (status.Interface, error)) *Service {
@@ -180,6 +191,9 @@ func (service *Service) Start(ctx context.Context, name string, source []byte) (
 	link.Index = result.Index
 	service.owned = link
 	accepted := Checkpoint{Link: link, SHA256: digest, MTU: config.MTU, Fixed: config.fixed(), StartedAt: time.Now().UTC()}
+	if err == nil && service.routing != nil {
+		err = service.routing.Apply(ctx, link.Name, link.Alias)
+	}
 	if err == nil {
 		err = service.save(accepted)
 	}
@@ -289,6 +303,12 @@ func (service *Service) remove(ctx context.Context) error {
 	}
 	if err == nil || errors.Is(err, ErrConflict) {
 		service.applied.Store(nil)
+		if service.routing != nil {
+			if routeErr := service.routing.Remove(ctx, service.owned.Name, service.owned.Alias); routeErr != nil {
+				service.emit("stop_failed")
+				return errors.Join(err, routeErr)
+			}
+		}
 		if clearErr := service.clear(); clearErr != nil {
 			return errors.Join(err, clearErr)
 		}

@@ -15,6 +15,7 @@ import (
 	"github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/status"
 	"github.com/PapilioVPN/node/internal/engines/wireguard/stats/accounting"
 	"github.com/PapilioVPN/node/internal/engines/wireguard/stats/traffic"
+	wgnet "github.com/PapilioVPN/node/internal/networking/wireguard"
 	"github.com/PapilioVPN/node/internal/settings"
 	"github.com/go-chi/chi/v5"
 	"go.uber.org/fx"
@@ -23,7 +24,7 @@ import (
 
 var Module = fx.Module("wireguard-interfaces", fx.Invoke(register))
 
-func register(lifecycle fx.Lifecycle, config settings.WireGuard, router *chi.Mux, server *grpc.Server, peerStats *traffic.Service, usage *accounting.Service, logs *events.Service, runtime *process.Runtime, egress *probe.Service) {
+func register(lifecycle fx.Lifecycle, config settings.WireGuard, router *chi.Mux, server *grpc.Server, peerStats *traffic.Service, usage *accounting.Service, logs *events.Service, runtime *process.Runtime, egress *probe.Service, routing *wgnet.Service) {
 	if !config.Enabled() {
 		return
 	}
@@ -42,6 +43,9 @@ func register(lifecycle fx.Lifecycle, config settings.WireGuard, router *chi.Mux
 			}})
 		}
 		managed = wglifecycle.New(config.Interface, control, control, store).WithPeerTraffic(peerStats).WithPeerUsage(usage).WithEvents(logs.Publish).WithConfiguration(control.UpdateConfiguration)
+		if routing.Enabled() {
+			managed.WithRouting(routing)
+		}
 		runtime.Bind(managed.RuntimeSince)
 		egress.Bind(managed.CheckApplied)
 		appliedHash = managed.AppliedHash

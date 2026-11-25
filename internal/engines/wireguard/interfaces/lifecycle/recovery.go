@@ -42,6 +42,11 @@ func (service *Service) Recover(ctx context.Context) error {
 	}
 	link, err := service.control.Inspect(ctx, checkpoint.Link)
 	if errors.Is(err, status.ErrNotFound) || errors.Is(err, ErrConflict) {
+		if service.routing != nil {
+			if routeErr := service.routing.Remove(ctx, checkpoint.Link.Name, checkpoint.Link.Alias); routeErr != nil {
+				return routeErr
+			}
+		}
 		return service.clear()
 	}
 	if err != nil {
@@ -50,6 +55,11 @@ func (service *Service) Recover(ctx context.Context) error {
 	service.owned = checkpoint.Link
 	service.owned.Index = link.Index
 	if checkpoint.SHA256 != "" && checkpoint.matches(link) {
+		if service.routing != nil {
+			if routeErr := service.routing.Apply(ctx, checkpoint.Link.Name, checkpoint.Link.Alias); routeErr != nil {
+				return routeErr
+			}
+		}
 		service.applied.Store(&checkpoint)
 		service.emit("recovered")
 	}

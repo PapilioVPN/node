@@ -267,6 +267,22 @@ def measure_probe(cases):
             check_link_removed()
 
 
+def measure_routing(cases):
+    for block in range(1, 5):
+        for label, args in cases if block % 2 else reversed(cases):
+            conn, method, path, source, stop_method, stop_path, valid = args
+            elapsed, payload = request(conn, method, path, source)
+            assert valid(payload)
+            rules = subprocess.check_output(["ip", "rule", "show"], text=True)
+            assert f"iif {peer_interface} lookup 20101" in rules
+            print(f"{block},{label},routing_start,1,{elapsed}")
+            elapsed, _ = request(conn, stop_method, stop_path)
+            check_link_removed()
+            rules = subprocess.check_output(["ip", "rule", "show"], text=True)
+            assert f"iif {peer_interface} lookup 20101" not in rules
+            print(f"{block},{label},routing_stop,1,{elapsed}")
+
+
 def measure_initial_peers(cases):
     for count in (1, 100):
         rows, users = zip(*peer_records(count, False))
@@ -488,9 +504,10 @@ def measure_peer_delta(cases):
 
 def main():
     mode = sys.argv[3] if len(sys.argv) >= 4 else ""
+    routing_test = mode == "--routing"
     sampled_test = mode in ("--sampled-peer-usage", "--peer-activity")
     link_test = sampled_test or mode in ("--interface-traffic", "--interface-usage")
-    valid_args = (len(sys.argv) == 3 or len(sys.argv) == 4 and (link_test or mode in ("--lifecycle-check", "--live-mtu", "--peer-sync", "--peer-delta", "--diagnostics", "--probe", "--initial-peers"))
+    valid_args = (len(sys.argv) == 3 or len(sys.argv) == 4 and (link_test or routing_test or mode in ("--lifecycle-check", "--live-mtu", "--peer-sync", "--peer-delta", "--diagnostics", "--probe", "--initial-peers"))
                   or len(sys.argv) == 5 and mode in ("--peer-sync", "--peer-replay", "--peer-delta"))
     if not valid_args:
         raise SystemExit("usage: measure-lifecycle.py NODE PASARGUARD [--lifecycle-check|--live-mtu|--interface-traffic|--interface-usage|--sampled-peer-usage|--peer-activity|--peer-sync [PREVIOUS_NODE]|--peer-replay PREVIOUS_NODE|--peer-delta [PREVIOUS_NODE]]")
@@ -512,6 +529,9 @@ def main():
         env = {**os.environ, "GOMAXPROCS": "2" if peer_test else "1"}
         timeout = 15 if peer_test or link_test else 3
         target = probe_target(stack) if mode == "--probe" else ""
+        if routing_test:
+            subprocess.run(["ip", "link", "add", "wg-bench-egress", "type", "dummy"], check=True)
+            subprocess.run(["ip", "link", "set", "wg-bench-egress", "up"], check=True)
 
         def launch_node(binary, label):
             node_port, grpc_port = port(), port()
@@ -529,6 +549,8 @@ wireguard:
 """
             if target:
                 settings += f"  probe:\n    url: {target}\n    interface: lo\n    timeout_ms: 2000\n"
+            if routing_test:
+                settings += "  routing:\n    egress_interface: wg-bench-egress\n    masquerade: true\n    policy_table: 20101\n"
             cfg.write_text(settings)
             return launch(stack, [binary, "-config", str(cfg)], env, label,
                           directory, context, node_port, "/healthz", timeout)
@@ -539,7 +561,10 @@ wireguard:
                      "SERVICE_PORT": str(ref_port), "SERVICE_PROTOCOL": "rest",
                      "API_KEY": api_key, "SSL_CERT_FILE": str(cert), "SSL_KEY_FILE": str(key),
                      "PG_NODE_WG_HOST_ROUTING": "false", "PG_NODE_WG_NAT_DISABLE": "true",
-                     **({"PG_NODE_WG_NAT_OUTPUT_INTERFACE": "lo"} if target else {})},
+                     **({"PG_NODE_WG_NAT_OUTPUT_INTERFACE": "lo"} if target else {}),
+                     **({"PG_NODE_WG_HOST_ROUTING": "true", "PG_NODE_WG_NAT_DISABLE": "false", "PG_NODE_WG_NAT_EGRESS_ONLY": "false",
+                         "PG_NODE_WG_NAT_OUTPUT_INTERFACE": "wg-bench-egress", "PG_NODE_WG_ROUTE_TABLE": "20101",
+                         "PG_NODE_WG_ROUTE_OUT_INTERFACE": "wg-bench-egress"} if routing_test else {})},
                      "reference", directory, context, ref_port, "/info", timeout)
         local = {"listen_port": 51820, "private_key": private_key}
         address = "198.18.0.1/16" if peer_test or sampled_test else "192.0.2.1/24"
@@ -572,6 +597,9 @@ wireguard:
             ("pasarguard", (ref, "POST", "/start", pg_source, "PUT", "/stop", ref_valid)),
         ]
         print("run,implementation,operation,iteration,nanoseconds")
+        if routing_test:
+            measure_routing(cases)
+            return
         if mode == "--initial-peers":
             measure_initial_peers(cases)
             return

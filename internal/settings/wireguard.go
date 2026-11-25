@@ -3,6 +3,7 @@ package settings
 import (
 	"errors"
 	"fmt"
+	"net/netip"
 	"net/url"
 	"path/filepath"
 	"strings"
@@ -12,10 +13,19 @@ import (
 )
 
 type WireGuard struct {
-	Interface      string          `yaml:"interface"`
-	Managed        bool            `yaml:"managed"`
-	StateDirectory string          `yaml:"state_directory"`
-	Probe          *WireGuardProbe `yaml:"probe"`
+	Interface      string            `yaml:"interface"`
+	Managed        bool              `yaml:"managed"`
+	StateDirectory string            `yaml:"state_directory"`
+	Probe          *WireGuardProbe   `yaml:"probe"`
+	Routing        *WireGuardRouting `yaml:"routing"`
+}
+
+type WireGuardRouting struct {
+	Egress     string `yaml:"egress_interface"`
+	Masquerade bool   `yaml:"masquerade"`
+	Table      int    `yaml:"policy_table"`
+	Priority   int    `yaml:"policy_priority"`
+	Gateway    string `yaml:"gateway"`
 }
 
 type WireGuardProbe struct {
@@ -27,6 +37,32 @@ type WireGuardProbe struct {
 func (config WireGuard) Enabled() bool { return config.Interface != "" }
 
 func (config *WireGuard) validate(dir string, management Management) error {
+	if r := config.Routing; r != nil {
+		if !config.Managed || !validWireGuardInterface(r.Egress) || r.Egress == config.Interface {
+			return errors.New("wireguard.routing requires managed mode and a distinct Linux egress interface")
+		}
+		if r.Table == 0 {
+			if r.Priority != 0 || r.Gateway != "" {
+				return errors.New("wireguard.routing policy priority and gateway require a policy table")
+			}
+		} else {
+			if r.Table < 1000 || r.Table > 2147483647 {
+				return errors.New("wireguard.routing.policy_table must be between 1000 and 2147483647")
+			}
+			if r.Priority == 0 {
+				r.Priority = 19000
+			}
+			if r.Priority < 1 || r.Priority >= 32766 {
+				return errors.New("invalid wireguard routing policy priority")
+			}
+			if r.Gateway != "" {
+				addr, err := netip.ParseAddr(r.Gateway)
+				if err != nil || !addr.Is4() || !addr.IsGlobalUnicast() {
+					return errors.New("wireguard routing gateway must be an IPv4 unicast address")
+				}
+			}
+		}
+	}
 	if probe := config.Probe; probe != nil {
 		if !config.Managed {
 			return errors.New("wireguard.probe requires managed mode")

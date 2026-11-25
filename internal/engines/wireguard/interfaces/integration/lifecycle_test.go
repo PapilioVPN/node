@@ -204,6 +204,10 @@ func TestManagedExecution(t *testing.T) {
 }
 
 func exchangePacket(t *testing.T, serverKey, serverPort string, whileConnected func(string, func())) {
+	exchangePacketTo(t, serverKey, serverPort, "192.0.2.1", whileConnected)
+}
+
+func exchangePacketTo(t *testing.T, serverKey, serverPort, destination string, whileConnected func(string, func())) {
 	t.Helper()
 	ctx, cancel := context.WithTimeout(t.Context(), 20*time.Second)
 	defer cancel()
@@ -254,11 +258,14 @@ func exchangePacket(t *testing.T, serverKey, serverPort string, whileConnected f
 	inClient("", "ip", "link", "set", "dev", "wg-peer-link", "up")
 	inClient("", "ip", "link", "add", "wg-client", "type", "wireguard")
 	inClient("", "ip", "addr", "add", "192.0.2.2/24", "dev", "wg-client")
-	config := fmt.Sprintf("[Interface]\nPrivateKey = %s\n[Peer]\nPublicKey = %s\nAllowedIPs = 192.0.2.1/32\nEndpoint = 198.51.100.1:%s\n",
-		base64.StdEncoding.EncodeToString(clientKey.Bytes()), serverKey, serverPort)
+	config := fmt.Sprintf("[Interface]\nPrivateKey = %s\n[Peer]\nPublicKey = %s\nAllowedIPs = %s/32\nEndpoint = 198.51.100.1:%s\n",
+		base64.StdEncoding.EncodeToString(clientKey.Bytes()), serverKey, destination, serverPort)
 	inClient(config, "wg", "setconf", "wg-client", "/dev/stdin")
 	inClient("", "ip", "link", "set", "dev", "wg-client", "up")
-	ping := func() { inClient("", "ping", "-n", "-c", "1", "-W", "2", "192.0.2.1") }
+	if destination != "192.0.2.1" {
+		inClient("", "ip", "route", "add", destination+"/32", "dev", "wg-client")
+	}
+	ping := func() { inClient("", "ping", "-n", "-c", "1", "-W", "2", destination) }
 	ping()
 	whileConnected(clientPub, ping)
 	ping()
