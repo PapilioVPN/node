@@ -30,7 +30,7 @@ func newTraffic(lifecycle fx.Lifecycle, config settings.WireGuard) *traffic.Serv
 
 func newAccounting(lifecycle fx.Lifecycle, config settings.WireGuard) *accounting.Service {
 	reader := new(native.PeerStatsReader)
-	service := accounting.New(config.Interface, reader, config.Managed)
+	service := accounting.New(config.Interface, reader, config.Managed, config.PeerRemovalUsage == settings.WireGuardSampledPeerRemoval)
 	if config.Managed {
 		lifecycle.Append(fx.Hook{OnStart: service.Start, OnStop: func(ctx context.Context) error {
 			return errors.Join(service.Stop(ctx), reader.Close(ctx))

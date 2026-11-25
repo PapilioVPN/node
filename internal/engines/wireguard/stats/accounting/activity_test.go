@@ -9,7 +9,7 @@ import (
 )
 
 func TestPeerActivityExpiresWithoutTrafficGrowth(t *testing.T) {
-	service := New("wg-test", nil, true)
+	service := New("wg-test", nil, true, false)
 	key := [32]byte{1}
 	endpoint := netip.MustParseAddr("2001:db8::1")
 	old := time.Now().Add(-activeWindow - time.Second)

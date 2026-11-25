@@ -24,4 +24,5 @@ host:
 # wireguard:
 #   interface: "wg0"
 #   managed: true # Optional lifecycle API. Requires CAP_NET_ADMIN.
+#   peer_removal_usage: final # Use sampled for the direct removal path with previously sampled usage.
 #   state_directory: "/var/lib/papiliovpn/wireguard" # Optional recovery. Existing Node-owned directory, mode 0700.

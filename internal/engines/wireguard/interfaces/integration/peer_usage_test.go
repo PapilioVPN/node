@@ -3,14 +3,94 @@ package integration_test
 import (
 	"bytes"
 	"context"
+	"crypto/ecdh"
+	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"os"
+	"os/exec"
+	"strings"
 	"testing"
 	"time"
 
+	interfacesv1 "github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/bridge/grpc/proto/v1"
 	statsv1 "github.com/PapilioVPN/node/internal/engines/wireguard/stats/bridge/grpc/proto/v1"
 )
+
+func TestSampledPeerRemoval(t *testing.T) {
+	if os.Getenv(parentNetNS) == "" {
+		if os.Getenv("NODE_TEST_WIREGUARD") != "1" {
+			t.Skip("requires an isolated network namespace")
+		}
+		cmd := exec.CommandContext(t.Context(), "unshare", "-Urn", os.Args[0], "-test.run=^TestSampledPeerRemoval$")
+		cmd.Env = append(os.Environ(), parentNetNS+"="+networkNamespace(t))
+		if output, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("isolated peer removal: %v\n%s", err, output)
+		}
+		return
+	}
+	f := startFixtureConfigured(t, true, "  peer_removal_usage: sampled\n")
+	privateKey, err := ecdh.X25519().GenerateKey(rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	body := fmt.Appendf(nil, `{"private_key":%q,"addresses":["192.0.2.1/24"]}`, base64.StdEncoding.EncodeToString(privateKey.Bytes()))
+	executionRequest(t, f, http.MethodPut, body, http.StatusOK)
+	client, stats := f.grpcClient(t), trafficClient(t, f)
+	var key []byte
+	var accounted trafficCounters
+	var sampledAt time.Time
+	exchangePacket(t, base64.StdEncoding.EncodeToString(privateKey.PublicKey().Bytes()), strings.TrimSpace(wgOutput(t, "listen-port")), func(peer string, ping func()) {
+		key, err = base64.StdEncoding.DecodeString(peer)
+		if err != nil {
+			t.Fatal(err)
+		}
+		ctx, cancel := context.WithTimeout(t.Context(), 12*time.Second)
+		defer cancel()
+		ticker := time.NewTicker(25 * time.Millisecond)
+		defer ticker.Stop()
+		for {
+			usage, err := stats.GetPeerUsage(ctx, &statsv1.WireGuardPeerTrafficRequest{Name: interfaceName, PublicKey: key})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if peer := usage.GetPeer(); peer != nil {
+				accounted = trafficCounters{RXBytes: peer.GetRxBytes(), TXBytes: peer.GetTxBytes()}
+				sampledAt = usage.GetSampledAt().AsTime()
+				break
+			}
+			select {
+			case <-ctx.Done():
+				t.Fatal("accounting did not sample the active tunnel")
+			case <-ticker.C:
+			}
+		}
+		ping()
+	})
+	if live := readPeerStatsHTTP(t, f).Peers[0]; live.RXBytes <= accounted.RXBytes || live.TXBytes <= accounted.TXBytes {
+		t.Fatal("expected new live traffic after the sample")
+	}
+	request := &interfacesv1.WireGuardRemovePeerRequest{Name: interfaceName, PublicKey: key}
+	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+	defer cancel()
+	if _, err := client.RemovePeer(ctx, request); err != nil {
+		t.Fatal(err)
+	}
+	if got := wgOutput(t, "peers"); got != "" {
+		t.Fatalf("acknowledged removal left a peer: %q", got)
+	}
+	usage, err := stats.GetPeerUsage(ctx, &statsv1.WireGuardPeerTrafficRequest{Name: interfaceName, PublicKey: key})
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertUsageRow(t, usage.GetPeer(), key, accounted)
+	if !usage.GetSampledAt().AsTime().Equal(sampledAt) {
+		t.Fatal("removal replaced the periodic sample timestamp")
+	}
+	assertPeerActivity(t, f, stats, key, false)
+}
 
 type sampledPeer struct {
 	PublicKey []byte `json:"public_key"`

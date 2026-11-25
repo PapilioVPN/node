@@ -13,12 +13,15 @@ import (
 )
 
 type WireGuard struct {
-	Interface      string            `yaml:"interface"`
-	Managed        bool              `yaml:"managed"`
-	StateDirectory string            `yaml:"state_directory"`
-	Probe          *WireGuardProbe   `yaml:"probe"`
-	Routing        *WireGuardRouting `yaml:"routing"`
+	Interface        string            `yaml:"interface"`
+	Managed          bool              `yaml:"managed"`
+	StateDirectory   string            `yaml:"state_directory"`
+	PeerRemovalUsage string            `yaml:"peer_removal_usage"`
+	Probe            *WireGuardProbe   `yaml:"probe"`
+	Routing          *WireGuardRouting `yaml:"routing"`
 }
+
+const WireGuardSampledPeerRemoval = "sampled"
 
 type WireGuardRouting struct {
 	Egress     string `yaml:"egress_interface"`
@@ -37,6 +40,14 @@ type WireGuardProbe struct {
 func (config WireGuard) Enabled() bool { return config.Interface != "" }
 
 func (config *WireGuard) validate(dir string, management Management) error {
+	switch config.PeerRemovalUsage {
+	case "", "final", WireGuardSampledPeerRemoval:
+	default:
+		return errors.New("wireguard.peer_removal_usage must be final or sampled")
+	}
+	if config.PeerRemovalUsage != "" && !config.Managed {
+		return errors.New("wireguard.peer_removal_usage requires managed mode")
+	}
 	if r := config.Routing; r != nil {
 		if !config.Managed || !validWireGuardInterface(r.Egress) || r.Egress == config.Interface {
 			return errors.New("wireguard.routing requires managed mode and a distinct Linux egress interface")

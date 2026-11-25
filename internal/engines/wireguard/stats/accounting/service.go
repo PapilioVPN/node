@@ -55,19 +55,24 @@ type entry struct {
 }
 
 type Service struct {
-	name    string
-	reader  Reader
-	enabled bool
-	gate    *semaphore.Weighted
-	mu      sync.RWMutex
-	entries map[[32]byte]entry
-	sample  Sample
-	cancel  context.CancelFunc
-	done    chan struct{}
+	name            string
+	reader          Reader
+	enabled         bool
+	sampledRemovals bool
+	gate            *semaphore.Weighted
+	mu              sync.RWMutex
+	entries         map[[32]byte]entry
+	sample          Sample
+	sampleFence     uint64 // Protected by mu. Odd while a sampled removal is in flight.
+	cancel          context.CancelFunc
+	done            chan struct{}
 }
 
-func New(name string, reader Reader, enabled bool) *Service {
-	return &Service{name: name, reader: reader, enabled: enabled, gate: semaphore.NewWeighted(1), entries: make(map[[32]byte]entry)}
+func New(name string, reader Reader, enabled, sampledRemovals bool) *Service {
+	return &Service{
+		name: name, reader: reader, enabled: enabled, sampledRemovals: sampledRemovals,
+		gate: semaphore.NewWeighted(1), entries: make(map[[32]byte]entry),
+	}
 }
 
 func (service *Service) Start(context.Context) error {
@@ -103,11 +108,34 @@ func (service *Service) Stop(ctx context.Context) error {
 	}
 }
 
-// WithPeerRemoval keeps the last available bytes before a destructive write.
-// The gate also prevents the sampler from publishing a pre-removal snapshot
-// after acknowledging removal. API readers only take the ledger lock.
+// WithPeerRemoval preserves pending usage. The lifecycle caller serializes
+// removals with each other and with interface replacement.
 func (service *Service) WithPeerRemoval(ctx context.Context, keys [][32]byte, remove func() error) error {
+	if service.sampledRemovals {
+		return service.removeWithSampledUsage(ctx, keys, remove)
+	}
 	return service.withRemoval(ctx, keys, false, remove)
+}
+
+func (service *Service) removeWithSampledUsage(ctx context.Context, keys [][32]byte, remove func() error) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	service.mu.Lock()
+	service.sampleFence++
+	service.mu.Unlock()
+
+	err := remove()
+
+	service.mu.Lock()
+	defer service.mu.Unlock()
+	service.sampleFence++
+	if err == nil {
+		for _, key := range keys {
+			service.retire(key, service.entries[key])
+		}
+	}
+	return err
 }
 
 func (service *Service) WithLinkRemoval(ctx context.Context, remove func() error) error {
@@ -160,18 +188,29 @@ func (service *Service) capturePeer(ctx context.Context, key [32]byte) {
 }
 
 func (service *Service) capture(ctx context.Context, includeInactive bool) {
+	service.mu.RLock()
+	fence := service.sampleFence
+	service.mu.RUnlock()
+	if fence%2 != 0 {
+		return
+	}
 	// A failed native read leaves the last successful sample available.
 	ctx, cancel := context.WithTimeout(ctx, 250*time.Millisecond)
 	defer cancel()
 	rows, err := service.reader.ReadPeerStats(ctx, service.name)
-	if err == nil {
-		service.applySample(rows, time.Now().UTC(), includeInactive)
+	if err != nil {
+		return
+	}
+	at := time.Now().UTC()
+	service.mu.Lock()
+	defer service.mu.Unlock()
+	if service.sampleFence == fence {
+		service.applySample(rows, at, includeInactive)
 	}
 }
 
+// applySample updates the ledger while mu is held.
 func (service *Service) applySample(rows []traffic.PeerStats, at time.Time, includeInactive bool) {
-	service.mu.Lock()
-	defer service.mu.Unlock()
 	for key, previous := range service.entries {
 		previous.seen = false
 		service.entries[key] = previous

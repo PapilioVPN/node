@@ -275,3 +275,23 @@ func readIP(b *testing.B) observation {
 	link := links[0]
 	return observation{Name: link.Name, MTU: link.MTU, Up: slices.Contains(link.Flags, "UP")}
 }
+
+func BenchmarkRemovalCounterRead(b *testing.B) {
+	for _, count := range []int{1, 100, 1000} {
+		b.Run(strconv.Itoa(count), func(b *testing.B) {
+			requireIsolatedNetwork(b)
+			runIP(b, "link", "add", "dev", interfaceName, "type", "wireguard")
+			b.Cleanup(func() { runIP(b, "link", "del", "dev", interfaceName) })
+			setPeers(b, count)
+			reader := new(native.PeerStatsReader)
+			b.Cleanup(func() { _ = reader.Close(b.Context()) })
+			last := sha256.Sum256([]byte(strconv.Itoa(count - 1)))
+			for b.Loop() {
+				result, err := reader.ReadPeerStatsForKey(b.Context(), interfaceName, last)
+				if err != nil || result.PublicKey != last {
+					b.Fatalf("counter read failed: %v", err)
+				}
+			}
+		})
+	}
+}
