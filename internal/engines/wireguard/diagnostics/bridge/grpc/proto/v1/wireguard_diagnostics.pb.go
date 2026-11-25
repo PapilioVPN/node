@@ -22,6 +22,74 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type WireGuardEgressProbe struct {
+	state              protoimpl.MessageState `protogen:"open.v1"`
+	Reachable          bool                   `protobuf:"varint,1,opt,name=reachable,proto3" json:"reachable,omitempty"`
+	HttpStatus         uint32                 `protobuf:"varint,2,opt,name=http_status,json=httpStatus,proto3" json:"http_status,omitempty"`
+	ElapsedNanoseconds uint64                 `protobuf:"varint,3,opt,name=elapsed_nanoseconds,json=elapsedNanoseconds,proto3" json:"elapsed_nanoseconds,omitempty"`
+	ObservedAt         *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=observed_at,json=observedAt,proto3" json:"observed_at,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *WireGuardEgressProbe) Reset() {
+	*x = WireGuardEgressProbe{}
+	mi := &file_proto_v1_wireguard_diagnostics_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WireGuardEgressProbe) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WireGuardEgressProbe) ProtoMessage() {}
+
+func (x *WireGuardEgressProbe) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_v1_wireguard_diagnostics_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WireGuardEgressProbe.ProtoReflect.Descriptor instead.
+func (*WireGuardEgressProbe) Descriptor() ([]byte, []int) {
+	return file_proto_v1_wireguard_diagnostics_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *WireGuardEgressProbe) GetReachable() bool {
+	if x != nil {
+		return x.Reachable
+	}
+	return false
+}
+
+func (x *WireGuardEgressProbe) GetHttpStatus() uint32 {
+	if x != nil {
+		return x.HttpStatus
+	}
+	return 0
+}
+
+func (x *WireGuardEgressProbe) GetElapsedNanoseconds() uint64 {
+	if x != nil {
+		return x.ElapsedNanoseconds
+	}
+	return 0
+}
+
+func (x *WireGuardEgressProbe) GetObservedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ObservedAt
+	}
+	return nil
+}
+
 type WireGuardDiagnosticsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
@@ -31,7 +99,7 @@ type WireGuardDiagnosticsRequest struct {
 
 func (x *WireGuardDiagnosticsRequest) Reset() {
 	*x = WireGuardDiagnosticsRequest{}
-	mi := &file_proto_v1_wireguard_diagnostics_proto_msgTypes[0]
+	mi := &file_proto_v1_wireguard_diagnostics_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -43,7 +111,7 @@ func (x *WireGuardDiagnosticsRequest) String() string {
 func (*WireGuardDiagnosticsRequest) ProtoMessage() {}
 
 func (x *WireGuardDiagnosticsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_v1_wireguard_diagnostics_proto_msgTypes[0]
+	mi := &file_proto_v1_wireguard_diagnostics_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -56,7 +124,7 @@ func (x *WireGuardDiagnosticsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WireGuardDiagnosticsRequest.ProtoReflect.Descriptor instead.
 func (*WireGuardDiagnosticsRequest) Descriptor() ([]byte, []int) {
-	return file_proto_v1_wireguard_diagnostics_proto_rawDescGZIP(), []int{0}
+	return file_proto_v1_wireguard_diagnostics_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *WireGuardDiagnosticsRequest) GetName() string {
@@ -77,7 +145,7 @@ type WireGuardLogEvent struct {
 
 func (x *WireGuardLogEvent) Reset() {
 	*x = WireGuardLogEvent{}
-	mi := &file_proto_v1_wireguard_diagnostics_proto_msgTypes[1]
+	mi := &file_proto_v1_wireguard_diagnostics_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -89,7 +157,7 @@ func (x *WireGuardLogEvent) String() string {
 func (*WireGuardLogEvent) ProtoMessage() {}
 
 func (x *WireGuardLogEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_v1_wireguard_diagnostics_proto_msgTypes[1]
+	mi := &file_proto_v1_wireguard_diagnostics_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -102,7 +170,7 @@ func (x *WireGuardLogEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WireGuardLogEvent.ProtoReflect.Descriptor instead.
 func (*WireGuardLogEvent) Descriptor() ([]byte, []int) {
-	return file_proto_v1_wireguard_diagnostics_proto_rawDescGZIP(), []int{1}
+	return file_proto_v1_wireguard_diagnostics_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *WireGuardLogEvent) GetSequence() uint64 {
@@ -144,7 +212,7 @@ type WireGuardRuntimeStats struct {
 
 func (x *WireGuardRuntimeStats) Reset() {
 	*x = WireGuardRuntimeStats{}
-	mi := &file_proto_v1_wireguard_diagnostics_proto_msgTypes[2]
+	mi := &file_proto_v1_wireguard_diagnostics_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -156,7 +224,7 @@ func (x *WireGuardRuntimeStats) String() string {
 func (*WireGuardRuntimeStats) ProtoMessage() {}
 
 func (x *WireGuardRuntimeStats) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_v1_wireguard_diagnostics_proto_msgTypes[2]
+	mi := &file_proto_v1_wireguard_diagnostics_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -169,7 +237,7 @@ func (x *WireGuardRuntimeStats) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WireGuardRuntimeStats.ProtoReflect.Descriptor instead.
 func (*WireGuardRuntimeStats) Descriptor() ([]byte, []int) {
-	return file_proto_v1_wireguard_diagnostics_proto_rawDescGZIP(), []int{2}
+	return file_proto_v1_wireguard_diagnostics_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *WireGuardRuntimeStats) GetGoroutines() uint64 {
@@ -246,7 +314,14 @@ var File_proto_v1_wireguard_diagnostics_proto protoreflect.FileDescriptor
 
 const file_proto_v1_wireguard_diagnostics_proto_rawDesc = "" +
 	"\n" +
-	"$proto/v1/wireguard_diagnostics.proto\x12\x12papiliovpn.node.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"1\n" +
+	"$proto/v1/wireguard_diagnostics.proto\x12\x12papiliovpn.node.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xc3\x01\n" +
+	"\x14WireGuardEgressProbe\x12\x1c\n" +
+	"\treachable\x18\x01 \x01(\bR\treachable\x12\x1f\n" +
+	"\vhttp_status\x18\x02 \x01(\rR\n" +
+	"httpStatus\x12/\n" +
+	"\x13elapsed_nanoseconds\x18\x03 \x01(\x04R\x12elapsedNanoseconds\x12;\n" +
+	"\vobserved_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
+	"observedAt\"1\n" +
 	"\x1bWireGuardDiagnosticsRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\"o\n" +
 	"\x11WireGuardLogEvent\x12\x1a\n" +
@@ -268,10 +343,11 @@ const file_proto_v1_wireguard_diagnostics_proto_rawDesc = "" +
 	"\x14gc_pause_nanoseconds\x18\t \x01(\x04R\x12gcPauseNanoseconds\x12*\n" +
 	"\x0euptime_seconds\x18\n" +
 	" \x01(\x04H\x00R\ruptimeSeconds\x88\x01\x01B\x11\n" +
-	"\x0f_uptime_seconds2\xf1\x01\n" +
+	"\x0f_uptime_seconds2\xdb\x02\n" +
 	"\x1bWireGuardDiagnosticsService\x12c\n" +
 	"\aGetLogs\x12/.papiliovpn.node.v1.WireGuardDiagnosticsRequest\x1a%.papiliovpn.node.v1.WireGuardLogEvent0\x01\x12m\n" +
-	"\x0fGetRuntimeStats\x12/.papiliovpn.node.v1.WireGuardDiagnosticsRequest\x1a).papiliovpn.node.v1.WireGuardRuntimeStatsBfZdgithub.com/PapilioVPN/node/internal/engines/wireguard/diagnostics/bridge/grpc/proto/v1;diagnosticsv1b\x06proto3"
+	"\x0fGetRuntimeStats\x12/.papiliovpn.node.v1.WireGuardDiagnosticsRequest\x1a).papiliovpn.node.v1.WireGuardRuntimeStats\x12h\n" +
+	"\vProbeEgress\x12/.papiliovpn.node.v1.WireGuardDiagnosticsRequest\x1a(.papiliovpn.node.v1.WireGuardEgressProbeBfZdgithub.com/PapilioVPN/node/internal/engines/wireguard/diagnostics/bridge/grpc/proto/v1;diagnosticsv1b\x06proto3"
 
 var (
 	file_proto_v1_wireguard_diagnostics_proto_rawDescOnce sync.Once
@@ -285,24 +361,28 @@ func file_proto_v1_wireguard_diagnostics_proto_rawDescGZIP() []byte {
 	return file_proto_v1_wireguard_diagnostics_proto_rawDescData
 }
 
-var file_proto_v1_wireguard_diagnostics_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_proto_v1_wireguard_diagnostics_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_proto_v1_wireguard_diagnostics_proto_goTypes = []any{
-	(*WireGuardDiagnosticsRequest)(nil), // 0: papiliovpn.node.v1.WireGuardDiagnosticsRequest
-	(*WireGuardLogEvent)(nil),           // 1: papiliovpn.node.v1.WireGuardLogEvent
-	(*WireGuardRuntimeStats)(nil),       // 2: papiliovpn.node.v1.WireGuardRuntimeStats
-	(*timestamppb.Timestamp)(nil),       // 3: google.protobuf.Timestamp
+	(*WireGuardEgressProbe)(nil),        // 0: papiliovpn.node.v1.WireGuardEgressProbe
+	(*WireGuardDiagnosticsRequest)(nil), // 1: papiliovpn.node.v1.WireGuardDiagnosticsRequest
+	(*WireGuardLogEvent)(nil),           // 2: papiliovpn.node.v1.WireGuardLogEvent
+	(*WireGuardRuntimeStats)(nil),       // 3: papiliovpn.node.v1.WireGuardRuntimeStats
+	(*timestamppb.Timestamp)(nil),       // 4: google.protobuf.Timestamp
 }
 var file_proto_v1_wireguard_diagnostics_proto_depIdxs = []int32{
-	3, // 0: papiliovpn.node.v1.WireGuardLogEvent.at:type_name -> google.protobuf.Timestamp
-	0, // 1: papiliovpn.node.v1.WireGuardDiagnosticsService.GetLogs:input_type -> papiliovpn.node.v1.WireGuardDiagnosticsRequest
-	0, // 2: papiliovpn.node.v1.WireGuardDiagnosticsService.GetRuntimeStats:input_type -> papiliovpn.node.v1.WireGuardDiagnosticsRequest
-	1, // 3: papiliovpn.node.v1.WireGuardDiagnosticsService.GetLogs:output_type -> papiliovpn.node.v1.WireGuardLogEvent
-	2, // 4: papiliovpn.node.v1.WireGuardDiagnosticsService.GetRuntimeStats:output_type -> papiliovpn.node.v1.WireGuardRuntimeStats
-	3, // [3:5] is the sub-list for method output_type
-	1, // [1:3] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	4, // 0: papiliovpn.node.v1.WireGuardEgressProbe.observed_at:type_name -> google.protobuf.Timestamp
+	4, // 1: papiliovpn.node.v1.WireGuardLogEvent.at:type_name -> google.protobuf.Timestamp
+	1, // 2: papiliovpn.node.v1.WireGuardDiagnosticsService.GetLogs:input_type -> papiliovpn.node.v1.WireGuardDiagnosticsRequest
+	1, // 3: papiliovpn.node.v1.WireGuardDiagnosticsService.GetRuntimeStats:input_type -> papiliovpn.node.v1.WireGuardDiagnosticsRequest
+	1, // 4: papiliovpn.node.v1.WireGuardDiagnosticsService.ProbeEgress:input_type -> papiliovpn.node.v1.WireGuardDiagnosticsRequest
+	2, // 5: papiliovpn.node.v1.WireGuardDiagnosticsService.GetLogs:output_type -> papiliovpn.node.v1.WireGuardLogEvent
+	3, // 6: papiliovpn.node.v1.WireGuardDiagnosticsService.GetRuntimeStats:output_type -> papiliovpn.node.v1.WireGuardRuntimeStats
+	0, // 7: papiliovpn.node.v1.WireGuardDiagnosticsService.ProbeEgress:output_type -> papiliovpn.node.v1.WireGuardEgressProbe
+	5, // [5:8] is the sub-list for method output_type
+	2, // [2:5] is the sub-list for method input_type
+	2, // [2:2] is the sub-list for extension type_name
+	2, // [2:2] is the sub-list for extension extendee
+	0, // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_proto_v1_wireguard_diagnostics_proto_init() }
@@ -310,14 +390,14 @@ func file_proto_v1_wireguard_diagnostics_proto_init() {
 	if File_proto_v1_wireguard_diagnostics_proto != nil {
 		return
 	}
-	file_proto_v1_wireguard_diagnostics_proto_msgTypes[2].OneofWrappers = []any{}
+	file_proto_v1_wireguard_diagnostics_proto_msgTypes[3].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_v1_wireguard_diagnostics_proto_rawDesc), len(file_proto_v1_wireguard_diagnostics_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   3,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

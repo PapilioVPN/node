@@ -29,11 +29,15 @@ func (service *Runtime) Bind(scope func(context.Context, string) (time.Time, err
 	service.scope = scope
 }
 
-func (service *Runtime) Read(ctx context.Context, name string) (RuntimeStats, error) {
+func (service *Runtime) ConfirmedSince(ctx context.Context, name string) (time.Time, error) {
 	if service.scope == nil {
-		return RuntimeStats{}, status.ErrUnavailable
+		return time.Time{}, status.ErrUnavailable
 	}
-	startedAt, err := service.scope(ctx, name)
+	return service.scope(ctx, name)
+}
+
+func (service *Runtime) Read(ctx context.Context, name string) (RuntimeStats, error) {
+	startedAt, err := service.ConfirmedSince(ctx, name)
 	if err != nil {
 		return RuntimeStats{}, err
 	}

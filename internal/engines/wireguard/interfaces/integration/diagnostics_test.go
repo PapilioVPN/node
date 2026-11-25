@@ -46,4 +46,12 @@ func assertDiagnostics(t *testing.T, f fixture) {
 	if err := json.NewDecoder(resp.Body).Decode(&stats); err != nil || resp.StatusCode != 200 || stats.HeapBytes == 0 || stats.Uptime == nil {
 		t.Fatalf("HTTP runtime = %+v, %s, %v", stats, resp.Status, err)
 	}
+	probe, err := f.http.Get(f.address + interfaceURL + "/egress-probe")
+	if err != nil {
+		t.Fatal(err)
+	}
+	probe.Body.Close()
+	if probe.StatusCode != 503 {
+		t.Fatalf("disabled egress probe returned %s", probe.Status)
+	}
 }

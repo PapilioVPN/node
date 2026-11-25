@@ -21,6 +21,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	WireGuardDiagnosticsService_GetLogs_FullMethodName         = "/papiliovpn.node.v1.WireGuardDiagnosticsService/GetLogs"
 	WireGuardDiagnosticsService_GetRuntimeStats_FullMethodName = "/papiliovpn.node.v1.WireGuardDiagnosticsService/GetRuntimeStats"
+	WireGuardDiagnosticsService_ProbeEgress_FullMethodName     = "/papiliovpn.node.v1.WireGuardDiagnosticsService/ProbeEgress"
 )
 
 // WireGuardDiagnosticsServiceClient is the client API for WireGuardDiagnosticsService service.
@@ -29,6 +30,7 @@ const (
 type WireGuardDiagnosticsServiceClient interface {
 	GetLogs(ctx context.Context, in *WireGuardDiagnosticsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[WireGuardLogEvent], error)
 	GetRuntimeStats(ctx context.Context, in *WireGuardDiagnosticsRequest, opts ...grpc.CallOption) (*WireGuardRuntimeStats, error)
+	ProbeEgress(ctx context.Context, in *WireGuardDiagnosticsRequest, opts ...grpc.CallOption) (*WireGuardEgressProbe, error)
 }
 
 type wireGuardDiagnosticsServiceClient struct {
@@ -68,12 +70,23 @@ func (c *wireGuardDiagnosticsServiceClient) GetRuntimeStats(ctx context.Context,
 	return out, nil
 }
 
+func (c *wireGuardDiagnosticsServiceClient) ProbeEgress(ctx context.Context, in *WireGuardDiagnosticsRequest, opts ...grpc.CallOption) (*WireGuardEgressProbe, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(WireGuardEgressProbe)
+	err := c.cc.Invoke(ctx, WireGuardDiagnosticsService_ProbeEgress_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // WireGuardDiagnosticsServiceServer is the server API for WireGuardDiagnosticsService service.
 // All implementations must embed UnimplementedWireGuardDiagnosticsServiceServer
 // for forward compatibility.
 type WireGuardDiagnosticsServiceServer interface {
 	GetLogs(*WireGuardDiagnosticsRequest, grpc.ServerStreamingServer[WireGuardLogEvent]) error
 	GetRuntimeStats(context.Context, *WireGuardDiagnosticsRequest) (*WireGuardRuntimeStats, error)
+	ProbeEgress(context.Context, *WireGuardDiagnosticsRequest) (*WireGuardEgressProbe, error)
 	mustEmbedUnimplementedWireGuardDiagnosticsServiceServer()
 }
 
@@ -89,6 +102,9 @@ func (UnimplementedWireGuardDiagnosticsServiceServer) GetLogs(*WireGuardDiagnost
 }
 func (UnimplementedWireGuardDiagnosticsServiceServer) GetRuntimeStats(context.Context, *WireGuardDiagnosticsRequest) (*WireGuardRuntimeStats, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetRuntimeStats not implemented")
+}
+func (UnimplementedWireGuardDiagnosticsServiceServer) ProbeEgress(context.Context, *WireGuardDiagnosticsRequest) (*WireGuardEgressProbe, error) {
+	return nil, status.Error(codes.Unimplemented, "method ProbeEgress not implemented")
 }
 func (UnimplementedWireGuardDiagnosticsServiceServer) mustEmbedUnimplementedWireGuardDiagnosticsServiceServer() {
 }
@@ -141,6 +157,24 @@ func _WireGuardDiagnosticsService_GetRuntimeStats_Handler(srv interface{}, ctx c
 	return interceptor(ctx, in, info, handler)
 }
 
+func _WireGuardDiagnosticsService_ProbeEgress_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(WireGuardDiagnosticsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WireGuardDiagnosticsServiceServer).ProbeEgress(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WireGuardDiagnosticsService_ProbeEgress_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WireGuardDiagnosticsServiceServer).ProbeEgress(ctx, req.(*WireGuardDiagnosticsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // WireGuardDiagnosticsService_ServiceDesc is the grpc.ServiceDesc for WireGuardDiagnosticsService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -151,6 +185,10 @@ var WireGuardDiagnosticsService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetRuntimeStats",
 			Handler:    _WireGuardDiagnosticsService_GetRuntimeStats_Handler,
+		},
+		{
+			MethodName: "ProbeEgress",
+			Handler:    _WireGuardDiagnosticsService_ProbeEgress_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

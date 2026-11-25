@@ -54,6 +54,10 @@ func newFixture(t testing.TB) fixture {
 }
 
 func startFixture(t testing.TB, managed bool) fixture {
+	return startFixtureConfigured(t, managed, "")
+}
+
+func startFixtureConfigured(t testing.TB, managed bool, wireguardSettings string) fixture {
 	t.Helper()
 	requireIsolatedNetwork(t)
 	runIP(t, "link", "set", "dev", "lo", "up")
@@ -82,7 +86,7 @@ func startFixture(t testing.TB, managed bool) fixture {
 	if managed {
 		configText += "  managed: true\n"
 	}
-	if err := os.WriteFile(path, []byte(configText), 0600); err != nil {
+	if err := os.WriteFile(path, []byte(configText+wireguardSettings), 0600); err != nil {
 		t.Fatal(err)
 	}
 	config, err := settings.Load(path)

@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"github.com/PapilioVPN/node/internal/engines/wireguard/diagnostics/events"
+	"github.com/PapilioVPN/node/internal/engines/wireguard/diagnostics/probe"
 	"github.com/PapilioVPN/node/internal/engines/wireguard/diagnostics/process"
 
 	bridgegrpc "github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/bridge/grpc"
@@ -22,7 +23,7 @@ import (
 
 var Module = fx.Module("wireguard-interfaces", fx.Invoke(register))
 
-func register(lifecycle fx.Lifecycle, config settings.WireGuard, router *chi.Mux, server *grpc.Server, peerStats *traffic.Service, usage *accounting.Service, logs *events.Service, runtime *process.Runtime) {
+func register(lifecycle fx.Lifecycle, config settings.WireGuard, router *chi.Mux, server *grpc.Server, peerStats *traffic.Service, usage *accounting.Service, logs *events.Service, runtime *process.Runtime, egress *probe.Service) {
 	if !config.Enabled() {
 		return
 	}
@@ -42,6 +43,7 @@ func register(lifecycle fx.Lifecycle, config settings.WireGuard, router *chi.Mux
 		}
 		managed = wglifecycle.New(config.Interface, control, control, store).WithPeerTraffic(peerStats).WithPeerUsage(usage).WithEvents(logs.Publish)
 		runtime.Bind(managed.RuntimeSince)
+		egress.Bind(managed.CheckApplied)
 		appliedHash = managed.AppliedHash
 		lifecycle.Append(fx.Hook{
 			OnStart: func(ctx context.Context) error {

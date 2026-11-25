@@ -8,13 +8,24 @@ import (
 	"time"
 
 	"github.com/PapilioVPN/node/internal/engines/wireguard/diagnostics/events"
+	"github.com/PapilioVPN/node/internal/engines/wireguard/diagnostics/probe"
 	"github.com/PapilioVPN/node/internal/engines/wireguard/diagnostics/process"
 	"github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/status"
 	"github.com/go-chi/chi/v5"
 )
 
-func Register(router chi.Router, logs *events.Service, runtime *process.Runtime) {
+func Register(router chi.Router, logs *events.Service, runtime *process.Runtime, check *probe.Service) {
 	const path = "/v1/wireguard/interfaces/{name}"
+	router.Get(path+"/egress-probe", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-store")
+		result, err := check.Run(r.Context(), interfaceName(r))
+		if err != nil {
+			writeError(w, err)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(result)
+	})
 	router.Get(path+"/logs", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
 		sub, err := logs.Subscribe(r.Context(), interfaceName(r))

@@ -8,6 +8,7 @@ import (
 
 	diagnosticsv1 "github.com/PapilioVPN/node/internal/engines/wireguard/diagnostics/bridge/grpc/proto/v1"
 	"github.com/PapilioVPN/node/internal/engines/wireguard/diagnostics/events"
+	"github.com/PapilioVPN/node/internal/engines/wireguard/diagnostics/probe"
 	"github.com/PapilioVPN/node/internal/engines/wireguard/diagnostics/process"
 	linkstatus "github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/status"
 	"google.golang.org/grpc"
@@ -31,10 +32,19 @@ type handlers struct {
 	diagnosticsv1.UnimplementedWireGuardDiagnosticsServiceServer
 	logs    *events.Service
 	runtime *process.Runtime
+	probe   *probe.Service
 }
 
-func Register(server grpc.ServiceRegistrar, logs *events.Service, runtime *process.Runtime) {
-	diagnosticsv1.RegisterWireGuardDiagnosticsServiceServer(server, &handlers{logs: logs, runtime: runtime})
+func Register(server grpc.ServiceRegistrar, logs *events.Service, runtime *process.Runtime, check *probe.Service) {
+	diagnosticsv1.RegisterWireGuardDiagnosticsServiceServer(server, &handlers{logs: logs, runtime: runtime, probe: check})
+}
+
+func (h *handlers) ProbeEgress(ctx context.Context, req *diagnosticsv1.WireGuardDiagnosticsRequest) (*diagnosticsv1.WireGuardEgressProbe, error) {
+	result, err := h.probe.Run(ctx, req.GetName())
+	if err != nil {
+		return nil, rpcError(err)
+	}
+	return &diagnosticsv1.WireGuardEgressProbe{Reachable: result.Reachable, HttpStatus: uint32(result.HTTPStatus), ElapsedNanoseconds: result.ElapsedNanoseconds, ObservedAt: timestamppb.New(result.ObservedAt)}, nil
 }
 
 func (h *handlers) GetLogs(req *diagnosticsv1.WireGuardDiagnosticsRequest, stream grpc.ServerStreamingServer[diagnosticsv1.WireGuardLogEvent]) error {

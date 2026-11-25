@@ -1,6 +1,7 @@
 import base64
 import hashlib
 import http.client
+import http.server
 import itertools
 import json
 import os
@@ -9,6 +10,7 @@ import ssl
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 from contextlib import ExitStack, closing
 from pathlib import Path
@@ -228,6 +230,43 @@ def measure_diagnostics(cases, context):
             check_link_removed()
 
 
+def probe_target(stack):
+    class Handler(http.server.BaseHTTPRequestHandler):
+        def do_HEAD(self):
+            self.send_response(204)
+            self.end_headers()
+
+        def log_message(self, *_):
+            pass
+
+    listener = stack.enter_context(http.server.HTTPServer(("127.0.0.1", 0), Handler))
+    thread = threading.Thread(target=listener.serve_forever, kwargs={"poll_interval": 0.01})
+    thread.start()
+    stack.callback(thread.join)
+    stack.callback(listener.shutdown)
+    return f"http://127.0.0.1:{listener.server_port}/health"
+
+
+def measure_probe(cases):
+    for block in range(1, 5):
+        for label, args in cases if block % 2 else reversed(cases):
+            conn, method, path, source, stop_method, stop_path, valid = args
+            _, reply = request(conn, method, path, source)
+            assert valid(reply)
+            path = f"/v1/wireguard/interfaces/{peer_interface}/egress-probe" if label == "node" else "/stats/latency"
+            for iteration in range(-3, 30):
+                elapsed, payload = request(conn, "GET", path)
+                if label == "node":
+                    data = json.loads(payload)
+                    assert data["reachable"] and data["http_status"] == 204
+                else:
+                    assert b"\x10\x01" in payload
+                if iteration >= 0:
+                    print(f"{block},{label},egress_probe,{iteration + 1},{elapsed}")
+            request(conn, stop_method, stop_path)
+            check_link_removed()
+
+
 def usage_client(stack, index, server_ip, client_ip, server_port, secret):
     child = subprocess.Popen(["unshare", "--net", "sh", "-c", "echo ready; read -r hold"],
                              stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
@@ -427,7 +466,7 @@ def main():
     mode = sys.argv[3] if len(sys.argv) >= 4 else ""
     sampled_test = mode in ("--sampled-peer-usage", "--peer-activity")
     link_test = sampled_test or mode in ("--interface-traffic", "--interface-usage")
-    valid_args = (len(sys.argv) == 3 or len(sys.argv) == 4 and (link_test or mode in ("--lifecycle-check", "--live-mtu", "--peer-sync", "--peer-delta", "--diagnostics"))
+    valid_args = (len(sys.argv) == 3 or len(sys.argv) == 4 and (link_test or mode in ("--lifecycle-check", "--live-mtu", "--peer-sync", "--peer-delta", "--diagnostics", "--probe"))
                   or len(sys.argv) == 5 and mode in ("--peer-sync", "--peer-replay", "--peer-delta"))
     if not valid_args:
         raise SystemExit("usage: measure-lifecycle.py NODE PASARGUARD [--lifecycle-check|--live-mtu|--interface-traffic|--interface-usage|--sampled-peer-usage|--peer-activity|--peer-sync [PREVIOUS_NODE]|--peer-replay PREVIOUS_NODE|--peer-delta [PREVIOUS_NODE]]")
@@ -448,11 +487,12 @@ def main():
         peer_test = mode in ("--peer-sync", "--peer-replay", "--peer-delta")
         env = {**os.environ, "GOMAXPROCS": "2" if peer_test else "1"}
         timeout = 15 if peer_test or link_test else 3
+        target = probe_target(stack) if mode == "--probe" else ""
 
         def launch_node(binary, label):
             node_port, grpc_port = port(), port()
             cfg = directory / f"{label}.yml"
-            cfg.write_text(f"""management:
+            settings = f"""management:
   http_address: "127.0.0.1:{node_port}"
   grpc_address: "127.0.0.1:{grpc_port}"
   api_key: "{api_key}"
@@ -462,7 +502,10 @@ def main():
 wireguard:
   interface: "{peer_interface}"
   managed: true
-""")
+"""
+            if target:
+                settings += f"  probe:\n    url: {target}\n    interface: lo\n    timeout_ms: 2000\n"
+            cfg.write_text(settings)
             return launch(stack, [binary, "-config", str(cfg)], env, label,
                           directory, context, node_port, "/healthz", timeout)
 
@@ -471,7 +514,8 @@ wireguard:
         ref = launch(stack, [sys.argv[2]], {**env, "NODE_HOST": "127.0.0.1",
                      "SERVICE_PORT": str(ref_port), "SERVICE_PROTOCOL": "rest",
                      "API_KEY": api_key, "SSL_CERT_FILE": str(cert), "SSL_KEY_FILE": str(key),
-                     "PG_NODE_WG_HOST_ROUTING": "false", "PG_NODE_WG_NAT_DISABLE": "true"},
+                     "PG_NODE_WG_HOST_ROUTING": "false", "PG_NODE_WG_NAT_DISABLE": "true",
+                     **({"PG_NODE_WG_NAT_OUTPUT_INTERFACE": "lo"} if target else {})},
                      "reference", directory, context, ref_port, "/info", timeout)
         local = {"listen_port": 51820, "private_key": private_key}
         address = "198.18.0.1/16" if peer_test or sampled_test else "192.0.2.1/24"
@@ -485,6 +529,8 @@ wireguard:
             if link_test:
                 ref_address = "198.19.0.1/16" if sampled_test else "192.0.2.2/24"
                 reference.update(listen_port=51821, address=[ref_address])
+            if target:
+                reference["latency"] = {"test_url": target, "timeout_seconds": 2}
             config = json.dumps(reference).encode()
             return b"\x08\x01\x12" + varint(len(config)) + config
 
@@ -502,6 +548,9 @@ wireguard:
             ("pasarguard", (ref, "POST", "/start", pg_source, "PUT", "/stop", ref_valid)),
         ]
         print("run,implementation,operation,iteration,nanoseconds")
+        if mode == "--probe":
+            measure_probe(cases)
+            return
         if mode == "--diagnostics":
             measure_diagnostics(cases, context)
             return

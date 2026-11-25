@@ -94,6 +94,16 @@ func (service *Service) RuntimeSince(ctx context.Context, name string) (time.Tim
 	return current.StartedAt, nil
 }
 
+func (service *Service) CheckApplied(ctx context.Context, name string) error {
+	if name == "" || name != service.name {
+		return status.ErrNotFound
+	}
+	if service.applied.Load() == nil {
+		return status.ErrUnavailable
+	}
+	return ctx.Err()
+}
+
 // WithPeerTraffic binds observation invalidation during module composition.
 func (service *Service) WithPeerTraffic(observer PeerTrafficObserver) *Service {
 	service.traffic = observer

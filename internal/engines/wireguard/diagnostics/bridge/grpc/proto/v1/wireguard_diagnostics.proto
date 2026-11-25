@@ -9,6 +9,14 @@ option go_package = "github.com/PapilioVPN/node/internal/engines/wireguard/diagn
 service WireGuardDiagnosticsService {
   rpc GetLogs(WireGuardDiagnosticsRequest) returns (stream WireGuardLogEvent);
   rpc GetRuntimeStats(WireGuardDiagnosticsRequest) returns (WireGuardRuntimeStats);
+  rpc ProbeEgress(WireGuardDiagnosticsRequest) returns (WireGuardEgressProbe);
+}
+
+message WireGuardEgressProbe {
+  bool reachable = 1;
+  uint32 http_status = 2;
+  uint64 elapsed_nanoseconds = 3;
+  google.protobuf.Timestamp observed_at = 4;
 }
 
 message WireGuardDiagnosticsRequest {
