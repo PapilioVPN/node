@@ -15,6 +15,7 @@ service WireGuardInterfacesService {
   rpc UpsertPeer(WireGuardUpsertPeerRequest) returns (WireGuardPeerSyncResult);
   rpc RemovePeer(WireGuardRemovePeerRequest) returns (WireGuardRemovePeerResponse);
   rpc ApplyPeerDelta(WireGuardApplyPeerDeltaRequest) returns (WireGuardPeerSyncResult);
+  rpc ApplyPeerDeltaStream(stream WireGuardPeerDeltaChunk) returns (WireGuardPeerSyncResult);
   rpc ListPeerStats(WireGuardInterfaceRequest) returns (WireGuardPeerStatsList);
   rpc ListPeers(WireGuardInterfaceRequest) returns (WireGuardPeerMembership);
 }
@@ -46,6 +47,7 @@ message WireGuardInterfaceStatus {
   string node_version = 8;
   string kernel_release = 9;
   string wireguard_tools_version = 10;
+  uint32 interface_index = 11;
 }
 
 message WireGuardInterfaceConfiguration {
@@ -124,6 +126,16 @@ message WireGuardApplyPeerDeltaRequest {
   string name = 1;
   repeated WireGuardPeer upsert = 2;
   repeated bytes remove = 3;
+}
+
+// Ordered chunks start at index 0. A final chunk and a clean half-close
+// complete one delta, which is validated and applied after collection.
+message WireGuardPeerDeltaChunk {
+  string name = 1;
+  uint32 index = 2;
+  bool last = 3;
+  repeated WireGuardPeer upsert = 4;
+  repeated bytes remove = 5;
 }
 
 message WireGuardPeerStats {

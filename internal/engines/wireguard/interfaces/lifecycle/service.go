@@ -44,7 +44,7 @@ type PeerTrafficObserver interface {
 
 type PeerUsageCapture interface {
 	WithPeerRemoval(context.Context, [][32]byte, func() error) error
-	WithLinkRemoval(context.Context, func() error) error
+	WithLinkRemoval(context.Context, bool, func() error) error
 }
 
 type LinkRouting interface {
@@ -53,23 +53,24 @@ type LinkRouting interface {
 }
 
 type Service struct {
-	name          string
-	control       Control
-	peers         PeerControl
-	store         CheckpointStore
-	traffic       PeerTrafficObserver
-	usage         PeerUsageCapture
-	publish       func(string)
-	reconfigure   func(context.Context, Link, FixedConfig, Config, LiveField) (status.Interface, error)
-	repair        func(context.Context, Link, uint32) (status.Interface, error)
-	routing       LinkRouting
-	mu            sync.Mutex
-	owned         Link
-	peerState     *peers.State // Protected by mu and bound to the owned execution.
-	applied       atomic.Pointer[Checkpoint]
-	lease         *managementLease
-	leaseInterval time.Duration
-	closing       bool
+	name           string
+	control        Control
+	peers          PeerControl
+	store          CheckpointStore
+	traffic        PeerTrafficObserver
+	usage          PeerUsageCapture
+	publish        func(string)
+	reconfigure    func(context.Context, Link, FixedConfig, Config, LiveField) (status.Interface, error)
+	repair         func(context.Context, Link, uint32) (status.Interface, error)
+	routing        LinkRouting
+	mu             sync.Mutex
+	owned          Link
+	peerState      *peers.State // Protected by mu and bound to the owned execution.
+	applied        atomic.Pointer[Checkpoint]
+	lease          *managementLease
+	leaseInterval  time.Duration
+	closing        bool
+	defaultPeerKey [32]byte
 }
 
 func (service *Service) WithRouting(routing LinkRouting) *Service {
@@ -84,6 +85,11 @@ func (service *Service) WithConfiguration(reconfigure func(context.Context, Link
 
 func (service *Service) WithRepair(repair func(context.Context, Link, uint32) (status.Interface, error)) *Service {
 	service.repair = repair
+	return service
+}
+
+func (service *Service) WithPeerPresharedKey(key [32]byte) *Service {
+	service.defaultPeerKey = key
 	return service
 }
 
@@ -186,12 +192,11 @@ func (service *Service) StartWithLease(ctx context.Context, name string, source 
 		}
 		observed, inspectErr := service.control.Inspect(ctx, current.Link)
 		if errors.Is(inspectErr, status.ErrNotFound) {
-			config, err := parseConfig(source)
+			config, err := parseConfigWithPeerKey(source, service.defaultPeerKey)
 			if err != nil {
 				return status.Interface{}, err
 			}
-			service.applied.Store(nil)
-			if err := service.remove(ctx); err != nil {
+			if err := service.removeOwned(ctx, false); err != nil {
 				return status.Interface{}, err
 			}
 			result, err := service.create(ctx, name, digest, config)
@@ -220,7 +225,7 @@ func (service *Service) StartWithLease(ctx context.Context, name string, source 
 	if service.owned.Alias != "" {
 		return status.Interface{}, ErrConflict
 	}
-	config, err := parseConfig(source)
+	config, err := parseConfigWithPeerKey(source, service.defaultPeerKey)
 	if err != nil {
 		return status.Interface{}, err
 	}
@@ -266,7 +271,7 @@ func (service *Service) create(ctx context.Context, name, digest string, config 
 }
 
 func (service *Service) applyLive(ctx context.Context, current *Checkpoint, source []byte, digest string) (status.Interface, error) {
-	config, err := parseConfig(source)
+	config, err := parseConfigWithPeerKey(source, service.defaultPeerKey)
 	if err != nil {
 		return status.Interface{}, err
 	}
@@ -351,11 +356,15 @@ func (service *Service) Close(ctx context.Context) error {
 }
 
 func (service *Service) remove(ctx context.Context) error {
+	return service.removeOwned(ctx, true)
+}
+
+func (service *Service) removeOwned(ctx context.Context, captureFinal bool) error {
 	service.peerState = nil
 	remove := func() error { return service.control.Remove(ctx, service.owned) }
 	var err error
 	if service.usage != nil && service.applied.Load() != nil {
-		err = service.usage.WithLinkRemoval(ctx, remove)
+		err = service.usage.WithLinkRemoval(ctx, captureFinal, remove)
 	} else {
 		err = remove()
 	}

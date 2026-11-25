@@ -1,4 +1,4 @@
-package wireguard
+package routing
 
 import (
 	"context"
@@ -59,14 +59,7 @@ func (service *Service) Apply(ctx context.Context, name, alias string) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	forward, err := os.ReadFile("/proc/sys/net/ipv4/ip_forward")
-	if err != nil {
-		return err
-	}
-	if strings.TrimSpace(string(forward)) != "1" {
-		return errors.New("wireguard routing requires IPv4 forwarding in the network namespace")
-	}
-	egress, err := service.route.LinkByName(service.options.Egress)
+	egress, err := service.egressLink(name)
 	if err != nil {
 		return fmt.Errorf("wireguard egress link: %w", err)
 	}
@@ -83,15 +76,19 @@ func (service *Service) Apply(ctx context.Context, name, alias string) error {
 			return err
 		}
 	}
+	if err := ensureForwarding(options.EnableIPv4Forwarding); err != nil {
+		return err
+	}
+	egressName := egress.Attrs().Name
 	if !owned {
 		var rules strings.Builder
 		fmt.Fprintf(&rules, "add table ip %s\n", table)
 		fmt.Fprintf(&rules, "add chain ip %s forward { type filter hook forward priority filter; policy accept; }\n", table)
-		fmt.Fprintf(&rules, "add rule ip %s forward iifname %q oifname %q accept\n", table, name, options.Egress)
-		fmt.Fprintf(&rules, "add rule ip %s forward iifname %q oifname %q ct state established,related accept\n", table, options.Egress, name)
+		fmt.Fprintf(&rules, "add rule ip %s forward iifname %q oifname %q accept\n", table, name, egressName)
+		fmt.Fprintf(&rules, "add rule ip %s forward iifname %q oifname %q ct state established,related accept\n", table, egressName, name)
 		if options.Masquerade {
 			fmt.Fprintf(&rules, "add chain ip %s postrouting { type nat hook postrouting priority srcnat; policy accept; }\n", table)
-			fmt.Fprintf(&rules, "add rule ip %s postrouting iifname %q oifname %q masquerade\n", table, name, options.Egress)
+			fmt.Fprintf(&rules, "add rule ip %s postrouting iifname %q oifname %q masquerade\n", table, name, egressName)
 		}
 		cmd := exec.CommandContext(ctx, service.nft, "-f", "-")
 		cmd.Stdin = strings.NewReader(rules.String())
@@ -111,6 +108,51 @@ func (service *Service) Apply(ctx context.Context, name, alias string) error {
 		}
 	}
 	return ctx.Err()
+}
+
+func ensureForwarding(enable bool) error {
+	const path = "/proc/sys/net/ipv4/ip_forward"
+	value, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	if strings.TrimSpace(string(value)) == "1" {
+		return nil
+	}
+	if !enable {
+		return errors.New("wireguard routing requires IPv4 forwarding in the network namespace")
+	}
+	return os.WriteFile(path, []byte("1\n"), 0)
+}
+
+func (service *Service) egressLink(ingress string) (netlink.Link, error) {
+	if service.options.Egress != "" {
+		return service.route.LinkByName(service.options.Egress)
+	}
+	routes, err := service.route.RouteListFiltered(netlink.FAMILY_V4, &netlink.Route{Table: unix.RT_TABLE_MAIN}, netlink.RT_FILTER_TABLE)
+	if err != nil {
+		return nil, err
+	}
+	var best netlink.Route
+	found, ambiguous := false, false
+	for _, route := range routes {
+		if !isDefault(route) || route.Type != unix.RTN_UNICAST {
+			continue
+		}
+		if !found || route.Priority < best.Priority {
+			best, found, ambiguous = route, true, len(route.MultiPath) != 0
+		} else if route.Priority == best.Priority && (route.LinkIndex != best.LinkIndex || len(route.MultiPath) != 0) {
+			ambiguous = true
+		}
+	}
+	if !found || ambiguous || best.LinkIndex == 0 {
+		return nil, errors.New("wireguard requires an explicit egress when the main IPv4 default route is unavailable or ambiguous")
+	}
+	link, err := service.route.LinkByIndex(best.LinkIndex)
+	if err == nil && link.Attrs().Name == ingress {
+		return nil, errors.New("wireguard default egress is the managed ingress interface")
+	}
+	return link, err
 }
 
 func (service *Service) Remove(ctx context.Context, name, alias string) error {

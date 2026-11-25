@@ -16,9 +16,9 @@ import (
 	"github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/native"
 	"github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/peers"
 	"github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/status"
+	"github.com/PapilioVPN/node/internal/engines/wireguard/routing"
 	"github.com/PapilioVPN/node/internal/engines/wireguard/stats/accounting"
 	"github.com/PapilioVPN/node/internal/engines/wireguard/stats/traffic"
-	wgnet "github.com/PapilioVPN/node/internal/networking/wireguard"
 	"github.com/PapilioVPN/node/internal/settings"
 	"github.com/go-chi/chi/v5"
 	"go.uber.org/fx"
@@ -27,9 +27,13 @@ import (
 
 var Module = fx.Module("wireguard-interfaces", fx.Invoke(register))
 
-func register(lifecycle fx.Lifecycle, config settings.WireGuard, router *chi.Mux, server *grpc.Server, peerStats *traffic.Service, usage *accounting.Service, logs *events.Service, runtime *process.Runtime, egress *probe.Service, routing *wgnet.Service) {
+func register(lifecycle fx.Lifecycle, config settings.WireGuard, router *chi.Mux, server *grpc.Server, peerStats *traffic.Service, usage *accounting.Service, logs *events.Service, runtime *process.Runtime, egress *probe.Service, routeService *routing.Service) error {
 	if !config.Enabled() {
-		return
+		return nil
+	}
+	key, err := native.ReadDefaultPeerKey(config.PeerPresharedKeyFile)
+	if err != nil {
+		return err
 	}
 	reader := new(native.Reader)
 	lifecycle.Append(fx.Hook{OnStart: reader.Open, OnStop: reader.Close})
@@ -47,8 +51,9 @@ func register(lifecycle fx.Lifecycle, config settings.WireGuard, router *chi.Mux
 			}})
 		}
 		managed = wglifecycle.New(config.Interface, control, control, store).WithPeerTraffic(peerStats).WithPeerUsage(usage).WithEvents(logs.Publish).WithConfiguration(control.UpdateConfiguration).WithRepair(control.Repair)
-		if routing.Enabled() {
-			managed.WithRouting(routing)
+		managed.WithPeerPresharedKey(key)
+		if routeService.Enabled() {
+			managed.WithRouting(routeService)
 		}
 		runtime.Bind(managed.RuntimeSince)
 		egress.Bind(managed.CheckApplied)
@@ -78,4 +83,5 @@ func register(lifecycle fx.Lifecycle, config settings.WireGuard, router *chi.Mux
 	validator := wglifecycle.NewValidator(config.Interface)
 	bridgehttp.Register(router, service, peerStats, managed, validator, membership)
 	bridgegrpc.Register(server, service, peerStats, managed, validator, membership)
+	return nil
 }

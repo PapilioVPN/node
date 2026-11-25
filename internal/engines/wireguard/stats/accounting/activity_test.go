@@ -28,3 +28,29 @@ func TestPeerActivityExpiresWithoutTrafficGrowth(t *testing.T) {
 		t.Fatalf("new activity = %+v, %v", got, err)
 	}
 }
+
+func TestPeerActivityReadsDuringUsageWrite(t *testing.T) {
+	service := New("wg-test", nil, true, false)
+	key := [32]byte{1}
+	at := time.Now()
+	service.applySample([]traffic.PeerStats{{
+		PublicKey: key, LastHandshake: at, Counters: traffic.Counters{RXBytes: 1},
+	}}, at, false)
+	service.mu.Lock()
+	done := make(chan Activity, 1)
+	go func() {
+		got, _ := service.PeerActivity(t.Context(), "wg-test", key[:])
+		done <- got
+	}()
+	select {
+	case got := <-done:
+		service.mu.Unlock()
+		if !got.Active || !got.LastActive.Equal(at) {
+			t.Fatalf("unexpected activity: %+v", got)
+		}
+	case <-time.After(time.Second):
+		service.mu.Unlock()
+		<-done
+		t.Fatal("peer activity blocked on the usage ledger")
+	}
+}

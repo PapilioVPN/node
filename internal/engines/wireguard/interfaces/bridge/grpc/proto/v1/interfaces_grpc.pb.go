@@ -19,16 +19,17 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	WireGuardInterfacesService_GetStatus_FullMethodName      = "/papiliovpn.node.v1.WireGuardInterfacesService/GetStatus"
-	WireGuardInterfacesService_Start_FullMethodName          = "/papiliovpn.node.v1.WireGuardInterfacesService/Start"
-	WireGuardInterfacesService_Stop_FullMethodName           = "/papiliovpn.node.v1.WireGuardInterfacesService/Stop"
-	WireGuardInterfacesService_ValidateConfig_FullMethodName = "/papiliovpn.node.v1.WireGuardInterfacesService/ValidateConfig"
-	WireGuardInterfacesService_SyncPeers_FullMethodName      = "/papiliovpn.node.v1.WireGuardInterfacesService/SyncPeers"
-	WireGuardInterfacesService_UpsertPeer_FullMethodName     = "/papiliovpn.node.v1.WireGuardInterfacesService/UpsertPeer"
-	WireGuardInterfacesService_RemovePeer_FullMethodName     = "/papiliovpn.node.v1.WireGuardInterfacesService/RemovePeer"
-	WireGuardInterfacesService_ApplyPeerDelta_FullMethodName = "/papiliovpn.node.v1.WireGuardInterfacesService/ApplyPeerDelta"
-	WireGuardInterfacesService_ListPeerStats_FullMethodName  = "/papiliovpn.node.v1.WireGuardInterfacesService/ListPeerStats"
-	WireGuardInterfacesService_ListPeers_FullMethodName      = "/papiliovpn.node.v1.WireGuardInterfacesService/ListPeers"
+	WireGuardInterfacesService_GetStatus_FullMethodName            = "/papiliovpn.node.v1.WireGuardInterfacesService/GetStatus"
+	WireGuardInterfacesService_Start_FullMethodName                = "/papiliovpn.node.v1.WireGuardInterfacesService/Start"
+	WireGuardInterfacesService_Stop_FullMethodName                 = "/papiliovpn.node.v1.WireGuardInterfacesService/Stop"
+	WireGuardInterfacesService_ValidateConfig_FullMethodName       = "/papiliovpn.node.v1.WireGuardInterfacesService/ValidateConfig"
+	WireGuardInterfacesService_SyncPeers_FullMethodName            = "/papiliovpn.node.v1.WireGuardInterfacesService/SyncPeers"
+	WireGuardInterfacesService_UpsertPeer_FullMethodName           = "/papiliovpn.node.v1.WireGuardInterfacesService/UpsertPeer"
+	WireGuardInterfacesService_RemovePeer_FullMethodName           = "/papiliovpn.node.v1.WireGuardInterfacesService/RemovePeer"
+	WireGuardInterfacesService_ApplyPeerDelta_FullMethodName       = "/papiliovpn.node.v1.WireGuardInterfacesService/ApplyPeerDelta"
+	WireGuardInterfacesService_ApplyPeerDeltaStream_FullMethodName = "/papiliovpn.node.v1.WireGuardInterfacesService/ApplyPeerDeltaStream"
+	WireGuardInterfacesService_ListPeerStats_FullMethodName        = "/papiliovpn.node.v1.WireGuardInterfacesService/ListPeerStats"
+	WireGuardInterfacesService_ListPeers_FullMethodName            = "/papiliovpn.node.v1.WireGuardInterfacesService/ListPeers"
 )
 
 // WireGuardInterfacesServiceClient is the client API for WireGuardInterfacesService service.
@@ -43,6 +44,7 @@ type WireGuardInterfacesServiceClient interface {
 	UpsertPeer(ctx context.Context, in *WireGuardUpsertPeerRequest, opts ...grpc.CallOption) (*WireGuardPeerSyncResult, error)
 	RemovePeer(ctx context.Context, in *WireGuardRemovePeerRequest, opts ...grpc.CallOption) (*WireGuardRemovePeerResponse, error)
 	ApplyPeerDelta(ctx context.Context, in *WireGuardApplyPeerDeltaRequest, opts ...grpc.CallOption) (*WireGuardPeerSyncResult, error)
+	ApplyPeerDeltaStream(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[WireGuardPeerDeltaChunk, WireGuardPeerSyncResult], error)
 	ListPeerStats(ctx context.Context, in *WireGuardInterfaceRequest, opts ...grpc.CallOption) (*WireGuardPeerStatsList, error)
 	ListPeers(ctx context.Context, in *WireGuardInterfaceRequest, opts ...grpc.CallOption) (*WireGuardPeerMembership, error)
 }
@@ -135,6 +137,19 @@ func (c *wireGuardInterfacesServiceClient) ApplyPeerDelta(ctx context.Context, i
 	return out, nil
 }
 
+func (c *wireGuardInterfacesServiceClient) ApplyPeerDeltaStream(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[WireGuardPeerDeltaChunk, WireGuardPeerSyncResult], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &WireGuardInterfacesService_ServiceDesc.Streams[0], WireGuardInterfacesService_ApplyPeerDeltaStream_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[WireGuardPeerDeltaChunk, WireGuardPeerSyncResult]{ClientStream: stream}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type WireGuardInterfacesService_ApplyPeerDeltaStreamClient = grpc.ClientStreamingClient[WireGuardPeerDeltaChunk, WireGuardPeerSyncResult]
+
 func (c *wireGuardInterfacesServiceClient) ListPeerStats(ctx context.Context, in *WireGuardInterfaceRequest, opts ...grpc.CallOption) (*WireGuardPeerStatsList, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(WireGuardPeerStatsList)
@@ -167,6 +182,7 @@ type WireGuardInterfacesServiceServer interface {
 	UpsertPeer(context.Context, *WireGuardUpsertPeerRequest) (*WireGuardPeerSyncResult, error)
 	RemovePeer(context.Context, *WireGuardRemovePeerRequest) (*WireGuardRemovePeerResponse, error)
 	ApplyPeerDelta(context.Context, *WireGuardApplyPeerDeltaRequest) (*WireGuardPeerSyncResult, error)
+	ApplyPeerDeltaStream(grpc.ClientStreamingServer[WireGuardPeerDeltaChunk, WireGuardPeerSyncResult]) error
 	ListPeerStats(context.Context, *WireGuardInterfaceRequest) (*WireGuardPeerStatsList, error)
 	ListPeers(context.Context, *WireGuardInterfaceRequest) (*WireGuardPeerMembership, error)
 	mustEmbedUnimplementedWireGuardInterfacesServiceServer()
@@ -202,6 +218,9 @@ func (UnimplementedWireGuardInterfacesServiceServer) RemovePeer(context.Context,
 }
 func (UnimplementedWireGuardInterfacesServiceServer) ApplyPeerDelta(context.Context, *WireGuardApplyPeerDeltaRequest) (*WireGuardPeerSyncResult, error) {
 	return nil, status.Error(codes.Unimplemented, "method ApplyPeerDelta not implemented")
+}
+func (UnimplementedWireGuardInterfacesServiceServer) ApplyPeerDeltaStream(grpc.ClientStreamingServer[WireGuardPeerDeltaChunk, WireGuardPeerSyncResult]) error {
+	return status.Error(codes.Unimplemented, "method ApplyPeerDeltaStream not implemented")
 }
 func (UnimplementedWireGuardInterfacesServiceServer) ListPeerStats(context.Context, *WireGuardInterfaceRequest) (*WireGuardPeerStatsList, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListPeerStats not implemented")
@@ -375,6 +394,13 @@ func _WireGuardInterfacesService_ApplyPeerDelta_Handler(srv interface{}, ctx con
 	return interceptor(ctx, in, info, handler)
 }
 
+func _WireGuardInterfacesService_ApplyPeerDeltaStream_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(WireGuardInterfacesServiceServer).ApplyPeerDeltaStream(&grpc.GenericServerStream[WireGuardPeerDeltaChunk, WireGuardPeerSyncResult]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type WireGuardInterfacesService_ApplyPeerDeltaStreamServer = grpc.ClientStreamingServer[WireGuardPeerDeltaChunk, WireGuardPeerSyncResult]
+
 func _WireGuardInterfacesService_ListPeerStats_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(WireGuardInterfaceRequest)
 	if err := dec(in); err != nil {
@@ -459,6 +485,12 @@ var WireGuardInterfacesService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _WireGuardInterfacesService_ListPeers_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "ApplyPeerDeltaStream",
+			Handler:       _WireGuardInterfacesService_ApplyPeerDeltaStream_Handler,
+			ClientStreams: true,
+		},
+	},
 	Metadata: "proto/v1/interfaces.proto",
 }

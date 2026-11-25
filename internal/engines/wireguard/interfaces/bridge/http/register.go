@@ -32,6 +32,7 @@ type response struct {
 	NodeVersion        string                 `json:"node_version,omitempty"`
 	KernelRelease      string                 `json:"kernel_release,omitempty"`
 	ToolsVersion       string                 `json:"wireguard_tools_version,omitempty"`
+	InterfaceIndex     int                    `json:"interface_index,omitempty"`
 }
 
 type configurationResponse struct {
@@ -184,6 +185,7 @@ func writeStatus(w http.ResponseWriter, link status.Interface) {
 		Name: link.Name, MTU: link.MTU, Up: link.Up, AppliedSHA256: link.AppliedSHA256,
 		KeepAliveExpiresAt: link.KeepAliveExpiresAt, Recreated: link.Recreated,
 		NodeVersion: link.Versions.Node, KernelRelease: link.Versions.Kernel, ToolsVersion: link.Versions.Tools,
+		InterfaceIndex: link.Index,
 	}
 	if current := link.Configuration; current != nil {
 		result.Configuration = &configurationResponse{ListenPort: current.ListenPort, Addresses: current.Addresses}

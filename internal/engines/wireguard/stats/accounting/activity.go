@@ -21,15 +21,24 @@ func (service *Service) PeerActivity(ctx context.Context, name string, key []byt
 	if err := service.check(ctx, name); err != nil {
 		return Activity{}, err
 	}
-	service.mu.RLock()
-	peer := service.entries[[32]byte(key)]
-	service.mu.RUnlock()
-	if peer.lastActive.IsZero() {
+	value, ok := service.activity.Load([32]byte(key))
+	if !ok {
 		return Activity{}, nil
 	}
-	return Activity{
-		Active:     peer.lastActive.After(time.Now().Add(-activeWindow)),
-		LastActive: peer.lastActive,
-		Endpoint:   peer.endpoint,
-	}, nil
+	observed := value.(Activity)
+	observed.Active = observed.LastActive.After(time.Now().Add(-activeWindow))
+	return observed, nil
+}
+
+func (service *Service) publishActivity(row traffic.PeerStats, at time.Time, advanced bool) {
+	value, _ := service.activity.Load(row.PublicKey)
+	current, _ := value.(Activity)
+	next := current
+	if advanced {
+		next.LastActive = at
+	}
+	if !next.LastActive.IsZero() && (advanced || current.Endpoint != row.EndpointIP) {
+		next.Endpoint = row.EndpointIP
+		service.activity.Store(row.PublicKey, next)
+	}
 }

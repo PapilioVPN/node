@@ -117,6 +117,10 @@ func (config Config) fixed() FixedConfig {
 }
 
 func parseConfig(source []byte) (Config, error) {
+	return parseConfigWithPeerKey(source, [32]byte{})
+}
+
+func parseConfigWithPeerKey(source []byte, defaultKey [32]byte) (Config, error) {
 	if len(source) > MaxConfigBytes {
 		return Config{}, ErrTooLarge
 	}
@@ -162,7 +166,7 @@ func parseConfig(source []byte) (Config, error) {
 		if err := peerDecoder.Decode(&initial); err != nil || initial == nil {
 			return Config{}, ConfigIssueInvalidInitialPeers
 		}
-		prepared, err := peers.Prepare(initial)
+		prepared, err := peers.Prepare(withDefaultPeerKeys(initial, &defaultKey))
 		if err != nil {
 			return Config{}, ConfigIssueInvalidInitialPeers
 		}

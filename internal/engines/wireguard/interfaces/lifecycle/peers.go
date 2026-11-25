@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"errors"
+	"slices"
 
 	"github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/peers"
 	"github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/status"
@@ -55,7 +56,7 @@ func (service *Service) replayPeerSync(ctx context.Context, name string, fingerp
 
 func (service *Service) syncPeers(ctx context.Context, name string, input []peers.Input, reconcile bool, fingerprint [32]byte) (peers.Result, error) {
 	return service.withPeerLink(ctx, name, func(ctx context.Context, link Link) (peers.Result, error) {
-		desired, err := peers.Prepare(input)
+		desired, err := peers.Prepare(withDefaultPeerKeys(input, &service.defaultPeerKey))
 		if err != nil {
 			return peers.Result{}, err
 		}
@@ -104,6 +105,9 @@ func (service *Service) syncLivePeerSet(ctx context.Context, link Link, desired 
 
 func (service *Service) UpsertPeer(ctx context.Context, name string, input peers.Input) (peers.Result, error) {
 	return service.withPeerLink(ctx, name, func(ctx context.Context, link Link) (peers.Result, error) {
+		if len(input.PresharedKey) == 0 && service.defaultPeerKey != [32]byte{} {
+			input.PresharedKey = service.defaultPeerKey[:]
+		}
 		desired, err := peers.PreparePeer(input)
 		if err != nil {
 			return peers.Result{}, err
@@ -153,6 +157,7 @@ func (service *Service) RemovePeer(ctx context.Context, name string, input []byt
 
 func (service *Service) ApplyPeerDelta(ctx context.Context, name string, input peers.DeltaInput) (peers.Result, error) {
 	return service.withPeerLink(ctx, name, func(ctx context.Context, link Link) (peers.Result, error) {
+		input.Upsert = withDefaultPeerKeys(input.Upsert, &service.defaultPeerKey)
 		delta, err := peers.PrepareDelta(input)
 		if err != nil {
 			return peers.Result{}, err
@@ -171,6 +176,19 @@ func (service *Service) ApplyPeerDelta(ctx context.Context, name string, input p
 		state.CommitDelta(updates, removals)
 		return result, nil
 	})
+}
+
+func withDefaultPeerKeys(input []peers.Input, key *[32]byte) []peers.Input {
+	if *key == [32]byte{} || len(input) == 0 || len(input) > peers.MaxPeers {
+		return input
+	}
+	result := slices.Clone(input)
+	for i := range result {
+		if len(result[i].PresharedKey) == 0 {
+			result[i].PresharedKey = key[:]
+		}
+	}
+	return result
 }
 
 func (service *Service) confirmedPeers(ctx context.Context, link Link) (*peers.State, error) {

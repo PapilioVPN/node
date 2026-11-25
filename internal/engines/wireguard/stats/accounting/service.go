@@ -4,7 +4,6 @@ package accounting
 import (
 	"context"
 	"math"
-	"net/netip"
 	"sync"
 	"time"
 
@@ -46,12 +45,10 @@ type Collection struct {
 }
 
 type entry struct {
-	last       traffic.Counters
-	pending    traffic.Counters
-	lastActive time.Time
-	endpoint   netip.Addr
-	seen       bool
-	retired    bool
+	last    traffic.Counters
+	pending traffic.Counters
+	seen    bool
+	retired bool
 }
 
 type Service struct {
@@ -62,6 +59,7 @@ type Service struct {
 	gate            *semaphore.Weighted
 	mu              sync.RWMutex
 	entries         map[[32]byte]entry
+	activity        sync.Map // [32]byte -> Activity, published under mu.
 	sample          Sample
 	sampleFence     uint64 // Protected by mu. Odd while a sampled removal is in flight.
 	cancel          context.CancelFunc
@@ -114,7 +112,7 @@ func (service *Service) WithPeerRemoval(ctx context.Context, keys [][32]byte, re
 	if service.sampledRemovals {
 		return service.removeWithSampledUsage(ctx, keys, remove)
 	}
-	return service.withRemoval(ctx, keys, false, remove)
+	return service.withRemoval(ctx, keys, false, true, remove)
 }
 
 func (service *Service) removeWithSampledUsage(ctx context.Context, keys [][32]byte, remove func() error) error {
@@ -138,19 +136,21 @@ func (service *Service) removeWithSampledUsage(ctx context.Context, keys [][32]b
 	return err
 }
 
-func (service *Service) WithLinkRemoval(ctx context.Context, remove func() error) error {
-	return service.withRemoval(ctx, nil, true, remove)
+func (service *Service) WithLinkRemoval(ctx context.Context, captureFinal bool, remove func() error) error {
+	return service.withRemoval(ctx, nil, true, captureFinal, remove)
 }
 
-func (service *Service) withRemoval(ctx context.Context, keys [][32]byte, all bool, remove func() error) error {
+func (service *Service) withRemoval(ctx context.Context, keys [][32]byte, all, captureFinal bool, remove func() error) error {
 	if err := service.gate.Acquire(ctx, 1); err != nil {
 		return err
 	}
 	defer service.gate.Release(1)
-	if !all && len(keys) == 1 {
-		service.capturePeer(ctx, keys[0])
-	} else {
-		service.capture(ctx, true)
+	if captureFinal {
+		if !all && len(keys) == 1 {
+			service.capturePeer(ctx, keys[0])
+		} else {
+			service.capture(ctx, true)
+		}
 	}
 	if err := remove(); err != nil {
 		return err
@@ -184,7 +184,7 @@ func (service *Service) capturePeer(ctx context.Context, key [32]byte) {
 		service.sample.Incomplete = true
 		return
 	}
-	service.entries[key] = accumulate(previous, row, at, at.Add(-activeWindow))
+	service.entries[key] = service.accumulate(previous, row, at, at.Add(-activeWindow))
 }
 
 func (service *Service) capture(ctx context.Context, includeInactive bool) {
@@ -229,7 +229,7 @@ func (service *Service) applySample(rows []traffic.PeerStats, at time.Time, incl
 		}
 		previous.seen, previous.retired = true, false
 		if active {
-			previous = accumulate(previous, row, at, cutoff)
+			previous = service.accumulate(previous, row, at, cutoff)
 		}
 		service.entries[row.PublicKey] = previous
 	}
@@ -240,15 +240,12 @@ func (service *Service) applySample(rows []traffic.PeerStats, at time.Time, incl
 	}
 }
 
-func accumulate(previous entry, row traffic.PeerStats, at, cutoff time.Time) entry {
+func (service *Service) accumulate(previous entry, row traffic.PeerStats, at, cutoff time.Time) entry {
 	if row.RXBytes < previous.last.RXBytes || row.TXBytes < previous.last.TXBytes {
 		previous.last = traffic.Counters{}
 	}
-	if row.Counters != previous.last && !row.LastHandshake.Before(cutoff) {
-		previous.lastActive = at
-	}
+	service.publishActivity(row, at, row.Counters != previous.last && !row.LastHandshake.Before(cutoff))
 	previous.retired = false
-	previous.endpoint = row.EndpointIP
 	previous.pending.RXBytes = addBytes(previous.pending.RXBytes, row.RXBytes-previous.last.RXBytes)
 	previous.pending.TXBytes = addBytes(previous.pending.TXBytes, row.TXBytes-previous.last.TXBytes)
 	previous.last = row.Counters
@@ -263,13 +260,12 @@ func addBytes(total, delta uint64) uint64 {
 }
 
 func (service *Service) retire(key [32]byte, previous entry) {
+	service.activity.Delete(key)
 	if previous.pending == (traffic.Counters{}) {
 		delete(service.entries, key)
 		return
 	}
 	previous.last = traffic.Counters{}
-	previous.lastActive = time.Time{}
-	previous.endpoint = netip.Addr{}
 	previous.retired = true
 	service.entries[key] = previous
 }

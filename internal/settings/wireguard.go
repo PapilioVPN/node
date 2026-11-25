@@ -13,22 +13,24 @@ import (
 )
 
 type WireGuard struct {
-	Interface        string            `yaml:"interface"`
-	Managed          bool              `yaml:"managed"`
-	StateDirectory   string            `yaml:"state_directory"`
-	PeerRemovalUsage string            `yaml:"peer_removal_usage"`
-	Probe            *WireGuardProbe   `yaml:"probe"`
-	Routing          *WireGuardRouting `yaml:"routing"`
+	Interface            string            `yaml:"interface"`
+	Managed              bool              `yaml:"managed"`
+	StateDirectory       string            `yaml:"state_directory"`
+	PeerRemovalUsage     string            `yaml:"peer_removal_usage"`
+	PeerPresharedKeyFile string            `yaml:"peer_preshared_key_file"`
+	Probe                *WireGuardProbe   `yaml:"probe"`
+	Routing              *WireGuardRouting `yaml:"routing"`
 }
 
 const WireGuardSampledPeerRemoval = "sampled"
 
 type WireGuardRouting struct {
-	Egress     string `yaml:"egress_interface"`
-	Masquerade bool   `yaml:"masquerade"`
-	Table      int    `yaml:"policy_table"`
-	Priority   int    `yaml:"policy_priority"`
-	Gateway    string `yaml:"gateway"`
+	Egress               string `yaml:"egress_interface"`
+	EnableIPv4Forwarding bool   `yaml:"enable_ipv4_forwarding"`
+	Masquerade           bool   `yaml:"masquerade"`
+	Table                int    `yaml:"policy_table"`
+	Priority             int    `yaml:"policy_priority"`
+	Gateway              string `yaml:"gateway"`
 }
 
 type WireGuardProbe struct {
@@ -48,8 +50,18 @@ func (config *WireGuard) validate(dir string, management Management) error {
 	if config.PeerRemovalUsage != "" && !config.Managed {
 		return errors.New("wireguard.peer_removal_usage requires managed mode")
 	}
+	if config.PeerPresharedKeyFile != "" {
+		if !config.Managed || strings.ContainsRune(config.PeerPresharedKeyFile, 0) {
+			return errors.New("wireguard.peer_preshared_key_file requires managed mode and a valid file path")
+		}
+		path, err := filepath.Abs(resolve(dir, config.PeerPresharedKeyFile))
+		if err != nil {
+			return errors.New("invalid wireguard.peer_preshared_key_file path")
+		}
+		config.PeerPresharedKeyFile = path
+	}
 	if r := config.Routing; r != nil {
-		if !config.Managed || !validWireGuardInterface(r.Egress) || r.Egress == config.Interface {
+		if !config.Managed || (r.Egress != "" && (!validWireGuardInterface(r.Egress) || r.Egress == config.Interface)) {
 			return errors.New("wireguard.routing requires managed mode and a distinct Linux egress interface")
 		}
 		if r.Table == 0 {

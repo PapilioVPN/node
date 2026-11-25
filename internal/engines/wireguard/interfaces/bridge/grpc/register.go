@@ -6,6 +6,7 @@ package grpc
 import (
 	"context"
 	"errors"
+	"sync/atomic"
 
 	interfacesv1 "github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/bridge/grpc/proto/v1"
 	"github.com/PapilioVPN/node/internal/engines/wireguard/interfaces/lifecycle"
@@ -26,6 +27,7 @@ type handlers struct {
 	managed    *lifecycle.Service
 	validator  *lifecycle.Validator
 	membership *peers.Membership
+	collecting atomic.Bool
 }
 
 func Register(server grpc.ServiceRegistrar, service *interfacestatus.Service, peerStats *traffic.Service, managed *lifecycle.Service, validator *lifecycle.Validator, membership *peers.Membership) {
@@ -118,6 +120,7 @@ func response(result interfacestatus.Interface) *interfacesv1.WireGuardInterface
 	reply := &interfacesv1.WireGuardInterfaceStatus{Name: result.Name, Mtu: result.MTU, Up: result.Up}
 	reply.NodeVersion, reply.KernelRelease, reply.WireguardToolsVersion = result.Versions.Node, result.Versions.Kernel, result.Versions.Tools
 	reply.Recreated = result.Recreated
+	reply.InterfaceIndex = uint32(result.Index)
 	if !result.KeepAliveExpiresAt.IsZero() {
 		reply.KeepAliveExpiresAt = timestamppb.New(result.KeepAliveExpiresAt)
 	}

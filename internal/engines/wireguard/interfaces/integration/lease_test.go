@@ -31,6 +31,7 @@ func TestWireGuardLeaseAndLinkRepair(t *testing.T) {
 		Up          bool       `json:"up"`
 		ExpiresAt   *time.Time `json:"keep_alive_expires_at"`
 		Recreated   bool       `json:"recreated"`
+		Index       int        `json:"interface_index"`
 		NodeVersion string     `json:"node_version"`
 		Kernel      string     `json:"kernel_release"`
 	}
@@ -80,7 +81,7 @@ func TestWireGuardLeaseAndLinkRepair(t *testing.T) {
 	}
 	runIP(t, "link", "del", "dev", interfaceName)
 	recreated := start("")
-	if !recreated.Recreated || !recreated.Up || recreated.ExpiresAt == nil {
+	if !recreated.Recreated || !recreated.Up || recreated.ExpiresAt == nil || recreated.Index == first.Index {
 		t.Fatalf("recreation: %+v", recreated)
 	}
 	deadline := recreated.ExpiresAt.Add(2 * time.Second)
