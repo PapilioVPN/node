@@ -20,6 +20,7 @@ type Control struct {
 	route    *netlink.Handle
 	generic  *genetlink.Conn
 	peerDump *peerDumpSocket
+	peerLink *peerLinkSocket
 	family   genetlink.Family
 }
 
@@ -49,6 +50,9 @@ func (control *Control) Close() error {
 	var err error
 	if control.peerDump != nil {
 		err = control.peerDump.Close()
+	}
+	if control.peerLink != nil {
+		err = errors.Join(err, control.peerLink.Close())
 	}
 	if control.generic != nil {
 		err = errors.Join(err, control.generic.Close())

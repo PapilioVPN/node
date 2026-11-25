@@ -42,6 +42,25 @@ func (control *Control) WritePeerChanges(ctx context.Context, link lifecycle.Lin
 }
 
 func (control *Control) CheckPeerLink(ctx context.Context, owner lifecycle.Link) error {
+	if owner.Index > 0 && owner.Alias != "" {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		if control.peerLink == nil {
+			socket, err := openPeerLink()
+			if err != nil {
+				return err
+			}
+			control.peerLink = socket
+		}
+		err := control.peerLink.check(ctx, owner)
+		if err != nil && !errors.Is(err, status.ErrNotFound) && !errors.Is(err, lifecycle.ErrConflict) {
+			// A timed-out receipt must not enter the next ownership check.
+			_ = control.peerLink.Close()
+			control.peerLink = nil
+		}
+		return err
+	}
 	link, err := control.Inspect(ctx, owner)
 	if err != nil {
 		return err
