@@ -28,6 +28,8 @@ const (
 	WireGuardStatsService_ResetPeerUsage_FullMethodName      = "/papiliovpn.node.v1.WireGuardStatsService/ResetPeerUsage"
 	WireGuardStatsService_ListPeerUsage_FullMethodName       = "/papiliovpn.node.v1.WireGuardStatsService/ListPeerUsage"
 	WireGuardStatsService_ResetAllPeerUsage_FullMethodName   = "/papiliovpn.node.v1.WireGuardStatsService/ResetAllPeerUsage"
+	WireGuardStatsService_GetPeerActivity_FullMethodName     = "/papiliovpn.node.v1.WireGuardStatsService/GetPeerActivity"
+	WireGuardStatsService_ListPeerEndpointIPs_FullMethodName = "/papiliovpn.node.v1.WireGuardStatsService/ListPeerEndpointIPs"
 )
 
 // WireGuardStatsServiceClient is the client API for WireGuardStatsService service.
@@ -43,6 +45,8 @@ type WireGuardStatsServiceClient interface {
 	ResetPeerUsage(ctx context.Context, in *WireGuardPeerTrafficRequest, opts ...grpc.CallOption) (*WireGuardPeerUsage, error)
 	ListPeerUsage(ctx context.Context, in *WireGuardInterfaceTrafficRequest, opts ...grpc.CallOption) (*WireGuardPeerUsageList, error)
 	ResetAllPeerUsage(ctx context.Context, in *WireGuardInterfaceTrafficRequest, opts ...grpc.CallOption) (*WireGuardPeerUsageList, error)
+	GetPeerActivity(ctx context.Context, in *WireGuardPeerTrafficRequest, opts ...grpc.CallOption) (*WireGuardPeerActivity, error)
+	ListPeerEndpointIPs(ctx context.Context, in *WireGuardPeerTrafficRequest, opts ...grpc.CallOption) (*WireGuardPeerEndpointIPs, error)
 }
 
 type wireGuardStatsServiceClient struct {
@@ -143,6 +147,26 @@ func (c *wireGuardStatsServiceClient) ResetAllPeerUsage(ctx context.Context, in 
 	return out, nil
 }
 
+func (c *wireGuardStatsServiceClient) GetPeerActivity(ctx context.Context, in *WireGuardPeerTrafficRequest, opts ...grpc.CallOption) (*WireGuardPeerActivity, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(WireGuardPeerActivity)
+	err := c.cc.Invoke(ctx, WireGuardStatsService_GetPeerActivity_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *wireGuardStatsServiceClient) ListPeerEndpointIPs(ctx context.Context, in *WireGuardPeerTrafficRequest, opts ...grpc.CallOption) (*WireGuardPeerEndpointIPs, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(WireGuardPeerEndpointIPs)
+	err := c.cc.Invoke(ctx, WireGuardStatsService_ListPeerEndpointIPs_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // WireGuardStatsServiceServer is the server API for WireGuardStatsService service.
 // All implementations must embed UnimplementedWireGuardStatsServiceServer
 // for forward compatibility.
@@ -156,6 +180,8 @@ type WireGuardStatsServiceServer interface {
 	ResetPeerUsage(context.Context, *WireGuardPeerTrafficRequest) (*WireGuardPeerUsage, error)
 	ListPeerUsage(context.Context, *WireGuardInterfaceTrafficRequest) (*WireGuardPeerUsageList, error)
 	ResetAllPeerUsage(context.Context, *WireGuardInterfaceTrafficRequest) (*WireGuardPeerUsageList, error)
+	GetPeerActivity(context.Context, *WireGuardPeerTrafficRequest) (*WireGuardPeerActivity, error)
+	ListPeerEndpointIPs(context.Context, *WireGuardPeerTrafficRequest) (*WireGuardPeerEndpointIPs, error)
 	mustEmbedUnimplementedWireGuardStatsServiceServer()
 }
 
@@ -192,6 +218,12 @@ func (UnimplementedWireGuardStatsServiceServer) ListPeerUsage(context.Context, *
 }
 func (UnimplementedWireGuardStatsServiceServer) ResetAllPeerUsage(context.Context, *WireGuardInterfaceTrafficRequest) (*WireGuardPeerUsageList, error) {
 	return nil, status.Error(codes.Unimplemented, "method ResetAllPeerUsage not implemented")
+}
+func (UnimplementedWireGuardStatsServiceServer) GetPeerActivity(context.Context, *WireGuardPeerTrafficRequest) (*WireGuardPeerActivity, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetPeerActivity not implemented")
+}
+func (UnimplementedWireGuardStatsServiceServer) ListPeerEndpointIPs(context.Context, *WireGuardPeerTrafficRequest) (*WireGuardPeerEndpointIPs, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListPeerEndpointIPs not implemented")
 }
 func (UnimplementedWireGuardStatsServiceServer) mustEmbedUnimplementedWireGuardStatsServiceServer() {}
 func (UnimplementedWireGuardStatsServiceServer) testEmbeddedByValue()                               {}
@@ -376,6 +408,42 @@ func _WireGuardStatsService_ResetAllPeerUsage_Handler(srv interface{}, ctx conte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _WireGuardStatsService_GetPeerActivity_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(WireGuardPeerTrafficRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WireGuardStatsServiceServer).GetPeerActivity(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WireGuardStatsService_GetPeerActivity_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WireGuardStatsServiceServer).GetPeerActivity(ctx, req.(*WireGuardPeerTrafficRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _WireGuardStatsService_ListPeerEndpointIPs_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(WireGuardPeerTrafficRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WireGuardStatsServiceServer).ListPeerEndpointIPs(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WireGuardStatsService_ListPeerEndpointIPs_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WireGuardStatsServiceServer).ListPeerEndpointIPs(ctx, req.(*WireGuardPeerTrafficRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // WireGuardStatsService_ServiceDesc is the grpc.ServiceDesc for WireGuardStatsService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -418,6 +486,14 @@ var WireGuardStatsService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ResetAllPeerUsage",
 			Handler:    _WireGuardStatsService_ResetAllPeerUsage_Handler,
+		},
+		{
+			MethodName: "GetPeerActivity",
+			Handler:    _WireGuardStatsService_GetPeerActivity_Handler,
+		},
+		{
+			MethodName: "ListPeerEndpointIPs",
+			Handler:    _WireGuardStatsService_ListPeerEndpointIPs_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

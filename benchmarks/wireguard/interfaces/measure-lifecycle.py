@@ -235,12 +235,13 @@ def usage_client(stack, index, server_ip, client_ip, server_port, secret):
     subprocess.run(run + ["ping", "-n", "-c", "1", "-W", "3", server_ip], check=True, stdout=subprocess.DEVNULL)
 
 
-def measure_sampled_usage(cases, reference_name):
+def measure_sampled_usage(cases, reference_name, activity=False):
     name_by_label = {"node": peer_interface, "pasarguard": reference_name}
     email = "sampled-peer@example.invalid"
     node_root = f"/v1/wireguard/interfaces/{peer_interface}/peers"
     for count in (1, 1000):
         operations = {}
+        activity_paths = {}
         with ExitStack() as clients:
             for index, (label, args) in enumerate(cases):
                 conn, method, path, source, _, _, valid = args
@@ -259,10 +260,12 @@ def measure_sampled_usage(cases, reference_name):
                     single, group = f"{node_root}/{key_path}/usage", node_root + "/usage"
                     operations[label] = [("GET", single, None), ("GET", group, None),
                                          ("POST", single + "/resets", None), ("POST", group + "/resets", None)]
+                    activity_paths[label] = [("GET", f"{node_root}/{key_path}/" + suffix, None) for suffix in ("activity", "endpoint-ips")]
                 else:
                     request(conn, "PUT", "/users/sync", b"".join(proto_bytes(1, user) for user in users))
                     single, group = proto_bytes(1, email.encode()) + b"\x18\x05", b"\x18\x04"
                     operations[label] = [("GET", "/stats/", body) for body in (single, group, single + b"\x10\x01", group + b"\x10\x01")]
+                    activity_paths[label] = [("GET", "/stats/user/" + suffix, proto_bytes(1, email.encode())) for suffix in ("online", "online_ip")]
                 check_peers({peer["public_key"]: peer["allowed_ips"][0] for peer in peers}, name)
                 usage_client(clients, index, server_ip, client_ip, 51820 + index, secret)
 
@@ -286,14 +289,23 @@ def measure_sampled_usage(cases, reference_name):
                         raise RuntimeError(f"{label} sampled usage was empty after exchanging traffic")
                     time.sleep(.05)
 
-            for operation, operation_name in enumerate(("peer_read", "group_read", "peer_reset", "group_reset")):
-                if operation == 2:
+            names = ("activity", "endpoint_ips") if activity else ("peer_read", "group_read", "peer_reset", "group_reset")
+            for operation, operation_name in enumerate(names):
+                if not activity and operation == 2:
                     for label, (conn, *_) in cases:
                         read(label, conn, 3, nonzero=True)
                 for block in range(1, 5):
                     for label, (conn, *_) in cases if block % 2 else reversed(cases):
                         for iteration in range(-5, 40):
-                            elapsed = read(label, conn, operation, nonzero=operation < 2)
+                            if activity:
+                                elapsed, payload = request(conn, *activity_paths[label][operation])
+                                if label == "node":
+                                    result = json.loads(payload)
+                                    assert result["active"] if operation == 0 else result["endpoints"][0]["ip"] == "198.51.100.2"
+                                else:
+                                    assert (b"\x10\x01" if operation == 0 else b"198.51.100.6") in payload
+                            else:
+                                elapsed = read(label, conn, operation, nonzero=operation < 2)
                             if iteration >= 0:
                                 print(f"{block},{label},{operation_name}_{count}_peers,{iteration + 1},{elapsed}")
         for label, (conn, _, _, _, method, path, _) in cases:
@@ -385,11 +397,12 @@ def measure_peer_delta(cases):
 
 def main():
     mode = sys.argv[3] if len(sys.argv) >= 4 else ""
-    link_test = mode in ("--interface-traffic", "--interface-usage", "--sampled-peer-usage")
+    sampled_test = mode in ("--sampled-peer-usage", "--peer-activity")
+    link_test = sampled_test or mode in ("--interface-traffic", "--interface-usage")
     valid_args = (len(sys.argv) == 3 or len(sys.argv) == 4 and (link_test or mode in ("--lifecycle-check", "--live-mtu", "--peer-sync", "--peer-delta"))
                   or len(sys.argv) == 5 and mode in ("--peer-sync", "--peer-replay", "--peer-delta"))
     if not valid_args:
-        raise SystemExit("usage: measure-lifecycle.py NODE PASARGUARD [--lifecycle-check|--live-mtu|--interface-traffic|--interface-usage|--sampled-peer-usage|--peer-sync [PREVIOUS_NODE]|--peer-replay PREVIOUS_NODE|--peer-delta [PREVIOUS_NODE]]")
+        raise SystemExit("usage: measure-lifecycle.py NODE PASARGUARD [--lifecycle-check|--live-mtu|--interface-traffic|--interface-usage|--sampled-peer-usage|--peer-activity|--peer-sync [PREVIOUS_NODE]|--peer-replay PREVIOUS_NODE|--peer-delta [PREVIOUS_NODE]]")
     parent = os.environ.get("NODE_TEST_WIREGUARD_PARENT_NETNS")
     if not parent or parent == os.readlink("/proc/self/ns/net"):
         raise RuntimeError("run in a separate network namespace")
@@ -433,7 +446,7 @@ wireguard:
                      "PG_NODE_WG_HOST_ROUTING": "false", "PG_NODE_WG_NAT_DISABLE": "true"},
                      "reference", directory, context, ref_port, "/info", timeout)
         local = {"listen_port": 51820, "private_key": private_key}
-        address = "198.18.0.1/16" if peer_test or mode == "--sampled-peer-usage" else "192.0.2.1/24"
+        address = "198.18.0.1/16" if peer_test or sampled_test else "192.0.2.1/24"
         reference_name = "wg-bench1" if link_test else peer_interface
 
         def node_config(mtu):
@@ -442,7 +455,7 @@ wireguard:
         def ref_config(mtu):
             reference = {**local, "mtu": mtu, "interface_name": reference_name, "address": [address]}
             if link_test:
-                ref_address = "198.19.0.1/16" if mode == "--sampled-peer-usage" else "192.0.2.2/24"
+                ref_address = "198.19.0.1/16" if sampled_test else "192.0.2.2/24"
                 reference.update(listen_port=51821, address=[ref_address])
             config = json.dumps(reference).encode()
             return b"\x08\x01\x12" + varint(len(config)) + config
@@ -461,8 +474,8 @@ wireguard:
             ("pasarguard", (ref, "POST", "/start", pg_source, "PUT", "/stop", ref_valid)),
         ]
         print("run,implementation,operation,iteration,nanoseconds")
-        if mode == "--sampled-peer-usage":
-            measure_sampled_usage(cases, reference_name)
+        if sampled_test:
+            measure_sampled_usage(cases, reference_name, activity=mode == "--peer-activity")
             return
         if link_test:
             measure_interface_traffic(cases, reference_name, usage=mode == "--interface-usage")

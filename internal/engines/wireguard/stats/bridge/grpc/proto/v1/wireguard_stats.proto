@@ -16,6 +16,22 @@ service WireGuardStatsService {
   rpc ResetPeerUsage(WireGuardPeerTrafficRequest) returns (WireGuardPeerUsage);
   rpc ListPeerUsage(WireGuardInterfaceTrafficRequest) returns (WireGuardPeerUsageList);
   rpc ResetAllPeerUsage(WireGuardInterfaceTrafficRequest) returns (WireGuardPeerUsageList);
+  rpc GetPeerActivity(WireGuardPeerTrafficRequest) returns (WireGuardPeerActivity);
+  rpc ListPeerEndpointIPs(WireGuardPeerTrafficRequest) returns (WireGuardPeerEndpointIPs);
+}
+
+message WireGuardPeerActivity {
+  bool active = 1;
+  google.protobuf.Timestamp last_active_at = 2;
+}
+
+message WireGuardPeerEndpointIP {
+  string ip = 1;
+  google.protobuf.Timestamp last_active_at = 2;
+}
+
+message WireGuardPeerEndpointIPs {
+  repeated WireGuardPeerEndpointIP endpoints = 1;
 }
 
 message WireGuardInterfaceTrafficRequest {

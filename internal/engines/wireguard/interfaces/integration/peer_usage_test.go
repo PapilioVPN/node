@@ -55,6 +55,7 @@ func assertSampledPeerRead(t *testing.T, f fixture, client statsv1.WireGuardStat
 		}
 	}
 	path := "/peers/" + base64.RawURLEncoding.EncodeToString(key) + "/usage"
+	assertPeerActivity(t, f, client, key, true)
 	result := readSampledUsageHTTP(t, f, http.MethodGet, path)
 	if result.Peer == nil || !bytes.Equal(result.Peer.PublicKey, key) || result.Peer.trafficCounters != want {
 		t.Fatalf("sampled single HTTP peer = %+v, want %+v", result.Peer, want)
@@ -83,6 +84,7 @@ func assertSampledPeerRemoval(t *testing.T, f fixture, client statsv1.WireGuardS
 		t.Fatal(err)
 	}
 	assertUsageRow(t, retired.GetPeer(), key, want)
+	assertPeerActivity(t, f, client, key, false)
 	reset := readSampledUsageHTTP(t, f, http.MethodPost, "/peers/usage/resets")
 	if len(reset.Peers) != 1 || !bytes.Equal(reset.Peers[0].PublicKey, key) || reset.Peers[0].trafficCounters != want {
 		t.Fatalf("group reset = %+v, want retired usage %+v", reset, want)

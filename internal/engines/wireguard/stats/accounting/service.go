@@ -4,6 +4,7 @@ package accounting
 import (
 	"context"
 	"math"
+	"net/netip"
 	"sync"
 	"time"
 
@@ -44,10 +45,12 @@ type Collection struct {
 }
 
 type entry struct {
-	last    traffic.Counters
-	pending traffic.Counters
-	seen    bool
-	retired bool
+	last       traffic.Counters
+	pending    traffic.Counters
+	lastActive time.Time
+	endpoint   netip.Addr
+	seen       bool
+	retired    bool
 }
 
 type Service struct {
@@ -167,6 +170,10 @@ func (service *Service) applySample(rows []traffic.PeerStats, at time.Time, incl
 			if row.RXBytes < previous.last.RXBytes || row.TXBytes < previous.last.TXBytes {
 				previous.last = traffic.Counters{}
 			}
+			if row.Counters != previous.last && !row.LastHandshake.Before(cutoff) {
+				previous.lastActive = at
+			}
+			previous.endpoint = row.EndpointIP
 			previous.pending.RXBytes = addBytes(previous.pending.RXBytes, row.RXBytes-previous.last.RXBytes)
 			previous.pending.TXBytes = addBytes(previous.pending.TXBytes, row.TXBytes-previous.last.TXBytes)
 			previous.last = row.Counters
@@ -193,6 +200,8 @@ func (service *Service) retire(key [32]byte, previous entry) {
 		return
 	}
 	previous.last = traffic.Counters{}
+	previous.lastActive = time.Time{}
+	previous.endpoint = netip.Addr{}
 	previous.retired = true
 	service.entries[key] = previous
 }

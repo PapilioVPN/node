@@ -26,6 +26,8 @@ func Register(router chi.Router, service *traffic.Service, usage *accounting.Ser
 	router.Post(path+"/peers/{key}/usage/resets", peerUsage(usage, true))
 	router.Get(path+"/peers/usage", allPeerUsage(usage, false))
 	router.Post(path+"/peers/usage/resets", allPeerUsage(usage, true))
+	router.Get(path+"/peers/{key}/activity", peerActivity(usage, false))
+	router.Get(path+"/peers/{key}/endpoint-ips", peerActivity(usage, true))
 }
 
 func linkTraffic(read func(context.Context, string) (traffic.Counters, error)) http.HandlerFunc {

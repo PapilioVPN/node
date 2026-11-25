@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/binary"
 	"errors"
+	"net/netip"
 	"os"
 	"sync"
 	"time"
@@ -203,6 +204,12 @@ func (snapshot *peerStatsSnapshot) appendPeer(data []byte) error {
 			}
 			peer.LastHandshake = value
 			fields |= handshake
+		case unix.WGPEER_A_ENDPOINT:
+			address, err := decodeEndpointIP(attributes.value)
+			if err != nil {
+				return err
+			}
+			peer.EndpointIP = address
 		}
 	}
 	if attributes.err != nil || peer.PublicKey == [32]byte{} {
@@ -220,6 +227,22 @@ func (snapshot *peerStatsSnapshot) appendPeer(data []byte) error {
 	}
 	snapshot.peers = append(snapshot.peers, peer)
 	return nil
+}
+
+func decodeEndpointIP(data []byte) (netip.Addr, error) {
+	if len(data) >= 2 {
+		switch binary.NativeEndian.Uint16(data[:2]) {
+		case unix.AF_INET:
+			if len(data) == unix.SizeofSockaddrInet4 {
+				return netip.AddrFrom4([4]byte(data[4:8])), nil
+			}
+		case unix.AF_INET6:
+			if len(data) == unix.SizeofSockaddrInet6 {
+				return netip.AddrFrom16([16]byte(data[8:24])).Unmap(), nil
+			}
+		}
+	}
+	return netip.Addr{}, errPeerSnapshot
 }
 
 func decodeHandshake(data []byte) (time.Time, error) {

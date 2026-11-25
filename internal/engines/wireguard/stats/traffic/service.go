@@ -3,6 +3,7 @@ package traffic
 
 import (
 	"context"
+	"net/netip"
 	"sync"
 	"time"
 
@@ -18,6 +19,7 @@ type PeerStats struct {
 	PublicKey [32]byte
 	Counters
 	LastHandshake time.Time
+	EndpointIP    netip.Addr
 }
 
 type LinkReader interface {
