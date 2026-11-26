@@ -26,6 +26,20 @@ jobs:
           unzip -q "$fixture/xray.zip" xray -d "$fixture"
           chmod +x "$fixture/xray"
           printf 'NODE_TEST_XRAY=%s\n' "$fixture/xray" >> "$GITHUB_ENV"
+      - name: Check Hysteria integration in an isolated network
+        run: |
+          fixture=$(mktemp -d "$RUNNER_TEMP/node-hysteria.XXXXXX")
+          curl --fail --location --retry 3 --output "$fixture/hysteria" \
+            https://github.com/HyNetworks/hysteria/releases/download/app/v2.14.0/hysteria-linux-amd64
+          printf '%s  %s\n' fc25edff9948708cb00a4ff01f3bccde677660aca050133bb1ad46c6860362d2 "$fixture/hysteria" | sha256sum -c
+          chmod +x "$fixture/hysteria"
+          go test -race -c -o "$fixture/engine.test" ./internal/engines/hysteria/integration
+          go test -race -c -o "$fixture/bootstrap.test" ./internal/bootstrap
+          sudo unshare --net bash -euc '
+            ip link set lo up
+            runuser -u "$1" -- env NODE_TEST_HYSTERIA="$2/hysteria" "$2/engine.test" -test.v -test.count=1
+            runuser -u "$1" -- env NODE_TEST_HYSTERIA="$2/hysteria" "$2/bootstrap.test" -test.v -test.count=1 -test.run "^TestHysteria"
+          ' bash "$(id -un)" "$fixture"
       - run: bash scripts/ci/check.sh
       - name: Check OpenVPN with a real client in an isolated network
         run: |
