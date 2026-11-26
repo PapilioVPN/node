@@ -39,7 +39,7 @@
 ```bash
 (
   set -eu
-  version=1.6.0
+  version=1.6.1
   bundle="node-$version-linux-amd64-compose.tar.gz"
   release="https://github.com/PapilioVPN/node/releases/download/v$version"
   curl -fLO "$release/$bundle" -fLO "$release/$bundle.sha256"

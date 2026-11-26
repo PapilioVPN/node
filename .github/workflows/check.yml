@@ -27,6 +27,18 @@ jobs:
           chmod +x "$fixture/xray"
           printf 'NODE_TEST_XRAY=%s\n' "$fixture/xray" >> "$GITHUB_ENV"
       - run: bash scripts/ci/check.sh
+      - name: Check OpenVPN with a real client in an isolated network
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends openvpn iproute2 iputils-ping openssl
+          test -c /dev/net/tun || sudo modprobe tun
+          fixture=$(mktemp -d "$RUNNER_TEMP/node-openvpn.XXXXXX")
+          # The distro's service profile does not cover the fixture's temporary paths.
+          install -m 0755 /usr/sbin/openvpn "$fixture/openvpn"
+          go test -race -c -o "$fixture/openvpn.test" ./internal/engines/openvpn/instances/integration
+          sudo unshare --net -- env NODE_TEST_OPENVPN="$fixture/openvpn" \
+            NODE_TEST_OPENVPN_PARENT_NETNS="$(readlink /proc/self/ns/net)" \
+            "$fixture/openvpn.test" -test.v -test.count=1 -test.timeout=90s
       - id: package
         run: bash scripts/ci/package.sh
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0

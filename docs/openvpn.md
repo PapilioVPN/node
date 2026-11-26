@@ -1,6 +1,6 @@
 # OpenVPN server
 
-Node manages one configured OpenVPN server on Linux. The native integration suite uses OpenVPN 2.6.19.
+Node manages one configured OpenVPN server on Linux. CI runs the native integration suite with a real client in isolated Linux network namespaces. It verifies tunnel traffic, session counters, live logs, disconnect, and refusal of a new connection after certificate revocation.
 
 ```yaml
 openvpn:
