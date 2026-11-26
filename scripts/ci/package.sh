@@ -28,6 +28,10 @@ NODE_TEST_BUNDLED_XRAY="$work/node/node-xray" go test ./internal/engines/xray/st
 version=$("$work/node/node" -version)
 name="node-$version-linux-amd64"
 image="papiliovpn/node:$version-${work##*.}"
+installer="$name-install.sh"
+sed "s/^release_version='' /release_version='$version' /" scripts/install/install.sh > "$out/$installer"
+chmod 0755 "$out/$installer"
+cp "$out/$installer" "$work/node/install.sh"
 cp deploy/config.example.yml "$work/node/config.example.yml"
 cp deploy/compose.yml "$work/node/compose.yml"
 printf 'NODE_IMAGE=ghcr.io/papiliovpn/node:%s\n' "$version" > "$work/node/.env"
@@ -96,8 +100,10 @@ tar -czf "$out/$compose_archive" -C "$work" node/compose.yml node/.env node/conf
   cd "$out"
   sha256sum "$archive" > "$archive.sha256"
   sha256sum "$compose_archive" > "$compose_archive.sha256"
-  sha256sum -c "$archive.sha256" -c "$compose_archive.sha256"
+  sha256sum "$installer" > "$installer.sha256"
+  sha256sum -c "$archive.sha256" -c "$compose_archive.sha256" -c "$installer.sha256"
 )
+bash scripts/ci/installer-smoke.sh "$out/$installer" "$out/$archive"
 if [[ -n "${GITHUB_OUTPUT:-}" ]]; then
   printf 'name=%s\n' "$name" >> "$GITHUB_OUTPUT"
 fi

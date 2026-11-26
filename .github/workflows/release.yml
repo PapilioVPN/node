@@ -54,6 +54,7 @@ jobs:
           package="node-$version-linux-amd64"
           archive="$package.tar.gz"
           compose_archive="$package-compose.tar.gz"
+          installer="$package-install.sh"
           metadata=$(gh api "$run/artifacts")
           artifact=$(jq -er --arg name "$package" '.artifacts[] | select(.name == $name and .expired == false) | .id' <<< "$metadata")
           digest=$(jq -er --arg name "$package" '.artifacts[] | select(.name == $name and .expired == false) | .digest' <<< "$metadata")
@@ -62,8 +63,9 @@ jobs:
           cd "$(mktemp -d)"
           gh api "repos/$GH_REPO/actions/artifacts/$artifact/zip" > artifact.zip
           printf '%s  artifact.zip\n' "${digest#sha256:}" | sha256sum -c
-          unzip -q artifact.zip "$archive" "$archive.sha256" "$compose_archive" "$compose_archive.sha256"
-          sha256sum -c "$archive.sha256" -c "$compose_archive.sha256"
+          unzip -q artifact.zip "$archive" "$archive.sha256" "$compose_archive" "$compose_archive.sha256" "$installer" "$installer.sha256"
+          sha256sum -c "$archive.sha256" -c "$compose_archive.sha256" -c "$installer.sha256"
+          bash -n "$installer"
           tar -xzf "$archive" node/node node/image.tar node/image-name
           test "$(./node/node -version)" = "$version"
 
@@ -85,4 +87,4 @@ jobs:
 
           printf '%s\n' "$RELEASE_NOTES" > notes.md
           gh release create "$TAG" --target "$GITHUB_SHA" --title "PapilioVPN Node $TAG" \
-            --notes-file notes.md --latest "$archive" "$archive.sha256" "$compose_archive" "$compose_archive.sha256"
+            --notes-file notes.md --latest "$archive" "$archive.sha256" "$compose_archive" "$compose_archive.sha256" "$installer" "$installer.sha256"
