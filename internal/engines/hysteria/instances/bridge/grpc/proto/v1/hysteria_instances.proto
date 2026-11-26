@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+package papiliovpn.node.v1;
+
+option go_package = "github.com/PapilioVPN/node/internal/engines/hysteria/instances/bridge/grpc/proto/v1;hysteriainstancesv1";
+
+service HysteriaInstancesService {
+  rpc Start(StartHysteriaRequest) returns (HysteriaInstanceStatus);
+  rpc GetStatus(HysteriaInstanceRequest) returns (HysteriaInstanceStatus);
+  rpc Stop(HysteriaInstanceRequest) returns (HysteriaInstanceStatus);
+}
+
+message HysteriaInstanceRequest { string id = 1; }
+
+message StartHysteriaRequest {
+  string id = 1;
+  // Omit to use the configured file. Present but empty is invalid.
+  optional bytes config_yaml = 2;
+}
+
+enum HysteriaInstanceState {
+  HYSTERIA_INSTANCE_STATE_UNSPECIFIED = 0;
+  HYSTERIA_INSTANCE_STATE_STOPPED = 1;
+  HYSTERIA_INSTANCE_STATE_STARTING = 2;
+  HYSTERIA_INSTANCE_STATE_READY = 3;
+  HYSTERIA_INSTANCE_STATE_STOPPING = 4;
+  HYSTERIA_INSTANCE_STATE_FAILED = 5;
+}
+
+enum HysteriaStartAction {
+  HYSTERIA_START_ACTION_UNSPECIFIED = 0;
+  HYSTERIA_START_ACTION_STARTED = 1;
+  HYSTERIA_START_ACTION_HEARTBEAT = 2;
+  HYSTERIA_START_ACTION_RESTARTED = 3;
+  HYSTERIA_START_ACTION_RECOVERED = 4;
+}
+
+message HysteriaInstanceStatus {
+  string id = 1;
+  HysteriaInstanceState state = 2;
+  string hysteria_version = 3;
+  string node_version = 4;
+  HysteriaStartAction start_action = 5;
+  // Exact YAML source bytes. Present only for a confirmed active execution.
+  optional string applied_config_sha256 = 6;
+}

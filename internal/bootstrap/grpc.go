@@ -7,6 +7,7 @@ import (
 
 	bridgerpc "github.com/PapilioVPN/go-bridge/api/grpc/server"
 	"github.com/PapilioVPN/node/internal/engines"
+	hysteriagrpc "github.com/PapilioVPN/node/internal/engines/hysteria/logs/bridge/grpc"
 	wggrpc "github.com/PapilioVPN/node/internal/engines/wireguard/diagnostics/bridge/grpc"
 	logsgrpc "github.com/PapilioVPN/node/internal/engines/xray/logs/bridge/grpc"
 	"github.com/PapilioVPN/node/internal/settings"
@@ -52,5 +53,9 @@ func logTransportContext(ctx context.Context, info *tap.Info) (context.Context, 
 	if err != nil {
 		return nil, err
 	}
-	return wggrpc.TransportContext(ctx, info)
+	ctx, err = wggrpc.TransportContext(ctx, info)
+	if err != nil {
+		return nil, err
+	}
+	return hysteriagrpc.TransportContext(ctx, info)
 }

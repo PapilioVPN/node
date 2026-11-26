@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package papiliovpn.node.v1;
+
+option go_package = "github.com/PapilioVPN/node/internal/engines/hysteria/configs/bridge/grpc/proto/v1;hysteriaconfigsv1";
+
+service HysteriaConfigsService {
+  rpc ValidateConfig(ValidateHysteriaConfigRequest) returns (HysteriaConfigValidation);
+}
+
+message ValidateHysteriaConfigRequest {
+  string id = 1;
+  optional bytes config_yaml = 2;
+}
+message HysteriaConfigValidation {
+  string id = 1;
+  bool valid = 2;
+  // Node preflight is not native dry-run or runtime readiness.
+  string scope = 3;
+  string issue = 4;
+}

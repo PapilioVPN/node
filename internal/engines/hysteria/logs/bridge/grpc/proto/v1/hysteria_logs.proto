@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package papiliovpn.node.v1;
+
+option go_package = "github.com/PapilioVPN/node/internal/engines/hysteria/logs/bridge/grpc/proto/v1;hysterialogsv1";
+
+service HysteriaLogsService {
+  rpc GetLogs(HysteriaLogsRequest) returns (stream HysteriaLogEvent);
+}
+message HysteriaLogsRequest { string id = 1; }
+message HysteriaLogEvent {
+  uint64 execution = 1;
+  uint64 sequence = 2;
+  int64 received_unix_nano = 3;
+  // A fixed event name, never a native line or a native field value.
+  string event = 4;
+}

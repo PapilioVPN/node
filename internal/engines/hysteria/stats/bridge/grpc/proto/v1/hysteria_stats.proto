@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+package papiliovpn.node.v1;
+
+option go_package = "github.com/PapilioVPN/node/internal/engines/hysteria/stats/bridge/grpc/proto/v1;hysteriastatsv1";
+
+service HysteriaStatsService {
+  rpc GetRuntimeStats(HysteriaStatsRequest) returns (HysteriaRuntimeStats);
+  rpc GetTraffic(HysteriaTrafficRequest) returns (HysteriaTrafficEntry);
+  rpc ListTraffic(HysteriaStatsRequest) returns (HysteriaTrafficSnapshot);
+  // Read and clear all counters of this execution. No per-user reset exists.
+  rpc ResetTraffic(HysteriaStatsRequest) returns (HysteriaTrafficSnapshot);
+  rpc ListOnlineUsers(HysteriaStatsRequest) returns (HysteriaOnlineUsers);
+  // Acknowledges native kick registration. It does not ban, synchronously
+  // disconnect idle clients, or guarantee all devices of a user disconnected.
+  rpc DisconnectUsers(DisconnectHysteriaUsersRequest) returns (HysteriaDisconnectResult);
+}
+message HysteriaStatsRequest { string id = 1; }
+message HysteriaRuntimeStats {
+  uint64 execution = 1;
+  int64 ready_since_unix_nano = 2;
+  uint64 uptime_seconds = 3;
+}
+message HysteriaTrafficRequest {
+  string id = 1;
+  string user_id = 2;
+}
+message HysteriaTrafficEntry {
+  string user_id = 1;
+  // Native TX is client upload. RX is client download.
+  uint64 tx_bytes = 2;
+  uint64 rx_bytes = 3;
+}
+message HysteriaTrafficSnapshot {
+  repeated HysteriaTrafficEntry entries = 1;
+  // "instance" only on a reset.
+  string reset_scope = 2;
+}
+message HysteriaOnlineDeviceCount {
+  string user_id = 1;
+  uint64 devices = 2;
+}
+message HysteriaOnlineUsers {
+  repeated HysteriaOnlineDeviceCount users = 1;
+}
+message DisconnectHysteriaUsersRequest {
+  string id = 1;
+  repeated string user_ids = 2;
+}
+message HysteriaDisconnectResult { bool acknowledged = 1; }

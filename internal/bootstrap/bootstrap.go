@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/PapilioVPN/node/internal/engines"
+	"github.com/PapilioVPN/node/internal/engines/hysteria"
 	"github.com/PapilioVPN/node/internal/engines/openvpn"
 	"github.com/PapilioVPN/node/internal/engines/wireguard"
 	"github.com/PapilioVPN/node/internal/engines/xray"
@@ -22,12 +23,13 @@ const lifecycleTimeout = 5 * time.Second
 
 func Run(ctx context.Context, config settings.Config, logger *slog.Logger) error {
 	app := fx.New(
-		fx.Supply(config.Management, config.Host, config.Xray, config.WireGuard, config.OpenVPN, logger),
+		fx.Supply(config.Management, config.Host, config.Xray, config.WireGuard, config.OpenVPN, hysteriaSettings(config.Hysteria), logger),
 		fx.Provide(loadTLS, newReadiness, newManagementActivity, newHTTPRouter, newHTTPServer, newGRPCServer),
 		host.Module,
 		xray.Module,
 		wireguard.Module,
 		openvpn.Module,
+		hysteria.Module,
 		fx.Invoke(registerListeners),
 		fx.WithLogger(func() fxevent.Logger { return &fxevent.SlogLogger{Logger: logger} }),
 	)
@@ -50,6 +52,14 @@ func Run(ctx context.Context, config settings.Config, logger *slog.Logger) error
 	stopCtx, cancel := context.WithTimeout(context.Background(), lifecycleTimeout)
 	defer cancel()
 	return errors.Join(runErr, app.Stop(stopCtx))
+}
+
+func hysteriaSettings(config settings.Hysteria) hysteria.Config {
+	instances := make([]hysteria.InstanceConfig, len(config.Instances))
+	for i, instance := range config.Instances {
+		instances[i] = hysteria.InstanceConfig(instance)
+	}
+	return hysteria.Config{Instances: instances}
 }
 
 func newManagementActivity(config settings.Management) *engines.ManagementActivity {

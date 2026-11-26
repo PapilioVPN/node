@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"sync"
 
+	"github.com/PapilioVPN/node/internal/engines/hysteria"
 	wgevents "github.com/PapilioVPN/node/internal/engines/wireguard/diagnostics/events"
 	"github.com/PapilioVPN/node/internal/engines/xray/logs/live"
 	"github.com/PapilioVPN/node/internal/settings"
@@ -28,6 +29,7 @@ func registerListeners(
 	grpcServer *grpc.Server,
 	xrayLogs *live.Service,
 	wireguardLogs *wgevents.Service,
+	hysteriaEngine *hysteria.Engine,
 ) {
 	var serving sync.WaitGroup
 	serveFailed := func(protocol string, err error) {
@@ -70,6 +72,7 @@ func registerListeners(
 			readiness.Shutdown()
 			xrayLogs.Close()
 			_ = wireguardLogs.Close(ctx)
+			hysteriaEngine.CloseLogs()
 			grpcDone := make(chan struct{})
 			go func() {
 				defer close(grpcDone)
