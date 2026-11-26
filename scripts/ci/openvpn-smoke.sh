@@ -5,7 +5,11 @@ image=${1:?Provide the built Node image}
 work=$(mktemp -d)
 container=
 cleanup() {
+  local status=$?
   if [[ -n "$container" ]]; then
+    if (( status != 0 )); then
+      docker logs --tail 20 "$container" >&2 || true
+    fi
     docker rm -f "$container" >/dev/null 2>&1 || true
   fi
   rm -rf -- "$work"
@@ -44,6 +48,10 @@ OVPN
   openssl x509 -req -in server.csr -CA ca.crt -CAkey ca.key -CAcreateserial -days 1 -out server.crt
   rm ca.key server.csr
 )
+# Container root has only NET_ADMIN and cannot bypass host file modes.
+# The disposable test key is used in an isolated network and removed on exit.
+chmod 0711 "$work"
+chmod 0644 "$work/server.key"
 
 container=$(docker run -d --network none --read-only --cap-drop ALL --cap-add NET_ADMIN \
   --user 0:0 --device /dev/net/tun --tmpfs /tmp:mode=1777 \
@@ -51,7 +59,7 @@ container=$(docker run -d --network none --read-only --cap-drop ALL --cap-add NE
   --entrypoint /node "$image" -config /fixture/config.yml)
 
 for ((attempt = 0; attempt < 40; attempt++)); do
-  if docker exec "$container" wget -qO /dev/null http://127.0.0.1:8080/healthz; then
+  if docker exec "$container" wget -qO /dev/null http://127.0.0.1:8080/healthz >/dev/null 2>&1; then
     break
   fi
   sleep 0.1
