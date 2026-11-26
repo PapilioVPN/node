@@ -7,10 +7,12 @@ Download the matching `.sha256` file alongside either archive.
 
 ## Docker Compose
 
-Follow the [quick start](../README.md#quick-start) with the small bundle.
-The bundle pins the image version in `.env`. Node runs without Linux
-capabilities, with a read-only root filesystem, and listens on loopback
-ports 8080 for HTTP and 8081 for gRPC by default.
+The [quick start](../README.md#quick-start) uses the full archive and loads
+its image locally. If you can pull from GHCR, use the small Compose bundle
+instead and run `docker compose up -d`. The small bundle pins the image
+version in `.env`. Node runs without Linux capabilities, with a read-only
+root filesystem, and listens on loopback ports 8080 for HTTP and 8081 for
+gRPC by default.
 
 Use `docker compose logs node` to see logs and `docker compose down` to
 stop Node.
@@ -18,10 +20,10 @@ stop Node.
 ## Offline Docker installation
 
 Use the full archive when you cannot pull from GHCR. This example uses
-version 1.6.1.
+version 1.7.0.
 
 ```bash
-bundle=node-1.6.1-linux-amd64.tar.gz
+bundle=node-1.7.0-linux-amd64.tar.gz
 sha256sum -c "$bundle.sha256" && tar -xzf "$bundle"
 cd node
 mkdir -p config
@@ -89,6 +91,12 @@ services:
 ```
 
 OpenVPN manages the tunnel in the container's network namespace. Select that namespace and the listening address deliberately. To enable managed revocations, mount a writable directory for the CRL. [OpenVPN management](openvpn.md)
+
+## Enable Hysteria 2
+
+Supply the pinned Linux amd64 Hysteria 2 executable, its server YAML, and
+its TLS files. The [Hysteria 2 guide](../benchmarks/hysteria/README.md#enable-a-server)
+shows the Node settings and management operations.
 
 ## Upgrade
 

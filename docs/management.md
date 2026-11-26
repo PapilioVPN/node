@@ -28,6 +28,7 @@
 | WireGuard diagnostics | Follow lifecycle events, read runtime statistics, and probe an operator-configured egress target over HTTP and gRPC. |
 | WireGuard host networking | Optionally manage IPv4 forwarding rules, NAT and policy routing for a managed interface. |
 | OpenVPN server | Manage the execution, validate profiles, list sessions and counters, disconnect sessions, follow logs, and apply signed certificate revocations over HTTP and gRPC. |
+| Hysteria 2 server | Manage named Linux servers, preflight candidate YAML, follow redacted logs, observe runtime, traffic and online device counts, reset instance counters, and request disconnection over HTTP and gRPC. [Setup and operation contract](../benchmarks/hysteria/README.md) |
 
 <a name="management"></a>
 

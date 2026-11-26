@@ -7,7 +7,7 @@
 
 <h1 align="center">PapilioVPN Node</h1>
 
-<p align="center" lang="zh-CN">独立的 Go 服务，用于观测 Linux 主机并管理网络引擎，首先支持 Xray。</p>
+<p align="center" lang="zh-CN">在 Linux 上管理 Xray、WireGuard、OpenVPN 和 Hysteria 2。通过 HTTP 和 gRPC 控制运行实例，查看流量、实时日志和主机指标。</p>
 
 <p align="center">
   <a href="README.md" lang="en"><img src="assets/flags/gb.svg" width="24" alt=""> English</a> ·
@@ -28,17 +28,27 @@
   <a href="#development">开发</a>
 </p>
 
+<p align="center">
+  <a href="https://xtls.github.io/en/"><img src="assets/engines/xray.png" height="34" alt="Xray"></a>
+  &nbsp;&nbsp;
+  <a href="https://www.wireguard.com/"><img src="assets/engines/wireguard.svg" width="128" alt="WireGuard"></a>
+  &nbsp;&nbsp;
+  <a href="https://openvpn.net/community-docs/openvpn-project/"><img src="assets/engines/openvpn.png" height="34" alt="OpenVPN"></a>
+  &nbsp;&nbsp;
+  <a href="https://hysteria.network/"><img src="assets/engines/hysteria.svg" height="34" alt="Hysteria 2"></a>
+</p>
+
 <a name="quick-start"></a>
 
 ## 快速开始
 
-在已安装 Docker Compose 的 Linux amd64 上，下载指定版本的安装包并启动 Node。
+在已安装 Docker Compose 的 Linux amd64 上，下载完整发布包、校验 SHA-256 并启动 Node。发布包已包含 Docker 镜像。
 
 ```bash
 (
   set -eu
-  version=1.6.1
-  bundle="node-$version-linux-amd64-compose.tar.gz"
+  version=1.7.0
+  bundle="node-$version-linux-amd64.tar.gz"
   release="https://github.com/PapilioVPN/node/releases/download/v$version"
   curl -fLO "$release/$bundle" -fLO "$release/$bundle.sha256"
   sha256sum -c "$bundle.sha256"
@@ -46,21 +56,25 @@
   cd node
   mkdir -p config
   test -e config/config.yml || cp config.example.yml config/config.yml
-  docker compose up -d
+  docker load -i image.tar
+  NODE_IMAGE="$(cat image-name)" docker compose up -d --pull never
 )
 ```
 
-管理 API 默认仅监听回环地址。可使用 `curl -fsS http://127.0.0.1:8080/healthz` 检查。二进制安装、离线安装和 Xray 配置见[安装指南](docs/install.md)。
+管理 API 默认仅监听回环地址。可使用 `curl -fsS http://127.0.0.1:8080/healthz` 检查。原生安装和引擎配置见[安装指南](docs/install.md)。
 
 <a name="capabilities"></a>
 <a name="current-capabilities"></a>
 
 ## 功能
 
-- **主机** — 运行时间、CPU、内存、存储和网络吞吐量。
-- **Xray** — 生命周期管理、配置验证、账户同步和恢复、流量和在线统计、路由、日志和出站健康状态。
-- **WireGuard** — Linux 接口生命周期、管理租约与修复、配置验证和多项设置在线更新、对等端管理及通过 HTTP 和 gRPC 分块提交变更、活动监测、运行统计与日志、出站探测，以及可选的 IPv4 转发、NAT 和策略路由。
-- **OpenVPN** — 通过 HTTP 和 gRPC 管理 Linux 服务器，验证配置，查看会话与计数器、跟踪日志、断开会话并发布签名吊销列表。
+| 引擎或主机 | Node 功能 |
+| --- | --- |
+| **主机** | 运行时间、CPU、内存、存储和网络吞吐量。 |
+| **Xray** | 生命周期管理、配置验证、账户同步和恢复、流量和在线统计、路由、日志和出站健康状态。 |
+| **WireGuard** | Linux 接口生命周期、管理租约与修复、配置验证和多项设置在线更新、对等端管理及通过 HTTP 和 gRPC 分块提交变更、活动监测、运行统计与日志、出站探测，以及可选的 IPv4 转发、NAT 和策略路由。 |
+| [**OpenVPN**](docs/openvpn.md) | 通过 HTTP 和 gRPC 管理 Linux 服务器，验证配置，查看会话与计数器、跟踪日志、断开会话并发布签名吊销列表。 |
+| [**Hysteria 2**](benchmarks/hysteria/README.md) | 通过 HTTP 和 gRPC 管理 Linux 服务器，支持已确认的配置摘要、启动前检查、脱敏实时日志、运行和按 ID 统计流量、实例级计数器重置、在线设备计数与原生断开请求。 |
 
 <a name="management"></a>
 
@@ -74,7 +88,7 @@
 **PapilioVPN 在 102 个可比的 Xray 场景中的 82 个领先**。13 个场景的结果各有优劣，PasarGuard 0.5.7 在 7 个场景领先。汇总还列出 16 个使用同一测试环境、但输入、输出字段或保证不同的场景。
 <!-- /benchmark-summary -->
 
-[基准测试汇总、分组报告和原始数据](benchmarks/xray/README.md) · [WireGuard 接口基准测试](benchmarks/wireguard/interfaces/README.md)
+[基准测试汇总、分组报告和原始数据](benchmarks/xray/README.md) · [WireGuard 接口基准测试](benchmarks/wireguard/interfaces/README.md) · [Hysteria 2 接口约定与基准测试](benchmarks/hysteria/README.md)
 
 <a name="development"></a>
 
@@ -85,3 +99,5 @@
 ## 许可证
 
 PapilioVPN Node 采用 [GNU 通用公共许可证第 3 版](LICENSE)。
+
+<sub>“WireGuard” and the “WireGuard” logo are registered trademarks of Jason A. Donenfeld. OpenVPN® is a registered trademark of OpenVPN Inc. <a href="assets/engines/README.md">标志来源</a></sub>

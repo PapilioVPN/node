@@ -25,6 +25,7 @@
 | WireGuard 接口 | 通过 HTTP 和 gRPC 查询状态、验证配置、启动和停止接口、在线更新 MTU，并可选在 Node 重启后恢复。 |
 | WireGuard 对等端 | 通过 HTTP 和 gRPC 按公钥同步完整列表、添加或更新单个对等端、删除单个对等端以及批量修改。 |
 | WireGuard 对等端统计 | 通过 HTTP 和 gRPC 按公钥读取实时收发字节数和最近一次握手时间。 |
+| Hysteria 2 服务器 | 通过 HTTP 和 gRPC 管理 Linux 服务器、预检 YAML、查看脱敏日志、运行统计、流量与在线设备数，重置实例计数器并请求断开连接。[配置与操作约定](../benchmarks/hysteria/README.md) |
 
 <a name="management"></a>
 
