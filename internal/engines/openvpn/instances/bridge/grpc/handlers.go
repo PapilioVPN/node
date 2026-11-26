@@ -10,6 +10,8 @@ import (
 type handlers struct {
 	pb.UnimplementedOpenVPNInstancesServiceServer
 	pb.UnimplementedOpenVPNConfigsServiceServer
+	pb.UnimplementedOpenVPNOperationsServiceServer
+	pb.UnimplementedOpenVPNAccessServiceServer
 	service *lifecycle.Service
 }
 

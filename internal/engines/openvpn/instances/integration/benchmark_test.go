@@ -20,7 +20,9 @@ func BenchmarkNativeManagement(b *testing.B) {
 	defer conn.Close()
 	instances := pb.NewOpenVPNInstancesServiceClient(conn)
 	configs := pb.NewOpenVPNConfigsServiceClient(conn)
+	ops := pb.NewOpenVPNOperationsServiceClient(conn)
 	f.request(b, http.MethodPut, "/execution", nil, http.StatusOK)
+	f.tunnel(b)
 	ctx := b.Context()
 	id := &pb.OpenVPNInstanceRequest{Id: "primary"}
 	validate := &pb.ValidateOpenVPNConfigRequest{Id: "primary", ConfigText: f.source}
@@ -54,6 +56,17 @@ func BenchmarkNativeManagement(b *testing.B) {
 			response, err := instances.GetStatus(ctx, id)
 			if err != nil || response.GetState() != pb.OpenVPNInstanceState_OPEN_VPN_INSTANCE_STATE_READY {
 				b.Fatalf("status = %v, %v", response, err)
+			}
+		}},
+		{"Sessions/http", func(b *testing.B) {
+			if report := f.request(b, http.MethodGet, "/sessions", nil, http.StatusOK); !bytes.Contains(report, []byte("fixture-client")) {
+				b.Fatalf("sessions = %s", report)
+			}
+		}},
+		{"Sessions/grpc", func(b *testing.B) {
+			report, err := ops.ListSessions(ctx, id)
+			if err != nil || len(report.GetSessions()) != 1 {
+				b.Fatalf("sessions = %v, %v", report, err)
 			}
 		}},
 	}

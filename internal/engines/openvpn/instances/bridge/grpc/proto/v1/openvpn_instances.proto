@@ -1,5 +1,7 @@
 syntax = "proto3";
 
+import "google/protobuf/empty.proto";
+
 package papiliovpn.node.v1;
 
 option go_package = "github.com/PapilioVPN/node/internal/engines/openvpn/instances/bridge/grpc/proto/v1;instancesv1";
@@ -55,6 +57,7 @@ message OpenVPNInstanceStatus {
   // SHA-256 of exact accepted source, present after confirmed readiness.
   optional string applied_config_sha256 = 5;
   string openvpn_version = 6;
+  string execution_id = 7;
 }
 
 enum OpenVPNConfigIssueCode {
@@ -73,4 +76,70 @@ message OpenVPNConfigValidation {
   string id = 1;
   bool valid = 2;
   OpenVPNConfigIssue issue = 3;
+}
+
+service OpenVPNOperationsService {
+  rpc ListSessions(OpenVPNInstanceRequest) returns (OpenVPNSessionReport);
+  rpc DisconnectSession(DisconnectOpenVPNSessionRequest) returns (google.protobuf.Empty);
+  rpc GetLogs(OpenVPNLogsRequest) returns (stream OpenVPNLogBatch);
+}
+
+message OpenVPNSession {
+  uint64 id = 1;
+  string common_name = 2;
+  string remote_address = 3;
+  string tunnel_ipv4 = 4;
+  string tunnel_ipv6 = 5;
+  uint64 rx_bytes = 6;
+  uint64 tx_bytes = 7;
+  int64 connected_at = 8;
+  string cipher = 9;
+}
+
+message OpenVPNSessionReport {
+  string execution_id = 1;
+  int64 observed_at = 2;
+  repeated OpenVPNSession sessions = 3;
+}
+
+message DisconnectOpenVPNSessionRequest {
+  string id = 1;
+  string execution_id = 2;
+  optional uint64 session_id = 3;
+}
+
+message OpenVPNLogsRequest {
+  string id = 1;
+  string execution_id = 2;
+  uint64 after_sequence = 3;
+}
+
+message OpenVPNLogBatch {
+  string execution_id = 1;
+  uint64 dropped = 2;
+  repeated OpenVPNLog entries = 3;
+}
+
+message OpenVPNLog {
+  uint64 sequence = 1;
+  int64 timestamp = 2;
+  string level = 3;
+  string message = 4;
+}
+
+service OpenVPNAccessService {
+  rpc GetRevocationList(OpenVPNInstanceRequest) returns (OpenVPNRevocationStatus);
+  rpc ReplaceRevocationList(ReplaceOpenVPNRevocationRequest) returns (OpenVPNRevocationStatus);
+}
+
+message ReplaceOpenVPNRevocationRequest {
+  string id = 1;
+  bytes signed_pem = 2;
+}
+
+message OpenVPNRevocationStatus {
+  string number = 1;
+  string sha256 = 2;
+  int64 next_update = 3;
+  uint32 revoked_count = 4;
 }

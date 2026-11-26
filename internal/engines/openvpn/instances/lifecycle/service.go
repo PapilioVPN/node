@@ -17,23 +17,25 @@ import (
 )
 
 type Service struct {
-	id         string
-	configFile string
-	driver     Driver
-	control    *semaphore.Weighted
-	shutdown   context.Context
-	cancel     context.CancelFunc
+	id          string
+	configFile  string
+	driver      Driver
+	revocations Revocations
+	control     *semaphore.Weighted
+	logReaders  chan struct{}
+	shutdown    context.Context
+	cancel      context.CancelFunc
 
 	mu     sync.RWMutex
 	status Status
 	run    Execution
 }
 
-func New(id, configFile string, driver Driver) *Service {
+func New(id, configFile string, driver Driver, revocations Revocations) *Service {
 	shutdown, cancel := context.WithCancel(context.Background())
 	return &Service{
-		id: id, configFile: configFile, driver: driver,
-		control: semaphore.NewWeighted(1), shutdown: shutdown, cancel: cancel,
+		id: id, configFile: configFile, driver: driver, revocations: revocations,
+		control: semaphore.NewWeighted(1), logReaders: make(chan struct{}, 8), shutdown: shutdown, cancel: cancel,
 		status: Status{ID: id, State: Stopped, NodeVersion: buildinfo.Version},
 	}
 }
@@ -106,6 +108,7 @@ func (s *Service) Start(ctx context.Context, id string, proposed []byte) (Status
 	s.status.State = Starting
 	s.status.AppliedConfigSHA256 = ""
 	s.status.OpenVPNVersion = ""
+	s.status.ExecutionID = ""
 	s.mu.Unlock()
 	run, err = s.driver.Start(ctx, source)
 	if err != nil {
@@ -119,6 +122,7 @@ func (s *Service) Start(ctx context.Context, id string, proposed []byte) (Status
 	s.status.State = Ready
 	s.status.AppliedConfigSHA256 = digest
 	s.status.OpenVPNVersion = run.Version()
+	s.status.ExecutionID = run.ExecutionID()
 	s.mu.Unlock()
 	go s.observe(run)
 	result, err := s.result(id, action, nil)
@@ -205,6 +209,7 @@ func (s *Service) stop(ctx context.Context) error {
 	run := s.run
 	s.status.AppliedConfigSHA256 = ""
 	s.status.OpenVPNVersion = ""
+	s.status.ExecutionID = ""
 	if run == nil {
 		s.status.State = Stopped
 		s.mu.Unlock()
@@ -241,6 +246,7 @@ func (s *Service) exited(run Execution) {
 	}
 	s.status.AppliedConfigSHA256 = ""
 	s.status.OpenVPNVersion = ""
+	s.status.ExecutionID = ""
 	s.run = nil
 }
 

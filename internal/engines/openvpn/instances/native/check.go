@@ -7,12 +7,14 @@ import (
 	"os/exec"
 	"path/filepath"
 
+	"github.com/PapilioVPN/node/internal/engines/openvpn/access"
 	"github.com/PapilioVPN/node/internal/engines/openvpn/instances/lifecycle"
 )
 
 type Driver struct {
 	Executable       string
 	ConfigFile       string
+	Revocations      *access.Store
 	RuntimeDirectory string
 }
 
@@ -20,7 +22,7 @@ func (d Driver) Check(ctx context.Context, source []byte) (lifecycle.Issue, erro
 	if err := ctx.Err(); err != nil {
 		return lifecycle.Issue{}, err
 	}
-	if issue := checkSource(source); issue.Code != "" {
+	if issue := checkSource(source, d.Revocations != nil); issue.Code != "" {
 		return issue, nil
 	}
 	// The informational mode exits after the native option parser. It does

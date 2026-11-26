@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"golang.org/x/sys/unix"
 )
 
@@ -41,7 +42,13 @@ func (p *process) waitReady(ctx context.Context) error {
 	}
 	p.management = conn
 	p.mu.Unlock()
-	p.version, err = confirmReady(ctx, conn)
+	control := newManagement(conn, uuid.NewString())
+	lines := bufio.NewScanner(conn)
+	p.version, err = confirmReady(ctx, conn, lines, control)
+	if err == nil {
+		p.control = control
+		go control.read(lines, p.done)
+	}
 	return err
 }
 
@@ -66,7 +73,7 @@ func verifyPeer(conn *net.UnixConn, pid int) error {
 	return nil
 }
 
-func confirmReady(ctx context.Context, conn *net.UnixConn) (string, error) {
+func confirmReady(ctx context.Context, conn *net.UnixConn, lines *bufio.Scanner, control *management) (string, error) {
 	if deadline, ok := ctx.Deadline(); ok {
 		if err := conn.SetDeadline(deadline); err != nil {
 			return "", err
@@ -85,10 +92,9 @@ func confirmReady(ctx context.Context, conn *net.UnixConn) (string, error) {
 	}()
 	// OpenVPN emits the CONNECTED state after initializing TUN and data
 	// listeners. Subscribe before releasing its management hold.
-	if _, err := io.WriteString(conn, "version\nstate on\nhold release\n"); err != nil {
+	if _, err := io.WriteString(conn, "version\nstate on\nlog on\nhold release\n"); err != nil {
 		return "", errors.Join(err, ctx.Err())
 	}
-	lines := bufio.NewScanner(conn)
 	var version string
 	for n := 0; n < maxReadinessLines && lines.Scan(); n++ {
 		line := lines.Text()
@@ -101,12 +107,10 @@ func confirmReady(ctx context.Context, conn *net.UnixConn) (string, error) {
 		if state, ok := strings.CutPrefix(line, ">STATE:"); ok {
 			_, fields, _ := strings.Cut(state, ",")
 			if strings.HasPrefix(fields, "CONNECTED,SUCCESS,") {
-				if _, err := io.WriteString(conn, "state off\n"); err != nil {
-					return "", errors.Join(err, ctx.Err())
-				}
 				return version, nil
 			}
 		}
+		control.notification(line)
 	}
 	return "", errors.Join(errors.New("no confirmed OpenVPN management readiness"), lines.Err(), ctx.Err())
 }

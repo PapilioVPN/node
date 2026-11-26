@@ -13,7 +13,7 @@ import (
 func instanceResult(value lifecycle.Status, err error) (*pb.OpenVPNInstanceStatus, error) {
 	r := &pb.OpenVPNInstanceStatus{
 		Id: value.ID, State: instanceState(value.State), NodeVersion: value.NodeVersion,
-		OpenvpnVersion: value.OpenVPNVersion, StartAction: startAction(value.StartAction),
+		OpenvpnVersion: value.OpenVPNVersion, ExecutionId: value.ExecutionID, StartAction: startAction(value.StartAction),
 	}
 	if value.AppliedConfigSHA256 != "" {
 		r.AppliedConfigSha256 = new(value.AppliedConfigSHA256)
@@ -32,6 +32,20 @@ func instanceResult(value lifecycle.Status, err error) (*pb.OpenVPNInstanceStatu
 
 func rpcError(err error) *status.Status {
 	switch {
+	case errors.Is(err, lifecycle.ErrRevocationDisabled):
+		return status.New(codes.FailedPrecondition, lifecycle.ErrRevocationDisabled.Error())
+	case errors.Is(err, lifecycle.ErrRevocationRejected):
+		return status.New(codes.InvalidArgument, lifecycle.ErrRevocationRejected.Error())
+	case errors.Is(err, lifecycle.ErrRevocationUnavailable):
+		return status.New(codes.Unavailable, lifecycle.ErrRevocationUnavailable.Error())
+	case errors.Is(err, lifecycle.ErrSessionNotFound):
+		return status.New(codes.NotFound, lifecycle.ErrSessionNotFound.Error())
+	case errors.Is(err, lifecycle.ErrNotReady):
+		return status.New(codes.FailedPrecondition, lifecycle.ErrNotReady.Error())
+	case errors.Is(err, lifecycle.ErrExecutionChanged):
+		return status.New(codes.FailedPrecondition, lifecycle.ErrExecutionChanged.Error())
+	case errors.Is(err, lifecycle.ErrManagement):
+		return status.New(codes.Unavailable, lifecycle.ErrManagement.Error())
 	case errors.Is(err, lifecycle.ErrNotFound):
 		return status.New(codes.NotFound, lifecycle.ErrNotFound.Error())
 	case errors.Is(err, lifecycle.ErrBusy):

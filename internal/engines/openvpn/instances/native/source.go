@@ -25,7 +25,7 @@ var directives = strings.Fields(
 		"verify-x509-name x509-username-field")
 var inlineFiles = []string{"ca", "cert", "crl-verify", "dh", "extra-certs", "key", "tls-auth", "tls-crypt", "tls-crypt-v2"}
 
-func checkSource(source []byte) lifecycle.Issue {
+func checkSource(source []byte, managedRevocations bool) lifecycle.Issue {
 	// Keep the framing below OpenVPN 2.6's fgets buffer limit in both the
 	// outer options and inline reader. They must see the same line boundaries.
 	if len(bytes.TrimSpace(source)) == 0 || bytes.IndexByte(source, 0) >= 0 {
@@ -58,6 +58,9 @@ func checkSource(source []byte) lifecycle.Issue {
 			continue
 		}
 		if value[0] == '<' && value[len(value)-1] == '>' && slices.Contains(inlineFiles, string(value[1:len(value)-1])) {
+			if managedRevocations && (bytes.Equal(value, []byte("<ca>")) || bytes.Equal(value, []byte("<crl-verify>"))) {
+				return lifecycle.Issue{Code: "unsupported_directive", Line: line}
+			}
 			closing = append([]byte("</"), value[1:]...)
 			hasDirective = true
 			continue
@@ -69,7 +72,8 @@ func checkSource(source []byte) lifecycle.Issue {
 			args = bytes.TrimSpace(value[i:])
 		}
 		first = bytes.TrimPrefix(first, []byte("--"))
-		if !slices.Contains(directives, string(first)) {
+		if !slices.Contains(directives, string(first)) ||
+			managedRevocations && slices.Contains([]string{"ca", "capath", "crl-verify"}, string(first)) {
 			return lifecycle.Issue{Code: "unsupported_directive", Line: line}
 		}
 		// The managed profile uses client certificates. A future external

@@ -42,6 +42,7 @@ type Status struct {
 	State               State
 	NodeVersion         string
 	OpenVPNVersion      string
+	ExecutionID         string
 	AppliedConfigSHA256 string
 	StartAction         StartAction
 }
@@ -59,6 +60,10 @@ type Validation struct {
 type Execution interface {
 	Done() <-chan struct{}
 	Version() string
+	ExecutionID() string
+	Sessions(context.Context) (SessionReport, error)
+	Disconnect(context.Context, uint64) error
+	Logs(context.Context, uint64) (LogBatch, error)
 	Stop(context.Context) error
 }
 

@@ -13,4 +13,6 @@ func Register(server grpc.ServiceRegistrar, service *lifecycle.Service) {
 	handler := &handlers{service: service}
 	pb.RegisterOpenVPNInstancesServiceServer(server, handler)
 	pb.RegisterOpenVPNConfigsServiceServer(server, handler)
+	pb.RegisterOpenVPNOperationsServiceServer(server, handler)
+	pb.RegisterOpenVPNAccessServiceServer(server, handler)
 }

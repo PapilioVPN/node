@@ -9,6 +9,7 @@ package instancesv1
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	emptypb "google.golang.org/protobuf/types/known/emptypb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -344,6 +345,7 @@ type OpenVPNInstanceStatus struct {
 	// SHA-256 of exact accepted source, present after confirmed readiness.
 	AppliedConfigSha256 *string `protobuf:"bytes,5,opt,name=applied_config_sha256,json=appliedConfigSha256,proto3,oneof" json:"applied_config_sha256,omitempty"`
 	OpenvpnVersion      string  `protobuf:"bytes,6,opt,name=openvpn_version,json=openvpnVersion,proto3" json:"openvpn_version,omitempty"`
+	ExecutionId         string  `protobuf:"bytes,7,opt,name=execution_id,json=executionId,proto3" json:"execution_id,omitempty"`
 	unknownFields       protoimpl.UnknownFields
 	sizeCache           protoimpl.SizeCache
 }
@@ -416,6 +418,13 @@ func (x *OpenVPNInstanceStatus) GetAppliedConfigSha256() string {
 func (x *OpenVPNInstanceStatus) GetOpenvpnVersion() string {
 	if x != nil {
 		return x.OpenvpnVersion
+	}
+	return ""
+}
+
+func (x *OpenVPNInstanceStatus) GetExecutionId() string {
+	if x != nil {
+		return x.ExecutionId
 	}
 	return ""
 }
@@ -532,11 +541,547 @@ func (x *OpenVPNConfigValidation) GetIssue() *OpenVPNConfigIssue {
 	return nil
 }
 
+type OpenVPNSession struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            uint64                 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	CommonName    string                 `protobuf:"bytes,2,opt,name=common_name,json=commonName,proto3" json:"common_name,omitempty"`
+	RemoteAddress string                 `protobuf:"bytes,3,opt,name=remote_address,json=remoteAddress,proto3" json:"remote_address,omitempty"`
+	TunnelIpv4    string                 `protobuf:"bytes,4,opt,name=tunnel_ipv4,json=tunnelIpv4,proto3" json:"tunnel_ipv4,omitempty"`
+	TunnelIpv6    string                 `protobuf:"bytes,5,opt,name=tunnel_ipv6,json=tunnelIpv6,proto3" json:"tunnel_ipv6,omitempty"`
+	RxBytes       uint64                 `protobuf:"varint,6,opt,name=rx_bytes,json=rxBytes,proto3" json:"rx_bytes,omitempty"`
+	TxBytes       uint64                 `protobuf:"varint,7,opt,name=tx_bytes,json=txBytes,proto3" json:"tx_bytes,omitempty"`
+	ConnectedAt   int64                  `protobuf:"varint,8,opt,name=connected_at,json=connectedAt,proto3" json:"connected_at,omitempty"`
+	Cipher        string                 `protobuf:"bytes,9,opt,name=cipher,proto3" json:"cipher,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *OpenVPNSession) Reset() {
+	*x = OpenVPNSession{}
+	mi := &file_proto_v1_openvpn_instances_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OpenVPNSession) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OpenVPNSession) ProtoMessage() {}
+
+func (x *OpenVPNSession) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_v1_openvpn_instances_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OpenVPNSession.ProtoReflect.Descriptor instead.
+func (*OpenVPNSession) Descriptor() ([]byte, []int) {
+	return file_proto_v1_openvpn_instances_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *OpenVPNSession) GetId() uint64 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+func (x *OpenVPNSession) GetCommonName() string {
+	if x != nil {
+		return x.CommonName
+	}
+	return ""
+}
+
+func (x *OpenVPNSession) GetRemoteAddress() string {
+	if x != nil {
+		return x.RemoteAddress
+	}
+	return ""
+}
+
+func (x *OpenVPNSession) GetTunnelIpv4() string {
+	if x != nil {
+		return x.TunnelIpv4
+	}
+	return ""
+}
+
+func (x *OpenVPNSession) GetTunnelIpv6() string {
+	if x != nil {
+		return x.TunnelIpv6
+	}
+	return ""
+}
+
+func (x *OpenVPNSession) GetRxBytes() uint64 {
+	if x != nil {
+		return x.RxBytes
+	}
+	return 0
+}
+
+func (x *OpenVPNSession) GetTxBytes() uint64 {
+	if x != nil {
+		return x.TxBytes
+	}
+	return 0
+}
+
+func (x *OpenVPNSession) GetConnectedAt() int64 {
+	if x != nil {
+		return x.ConnectedAt
+	}
+	return 0
+}
+
+func (x *OpenVPNSession) GetCipher() string {
+	if x != nil {
+		return x.Cipher
+	}
+	return ""
+}
+
+type OpenVPNSessionReport struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ExecutionId   string                 `protobuf:"bytes,1,opt,name=execution_id,json=executionId,proto3" json:"execution_id,omitempty"`
+	ObservedAt    int64                  `protobuf:"varint,2,opt,name=observed_at,json=observedAt,proto3" json:"observed_at,omitempty"`
+	Sessions      []*OpenVPNSession      `protobuf:"bytes,3,rep,name=sessions,proto3" json:"sessions,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *OpenVPNSessionReport) Reset() {
+	*x = OpenVPNSessionReport{}
+	mi := &file_proto_v1_openvpn_instances_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OpenVPNSessionReport) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OpenVPNSessionReport) ProtoMessage() {}
+
+func (x *OpenVPNSessionReport) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_v1_openvpn_instances_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OpenVPNSessionReport.ProtoReflect.Descriptor instead.
+func (*OpenVPNSessionReport) Descriptor() ([]byte, []int) {
+	return file_proto_v1_openvpn_instances_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *OpenVPNSessionReport) GetExecutionId() string {
+	if x != nil {
+		return x.ExecutionId
+	}
+	return ""
+}
+
+func (x *OpenVPNSessionReport) GetObservedAt() int64 {
+	if x != nil {
+		return x.ObservedAt
+	}
+	return 0
+}
+
+func (x *OpenVPNSessionReport) GetSessions() []*OpenVPNSession {
+	if x != nil {
+		return x.Sessions
+	}
+	return nil
+}
+
+type DisconnectOpenVPNSessionRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	ExecutionId   string                 `protobuf:"bytes,2,opt,name=execution_id,json=executionId,proto3" json:"execution_id,omitempty"`
+	SessionId     *uint64                `protobuf:"varint,3,opt,name=session_id,json=sessionId,proto3,oneof" json:"session_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DisconnectOpenVPNSessionRequest) Reset() {
+	*x = DisconnectOpenVPNSessionRequest{}
+	mi := &file_proto_v1_openvpn_instances_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DisconnectOpenVPNSessionRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DisconnectOpenVPNSessionRequest) ProtoMessage() {}
+
+func (x *DisconnectOpenVPNSessionRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_v1_openvpn_instances_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DisconnectOpenVPNSessionRequest.ProtoReflect.Descriptor instead.
+func (*DisconnectOpenVPNSessionRequest) Descriptor() ([]byte, []int) {
+	return file_proto_v1_openvpn_instances_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *DisconnectOpenVPNSessionRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *DisconnectOpenVPNSessionRequest) GetExecutionId() string {
+	if x != nil {
+		return x.ExecutionId
+	}
+	return ""
+}
+
+func (x *DisconnectOpenVPNSessionRequest) GetSessionId() uint64 {
+	if x != nil && x.SessionId != nil {
+		return *x.SessionId
+	}
+	return 0
+}
+
+type OpenVPNLogsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	ExecutionId   string                 `protobuf:"bytes,2,opt,name=execution_id,json=executionId,proto3" json:"execution_id,omitempty"`
+	AfterSequence uint64                 `protobuf:"varint,3,opt,name=after_sequence,json=afterSequence,proto3" json:"after_sequence,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *OpenVPNLogsRequest) Reset() {
+	*x = OpenVPNLogsRequest{}
+	mi := &file_proto_v1_openvpn_instances_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OpenVPNLogsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OpenVPNLogsRequest) ProtoMessage() {}
+
+func (x *OpenVPNLogsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_v1_openvpn_instances_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OpenVPNLogsRequest.ProtoReflect.Descriptor instead.
+func (*OpenVPNLogsRequest) Descriptor() ([]byte, []int) {
+	return file_proto_v1_openvpn_instances_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *OpenVPNLogsRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *OpenVPNLogsRequest) GetExecutionId() string {
+	if x != nil {
+		return x.ExecutionId
+	}
+	return ""
+}
+
+func (x *OpenVPNLogsRequest) GetAfterSequence() uint64 {
+	if x != nil {
+		return x.AfterSequence
+	}
+	return 0
+}
+
+type OpenVPNLogBatch struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ExecutionId   string                 `protobuf:"bytes,1,opt,name=execution_id,json=executionId,proto3" json:"execution_id,omitempty"`
+	Dropped       uint64                 `protobuf:"varint,2,opt,name=dropped,proto3" json:"dropped,omitempty"`
+	Entries       []*OpenVPNLog          `protobuf:"bytes,3,rep,name=entries,proto3" json:"entries,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *OpenVPNLogBatch) Reset() {
+	*x = OpenVPNLogBatch{}
+	mi := &file_proto_v1_openvpn_instances_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OpenVPNLogBatch) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OpenVPNLogBatch) ProtoMessage() {}
+
+func (x *OpenVPNLogBatch) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_v1_openvpn_instances_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OpenVPNLogBatch.ProtoReflect.Descriptor instead.
+func (*OpenVPNLogBatch) Descriptor() ([]byte, []int) {
+	return file_proto_v1_openvpn_instances_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *OpenVPNLogBatch) GetExecutionId() string {
+	if x != nil {
+		return x.ExecutionId
+	}
+	return ""
+}
+
+func (x *OpenVPNLogBatch) GetDropped() uint64 {
+	if x != nil {
+		return x.Dropped
+	}
+	return 0
+}
+
+func (x *OpenVPNLogBatch) GetEntries() []*OpenVPNLog {
+	if x != nil {
+		return x.Entries
+	}
+	return nil
+}
+
+type OpenVPNLog struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Sequence      uint64                 `protobuf:"varint,1,opt,name=sequence,proto3" json:"sequence,omitempty"`
+	Timestamp     int64                  `protobuf:"varint,2,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	Level         string                 `protobuf:"bytes,3,opt,name=level,proto3" json:"level,omitempty"`
+	Message       string                 `protobuf:"bytes,4,opt,name=message,proto3" json:"message,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *OpenVPNLog) Reset() {
+	*x = OpenVPNLog{}
+	mi := &file_proto_v1_openvpn_instances_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OpenVPNLog) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OpenVPNLog) ProtoMessage() {}
+
+func (x *OpenVPNLog) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_v1_openvpn_instances_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OpenVPNLog.ProtoReflect.Descriptor instead.
+func (*OpenVPNLog) Descriptor() ([]byte, []int) {
+	return file_proto_v1_openvpn_instances_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *OpenVPNLog) GetSequence() uint64 {
+	if x != nil {
+		return x.Sequence
+	}
+	return 0
+}
+
+func (x *OpenVPNLog) GetTimestamp() int64 {
+	if x != nil {
+		return x.Timestamp
+	}
+	return 0
+}
+
+func (x *OpenVPNLog) GetLevel() string {
+	if x != nil {
+		return x.Level
+	}
+	return ""
+}
+
+func (x *OpenVPNLog) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+type ReplaceOpenVPNRevocationRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	SignedPem     []byte                 `protobuf:"bytes,2,opt,name=signed_pem,json=signedPem,proto3" json:"signed_pem,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ReplaceOpenVPNRevocationRequest) Reset() {
+	*x = ReplaceOpenVPNRevocationRequest{}
+	mi := &file_proto_v1_openvpn_instances_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReplaceOpenVPNRevocationRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReplaceOpenVPNRevocationRequest) ProtoMessage() {}
+
+func (x *ReplaceOpenVPNRevocationRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_v1_openvpn_instances_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReplaceOpenVPNRevocationRequest.ProtoReflect.Descriptor instead.
+func (*ReplaceOpenVPNRevocationRequest) Descriptor() ([]byte, []int) {
+	return file_proto_v1_openvpn_instances_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *ReplaceOpenVPNRevocationRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *ReplaceOpenVPNRevocationRequest) GetSignedPem() []byte {
+	if x != nil {
+		return x.SignedPem
+	}
+	return nil
+}
+
+type OpenVPNRevocationStatus struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Number        string                 `protobuf:"bytes,1,opt,name=number,proto3" json:"number,omitempty"`
+	Sha256        string                 `protobuf:"bytes,2,opt,name=sha256,proto3" json:"sha256,omitempty"`
+	NextUpdate    int64                  `protobuf:"varint,3,opt,name=next_update,json=nextUpdate,proto3" json:"next_update,omitempty"`
+	RevokedCount  uint32                 `protobuf:"varint,4,opt,name=revoked_count,json=revokedCount,proto3" json:"revoked_count,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *OpenVPNRevocationStatus) Reset() {
+	*x = OpenVPNRevocationStatus{}
+	mi := &file_proto_v1_openvpn_instances_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OpenVPNRevocationStatus) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OpenVPNRevocationStatus) ProtoMessage() {}
+
+func (x *OpenVPNRevocationStatus) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_v1_openvpn_instances_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OpenVPNRevocationStatus.ProtoReflect.Descriptor instead.
+func (*OpenVPNRevocationStatus) Descriptor() ([]byte, []int) {
+	return file_proto_v1_openvpn_instances_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *OpenVPNRevocationStatus) GetNumber() string {
+	if x != nil {
+		return x.Number
+	}
+	return ""
+}
+
+func (x *OpenVPNRevocationStatus) GetSha256() string {
+	if x != nil {
+		return x.Sha256
+	}
+	return ""
+}
+
+func (x *OpenVPNRevocationStatus) GetNextUpdate() int64 {
+	if x != nil {
+		return x.NextUpdate
+	}
+	return 0
+}
+
+func (x *OpenVPNRevocationStatus) GetRevokedCount() uint32 {
+	if x != nil {
+		return x.RevokedCount
+	}
+	return 0
+}
+
 var File_proto_v1_openvpn_instances_proto protoreflect.FileDescriptor
 
 const file_proto_v1_openvpn_instances_proto_rawDesc = "" +
 	"\n" +
-	" proto/v1/openvpn_instances.proto\x12\x12papiliovpn.node.v1\"(\n" +
+	" proto/v1/openvpn_instances.proto\x12\x12papiliovpn.node.v1\x1a\x1bgoogle/protobuf/empty.proto\"(\n" +
 	"\x16OpenVPNInstanceRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"[\n" +
 	"\x13OpenVPNStartRequest\x12\x0e\n" +
@@ -548,14 +1093,15 @@ const file_proto_v1_openvpn_instances_proto_rawDesc = "" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12$\n" +
 	"\vconfig_text\x18\x02 \x01(\fH\x00R\n" +
 	"configText\x88\x01\x01B\x0e\n" +
-	"\f_config_text\"\xd1\x02\n" +
+	"\f_config_text\"\xf4\x02\n" +
 	"\x15OpenVPNInstanceStatus\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12>\n" +
 	"\x05state\x18\x02 \x01(\x0e2(.papiliovpn.node.v1.OpenVPNInstanceStateR\x05state\x12!\n" +
 	"\fnode_version\x18\x03 \x01(\tR\vnodeVersion\x12I\n" +
 	"\fstart_action\x18\x04 \x01(\x0e2&.papiliovpn.node.v1.OpenVPNStartActionR\vstartAction\x127\n" +
 	"\x15applied_config_sha256\x18\x05 \x01(\tH\x00R\x13appliedConfigSha256\x88\x01\x01\x12'\n" +
-	"\x0fopenvpn_version\x18\x06 \x01(\tR\x0eopenvpnVersionB\x18\n" +
+	"\x0fopenvpn_version\x18\x06 \x01(\tR\x0eopenvpnVersion\x12!\n" +
+	"\fexecution_id\x18\a \x01(\tR\vexecutionIdB\x18\n" +
 	"\x16_applied_config_sha256\"h\n" +
 	"\x12OpenVPNConfigIssue\x12>\n" +
 	"\x04code\x18\x01 \x01(\x0e2*.papiliovpn.node.v1.OpenVPNConfigIssueCodeR\x04code\x12\x12\n" +
@@ -563,7 +1109,55 @@ const file_proto_v1_openvpn_instances_proto_rawDesc = "" +
 	"\x17OpenVPNConfigValidation\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05valid\x18\x02 \x01(\bR\x05valid\x12<\n" +
-	"\x05issue\x18\x03 \x01(\v2&.papiliovpn.node.v1.OpenVPNConfigIssueR\x05issue*\xf7\x01\n" +
+	"\x05issue\x18\x03 \x01(\v2&.papiliovpn.node.v1.OpenVPNConfigIssueR\x05issue\"\x9b\x02\n" +
+	"\x0eOpenVPNSession\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\x04R\x02id\x12\x1f\n" +
+	"\vcommon_name\x18\x02 \x01(\tR\n" +
+	"commonName\x12%\n" +
+	"\x0eremote_address\x18\x03 \x01(\tR\rremoteAddress\x12\x1f\n" +
+	"\vtunnel_ipv4\x18\x04 \x01(\tR\n" +
+	"tunnelIpv4\x12\x1f\n" +
+	"\vtunnel_ipv6\x18\x05 \x01(\tR\n" +
+	"tunnelIpv6\x12\x19\n" +
+	"\brx_bytes\x18\x06 \x01(\x04R\arxBytes\x12\x19\n" +
+	"\btx_bytes\x18\a \x01(\x04R\atxBytes\x12!\n" +
+	"\fconnected_at\x18\b \x01(\x03R\vconnectedAt\x12\x16\n" +
+	"\x06cipher\x18\t \x01(\tR\x06cipher\"\x9a\x01\n" +
+	"\x14OpenVPNSessionReport\x12!\n" +
+	"\fexecution_id\x18\x01 \x01(\tR\vexecutionId\x12\x1f\n" +
+	"\vobserved_at\x18\x02 \x01(\x03R\n" +
+	"observedAt\x12>\n" +
+	"\bsessions\x18\x03 \x03(\v2\".papiliovpn.node.v1.OpenVPNSessionR\bsessions\"\x87\x01\n" +
+	"\x1fDisconnectOpenVPNSessionRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12!\n" +
+	"\fexecution_id\x18\x02 \x01(\tR\vexecutionId\x12\"\n" +
+	"\n" +
+	"session_id\x18\x03 \x01(\x04H\x00R\tsessionId\x88\x01\x01B\r\n" +
+	"\v_session_id\"n\n" +
+	"\x12OpenVPNLogsRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12!\n" +
+	"\fexecution_id\x18\x02 \x01(\tR\vexecutionId\x12%\n" +
+	"\x0eafter_sequence\x18\x03 \x01(\x04R\rafterSequence\"\x88\x01\n" +
+	"\x0fOpenVPNLogBatch\x12!\n" +
+	"\fexecution_id\x18\x01 \x01(\tR\vexecutionId\x12\x18\n" +
+	"\adropped\x18\x02 \x01(\x04R\adropped\x128\n" +
+	"\aentries\x18\x03 \x03(\v2\x1e.papiliovpn.node.v1.OpenVPNLogR\aentries\"v\n" +
+	"\n" +
+	"OpenVPNLog\x12\x1a\n" +
+	"\bsequence\x18\x01 \x01(\x04R\bsequence\x12\x1c\n" +
+	"\ttimestamp\x18\x02 \x01(\x03R\ttimestamp\x12\x14\n" +
+	"\x05level\x18\x03 \x01(\tR\x05level\x12\x18\n" +
+	"\amessage\x18\x04 \x01(\tR\amessage\"P\n" +
+	"\x1fReplaceOpenVPNRevocationRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
+	"\n" +
+	"signed_pem\x18\x02 \x01(\fR\tsignedPem\"\x8f\x01\n" +
+	"\x17OpenVPNRevocationStatus\x12\x16\n" +
+	"\x06number\x18\x01 \x01(\tR\x06number\x12\x16\n" +
+	"\x06sha256\x18\x02 \x01(\tR\x06sha256\x12\x1f\n" +
+	"\vnext_update\x18\x03 \x01(\x03R\n" +
+	"nextUpdate\x12#\n" +
+	"\rrevoked_count\x18\x04 \x01(\rR\frevokedCount*\xf7\x01\n" +
 	"\x14OpenVPNInstanceState\x12'\n" +
 	"#OPEN_VPN_INSTANCE_STATE_UNSPECIFIED\x10\x00\x12#\n" +
 	"\x1fOPEN_VPN_INSTANCE_STATE_STOPPED\x10\x01\x12$\n" +
@@ -587,7 +1181,14 @@ const file_proto_v1_openvpn_instances_proto_rawDesc = "" +
 	"\tGetStatus\x12*.papiliovpn.node.v1.OpenVPNInstanceRequest\x1a).papiliovpn.node.v1.OpenVPNInstanceStatus\x12]\n" +
 	"\x04Stop\x12*.papiliovpn.node.v1.OpenVPNInstanceRequest\x1a).papiliovpn.node.v1.OpenVPNInstanceStatus2\x88\x01\n" +
 	"\x15OpenVPNConfigsService\x12o\n" +
-	"\x0eValidateConfig\x120.papiliovpn.node.v1.ValidateOpenVPNConfigRequest\x1a+.papiliovpn.node.v1.OpenVPNConfigValidationB`Z^github.com/PapilioVPN/node/internal/engines/openvpn/instances/bridge/grpc/proto/v1;instancesv1b\x06proto3"
+	"\x0eValidateConfig\x120.papiliovpn.node.v1.ValidateOpenVPNConfigRequest\x1a+.papiliovpn.node.v1.OpenVPNConfigValidation2\xbc\x02\n" +
+	"\x18OpenVPNOperationsService\x12d\n" +
+	"\fListSessions\x12*.papiliovpn.node.v1.OpenVPNInstanceRequest\x1a(.papiliovpn.node.v1.OpenVPNSessionReport\x12`\n" +
+	"\x11DisconnectSession\x123.papiliovpn.node.v1.DisconnectOpenVPNSessionRequest\x1a\x16.google.protobuf.Empty\x12X\n" +
+	"\aGetLogs\x12&.papiliovpn.node.v1.OpenVPNLogsRequest\x1a#.papiliovpn.node.v1.OpenVPNLogBatch0\x012\xff\x01\n" +
+	"\x14OpenVPNAccessService\x12l\n" +
+	"\x11GetRevocationList\x12*.papiliovpn.node.v1.OpenVPNInstanceRequest\x1a+.papiliovpn.node.v1.OpenVPNRevocationStatus\x12y\n" +
+	"\x15ReplaceRevocationList\x123.papiliovpn.node.v1.ReplaceOpenVPNRevocationRequest\x1a+.papiliovpn.node.v1.OpenVPNRevocationStatusB`Z^github.com/PapilioVPN/node/internal/engines/openvpn/instances/bridge/grpc/proto/v1;instancesv1b\x06proto3"
 
 var (
 	file_proto_v1_openvpn_instances_proto_rawDescOnce sync.Once
@@ -602,36 +1203,57 @@ func file_proto_v1_openvpn_instances_proto_rawDescGZIP() []byte {
 }
 
 var file_proto_v1_openvpn_instances_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_proto_v1_openvpn_instances_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_proto_v1_openvpn_instances_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
 var file_proto_v1_openvpn_instances_proto_goTypes = []any{
-	(OpenVPNInstanceState)(0),            // 0: papiliovpn.node.v1.OpenVPNInstanceState
-	(OpenVPNStartAction)(0),              // 1: papiliovpn.node.v1.OpenVPNStartAction
-	(OpenVPNConfigIssueCode)(0),          // 2: papiliovpn.node.v1.OpenVPNConfigIssueCode
-	(*OpenVPNInstanceRequest)(nil),       // 3: papiliovpn.node.v1.OpenVPNInstanceRequest
-	(*OpenVPNStartRequest)(nil),          // 4: papiliovpn.node.v1.OpenVPNStartRequest
-	(*ValidateOpenVPNConfigRequest)(nil), // 5: papiliovpn.node.v1.ValidateOpenVPNConfigRequest
-	(*OpenVPNInstanceStatus)(nil),        // 6: papiliovpn.node.v1.OpenVPNInstanceStatus
-	(*OpenVPNConfigIssue)(nil),           // 7: papiliovpn.node.v1.OpenVPNConfigIssue
-	(*OpenVPNConfigValidation)(nil),      // 8: papiliovpn.node.v1.OpenVPNConfigValidation
+	(OpenVPNInstanceState)(0),               // 0: papiliovpn.node.v1.OpenVPNInstanceState
+	(OpenVPNStartAction)(0),                 // 1: papiliovpn.node.v1.OpenVPNStartAction
+	(OpenVPNConfigIssueCode)(0),             // 2: papiliovpn.node.v1.OpenVPNConfigIssueCode
+	(*OpenVPNInstanceRequest)(nil),          // 3: papiliovpn.node.v1.OpenVPNInstanceRequest
+	(*OpenVPNStartRequest)(nil),             // 4: papiliovpn.node.v1.OpenVPNStartRequest
+	(*ValidateOpenVPNConfigRequest)(nil),    // 5: papiliovpn.node.v1.ValidateOpenVPNConfigRequest
+	(*OpenVPNInstanceStatus)(nil),           // 6: papiliovpn.node.v1.OpenVPNInstanceStatus
+	(*OpenVPNConfigIssue)(nil),              // 7: papiliovpn.node.v1.OpenVPNConfigIssue
+	(*OpenVPNConfigValidation)(nil),         // 8: papiliovpn.node.v1.OpenVPNConfigValidation
+	(*OpenVPNSession)(nil),                  // 9: papiliovpn.node.v1.OpenVPNSession
+	(*OpenVPNSessionReport)(nil),            // 10: papiliovpn.node.v1.OpenVPNSessionReport
+	(*DisconnectOpenVPNSessionRequest)(nil), // 11: papiliovpn.node.v1.DisconnectOpenVPNSessionRequest
+	(*OpenVPNLogsRequest)(nil),              // 12: papiliovpn.node.v1.OpenVPNLogsRequest
+	(*OpenVPNLogBatch)(nil),                 // 13: papiliovpn.node.v1.OpenVPNLogBatch
+	(*OpenVPNLog)(nil),                      // 14: papiliovpn.node.v1.OpenVPNLog
+	(*ReplaceOpenVPNRevocationRequest)(nil), // 15: papiliovpn.node.v1.ReplaceOpenVPNRevocationRequest
+	(*OpenVPNRevocationStatus)(nil),         // 16: papiliovpn.node.v1.OpenVPNRevocationStatus
+	(*emptypb.Empty)(nil),                   // 17: google.protobuf.Empty
 }
 var file_proto_v1_openvpn_instances_proto_depIdxs = []int32{
-	0, // 0: papiliovpn.node.v1.OpenVPNInstanceStatus.state:type_name -> papiliovpn.node.v1.OpenVPNInstanceState
-	1, // 1: papiliovpn.node.v1.OpenVPNInstanceStatus.start_action:type_name -> papiliovpn.node.v1.OpenVPNStartAction
-	2, // 2: papiliovpn.node.v1.OpenVPNConfigIssue.code:type_name -> papiliovpn.node.v1.OpenVPNConfigIssueCode
-	7, // 3: papiliovpn.node.v1.OpenVPNConfigValidation.issue:type_name -> papiliovpn.node.v1.OpenVPNConfigIssue
-	4, // 4: papiliovpn.node.v1.OpenVPNInstancesService.Start:input_type -> papiliovpn.node.v1.OpenVPNStartRequest
-	3, // 5: papiliovpn.node.v1.OpenVPNInstancesService.GetStatus:input_type -> papiliovpn.node.v1.OpenVPNInstanceRequest
-	3, // 6: papiliovpn.node.v1.OpenVPNInstancesService.Stop:input_type -> papiliovpn.node.v1.OpenVPNInstanceRequest
-	5, // 7: papiliovpn.node.v1.OpenVPNConfigsService.ValidateConfig:input_type -> papiliovpn.node.v1.ValidateOpenVPNConfigRequest
-	6, // 8: papiliovpn.node.v1.OpenVPNInstancesService.Start:output_type -> papiliovpn.node.v1.OpenVPNInstanceStatus
-	6, // 9: papiliovpn.node.v1.OpenVPNInstancesService.GetStatus:output_type -> papiliovpn.node.v1.OpenVPNInstanceStatus
-	6, // 10: papiliovpn.node.v1.OpenVPNInstancesService.Stop:output_type -> papiliovpn.node.v1.OpenVPNInstanceStatus
-	8, // 11: papiliovpn.node.v1.OpenVPNConfigsService.ValidateConfig:output_type -> papiliovpn.node.v1.OpenVPNConfigValidation
-	8, // [8:12] is the sub-list for method output_type
-	4, // [4:8] is the sub-list for method input_type
-	4, // [4:4] is the sub-list for extension type_name
-	4, // [4:4] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	0,  // 0: papiliovpn.node.v1.OpenVPNInstanceStatus.state:type_name -> papiliovpn.node.v1.OpenVPNInstanceState
+	1,  // 1: papiliovpn.node.v1.OpenVPNInstanceStatus.start_action:type_name -> papiliovpn.node.v1.OpenVPNStartAction
+	2,  // 2: papiliovpn.node.v1.OpenVPNConfigIssue.code:type_name -> papiliovpn.node.v1.OpenVPNConfigIssueCode
+	7,  // 3: papiliovpn.node.v1.OpenVPNConfigValidation.issue:type_name -> papiliovpn.node.v1.OpenVPNConfigIssue
+	9,  // 4: papiliovpn.node.v1.OpenVPNSessionReport.sessions:type_name -> papiliovpn.node.v1.OpenVPNSession
+	14, // 5: papiliovpn.node.v1.OpenVPNLogBatch.entries:type_name -> papiliovpn.node.v1.OpenVPNLog
+	4,  // 6: papiliovpn.node.v1.OpenVPNInstancesService.Start:input_type -> papiliovpn.node.v1.OpenVPNStartRequest
+	3,  // 7: papiliovpn.node.v1.OpenVPNInstancesService.GetStatus:input_type -> papiliovpn.node.v1.OpenVPNInstanceRequest
+	3,  // 8: papiliovpn.node.v1.OpenVPNInstancesService.Stop:input_type -> papiliovpn.node.v1.OpenVPNInstanceRequest
+	5,  // 9: papiliovpn.node.v1.OpenVPNConfigsService.ValidateConfig:input_type -> papiliovpn.node.v1.ValidateOpenVPNConfigRequest
+	3,  // 10: papiliovpn.node.v1.OpenVPNOperationsService.ListSessions:input_type -> papiliovpn.node.v1.OpenVPNInstanceRequest
+	11, // 11: papiliovpn.node.v1.OpenVPNOperationsService.DisconnectSession:input_type -> papiliovpn.node.v1.DisconnectOpenVPNSessionRequest
+	12, // 12: papiliovpn.node.v1.OpenVPNOperationsService.GetLogs:input_type -> papiliovpn.node.v1.OpenVPNLogsRequest
+	3,  // 13: papiliovpn.node.v1.OpenVPNAccessService.GetRevocationList:input_type -> papiliovpn.node.v1.OpenVPNInstanceRequest
+	15, // 14: papiliovpn.node.v1.OpenVPNAccessService.ReplaceRevocationList:input_type -> papiliovpn.node.v1.ReplaceOpenVPNRevocationRequest
+	6,  // 15: papiliovpn.node.v1.OpenVPNInstancesService.Start:output_type -> papiliovpn.node.v1.OpenVPNInstanceStatus
+	6,  // 16: papiliovpn.node.v1.OpenVPNInstancesService.GetStatus:output_type -> papiliovpn.node.v1.OpenVPNInstanceStatus
+	6,  // 17: papiliovpn.node.v1.OpenVPNInstancesService.Stop:output_type -> papiliovpn.node.v1.OpenVPNInstanceStatus
+	8,  // 18: papiliovpn.node.v1.OpenVPNConfigsService.ValidateConfig:output_type -> papiliovpn.node.v1.OpenVPNConfigValidation
+	10, // 19: papiliovpn.node.v1.OpenVPNOperationsService.ListSessions:output_type -> papiliovpn.node.v1.OpenVPNSessionReport
+	17, // 20: papiliovpn.node.v1.OpenVPNOperationsService.DisconnectSession:output_type -> google.protobuf.Empty
+	13, // 21: papiliovpn.node.v1.OpenVPNOperationsService.GetLogs:output_type -> papiliovpn.node.v1.OpenVPNLogBatch
+	16, // 22: papiliovpn.node.v1.OpenVPNAccessService.GetRevocationList:output_type -> papiliovpn.node.v1.OpenVPNRevocationStatus
+	16, // 23: papiliovpn.node.v1.OpenVPNAccessService.ReplaceRevocationList:output_type -> papiliovpn.node.v1.OpenVPNRevocationStatus
+	15, // [15:24] is the sub-list for method output_type
+	6,  // [6:15] is the sub-list for method input_type
+	6,  // [6:6] is the sub-list for extension type_name
+	6,  // [6:6] is the sub-list for extension extendee
+	0,  // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_proto_v1_openvpn_instances_proto_init() }
@@ -642,15 +1264,16 @@ func file_proto_v1_openvpn_instances_proto_init() {
 	file_proto_v1_openvpn_instances_proto_msgTypes[1].OneofWrappers = []any{}
 	file_proto_v1_openvpn_instances_proto_msgTypes[2].OneofWrappers = []any{}
 	file_proto_v1_openvpn_instances_proto_msgTypes[3].OneofWrappers = []any{}
+	file_proto_v1_openvpn_instances_proto_msgTypes[8].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_v1_openvpn_instances_proto_rawDesc), len(file_proto_v1_openvpn_instances_proto_rawDesc)),
 			NumEnums:      3,
-			NumMessages:   6,
+			NumMessages:   14,
 			NumExtensions: 0,
-			NumServices:   2,
+			NumServices:   4,
 		},
 		GoTypes:           file_proto_v1_openvpn_instances_proto_goTypes,
 		DependencyIndexes: file_proto_v1_openvpn_instances_proto_depIdxs,

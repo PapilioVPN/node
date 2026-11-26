@@ -13,4 +13,9 @@ func Register(router chi.Router, service *lifecycle.Service) {
 	router.Put(path+"/execution", h.start)
 	router.Delete(path+"/execution", h.stop)
 	router.Post(path+"/config-validations", h.validate)
+	router.Get(path+"/sessions", h.sessions)
+	router.Delete(path+"/sessions/{session_id}", h.disconnect)
+	router.Get(path+"/logs", h.logs)
+	router.Get(path+"/revocation-list", h.getRevocationList)
+	router.Put(path+"/revocation-list", h.replaceRevocationList)
 }

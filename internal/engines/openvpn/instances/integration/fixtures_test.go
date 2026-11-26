@@ -30,6 +30,11 @@ type fixture struct {
 
 func newFixture(t testing.TB) fixture {
 	t.Helper()
+	return newFixtureWithRevocations(t, false)
+}
+
+func newFixtureWithRevocations(t testing.TB, revocations bool) fixture {
+	t.Helper()
 	exe := os.Getenv("NODE_TEST_OPENVPN")
 	if exe == "" {
 		t.Skip("set NODE_TEST_OPENVPN to the OpenVPN executable")
@@ -47,7 +52,8 @@ func newFixture(t testing.TB) fixture {
 	for _, name := range []string{"ca", "server", "client"} {
 		cmd := []string{"req", "-newkey", "ec", "-pkeyopt", "ec_paramgen_curve:P-256", "-noenc", "-subj", "/CN=fixture-" + name, "-keyout", name + ".key"}
 		if name == "ca" {
-			command(t, dir, "openssl", append(cmd, "-x509", "-days", "1", "-out", name+".crt")...)
+			command(t, dir, "openssl", append(cmd, "-x509", "-days", "1", "-out", name+".crt",
+				"-addext", "keyUsage=critical,keyCertSign,cRLSign")...)
 		} else {
 			command(t, dir, "openssl", append(cmd, "-out", name+".csr")...)
 			command(t, dir, "openssl", "x509", "-req", "-in", name+".csr", "-CA", "ca.crt", "-CAkey", "ca.key",
@@ -74,6 +80,9 @@ dh none
 verb 3
 `, port)
 	configFile := filepath.Join(dir, "openvpn.conf")
+	if revocations {
+		source = bytes.Replace(source, []byte("ca ca.crt\n"), nil, 1)
+	}
 	if err := os.WriteFile(configFile, source, 0600); err != nil {
 		t.Fatal(err)
 	}
@@ -90,10 +99,15 @@ verb 3
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan error, 1)
+	config := settings.OpenVPN{ID: "primary", Executable: exe, ConfigFile: configFile, RuntimeDirectory: runtimeDir}
+	if revocations {
+		config.RevocationCAFile = filepath.Join(dir, "ca.crt")
+		config.RevocationListFile = filepath.Join(dir, "crl.pem")
+	}
 	go func() {
 		done <- bootstrap.Run(ctx, settings.Config{
 			Management: settings.Management{HTTPAddress: f.httpAddr, GRPCAddress: f.grpcAddr},
-			OpenVPN:    settings.OpenVPN{ID: "primary", Executable: exe, ConfigFile: configFile, RuntimeDirectory: runtimeDir},
+			OpenVPN:    config,
 		}, slog.New(slog.NewTextHandler(io.Discard, nil)))
 	}()
 	t.Cleanup(func() {
@@ -196,16 +210,33 @@ func (f fixture) request(t testing.TB, method, suffix string, body []byte, want 
 	return raw
 }
 
-func (f fixture) tunnel(t testing.TB) {
+func (f fixture) tunnel(t testing.TB, extra ...string) {
 	t.Helper()
-	log, err := os.Create(filepath.Join(f.dir, "client.log"))
+	log := f.launchClient(t, "tun-node-c", extra...)
+	until := time.Now().Add(5 * time.Second)
+	var output []byte
+	for time.Now().Before(until) {
+		output, _ = os.ReadFile(log)
+		if strings.Contains(string(output), "Initialization Sequence Completed") {
+			f.ping(t)
+			return
+		}
+		time.Sleep(30 * time.Millisecond)
+	}
+	t.Fatalf("OpenVPN client was not ready: %s", output)
+}
+
+func (f fixture) launchClient(t testing.TB, device string, extra ...string) string {
+	t.Helper()
+	log, err := os.Create(filepath.Join(f.dir, device+".log"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer log.Close()
-	cmd := exec.Command("nsenter", "-t", fmt.Sprint(f.clientNamespacePID), "-n", f.executable,
+	args := []string{"-t", fmt.Sprint(f.clientNamespacePID), "-n", f.executable,
 		"--client", "--disable-dco", "--proto", "udp4", "--remote", "192.0.2.1",
-		fmt.Sprint(f.port), "--nobind", "--dev", "tun-node-c", "--ca", "ca.crt", "--cert", "client.crt", "--key", "client.key")
+		fmt.Sprint(f.port), "--nobind", "--dev", device, "--ca", "ca.crt", "--cert", "client.crt", "--key", "client.key"}
+	cmd := exec.Command("nsenter", append(args, extra...)...)
 	cmd.Dir, cmd.Stdout, cmd.Stderr = f.dir, log, log
 	if err := cmd.Start(); err != nil {
 		t.Fatal(err)
@@ -214,17 +245,7 @@ func (f fixture) tunnel(t testing.TB) {
 		_ = cmd.Process.Kill()
 		_ = cmd.Wait()
 	})
-	until := time.Now().Add(5 * time.Second)
-	var output []byte
-	for time.Now().Before(until) {
-		output, _ = os.ReadFile(log.Name())
-		if strings.Contains(string(output), "Initialization Sequence Completed") {
-			f.ping(t)
-			return
-		}
-		time.Sleep(30 * time.Millisecond)
-	}
-	t.Fatalf("OpenVPN client was not ready: %s", output)
+	return log.Name()
 }
 
 func (f fixture) ping(t testing.TB) {

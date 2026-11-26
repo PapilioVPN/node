@@ -24,7 +24,7 @@ func TestManagedSource(t *testing.T) {
 		{"only comments", "# empty profile\n", "invalid_source"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			got := checkSource([]byte(tc.text))
+			got := checkSource([]byte(tc.text), false)
 			if got.Code != tc.want {
 				t.Fatalf("issue = %+v, want %q", got, tc.want)
 			}

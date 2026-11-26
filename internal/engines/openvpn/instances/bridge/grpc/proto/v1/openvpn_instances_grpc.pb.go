@@ -11,6 +11,7 @@ import (
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
+	emptypb "google.golang.org/protobuf/types/known/emptypb"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -295,6 +296,329 @@ var OpenVPNConfigsService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ValidateConfig",
 			Handler:    _OpenVPNConfigsService_ValidateConfig_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "proto/v1/openvpn_instances.proto",
+}
+
+const (
+	OpenVPNOperationsService_ListSessions_FullMethodName      = "/papiliovpn.node.v1.OpenVPNOperationsService/ListSessions"
+	OpenVPNOperationsService_DisconnectSession_FullMethodName = "/papiliovpn.node.v1.OpenVPNOperationsService/DisconnectSession"
+	OpenVPNOperationsService_GetLogs_FullMethodName           = "/papiliovpn.node.v1.OpenVPNOperationsService/GetLogs"
+)
+
+// OpenVPNOperationsServiceClient is the client API for OpenVPNOperationsService service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+type OpenVPNOperationsServiceClient interface {
+	ListSessions(ctx context.Context, in *OpenVPNInstanceRequest, opts ...grpc.CallOption) (*OpenVPNSessionReport, error)
+	DisconnectSession(ctx context.Context, in *DisconnectOpenVPNSessionRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	GetLogs(ctx context.Context, in *OpenVPNLogsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[OpenVPNLogBatch], error)
+}
+
+type openVPNOperationsServiceClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewOpenVPNOperationsServiceClient(cc grpc.ClientConnInterface) OpenVPNOperationsServiceClient {
+	return &openVPNOperationsServiceClient{cc}
+}
+
+func (c *openVPNOperationsServiceClient) ListSessions(ctx context.Context, in *OpenVPNInstanceRequest, opts ...grpc.CallOption) (*OpenVPNSessionReport, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OpenVPNSessionReport)
+	err := c.cc.Invoke(ctx, OpenVPNOperationsService_ListSessions_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *openVPNOperationsServiceClient) DisconnectSession(ctx context.Context, in *DisconnectOpenVPNSessionRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, OpenVPNOperationsService_DisconnectSession_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *openVPNOperationsServiceClient) GetLogs(ctx context.Context, in *OpenVPNLogsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[OpenVPNLogBatch], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &OpenVPNOperationsService_ServiceDesc.Streams[0], OpenVPNOperationsService_GetLogs_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[OpenVPNLogsRequest, OpenVPNLogBatch]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type OpenVPNOperationsService_GetLogsClient = grpc.ServerStreamingClient[OpenVPNLogBatch]
+
+// OpenVPNOperationsServiceServer is the server API for OpenVPNOperationsService service.
+// All implementations must embed UnimplementedOpenVPNOperationsServiceServer
+// for forward compatibility.
+type OpenVPNOperationsServiceServer interface {
+	ListSessions(context.Context, *OpenVPNInstanceRequest) (*OpenVPNSessionReport, error)
+	DisconnectSession(context.Context, *DisconnectOpenVPNSessionRequest) (*emptypb.Empty, error)
+	GetLogs(*OpenVPNLogsRequest, grpc.ServerStreamingServer[OpenVPNLogBatch]) error
+	mustEmbedUnimplementedOpenVPNOperationsServiceServer()
+}
+
+// UnimplementedOpenVPNOperationsServiceServer must be embedded to have
+// forward compatible implementations.
+//
+// NOTE: this should be embedded by value instead of pointer to avoid a nil
+// pointer dereference when methods are called.
+type UnimplementedOpenVPNOperationsServiceServer struct{}
+
+func (UnimplementedOpenVPNOperationsServiceServer) ListSessions(context.Context, *OpenVPNInstanceRequest) (*OpenVPNSessionReport, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListSessions not implemented")
+}
+func (UnimplementedOpenVPNOperationsServiceServer) DisconnectSession(context.Context, *DisconnectOpenVPNSessionRequest) (*emptypb.Empty, error) {
+	return nil, status.Error(codes.Unimplemented, "method DisconnectSession not implemented")
+}
+func (UnimplementedOpenVPNOperationsServiceServer) GetLogs(*OpenVPNLogsRequest, grpc.ServerStreamingServer[OpenVPNLogBatch]) error {
+	return status.Error(codes.Unimplemented, "method GetLogs not implemented")
+}
+func (UnimplementedOpenVPNOperationsServiceServer) mustEmbedUnimplementedOpenVPNOperationsServiceServer() {
+}
+func (UnimplementedOpenVPNOperationsServiceServer) testEmbeddedByValue() {}
+
+// UnsafeOpenVPNOperationsServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to OpenVPNOperationsServiceServer will
+// result in compilation errors.
+type UnsafeOpenVPNOperationsServiceServer interface {
+	mustEmbedUnimplementedOpenVPNOperationsServiceServer()
+}
+
+func RegisterOpenVPNOperationsServiceServer(s grpc.ServiceRegistrar, srv OpenVPNOperationsServiceServer) {
+	// If the following call panics, it indicates UnimplementedOpenVPNOperationsServiceServer was
+	// embedded by pointer and is nil.  This will cause panics if an
+	// unimplemented method is ever invoked, so we test this at initialization
+	// time to prevent it from happening at runtime later due to I/O.
+	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
+		t.testEmbeddedByValue()
+	}
+	s.RegisterService(&OpenVPNOperationsService_ServiceDesc, srv)
+}
+
+func _OpenVPNOperationsService_ListSessions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OpenVPNInstanceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(OpenVPNOperationsServiceServer).ListSessions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: OpenVPNOperationsService_ListSessions_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(OpenVPNOperationsServiceServer).ListSessions(ctx, req.(*OpenVPNInstanceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _OpenVPNOperationsService_DisconnectSession_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DisconnectOpenVPNSessionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(OpenVPNOperationsServiceServer).DisconnectSession(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: OpenVPNOperationsService_DisconnectSession_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(OpenVPNOperationsServiceServer).DisconnectSession(ctx, req.(*DisconnectOpenVPNSessionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _OpenVPNOperationsService_GetLogs_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(OpenVPNLogsRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(OpenVPNOperationsServiceServer).GetLogs(m, &grpc.GenericServerStream[OpenVPNLogsRequest, OpenVPNLogBatch]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type OpenVPNOperationsService_GetLogsServer = grpc.ServerStreamingServer[OpenVPNLogBatch]
+
+// OpenVPNOperationsService_ServiceDesc is the grpc.ServiceDesc for OpenVPNOperationsService service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var OpenVPNOperationsService_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "papiliovpn.node.v1.OpenVPNOperationsService",
+	HandlerType: (*OpenVPNOperationsServiceServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "ListSessions",
+			Handler:    _OpenVPNOperationsService_ListSessions_Handler,
+		},
+		{
+			MethodName: "DisconnectSession",
+			Handler:    _OpenVPNOperationsService_DisconnectSession_Handler,
+		},
+	},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "GetLogs",
+			Handler:       _OpenVPNOperationsService_GetLogs_Handler,
+			ServerStreams: true,
+		},
+	},
+	Metadata: "proto/v1/openvpn_instances.proto",
+}
+
+const (
+	OpenVPNAccessService_GetRevocationList_FullMethodName     = "/papiliovpn.node.v1.OpenVPNAccessService/GetRevocationList"
+	OpenVPNAccessService_ReplaceRevocationList_FullMethodName = "/papiliovpn.node.v1.OpenVPNAccessService/ReplaceRevocationList"
+)
+
+// OpenVPNAccessServiceClient is the client API for OpenVPNAccessService service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+type OpenVPNAccessServiceClient interface {
+	GetRevocationList(ctx context.Context, in *OpenVPNInstanceRequest, opts ...grpc.CallOption) (*OpenVPNRevocationStatus, error)
+	ReplaceRevocationList(ctx context.Context, in *ReplaceOpenVPNRevocationRequest, opts ...grpc.CallOption) (*OpenVPNRevocationStatus, error)
+}
+
+type openVPNAccessServiceClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewOpenVPNAccessServiceClient(cc grpc.ClientConnInterface) OpenVPNAccessServiceClient {
+	return &openVPNAccessServiceClient{cc}
+}
+
+func (c *openVPNAccessServiceClient) GetRevocationList(ctx context.Context, in *OpenVPNInstanceRequest, opts ...grpc.CallOption) (*OpenVPNRevocationStatus, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OpenVPNRevocationStatus)
+	err := c.cc.Invoke(ctx, OpenVPNAccessService_GetRevocationList_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *openVPNAccessServiceClient) ReplaceRevocationList(ctx context.Context, in *ReplaceOpenVPNRevocationRequest, opts ...grpc.CallOption) (*OpenVPNRevocationStatus, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OpenVPNRevocationStatus)
+	err := c.cc.Invoke(ctx, OpenVPNAccessService_ReplaceRevocationList_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// OpenVPNAccessServiceServer is the server API for OpenVPNAccessService service.
+// All implementations must embed UnimplementedOpenVPNAccessServiceServer
+// for forward compatibility.
+type OpenVPNAccessServiceServer interface {
+	GetRevocationList(context.Context, *OpenVPNInstanceRequest) (*OpenVPNRevocationStatus, error)
+	ReplaceRevocationList(context.Context, *ReplaceOpenVPNRevocationRequest) (*OpenVPNRevocationStatus, error)
+	mustEmbedUnimplementedOpenVPNAccessServiceServer()
+}
+
+// UnimplementedOpenVPNAccessServiceServer must be embedded to have
+// forward compatible implementations.
+//
+// NOTE: this should be embedded by value instead of pointer to avoid a nil
+// pointer dereference when methods are called.
+type UnimplementedOpenVPNAccessServiceServer struct{}
+
+func (UnimplementedOpenVPNAccessServiceServer) GetRevocationList(context.Context, *OpenVPNInstanceRequest) (*OpenVPNRevocationStatus, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetRevocationList not implemented")
+}
+func (UnimplementedOpenVPNAccessServiceServer) ReplaceRevocationList(context.Context, *ReplaceOpenVPNRevocationRequest) (*OpenVPNRevocationStatus, error) {
+	return nil, status.Error(codes.Unimplemented, "method ReplaceRevocationList not implemented")
+}
+func (UnimplementedOpenVPNAccessServiceServer) mustEmbedUnimplementedOpenVPNAccessServiceServer() {}
+func (UnimplementedOpenVPNAccessServiceServer) testEmbeddedByValue()                              {}
+
+// UnsafeOpenVPNAccessServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to OpenVPNAccessServiceServer will
+// result in compilation errors.
+type UnsafeOpenVPNAccessServiceServer interface {
+	mustEmbedUnimplementedOpenVPNAccessServiceServer()
+}
+
+func RegisterOpenVPNAccessServiceServer(s grpc.ServiceRegistrar, srv OpenVPNAccessServiceServer) {
+	// If the following call panics, it indicates UnimplementedOpenVPNAccessServiceServer was
+	// embedded by pointer and is nil.  This will cause panics if an
+	// unimplemented method is ever invoked, so we test this at initialization
+	// time to prevent it from happening at runtime later due to I/O.
+	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
+		t.testEmbeddedByValue()
+	}
+	s.RegisterService(&OpenVPNAccessService_ServiceDesc, srv)
+}
+
+func _OpenVPNAccessService_GetRevocationList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OpenVPNInstanceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(OpenVPNAccessServiceServer).GetRevocationList(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: OpenVPNAccessService_GetRevocationList_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(OpenVPNAccessServiceServer).GetRevocationList(ctx, req.(*OpenVPNInstanceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _OpenVPNAccessService_ReplaceRevocationList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ReplaceOpenVPNRevocationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(OpenVPNAccessServiceServer).ReplaceRevocationList(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: OpenVPNAccessService_ReplaceRevocationList_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(OpenVPNAccessServiceServer).ReplaceRevocationList(ctx, req.(*ReplaceOpenVPNRevocationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// OpenVPNAccessService_ServiceDesc is the grpc.ServiceDesc for OpenVPNAccessService service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var OpenVPNAccessService_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "papiliovpn.node.v1.OpenVPNAccessService",
+	HandlerType: (*OpenVPNAccessServiceServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "GetRevocationList",
+			Handler:    _OpenVPNAccessService_GetRevocationList_Handler,
+		},
+		{
+			MethodName: "ReplaceRevocationList",
+			Handler:    _OpenVPNAccessService_ReplaceRevocationList_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

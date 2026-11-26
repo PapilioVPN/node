@@ -2,6 +2,7 @@
 package openvpn
 
 import (
+	"github.com/PapilioVPN/node/internal/engines/openvpn/access"
 	bridgegrpc "github.com/PapilioVPN/node/internal/engines/openvpn/instances/bridge/grpc"
 	bridgehttp "github.com/PapilioVPN/node/internal/engines/openvpn/instances/bridge/http"
 	"github.com/PapilioVPN/node/internal/engines/openvpn/instances/lifecycle"
@@ -21,7 +22,13 @@ func register(life fx.Lifecycle, config settings.OpenVPN, router *chi.Mux, serve
 	driver := native.Driver{
 		Executable: config.Executable, ConfigFile: config.ConfigFile, RuntimeDirectory: config.RuntimeDirectory,
 	}
-	service := lifecycle.New(config.ID, config.ConfigFile, driver)
+	var revocations lifecycle.Revocations
+	if config.RevocationCAFile != "" && config.RevocationListFile != "" {
+		store := &access.Store{CAFile: config.RevocationCAFile, Path: config.RevocationListFile}
+		driver.Revocations = store
+		revocations = store
+	}
+	service := lifecycle.New(config.ID, config.ConfigFile, driver, revocations)
 	life.Append(fx.Hook{OnStop: service.Close})
 	bridgehttp.Register(router, service)
 	bridgegrpc.Register(server, service)

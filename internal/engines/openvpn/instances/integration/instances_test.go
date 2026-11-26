@@ -2,13 +2,16 @@ package integration_test
 
 import (
 	"bytes"
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"net"
 	"net/http"
 	"os"
+	"strconv"
 	"testing"
+	"time"
 
 	pb "github.com/PapilioVPN/node/internal/engines/openvpn/instances/bridge/grpc/proto/v1"
 	"google.golang.org/grpc"
@@ -60,6 +63,48 @@ func TestNativeLifecycle(t *testing.T) {
 		t.Fatalf("running version not confirmed: %v, %v", startedVersion, err)
 	}
 	f.tunnel(t)
+	ops := pb.NewOpenVPNOperationsServiceClient(conn)
+	report, err := ops.ListSessions(ctx, id)
+	if err != nil || len(report.GetSessions()) != 1 || report.GetExecutionId() == "" {
+		t.Fatalf("list sessions = %v, %v", report, err)
+	}
+	session := report.Sessions[0]
+	if session.CommonName != "fixture-client" || session.TunnelIpv4 != "10.224.0.2" || session.RxBytes == 0 || session.TxBytes == 0 {
+		t.Fatalf("unexpected session after tunneled traffic: %v", session)
+	}
+	httpReport := f.request(t, http.MethodGet, "/sessions", nil, http.StatusOK)
+	if !bytes.Contains(httpReport, []byte(report.ExecutionId)) || !bytes.Contains(httpReport, []byte("fixture-client")) {
+		t.Fatalf("HTTP sessions = %s", httpReport)
+	}
+	logCtx, stopLogs := context.WithTimeout(ctx, 3*time.Second)
+	defer stopLogs()
+	logs, err := ops.GetLogs(logCtx, &pb.OpenVPNLogsRequest{Id: id.Id, ExecutionId: report.ExecutionId})
+	if err != nil {
+		t.Fatal(err)
+	}
+	entriesBatch, err := logs.Recv()
+	if err != nil || len(entriesBatch.GetEntries()) == 0 || entriesBatch.GetExecutionId() != report.ExecutionId {
+		t.Fatalf("log batch = %v, %v", entriesBatch, err)
+	}
+	stopLogs()
+	logRequest, err := http.NewRequestWithContext(ctx, http.MethodGet,
+		"http://"+f.httpAddr+"/v1/openvpn/instances/primary/logs?execution_id="+report.ExecutionId, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	logReply, err := f.client.Do(logRequest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var httpLogBatch struct {
+		ExecutionID string            `json:"execution_id"`
+		Entries     []json.RawMessage `json:"entries"`
+	}
+	err = json.NewDecoder(logReply.Body).Decode(&httpLogBatch)
+	logReply.Body.Close()
+	if err != nil || logReply.StatusCode != http.StatusOK || httpLogBatch.ExecutionID != report.ExecutionId || len(httpLogBatch.Entries) == 0 {
+		t.Fatalf("HTTP log batch = %+v, %v", httpLogBatch, err)
+	}
 	checked, err := configs.ValidateConfig(ctx, &pb.ValidateOpenVPNConfigRequest{Id: "primary", ConfigText: f.source})
 	if err != nil || !checked.GetValid() {
 		t.Fatalf("dry-run during active execution = %v, %v", checked, err)
@@ -80,6 +125,26 @@ func TestNativeLifecycle(t *testing.T) {
 	}
 	assertStatus(pb.OpenVPNInstanceState_OPEN_VPN_INSTANCE_STATE_READY, encoded)
 	f.ping(t)
+	_, err = ops.DisconnectSession(ctx, &pb.DisconnectOpenVPNSessionRequest{Id: id.Id, ExecutionId: "stale", SessionId: &session.Id})
+	if grpcstatus.Code(err) != codes.FailedPrecondition {
+		t.Fatalf("stale disconnect = %v", err)
+	}
+	f.ping(t)
+	f.request(t, http.MethodDelete, "/sessions/"+strconv.FormatUint(session.Id, 10)+"?execution_id="+report.ExecutionId, nil, http.StatusNoContent)
+	until := time.Now().Add(2 * time.Second)
+	for {
+		updated, err := ops.ListSessions(ctx, id)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(updated.Sessions) == 0 || updated.Sessions[0].Id != session.Id {
+			break
+		}
+		if time.Now().After(until) {
+			t.Fatal("native client-kill did not remove the session")
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
 
 	stopped, err := instances.Stop(ctx, id)
 	if err != nil || stopped.GetState() != pb.OpenVPNInstanceState_OPEN_VPN_INSTANCE_STATE_STOPPED || stopped.AppliedConfigSha256 != nil {

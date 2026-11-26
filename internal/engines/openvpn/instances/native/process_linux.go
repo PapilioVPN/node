@@ -21,6 +21,7 @@ type process struct {
 	directory string
 	done      chan struct{}
 	version   string
+	control   *management
 
 	mu         sync.Mutex
 	closed     bool
@@ -31,6 +32,11 @@ type process struct {
 func (d Driver) Start(ctx context.Context, source []byte) (lifecycle.Execution, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
+	}
+	if d.Revocations != nil {
+		if err := d.Revocations.ValidateCurrent(); err != nil {
+			return nil, err
+		}
 	}
 	dir, err := os.MkdirTemp(d.RuntimeDirectory, "node-ovpn-")
 	if err != nil {
@@ -45,8 +51,11 @@ func (d Driver) Start(ctx context.Context, source []byte) (lifecycle.Execution, 
 	if err := os.WriteFile(file, source, 0600); err != nil {
 		return nil, errors.Join(lifecycle.ErrStartFailed, err, listener.Close(), os.RemoveAll(dir))
 	}
-	cmd := exec.Command(d.Executable, "--config", file, "--mode", "server",
-		"--management", path, "unix", "--management-client", "--management-hold")
+	args := []string{"--config", file, "--mode", "server", "--management", path, "unix", "--management-client", "--management-hold"}
+	if d.Revocations != nil {
+		args = append(args, "--ca", d.Revocations.CAFile, "--crl-verify", d.Revocations.Path)
+	}
+	cmd := exec.Command(d.Executable, args...)
 	cmd.Dir = filepath.Dir(d.ConfigFile)
 	cmd.SysProcAttr = &syscall.SysProcAttr{Pdeathsig: syscall.SIGKILL}
 	run := &process{cmd: cmd, listener: listener, directory: dir, done: make(chan struct{})}
