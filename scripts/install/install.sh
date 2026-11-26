@@ -78,8 +78,14 @@ install_docker() {
     debian|ubuntu)
       [[ ${VERSION_CODENAME:-} =~ ^[a-z0-9]+$ ]] || fail 'The apt release codename is missing.'
       if ! grep -qF "download.docker.com/linux/$os_id" /etc/apt/sources.list /etc/apt/sources.list.d/*.list /etc/apt/sources.list.d/*.sources 2>/dev/null; then
+        local alternate=debian
+        if [[ "$os_id" == debian ]]; then alternate=ubuntu; fi
+        # Docker signs both apt repositories with the same key.
+        if ! fetch "https://download.docker.com/linux/$os_id/gpg" "$work/docker.asc" &&
+            ! fetch "https://download.docker.com/linux/$alternate/gpg" "$work/docker.asc"; then
+          fail 'Could not get the Docker apt signing key.'
+        fi
         install -d -m 0755 /etc/apt/keyrings
-        fetch "https://download.docker.com/linux/$os_id/gpg" "$work/docker.asc"
         install -m 0644 "$work/docker.asc" /etc/apt/keyrings/papiliovpn-docker.asc
         cat > "$work/docker.sources" <<APT
 Types: deb
@@ -101,7 +107,14 @@ APT
         ol) repository=oracle ;;
       esac
       if ! grep -qE '^\[docker-ce-stable\]' /etc/yum.repos.d/*.repo 2>/dev/null; then
-        fetch "https://download.docker.com/linux/$repository/docker-ce.repo" "$work/docker-ce.repo"
+        cat > "$work/docker-ce.repo" <<RPM
+[docker-ce-stable]
+name=Docker CE Stable
+baseurl=https://download.docker.com/linux/$repository/\$releasever/\$basearch/stable
+enabled=1
+gpgcheck=1
+gpgkey=https://download.docker.com/linux/$repository/gpg
+RPM
         install -m 0644 "$work/docker-ce.repo" /etc/yum.repos.d/papiliovpn-docker.repo
       fi
       dnf install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin

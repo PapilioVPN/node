@@ -11,7 +11,10 @@ trace=$work/trace
 # or install packages on the runner.
 record() { printf '%s\n' "$*" >> "$trace"; }
 grep() { return 1; }
-fetch() { record "fetch $1"; }
+fetch() {
+  record "fetch $1"
+  [[ "$1" != "${unavailable_url:-}" ]]
+}
 install() { record "install $*"; }
 apt-get() { record "apt-get $*"; }
 dnf() { record "dnf $*"; }
@@ -36,20 +39,26 @@ expect 'apt-get install -y --no-install-recommends docker-ce docker-ce-cli conta
 command grep -Fxq 'Suites: noble' "$work/docker.sources"
 command grep -Fxq 'Architectures: amd64' "$work/docker.sources"
 
+unavailable_url=https://download.docker.com/linux/ubuntu/gpg
+select_host ubuntu 24.04 noble
+expect 'fetch https://download.docker.com/linux/debian/gpg'
+unset unavailable_url
+
 select_host debian 12 bookworm
 expect 'fetch https://download.docker.com/linux/debian/gpg'
 command grep -Fxq 'Suites: bookworm' "$work/docker.sources"
 
 for distro in centos fedora rhel rocky; do
   select_host "$distro"
-  expect "fetch https://download.docker.com/linux/$distro/docker-ce.repo"
+  command grep -Fxq "baseurl=https://download.docker.com/linux/$distro/\$releasever/\$basearch/stable" "$work/docker-ce.repo"
+  command grep -Fxq 'gpgcheck=1' "$work/docker-ce.repo"
   expect 'dnf install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin'
 done
 
 select_host almalinux
-expect 'fetch https://download.docker.com/linux/alma/docker-ce.repo'
+command grep -Fq '/linux/alma/' "$work/docker-ce.repo"
 select_host ol
-expect 'fetch https://download.docker.com/linux/oracle/docker-ce.repo'
+command grep -Fq '/linux/oracle/' "$work/docker-ce.repo"
 
 select_host amzn 2023
 expect 'dnf install -y docker'
