@@ -31,9 +31,12 @@ host:
 #   state_directory: "/var/lib/papiliovpn/wireguard" # Optional recovery. Existing Node-owned directory, mode 0700.
 
 
-# Optional OpenVPN server. Install a native OpenVPN binary for your environment.
+# Optional OpenVPN server. The runtime image includes OpenVPN.
 # openvpn:
 #   id: "primary"
 #   executable: "/usr/sbin/openvpn"
 #   config_file: "server.conf"
 #   runtime_directory: "/tmp"
+#   # Optional managed certificate revocations. Use a writable directory for the list.
+#   # revocation_ca_file: "issuer.pem"
+#   # revocation_list_file: "/var/lib/openvpn/revocations.pem"

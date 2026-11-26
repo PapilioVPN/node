@@ -18,3 +18,9 @@ GOMAXPROCS=2 taskset -c 2,3 unshare -Urn go test \
   ./internal/engines/openvpn/instances/integration -run '^$' \
   -bench BenchmarkNativeManagement -benchtime=250ms -count=3
 ```
+
+## Active sessions
+
+With one real connected client, the median of three run means was 0.385 ms over HTTP and 0.415 ms over gRPC. Each request reads one fresh native `status 3` snapshot on the execution's existing control connection and returns the session and its counters. The fixture uses the same CPU constraints and warm connections described above. Run it with `-bench 'BenchmarkNativeManagement/Sessions'`.
+
+[Session measurements](results/2026-11-26-session-management.txt)

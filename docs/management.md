@@ -27,7 +27,7 @@
 | WireGuard statistics | Read traffic, usage, last handshake, peer activity and observed endpoint IPs over HTTP and gRPC. |
 | WireGuard diagnostics | Follow lifecycle events, read runtime statistics, and probe an operator-configured egress target over HTTP and gRPC. |
 | WireGuard host networking | Optionally manage IPv4 forwarding rules, NAT and policy routing for a managed interface. |
-| OpenVPN server | Start, stop, validate profile options, and read confirmed execution status over HTTP and gRPC. |
+| OpenVPN server | Manage the execution, validate profiles, list sessions and counters, disconnect sessions, follow logs, and apply signed certificate revocations over HTTP and gRPC. |
 
 <a name="management"></a>
 

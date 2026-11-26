@@ -39,7 +39,7 @@
 ```bash
 (
   set -eu
-  version=1.5.0
+  version=1.6.0
   bundle="node-$version-linux-amd64-compose.tar.gz"
   release="https://github.com/PapilioVPN/node/releases/download/v$version"
   curl -fLO "$release/$bundle" -fLO "$release/$bundle.sha256"
@@ -62,7 +62,7 @@
 - **میزبان** — زمان کارکرد، CPU، حافظه، فضای ذخیره‌سازی و نرخ دریافت و ارسال شبکه.
 - **Xray** — چرخهٔ عمر، بررسی کانفیگ، همگام‌سازی و بازیابی حساب‌ها، آمار ترافیک و آنلاین، مسیریابی، لاگ و سلامت خروجی.
 - **WireGuard** — چرخهٔ عمر رابط لینوکس با lease مدیریتی و بازیابی، اعتبارسنجی و تغییر زندهٔ چند تنظیم با یک درخواست، مدیریت peerها و تغییرات تکه‌ای با HTTP و gRPC، پایش فعالیت، آمار اجرا و لاگ، بررسی دسترسی خروجی و تنظیم اختیاری forwarding، NAT و policy routing برای IPv4.
-- **OpenVPN** — مدیریت یک سرور لینوکسی با اعتبارسنجی کانفیگ و وضعیت اجرا از HTTP و gRPC.
+- **OpenVPN** — مدیریت سرور لینوکس، اعتبارسنجی کانفیگ، سشن‌ها و شمارنده‌ها، لاگ زنده، قطع اتصال و انتشار فهرست ابطال امضاشده از HTTP و gRPC.
 
 <a name="management"></a>
 

@@ -1,0 +1,12 @@
+goos: linux
+goarch: amd64
+pkg: github.com/PapilioVPN/node/internal/engines/openvpn/instances/integration
+cpu: AMD Ryzen 7 3750H with Radeon Vega Mobile Gfx
+BenchmarkNativeManagement/Sessions/http-2         	     781	    401541 ns/op	   10362 B/op	     114 allocs/op
+BenchmarkNativeManagement/Sessions/http-2         	     802	    384849 ns/op	   10254 B/op	     114 allocs/op
+BenchmarkNativeManagement/Sessions/http-2         	     794	    384614 ns/op	   10250 B/op	     114 allocs/op
+BenchmarkNativeManagement/Sessions/grpc-2         	     666	    418277 ns/op	   11331 B/op	     180 allocs/op
+BenchmarkNativeManagement/Sessions/grpc-2         	     775	    411802 ns/op	   11269 B/op	     180 allocs/op
+BenchmarkNativeManagement/Sessions/grpc-2         	     744	    415141 ns/op	   11271 B/op	     180 allocs/op
+PASS
+ok  	github.com/PapilioVPN/node/internal/engines/openvpn/instances/integration	2.093s

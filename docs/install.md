@@ -18,10 +18,10 @@ stop Node.
 ## Offline Docker installation
 
 Use the full archive when you cannot pull from GHCR. This example uses
-version 1.5.0.
+version 1.6.0.
 
 ```bash
-bundle=node-1.5.0-linux-amd64.tar.gz
+bundle=node-1.6.0-linux-amd64.tar.gz
 sha256sum -c "$bundle.sha256" && tar -xzf "$bundle"
 cd node
 mkdir -p config
@@ -73,6 +73,22 @@ through the container's `net.ipv4.ip_forward=1` sysctl or through the
 explicit managed routing option where the sysctl is writable. The quick
 start Compose profile keeps all capabilities dropped. See the
 [management reference](management.md) for the routing settings.
+
+## Enable OpenVPN
+
+The image includes `/usr/sbin/openvpn`. For a native installation, install OpenVPN 2.6 before enabling the engine. Provide the server profile and its TLS files in the configuration mount.
+
+To run OpenVPN with Docker Compose, add an override for the `node` service.
+
+```yaml
+services:
+  node:
+    user: "0:0"
+    cap_add: [NET_ADMIN]
+    devices: ["/dev/net/tun:/dev/net/tun"]
+```
+
+OpenVPN manages the tunnel in the container's network namespace. Select that namespace and the listening address deliberately. To enable managed revocations, mount a writable directory for the CRL. [OpenVPN management](openvpn.md)
 
 ## Upgrade
 
