@@ -62,7 +62,7 @@ func TestNativeLifecycle(t *testing.T) {
 	if startedVersion, err := instances.GetStatus(ctx, id); err != nil || startedVersion.GetOpenvpnVersion() == "" {
 		t.Fatalf("running version not confirmed: %v, %v", startedVersion, err)
 	}
-	f.tunnel(t)
+	f.tunnel(t, "--remap-usr1", "SIGTERM")
 	ops := pb.NewOpenVPNOperationsServiceClient(conn)
 	report, err := ops.ListSessions(ctx, id)
 	if err != nil || len(report.GetSessions()) != 1 || report.GetExecutionId() == "" {
@@ -131,7 +131,8 @@ func TestNativeLifecycle(t *testing.T) {
 	}
 	f.ping(t)
 	f.request(t, http.MethodDelete, "/sessions/"+strconv.FormatUint(session.Id, 10)+"?execution_id="+report.ExecutionId, nil, http.StatusNoContent)
-	until := time.Now().Add(2 * time.Second)
+	// OpenVPN schedules the server-side exit five seconds after acknowledging client-kill.
+	until := time.Now().Add(8 * time.Second)
 	for {
 		updated, err := ops.ListSessions(ctx, id)
 		if err != nil {
@@ -141,7 +142,7 @@ func TestNativeLifecycle(t *testing.T) {
 			break
 		}
 		if time.Now().After(until) {
-			t.Fatal("native client-kill did not remove the session")
+			t.Fatalf("native client-kill did not remove session %d: %v", session.Id, updated.Sessions)
 		}
 		time.Sleep(10 * time.Millisecond)
 	}
