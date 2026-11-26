@@ -1,29 +1,55 @@
 # Install PapilioVPN Node
 
 The [release page](https://github.com/PapilioVPN/node/releases/latest) has
-two Linux amd64 archives. The small Compose bundle pulls the image from
-GHCR. The full archive includes the Docker image and standalone binaries.
-Download the matching `.sha256` file alongside either archive.
+a versioned installer and two Linux amd64 archives. The full archive
+includes the installer, Docker image, and standalone binaries. The small
+Compose bundle pulls the image from GHCR. A matching `.sha256` file is
+available alongside each download.
 
-## Docker Compose
+## Install on a Linux server
 
-The [quick start](../README.md#quick-start) uses the full archive and loads
-its image locally. If you can pull from GHCR, use the small Compose bundle
-instead and run `docker compose up -d`. The small bundle pins the image
-version in `.env`. Node runs without Linux capabilities, with a read-only
-root filesystem, and listens on loopback ports 8080 for HTTP and 8081 for
-gRPC by default.
+Run the [one-line installer](../README.md#quick-start) over SSH with Bash,
+`curl`, and root or sudo access. It uses a working local Docker installation
+if available. On a fresh server it installs Docker, verifies the release
+checksum, loads the image locally, and checks that Node is healthy.
 
-Use `docker compose logs node` to see logs and `docker compose down` to
-stop Node.
+Automatic Docker setup targets Ubuntu, Debian, Fedora, RHEL, CentOS Stream,
+Rocky Linux, AlmaLinux, Oracle Linux, Amazon Linux, Arch Linux, and
+openSUSE. Use a maintained release with systemd. On other distributions
+you can use the installer with an existing local Docker Engine and
+`docker compose` plugin. The Node artifact targets `amd64`.
+
+The default destination is `/opt/papiliovpn-node`. The terminal summary
+shows the config file, health URL, and command for live logs. The current
+installation attempt is recorded in `install.log` with mode `0600`.
+Set `NO_COLOR=1` for plain output. Use `--yes` for an unattended install or
+update. A healthy installation of the same version is reused when the
+installer is run without `--archive`.
+
+Node starts on loopback ports 8080 for HTTP and 8081 for gRPC. Each engine
+is enabled through `config/config.yml` and requires its own configuration.
+Use `compose.override.yml` in the installation directory for local
+Compose settings, and `--health-url` if the HTTP health address differs.
+
+For an installation managed directly with Compose, extract the small
+bundle and run `docker compose up -d` if you can pull from GHCR, or load
+the full bundle's image using the manual procedure below.
 
 ## Offline Docker installation
 
-Use the full archive when you cannot pull from GHCR. This example uses
-version 1.7.0.
+On a server with Docker and Compose, place the full archive, checksum,
+and versioned installer in the same directory. Install the local package
+without downloading an image or connecting to GHCR.
 
 ```bash
-bundle=node-1.7.0-linux-amd64.tar.gz
+sudo bash node-1.7.1-linux-amd64-install.sh --archive node-1.7.1-linux-amd64.tar.gz --yes
+```
+
+The same installer is in the archive as `node/install.sh`. For a manual
+Compose installation from the full archive, use the following steps.
+
+```bash
+bundle=node-1.7.1-linux-amd64.tar.gz
 sha256sum -c "$bundle.sha256" && tar -xzf "$bundle"
 cd node
 mkdir -p config
@@ -100,7 +126,8 @@ shows the Node settings and management operations.
 
 ## Upgrade
 
-Extract the new bundle and keep the existing `config/` directory. Check
-any release notes first, then run `docker compose up -d` with the new
-bundle. For an offline upgrade, load the new image and use its
-`image-name` as shown above. Keep persisted state in its existing mount.
+Run the new version's installer against the same directory. It preserves
+the existing `config/` directory and records the new release after its
+health check passes. If startup fails, it attempts to restore the
+previous Compose deployment. For a manual Compose installation, extract
+the new bundle and keep the existing `config/` directory and state mounts.

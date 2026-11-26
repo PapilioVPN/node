@@ -42,26 +42,22 @@
 
 ## 快速开始
 
-在已安装 Docker Compose 的 Linux amd64 上，下载完整发布包、校验 SHA-256 并启动 Node。发布包已包含 Docker 镜像。
+通过 SSH 在 Linux amd64 服务器上运行此命令。安装程序按需安装 Docker 和 Compose，校验发布包并启动 Node。
 
 ```bash
-(
-  set -eu
-  version=1.7.0
-  bundle="node-$version-linux-amd64.tar.gz"
-  release="https://github.com/PapilioVPN/node/releases/download/v$version"
-  curl -fLO "$release/$bundle" -fLO "$release/$bundle.sha256"
-  sha256sum -c "$bundle.sha256"
-  tar -xzf "$bundle"
-  cd node
-  mkdir -p config
-  test -e config/config.yml || cp config.example.yml config/config.yml
-  docker load -i image.tar
-  NODE_IMAGE="$(cat image-name)" docker compose up -d --pull never
-)
+(f=$(mktemp) && trap 'rm -f "$f"' EXIT && curl -fsSL https://github.com/PapilioVPN/node/releases/download/v1.7.1/node-1.7.1-linux-amd64-install.sh -o "$f" && if [ "$(id -u)" -eq 0 ]; then bash "$f"; else sudo bash "$f"; fi)
 ```
 
-管理 API 默认仅监听回环地址。可使用 `curl -fsS http://127.0.0.1:8080/healthz` 检查。原生安装和引擎配置见[安装指南](docs/install.md)。
+<details>
+<summary>快速无人值守安装</summary>
+
+```bash
+(f=$(mktemp) && trap 'rm -f "$f"' EXIT && curl -fsSL https://github.com/PapilioVPN/node/releases/download/v1.7.1/node-1.7.1-linux-amd64-install.sh -o "$f" && if [ "$(id -u)" -eq 0 ]; then bash "$f" --yes; else sudo bash "$f" --yes; fi)
+```
+
+</details>
+
+管理 API 默认仅监听回环地址。安装程序会显示健康检查地址，并将最近一次安装过程写入 `/opt/papiliovpn-node/install.log`。离线安装和引擎配置见[安装指南](docs/install.md)。
 
 <a name="capabilities"></a>
 <a name="current-capabilities"></a>

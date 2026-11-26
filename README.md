@@ -40,26 +40,22 @@
 
 ## Quick start
 
-On Linux amd64 with Docker Compose, download the full release bundle, verify its checksum, and start Node. The bundle includes the Docker image.
+On a Linux amd64 server, copy this command into an SSH terminal. The installer sets up Docker and Compose when needed, checks the release archive, and starts Node.
 
 ```bash
-(
-  set -eu
-  version=1.7.0
-  bundle="node-$version-linux-amd64.tar.gz"
-  release="https://github.com/PapilioVPN/node/releases/download/v$version"
-  curl -fLO "$release/$bundle" -fLO "$release/$bundle.sha256"
-  sha256sum -c "$bundle.sha256"
-  tar -xzf "$bundle"
-  cd node
-  mkdir -p config
-  test -e config/config.yml || cp config.example.yml config/config.yml
-  docker load -i image.tar
-  NODE_IMAGE="$(cat image-name)" docker compose up -d --pull never
-)
+(f=$(mktemp) && trap 'rm -f "$f"' EXIT && curl -fsSL https://github.com/PapilioVPN/node/releases/download/v1.7.1/node-1.7.1-linux-amd64-install.sh -o "$f" && if [ "$(id -u)" -eq 0 ]; then bash "$f"; else sudo bash "$f"; fi)
 ```
 
-The management API binds to loopback by default. Check it with `curl -fsS http://127.0.0.1:8080/healthz`. See the [installation guide](docs/install.md) for native installation and engine setup.
+<details>
+<summary>Quick install without prompts</summary>
+
+```bash
+(f=$(mktemp) && trap 'rm -f "$f"' EXIT && curl -fsSL https://github.com/PapilioVPN/node/releases/download/v1.7.1/node-1.7.1-linux-amd64-install.sh -o "$f" && if [ "$(id -u)" -eq 0 ]; then bash "$f" --yes; else sudo bash "$f" --yes; fi)
+```
+
+</details>
+
+The API listens on loopback by default. The installer prints the health URL and records its latest run in `/opt/papiliovpn-node/install.log`. For offline installation and engine setup, see the [installation guide](docs/install.md).
 
 <a name="capabilities"></a>
 <a name="current-capabilities"></a>

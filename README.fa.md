@@ -44,26 +44,22 @@
 
 ## شروع سریع
 
-روی Linux amd64 با Docker Compose، بستهٔ کامل را بگیر، checksum را بررسی کن و Node را بالا بیاور. ایمیج Docker داخل بسته است.
+روی سرور Linux amd64 این خط را در SSH اجرا کن. نصاب در صورت نیاز Docker و Compose را نصب می‌کند، صحت بسته را بررسی می‌کند و Node را بالا می‌آورد.
 
 ```bash
-(
-  set -eu
-  version=1.7.0
-  bundle="node-$version-linux-amd64.tar.gz"
-  release="https://github.com/PapilioVPN/node/releases/download/v$version"
-  curl -fLO "$release/$bundle" -fLO "$release/$bundle.sha256"
-  sha256sum -c "$bundle.sha256"
-  tar -xzf "$bundle"
-  cd node
-  mkdir -p config
-  test -e config/config.yml || cp config.example.yml config/config.yml
-  docker load -i image.tar
-  NODE_IMAGE="$(cat image-name)" docker compose up -d --pull never
-)
+(f=$(mktemp) && trap 'rm -f "$f"' EXIT && curl -fsSL https://github.com/PapilioVPN/node/releases/download/v1.7.1/node-1.7.1-linux-amd64-install.sh -o "$f" && if [ "$(id -u)" -eq 0 ]; then bash "$f"; else sudo bash "$f"; fi)
 ```
 
-رابط مدیریتی به‌صورت پیش‌فرض روی loopback است. با `curl -fsS http://127.0.0.1:8080/healthz` آن را بررسی کن. نصب باینری و راه‌اندازی موتورها در [راهنمای نصب](docs/install.md) آمده است.
+<details>
+<summary>نصب سریع و بدون سؤال</summary>
+
+```bash
+(f=$(mktemp) && trap 'rm -f "$f"' EXIT && curl -fsSL https://github.com/PapilioVPN/node/releases/download/v1.7.1/node-1.7.1-linux-amd64-install.sh -o "$f" && if [ "$(id -u)" -eq 0 ]; then bash "$f" --yes; else sudo bash "$f" --yes; fi)
+```
+
+</details>
+
+رابط مدیریتی به‌صورت پیش‌فرض روی loopback است. نصاب آدرس سلامت را نشان می‌دهد و گزارش آخرین اجرا را در `/opt/papiliovpn-node/install.log` می‌نویسد. نصب آفلاین و راه‌اندازی موتورها در [راهنمای نصب](docs/install.md) آمده است.
 
 <a name="capabilities"></a>
 <a name="current-capabilities"></a>
