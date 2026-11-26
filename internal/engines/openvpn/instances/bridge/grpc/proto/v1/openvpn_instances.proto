@@ -1,0 +1,76 @@
+syntax = "proto3";
+
+package papiliovpn.node.v1;
+
+option go_package = "github.com/PapilioVPN/node/internal/engines/openvpn/instances/bridge/grpc/proto/v1;instancesv1";
+
+service OpenVPNInstancesService {
+  rpc Start(OpenVPNStartRequest) returns (OpenVPNInstanceStatus);
+  rpc GetStatus(OpenVPNInstanceRequest) returns (OpenVPNInstanceStatus);
+  rpc Stop(OpenVPNInstanceRequest) returns (OpenVPNInstanceStatus);
+}
+
+service OpenVPNConfigsService {
+  // Checks managed-source rules and the native option parser without starting a tunnel.
+  rpc ValidateConfig(ValidateOpenVPNConfigRequest) returns (OpenVPNConfigValidation);
+}
+
+message OpenVPNInstanceRequest {
+  string id = 1;
+}
+
+message OpenVPNStartRequest {
+  string id = 1;
+  // Omit to read the configured file. A present empty configuration is invalid.
+  optional bytes config_text = 2;
+}
+
+message ValidateOpenVPNConfigRequest {
+  string id = 1;
+  optional bytes config_text = 2;
+}
+
+enum OpenVPNInstanceState {
+  OPEN_VPN_INSTANCE_STATE_UNSPECIFIED = 0;
+  OPEN_VPN_INSTANCE_STATE_STOPPED = 1;
+  OPEN_VPN_INSTANCE_STATE_STARTING = 2;
+  OPEN_VPN_INSTANCE_STATE_READY = 3;
+  OPEN_VPN_INSTANCE_STATE_STOPPING = 4;
+  OPEN_VPN_INSTANCE_STATE_FAILED = 5;
+}
+
+enum OpenVPNStartAction {
+  OPEN_VPN_START_ACTION_UNSPECIFIED = 0;
+  OPEN_VPN_START_ACTION_STARTED = 1;
+  OPEN_VPN_START_ACTION_HEARTBEAT = 2;
+  OPEN_VPN_START_ACTION_RESTARTED = 3;
+  OPEN_VPN_START_ACTION_RECOVERED = 4;
+}
+
+message OpenVPNInstanceStatus {
+  string id = 1;
+  OpenVPNInstanceState state = 2;
+  string node_version = 3;
+  OpenVPNStartAction start_action = 4;
+  // SHA-256 of exact accepted source, present after confirmed readiness.
+  optional string applied_config_sha256 = 5;
+  string openvpn_version = 6;
+}
+
+enum OpenVPNConfigIssueCode {
+  OPEN_VPN_CONFIG_ISSUE_CODE_UNSPECIFIED = 0;
+  OPEN_VPN_CONFIG_ISSUE_CODE_INVALID_SOURCE = 1;
+  OPEN_VPN_CONFIG_ISSUE_CODE_UNSUPPORTED_DIRECTIVE = 2;
+  OPEN_VPN_CONFIG_ISSUE_CODE_OPTIONS_REJECTED = 3;
+}
+
+message OpenVPNConfigIssue {
+  OpenVPNConfigIssueCode code = 1;
+  uint32 line = 2;
+}
+
+message OpenVPNConfigValidation {
+  string id = 1;
+  bool valid = 2;
+  OpenVPNConfigIssue issue = 3;
+}

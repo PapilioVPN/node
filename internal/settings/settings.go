@@ -18,6 +18,7 @@ type Config struct {
 	Host       Host       `yaml:"host"`
 	Xray       Xray       `yaml:"xray"`
 	WireGuard  WireGuard  `yaml:"wireguard"`
+	OpenVPN    OpenVPN    `yaml:"openvpn"`
 }
 
 func Load(path string) (Config, error) {
@@ -56,6 +57,9 @@ func Load(path string) (Config, error) {
 		return Config{}, err
 	}
 	if err := config.WireGuard.validate(dir, config.Management); err != nil {
+		return Config{}, err
+	}
+	if err := config.OpenVPN.validate(dir, config.Management); err != nil {
 		return Config{}, err
 	}
 	return config, nil
