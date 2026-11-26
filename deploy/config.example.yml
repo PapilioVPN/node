@@ -40,3 +40,13 @@ host:
 #   # Optional managed certificate revocations. Use a writable directory for the list.
 #   # revocation_ca_file: "issuer.pem"
 #   # revocation_list_file: "/var/lib/openvpn/revocations.pem"
+
+# Optional Hysteria 2 servers. Supply the verified Linux amd64 app/v2.14.0 binary.
+# The Compose example mounts ./config at /etc/node. The runtime user needs to
+# execute the binary, read the YAML and TLS files, and write the runtime directory.
+# hysteria:
+#   instances:
+#     - id: "edge"
+#       executable: "bin/hysteria"
+#       config_file: "hysteria-edge.yml"
+#       runtime_directory: "/tmp"
