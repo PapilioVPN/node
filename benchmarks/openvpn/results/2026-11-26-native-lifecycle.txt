@@ -1,0 +1,21 @@
+goos: linux
+goarch: amd64
+pkg: github.com/PapilioVPN/node/internal/engines/openvpn/instances/integration
+cpu: AMD Ryzen 7 3750H with Radeon Vega Mobile Gfx
+BenchmarkNativeManagement/Validate/direct-2         	      49	   5855548 ns/op	   21705 B/op	      56 allocs/op
+BenchmarkNativeManagement/Validate/direct-2         	      52	   5571735 ns/op	   21034 B/op	      55 allocs/op
+BenchmarkNativeManagement/Validate/direct-2         	      48	   5638326 ns/op	   20976 B/op	      55 allocs/op
+BenchmarkNativeManagement/Validate/http-2           	      44	   6061660 ns/op	   32364 B/op	     168 allocs/op
+BenchmarkNativeManagement/Validate/http-2           	      52	   5827594 ns/op	   31400 B/op	     167 allocs/op
+BenchmarkNativeManagement/Validate/http-2           	      48	   5885302 ns/op	   31396 B/op	     167 allocs/op
+BenchmarkNativeManagement/Validate/grpc-2           	      51	   6125886 ns/op	   31917 B/op	     216 allocs/op
+BenchmarkNativeManagement/Validate/grpc-2           	      50	   6022804 ns/op	   31154 B/op	     216 allocs/op
+BenchmarkNativeManagement/Validate/grpc-2           	      51	   6303681 ns/op	   31129 B/op	     216 allocs/op
+BenchmarkNativeManagement/Status/http-2             	    1680	    185836 ns/op	    8677 B/op	      93 allocs/op
+BenchmarkNativeManagement/Status/http-2             	    1684	    183547 ns/op	    8650 B/op	      93 allocs/op
+BenchmarkNativeManagement/Status/http-2             	    1516	    184445 ns/op	    8650 B/op	      93 allocs/op
+BenchmarkNativeManagement/Status/grpc-2             	    1618	    193728 ns/op	    9185 B/op	     155 allocs/op
+BenchmarkNativeManagement/Status/grpc-2             	    1489	    194171 ns/op	    9148 B/op	     155 allocs/op
+BenchmarkNativeManagement/Status/grpc-2             	    1584	    196149 ns/op	    9143 B/op	     155 allocs/op
+PASS
+ok  	github.com/PapilioVPN/node/internal/engines/openvpn/instances/integration	4.711s

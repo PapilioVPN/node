@@ -27,6 +27,7 @@
 | WireGuard statistics | Read traffic, usage, last handshake, peer activity and observed endpoint IPs over HTTP and gRPC. |
 | WireGuard diagnostics | Follow lifecycle events, read runtime statistics, and probe an operator-configured egress target over HTTP and gRPC. |
 | WireGuard host networking | Optionally manage IPv4 forwarding rules, NAT and policy routing for a managed interface. |
+| OpenVPN server | Start, stop, validate profile options, and read confirmed execution status over HTTP and gRPC. |
 
 <a name="management"></a>
 
@@ -127,3 +128,7 @@ The HTTP paths below are relative to `/v1/wireguard/interfaces/{name}`. Peer pat
 | `GET /egress-probe` | `WireGuardDiagnosticsService.ProbeEgress` | Reachability and HTTP status from one HEAD request over the operator-selected link. Set `wireguard.probe.url`, with optional `interface` and `timeout_ms`. |
 
 For IPv4 host networking, configure `wireguard.routing` with managed mode enabled. The image includes `nft`. Native installs require it on the Node process's PATH. Omit `egress_interface` to use the lowest-metric unambiguous main-table IPv4 default route. IPv4 forwarding must already be enabled or explicitly requested through `enable_ipv4_forwarding: true`. This changes the sysctl in Node’s network namespace and stays enabled after Stop. Node owns scoped firewall and optional policy routing rules and removes them on explicit Stop. [Settings and verification](../benchmarks/wireguard/routing/routing.md)
+
+## OpenVPN server
+
+See the [OpenVPN management contract](openvpn.md) for Linux requirements, APIs and profile rules.
